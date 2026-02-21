@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Pour utiliser la police HKG Wide, décommentez et pointez vers vos fichiers :
+@font-face {
+  font-family: 'HKG Wide';
+  src: url('/fonts/HKGWide-Medium.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+}
+*/
+
 @layer base {
   html {
     scroll-behavior: smooth;

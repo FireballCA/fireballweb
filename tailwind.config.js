@@ -13,6 +13,7 @@ export default {
           800: '#1a1a1a',
           700: '#252525',
           600: '#333333',
+          500: '#404040',
         },
         chrome: '#c9b896',
         silver: '#e5e5e5',
@@ -21,6 +22,7 @@ export default {
       fontFamily: {
         display: ['Bebas Neue', 'Oswald', 'sans-serif'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        nav: ['HKG Wide', 'Hanken Grotesk', 'sans-serif'],
       },
       letterSpacing: {
         'luxury': '0.2em',
