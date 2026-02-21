@@ -11,7 +11,7 @@ export function Cart() {
         <p className="text-silver/80 mb-8">Découvrez nos produits d'esthétique automobile.</p>
         <Link
           to="/boutique"
-          className="inline-block px-8 py-4 bg-chrome text-carbon-950 font-medium text-sm tracking-wide uppercase hover:bg-chrome/90 transition-colors"
+          className="inline-block px-8 py-4 bg-chrome text-carbon-950 font-medium text-sm uppercase hover:bg-chrome/90 transition-colors"
         >
           Voir la boutique
         </Link>
@@ -74,7 +74,7 @@ export function Cart() {
 
         <div className="lg:col-span-1">
           <div className="border border-carbon-700 p-6 sticky top-28">
-            <h2 className="text-sm font-semibold tracking-widest text-chrome uppercase mb-4">
+            <h2 className="text-sm font-semibold text-chrome uppercase mb-4">
               Récapitulatif
             </h2>
             <div className="flex justify-between text-silver/80 text-sm mb-2">
@@ -86,7 +86,7 @@ export function Cart() {
             </div>
             <button
               type="button"
-              className="w-full mt-6 py-4 bg-chrome text-carbon-950 font-medium text-sm tracking-wide uppercase hover:bg-chrome/90 transition-colors"
+              className="w-full mt-6 py-4 bg-chrome text-carbon-950 font-medium text-sm uppercase hover:bg-chrome/90 transition-colors"
             >
               Passer la commande
             </button>

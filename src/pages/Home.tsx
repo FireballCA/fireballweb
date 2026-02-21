@@ -17,7 +17,7 @@ export function Home() {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-carbon-950/80 via-carbon-950/60 to-carbon-950" />
         <div className="relative z-10 text-center px-6 max-w-4xl mx-auto animate-slide-up">
-          <p className="text-chrome text-sm tracking-widest uppercase mb-4">Esthétique automobile</p>
+          <p className="text-chrome text-sm uppercase mb-4">Esthétique automobile</p>
           <h1 className="font-display text-6xl md:text-8xl lg:text-9xl text-pearl tracking-tight leading-none">
             FIREBALL
           </h1>
@@ -27,13 +27,13 @@ export function Home() {
           <div className="mt-12 flex flex-wrap justify-center gap-4">
             <Link
               to="/boutique"
-              className="inline-block px-8 py-4 bg-chrome text-carbon-950 font-medium text-sm tracking-wide uppercase hover:bg-chrome/90 transition-colors"
+              className="inline-block px-8 py-4 bg-chrome text-carbon-950 font-medium text-sm uppercase hover:bg-chrome/90 transition-colors"
             >
               Découvrir la boutique
             </Link>
             <Link
               to="/boutique#featured"
-              className="inline-block px-8 py-4 border border-silver/30 text-pearl text-sm tracking-wide uppercase hover:border-chrome hover:text-chrome transition-colors"
+              className="inline-block px-8 py-4 border border-silver/30 text-pearl text-sm uppercase hover:border-chrome hover:text-chrome transition-colors"
             >
               Produits phares
             </Link>
@@ -47,7 +47,7 @@ export function Home() {
       {/* Categories */}
       <section className="py-24 border-t border-carbon-800">
         <div className="max-w-7xl mx-auto px-6">
-          <p className="text-chrome text-sm tracking-widest uppercase mb-2">Gammes</p>
+          <p className="text-chrome text-sm uppercase mb-2">Gammes</p>
           <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight mb-16">
             Trois univers, une exigence
           </h2>
@@ -80,7 +80,7 @@ export function Home() {
       {/* Featured products */}
       <section id="featured" className="py-24 bg-carbon-900/50 border-t border-carbon-800">
         <div className="max-w-7xl mx-auto px-6">
-          <p className="text-chrome text-sm tracking-widest uppercase mb-2">Sélection</p>
+          <p className="text-chrome text-sm uppercase mb-2">Sélection</p>
           <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight mb-16">
             Produits phares
           </h2>
@@ -114,7 +114,7 @@ export function Home() {
           <div className="mt-12 text-center">
             <Link
               to="/boutique"
-              className="inline-block text-chrome text-sm tracking-wide uppercase hover:underline"
+              className="inline-block text-chrome text-sm uppercase hover:underline"
             >
               Voir toute la boutique →
             </Link>
@@ -133,7 +133,7 @@ export function Home() {
           </p>
           <Link
             to="/boutique"
-            className="inline-block px-8 py-4 border border-chrome text-chrome text-sm tracking-wide uppercase hover:bg-chrome hover:text-carbon-950 transition-colors"
+            className="inline-block px-8 py-4 border border-chrome text-chrome text-sm uppercase hover:bg-chrome hover:text-carbon-950 transition-colors"
           >
             Accéder à la boutique
           </Link>

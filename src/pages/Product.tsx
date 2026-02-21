@@ -86,7 +86,7 @@ export function Product() {
             <button
               type="button"
               onClick={handleAddToCart}
-              className={`flex-1 min-w-[200px] py-4 px-8 text-sm tracking-wide uppercase transition-colors ${
+              className={`flex-1 min-w-[200px] py-4 px-8 text-sm uppercase transition-colors ${
                 added
                   ? 'bg-carbon-600 text-silver cursor-default'
                   : 'bg-chrome text-carbon-950 hover:bg-chrome/90'
@@ -102,7 +102,7 @@ export function Product() {
               addToCart(product, quantity)
               navigate('/panier')
             }}
-            className="mt-4 w-full py-3 border border-carbon-600 text-silver text-sm tracking-wide uppercase hover:border-chrome hover:text-chrome transition-colors"
+            className="mt-4 w-full py-3 border border-carbon-600 text-silver text-sm uppercase hover:border-chrome hover:text-chrome transition-colors"
           >
             Acheter maintenant
           </button>
