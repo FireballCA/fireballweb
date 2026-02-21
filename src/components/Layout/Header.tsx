@@ -1,12 +1,7 @@
-import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useId, useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { useCart } from '@/context/CartContext'
 import { CATEGORIES } from '@/data/products'
-
-const SHOP_DROPDOWN = [
-  ...CATEGORIES.map((c) => ({ label: c.name, to: `/boutique/${c.id}` })),
-  { label: 'Tous les produits', to: '/boutique' },
-]
 
 const CERAMIC_DROPDOWN = [
   { label: 'Carrosserie', to: '/boutique/revetements' },
@@ -15,23 +10,39 @@ const CERAMIC_DROPDOWN = [
 ]
 
 function FlagEN() {
+  const clipId = useId()
   return (
-    <svg width="20" height="14" viewBox="0 0 20 14" fill="none" className="flex-shrink-0">
-      <rect width="20" height="14" fill="#012169" />
-      <path d="M0 0L20 14M20 0L0 14" stroke="white" strokeWidth="2.5" />
-      <path d="M0 0L20 14M20 0L0 14" stroke="#C8102E" strokeWidth="1.5" />
-      <path d="M10 0v14M0 7h20" stroke="white" strokeWidth="4" />
-      <path d="M10 0v14M0 7h20" stroke="#C8102E" strokeWidth="2.5" />
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="flex-shrink-0">
+      <defs>
+        <clipPath id={clipId}>
+          <circle cx="10" cy="10" r="10" />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clipId})`}>
+        <rect width="20" height="20" fill="#012169" />
+        <path d="M0 0L20 20M20 0L0 20" stroke="white" strokeWidth="3" />
+        <path d="M0 0L20 20M20 0L0 20" stroke="#C8102E" strokeWidth="1.8" />
+        <path d="M10 0v20M0 10h20" stroke="white" strokeWidth="5" />
+        <path d="M10 0v20M0 10h20" stroke="#C8102E" strokeWidth="3" />
+      </g>
     </svg>
   )
 }
 
 function FlagFR() {
+  const clipId = useId()
   return (
-    <svg width="20" height="14" viewBox="0 0 20 14" fill="none" className="flex-shrink-0">
-      <rect width="6.67" height="14" fill="#002395" />
-      <rect width="6.67" height="14" x="6.67" fill="#fff" />
-      <rect width="6.67" height="14" x="13.33" fill="#ED2939" />
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="flex-shrink-0">
+      <defs>
+        <clipPath id={clipId}>
+          <circle cx="10" cy="10" r="10" />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clipId})`}>
+        <rect width="6.67" height="20" fill="#002395" />
+        <rect width="6.67" height="20" x="6.67" fill="#fff" />
+        <rect width="6.67" height="20" x="13.33" fill="#ED2939" />
+      </g>
     </svg>
   )
 }
@@ -42,9 +53,12 @@ export function Header() {
   const [ceramicOpen, setCeramicOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [lang, setLang] = useState<'EN' | 'FR'>('FR')
+  const [langOpen, setLangOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const langMenuDesktopRef = useRef<HTMLDivElement | null>(null)
+  const langMenuMobileRef = useRef<HTMLDivElement | null>(null)
+  const searchMenuRef = useRef<HTMLDivElement | null>(null)
   const { totalItems } = useCart()
-  const location = useLocation()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -53,31 +67,49 @@ export function Header() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const isActive = (path: string) => location.pathname === path
+  useEffect(() => {
+    const onClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node
+
+      if (langOpen) {
+        const inDesktop = langMenuDesktopRef.current?.contains(target)
+        const inMobile = langMenuMobileRef.current?.contains(target)
+        if (!inDesktop && !inMobile) {
+          setLangOpen(false)
+        }
+      }
+
+      if (searchOpen && searchMenuRef.current && !searchMenuRef.current.contains(target)) {
+        setSearchOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [langOpen, searchOpen])
 
   const navBg = scrolled
     ? 'bg-carbon-950/95 backdrop-blur-md border-b border-carbon-700/50'
     : 'bg-transparent border-b border-transparent'
 
   const navLink =
-    'font-nav font-bold text-white hover:text-chrome transition-colors text-sm uppercase tracking-wide'
+    'font-nav font-bold text-white transition-colors text-xs uppercase px-4 py-2 rounded-md hover:bg-carbon-700/20 group-hover:text-silver/70 hover:!text-white'
+  const anyMenuOpen = shopOpen || ceramicOpen || searchOpen || langOpen || menuOpen
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${navBg}`}
     >
+      {anyMenuOpen && (
+        <div className="fixed inset-0 z-40 bg-black/15 pointer-events-none" aria-hidden />
+      )}
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-20">
         {/* Left: Logo + links */}
         <div className="flex items-center gap-10">
-          <Link to="/" className="flex items-center h-12 w-auto">
-            <img
-              src="/LogoFull.avif"
-              alt="Fireball"
-              className="h-10 w-auto object-contain"
-            />
+          <Link to="/" className="flex items-center h-12 w-auto select-none">
+            <img src="/LogoFull.avif" alt="Fireball" className="h-6 w-auto object-contain pointer-events-none" draggable={false} />
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-8">
+          <nav className="hidden lg:flex items-center gap-1 pt-0.5 group">
             <Link to="/car-club" className={navLink}>
               Car club
             </Link>
@@ -89,23 +121,71 @@ export function Header() {
             >
               <button type="button" className={`${navLink} flex items-center gap-1`}>
                 Shop
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className={`w-3.5 h-3.5 transition-transform ${shopOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
               {shopOpen && (
-                <div className="absolute top-full left-0 pt-3 animate-fade-in">
-                  <div className="bg-carbon-800 border border-carbon-600 py-3 min-w-[200px] shadow-xl">
-                    {SHOP_DROPDOWN.map((item) => (
-                      <Link
-                        key={item.to + item.label}
-                        to={item.to}
-                        className="block px-5 py-2 text-sm font-nav font-bold text-white hover:bg-carbon-700 hover:text-chrome"
-                        onClick={() => setShopOpen(false)}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in">
+                  <div className="relative">
+                    <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
+                      <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
+                    </svg>
+                    <div className="relative left-32 bg-white p-4 min-w-[860px] rounded-2xl shadow-xl">
+                      <div className="grid grid-cols-[1fr_1fr_0.95fr] gap-4">
+                        <div className="p-3 rounded-2xl">
+                          <p className="text-black text-xs font-nav font-bold uppercase">Protection Systems</p>
+                          <p className="text-carbon-700 text-xs mt-1">Surface durability & coating technologies</p>
+                          <div className="mt-3 space-y-1">
+                            <Link to="/boutique" className="block text-black text-sm font-nav font-bold hover:bg-black/10 rounded-xl px-2 py-1" onClick={() => setShopOpen(false)}>
+                              Coatings
+                            </Link>
+                            <Link to="/boutique" className="block text-black text-sm font-nav font-bold hover:bg-black/10 rounded-xl px-2 py-1" onClick={() => setShopOpen(false)}>
+                              Sealants
+                            </Link>
+                            <Link to="/boutique" className="block text-black text-sm font-nav font-bold hover:bg-black/10 rounded-xl px-2 py-1" onClick={() => setShopOpen(false)}>
+                              Waxes Dressings
+                            </Link>
+                          </div>
+                        </div>
+                        <div className="p-3 rounded-2xl">
+                          <p className="text-black text-xs font-nav font-bold uppercase">Maintenance & Preparation</p>
+                          <p className="text-carbon-700 text-xs mt-1">Preparation, cleaning & system care</p>
+                          <div className="mt-3 space-y-1">
+                            <Link to="/boutique" className="block text-black text-sm font-nav font-bold hover:bg-black/10 rounded-xl px-2 py-1" onClick={() => setShopOpen(false)}>
+                              Washing
+                            </Link>
+                            <Link to="/boutique" className="block text-black text-sm font-nav font-bold hover:bg-black/10 rounded-xl px-2 py-1" onClick={() => setShopOpen(false)}>
+                              Cleaners
+                            </Link>
+                            <Link to="/boutique" className="block text-black text-sm font-nav font-bold hover:bg-black/10 rounded-xl px-2 py-1" onClick={() => setShopOpen(false)}>
+                              Towels
+                            </Link>
+                            <Link to="/boutique" className="block text-black text-sm font-nav font-bold hover:bg-black/10 rounded-xl px-2 py-1" onClick={() => setShopOpen(false)}>
+                              Accessories
+                            </Link>
+                          </div>
+                        </div>
+                        <div className="p-3 rounded-2xl">
+                          <div className="rounded-2xl bg-carbon-100 min-h-[150px] border border-carbon-200" />
+                          <p className="text-black text-xs font-nav font-bold uppercase mt-3">Featured collection</p>
+                          <p className="text-carbon-700 text-xs mt-1">Explore our premium systems and accessories.</p>
+                          <Link
+                            to="/boutique"
+                            onClick={() => setShopOpen(false)}
+                            className="inline-flex items-center gap-1 text-blue-600 text-xs font-nav font-bold mt-3"
+                          >
+                            Visit
+                            <span aria-hidden>→</span>
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -118,23 +198,33 @@ export function Header() {
             >
               <button type="button" className={`${navLink} flex items-center gap-1`}>
                 Ceramic coating
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className={`w-3.5 h-3.5 transition-transform ${ceramicOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
               {ceramicOpen && (
-                <div className="absolute top-full left-0 pt-3 animate-fade-in">
-                  <div className="bg-carbon-800 border border-carbon-600 py-3 min-w-[200px] shadow-xl">
-                    {CERAMIC_DROPDOWN.map((item) => (
-                      <Link
-                        key={item.to + item.label}
-                        to={item.to}
-                        className="block px-5 py-2 text-sm font-nav font-bold text-white hover:bg-carbon-700 hover:text-chrome"
-                        onClick={() => setCeramicOpen(false)}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in">
+                  <div className="relative">
+                    <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
+                      <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
+                    </svg>
+                    <div className="relative left-32 bg-white py-3 min-w-[200px] shadow-xl">
+                      {CERAMIC_DROPDOWN.map((item) => (
+                        <Link
+                          key={item.to + item.label}
+                          to={item.to}
+                          className="block px-5 py-2 text-sm font-nav font-bold text-carbon-900 hover:bg-carbon-100"
+                          onClick={() => setCeramicOpen(false)}
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -150,68 +240,139 @@ export function Header() {
         </div>
 
         {/* Right: Search, separator, lang, account, cart */}
-        <div className="hidden lg:flex items-center gap-5">
-          <div className="relative">
-            <input
-              type="search"
-              placeholder="Rechercher..."
-              className="w-40 py-2 px-3 bg-carbon-800/80 border border-carbon-600 text-white text-sm placeholder:text-silver/50 focus:outline-none focus:border-chrome transition-colors"
-              onFocus={() => setSearchOpen(true)}
-              onBlur={() => setSearchOpen(false)}
-            />
+        <div className="hidden lg:flex items-center gap-2">
+          <div className="relative" ref={searchMenuRef}>
+            <button
+              type="button"
+              onClick={() => setSearchOpen((open) => !open)}
+              className="px-2 py-1.5 rounded-md text-white transition-colors hover:bg-carbon-700/30"
+              aria-label="Recherche"
+              aria-expanded={searchOpen}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" />
+              </svg>
+            </button>
+            {searchOpen && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in">
+                <div className="relative">
+                  <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
+                    <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
+                  </svg>
+                  <div className="relative left-32 bg-white p-4 min-w-[320px] w-[380px] rounded-2xl shadow-xl">
+                    <input
+                      type="search"
+                      placeholder="Search..."
+                      className="w-full py-2.5 px-3 rounded-xl bg-transparent border border-black text-carbon-950 text-sm placeholder:text-carbon-500 focus:outline-none focus:ring-0"
+                      autoFocus
+                    />
+                    <p className="text-carbon-500 text-xs font-nav font-bold uppercase mt-4 mb-2">
+                      Popular searches
+                    </p>
+                    <ul className="space-y-0.5">
+                      {['Ceramic coating', 'Car club', 'Events', 'Academy'].map((label) => (
+                        <li key={label}>
+                          <button
+                            type="button"
+                            className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm font-nav font-bold text-carbon-900 rounded-2xl hover:bg-black/10 transition-colors"
+                          >
+                            <svg className="w-4 h-4 text-carbon-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" />
+                            </svg>
+                            {label}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="w-px h-6 bg-carbon-600" aria-hidden />
 
-          <div className="flex items-center gap-2">
+          <div className="relative" ref={langMenuDesktopRef}>
             <button
               type="button"
-              onClick={() => setLang('EN')}
-              className={`flex items-center gap-1.5 px-2 py-1.5 rounded transition-colors ${
-                lang === 'EN' ? 'bg-carbon-700 text-white' : 'text-silver/80 hover:text-white'
-              }`}
-              title="English"
+              onClick={() => setLangOpen((open) => !open)}
+              className="flex items-center gap-2 px-2 py-1.5 rounded-md text-silver/80 hover:text-white transition-colors hover:bg-carbon-700/30"
+              aria-haspopup="menu"
+              aria-expanded={langOpen}
             >
-              <FlagEN />
-              <span className="text-sm font-nav font-bold">EN</span>
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
+                {lang === 'EN' ? <FlagEN /> : <FlagFR />}
+              </span>
+              <span className="text-sm font-nav font-bold">{lang}</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
-            <button
-              type="button"
-              onClick={() => setLang('FR')}
-              className={`flex items-center gap-1.5 px-2 py-1.5 rounded transition-colors ${
-                lang === 'FR' ? 'bg-carbon-700 text-white' : 'text-silver/80 hover:text-white'
-              }`}
-              title="Français"
-            >
-              <FlagFR />
-              <span className="text-sm font-nav font-bold">FR</span>
-            </button>
+            {langOpen && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in">
+                <div className="relative">
+                  <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
+                    <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
+                  </svg>
+                  <div className="relative left-32 bg-white p-2 min-w-[160px] rounded-2xl shadow-xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLang('EN')
+                        setLangOpen(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-nav font-bold text-carbon-900 transition-colors rounded-2xl hover:bg-black/10"
+                    >
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
+                        <FlagEN />
+                      </span>
+                      English
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLang('FR')
+                        setLangOpen(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-nav font-bold text-carbon-900 transition-colors rounded-2xl hover:bg-black/10"
+                    >
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
+                        <FlagFR />
+                      </span>
+                      Français
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          <Link
-            to="/compte"
-            className="p-2 text-white hover:text-chrome transition-colors"
-            aria-label="Mon compte"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/compte"
+              className="px-2 py-1.5 rounded-md text-white transition-colors hover:bg-carbon-700/30"
+              aria-label="Mon compte"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </Link>
 
-          <Link
-            to="/panier"
-            className="relative p-2 text-white hover:text-chrome transition-colors"
-            aria-label="Panier"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-            {totalItems > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-chrome text-carbon-950 text-[10px] font-bold flex items-center justify-center">
-                {totalItems}
-              </span>
-            )}
-          </Link>
+            <Link
+              to="/panier"
+              className="relative px-2 py-1.5 rounded-md text-white transition-colors hover:bg-carbon-700/30"
+              aria-label="Panier"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              {totalItems > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-chrome text-carbon-950 text-[10px] font-bold flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
+          </div>
         </div>
 
         {/* Mobile: logo + cart + menu */}
@@ -273,13 +434,59 @@ export function Header() {
           <Link to="/academy" className="block py-2 font-nav font-bold text-white" onClick={() => setMenuOpen(false)}>
             Academy
           </Link>
-          <div className="flex gap-2 mt-4 pt-4 border-t border-carbon-700">
-            <button type="button" onClick={() => setLang('EN')} className="flex items-center gap-1 text-sm font-nav font-bold text-white">
-              <FlagEN /> EN
+          <div className="relative mt-4 pt-4 border-t border-carbon-700" ref={langMenuMobileRef}>
+            <button
+              type="button"
+              onClick={() => setLangOpen((open) => !open)}
+              className="flex items-center gap-2 text-sm font-nav font-bold text-white"
+              aria-haspopup="menu"
+              aria-expanded={langOpen}
+            >
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
+                {lang === 'EN' ? <FlagEN /> : <FlagFR />}
+              </span>
+              {lang}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
-            <button type="button" onClick={() => setLang('FR')} className="flex items-center gap-1 text-sm font-nav font-bold text-white">
-              <FlagFR /> FR
-            </button>
+            {langOpen && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in">
+                <div className="relative">
+                  <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
+                    <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
+                  </svg>
+                  <div className="bg-white p-2 min-w-[160px] rounded-2xl shadow-xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLang('EN')
+                        setLangOpen(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-nav font-bold text-carbon-900 transition-colors rounded-2xl hover:bg-black/10"
+                    >
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
+                        <FlagEN />
+                      </span>
+                      English
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLang('FR')
+                        setLangOpen(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-nav font-bold text-carbon-900 transition-colors rounded-2xl hover:bg-black/10"
+                    >
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
+                        <FlagFR />
+                      </span>
+                      Français
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

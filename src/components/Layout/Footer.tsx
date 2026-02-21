@@ -15,7 +15,7 @@ export function Footer() {
             </p>
           </div>
           <div>
-            <h3 className="text-xs font-semibold tracking-widest text-chrome uppercase mb-4">Boutique</h3>
+            <h3 className="text-xs font-semibold text-chrome uppercase mb-4">Boutique</h3>
             <ul className="space-y-2">
               <li>
                 <Link to="/boutique" className="text-silver/70 hover:text-chrome text-sm transition-colors">
@@ -35,7 +35,7 @@ export function Footer() {
             </ul>
           </div>
           <div>
-            <h3 className="text-xs font-semibold tracking-widest text-chrome uppercase mb-4">Contact</h3>
+            <h3 className="text-xs font-semibold text-chrome uppercase mb-4">Contact</h3>
             <p className="text-silver/70 text-sm">contact@fireball.fr</p>
             <p className="text-silver/70 text-sm mt-1">+33 1 23 45 67 89</p>
           </div>
