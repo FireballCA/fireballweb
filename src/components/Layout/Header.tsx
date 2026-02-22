@@ -1,6 +1,5 @@
 import { useId, useState, useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useCart } from '@/context/CartContext'
 import { CATEGORIES } from '@/data/products'
 
@@ -58,8 +57,8 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false)
   const langMenuDesktopRef = useRef<HTMLDivElement | null>(null)
   const langMenuMobileRef = useRef<HTMLDivElement | null>(null)
+  const searchMenuRef = useRef<HTMLDivElement | null>(null)
   const { totalItems } = useCart()
-  const location = useLocation()
 
   useEffect(() => {
     const onScroll = () => {
@@ -75,19 +74,23 @@ export function Header() {
 
   useEffect(() => {
     const onClickOutside = (event: MouseEvent) => {
-      if (!langOpen) return
       const target = event.target as Node
-      const inDesktop = langMenuDesktopRef.current?.contains(target)
-      const inMobile = langMenuMobileRef.current?.contains(target)
-      if (!inDesktop && !inMobile) {
-        setLangOpen(false)
+
+      if (langOpen) {
+        const inDesktop = langMenuDesktopRef.current?.contains(target)
+        const inMobile = langMenuMobileRef.current?.contains(target)
+        if (!inDesktop && !inMobile) {
+          setLangOpen(false)
+        }
+      }
+
+      if (searchOpen && searchMenuRef.current && !searchMenuRef.current.contains(target)) {
+        setSearchOpen(false)
       }
     }
     document.addEventListener('mousedown', onClickOutside)
     return () => document.removeEventListener('mousedown', onClickOutside)
-  }, [langOpen])
-
-  const isActive = (path: string) => location.pathname === path
+  }, [langOpen, searchOpen])
 
   const opacity = scrollProgress * 0.95
   const borderOpacity = 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
@@ -101,12 +104,16 @@ export function Header() {
 
   const navLink =
     'font-nav font-bold text-white transition-colors text-xs uppercase px-4 py-2 rounded-md hover:bg-carbon-700/20 group-hover:text-silver/70 hover:!text-white'
+  const anyMenuOpen = shopOpen || ceramicOpen || searchOpen || langOpen || menuOpen
 
   return (
     <header
       className="fixed top-0 left-0 right-0 z-50"
       style={navBgStyle}
     >
+      {anyMenuOpen && (
+        <div className="fixed inset-0 z-40 bg-black/15 pointer-events-none" aria-hidden />
+      )}
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-20">
         {/* Left: Logo + links */}
         <div className="flex items-center gap-10">
@@ -302,7 +309,7 @@ export function Header() {
                     <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
                       <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
                     </svg>
-                    <div className="bg-white py-3 min-w-[200px] shadow-xl">
+                    <div className="relative left-32 bg-white py-3 min-w-[200px] shadow-xl">
                       {CERAMIC_DROPDOWN.map((item) => (
                         <Link
                           key={item.to + item.label}
@@ -330,7 +337,7 @@ export function Header() {
 
         {/* Right: Search, separator, lang, account, cart */}
         <div className="hidden lg:flex items-center gap-2">
-          <div className="relative">
+          <div className="relative" ref={searchMenuRef}>
             <button
               type="button"
               onClick={() => setSearchOpen((open) => !open)}
@@ -342,22 +349,13 @@ export function Header() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" />
               </svg>
             </button>
-            {searchOpen &&
-              createPortal(
-                <div
-                  className="fixed inset-0 z-40 backdrop-blur-sm bg-black/10"
-                  onClick={() => setSearchOpen(false)}
-                  aria-hidden
-                />,
-                document.body
-              )}
             {searchOpen && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in z-50">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in">
                 <div className="relative">
                   <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
                     <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
                   </svg>
-                  <div className="bg-white p-4 min-w-[320px] w-[380px] rounded-2xl shadow-xl">
+                  <div className="relative left-32 bg-white p-4 min-w-[320px] w-[380px] rounded-2xl shadow-xl">
                     <input
                       type="search"
                       placeholder="Search..."
@@ -410,9 +408,9 @@ export function Header() {
               <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in">
                 <div className="relative">
                   <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
-                      <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
-                    </svg>
-                  <div className="bg-white p-2 min-w-[160px] rounded-2xl shadow-xl">
+                    <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
+                  </svg>
+                  <div className="relative left-32 bg-white p-2 min-w-[160px] rounded-2xl shadow-xl">
                     <button
                       type="button"
                       onClick={() => {
@@ -552,8 +550,8 @@ export function Header() {
               <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in">
                 <div className="relative">
                   <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
-                      <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
-                    </svg>
+                    <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
+                  </svg>
                   <div className="bg-white p-2 min-w-[160px] rounded-2xl shadow-xl">
                     <button
                       type="button"
