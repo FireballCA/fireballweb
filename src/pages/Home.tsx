@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { CATEGORIES } from '@/data/products'
 import { getFeaturedProducts } from '@/data/products'
+import { SurfaceTechnology } from '@/components/SurfaceTechnology'
 
 export function Home() {
   const featured = getFeaturedProducts()
@@ -45,6 +46,9 @@ export function Home() {
           <span className="block w-px h-12 bg-current mx-auto animate-pulse" />
         </div>
       </section>
+
+      {/* Surface Technology */}
+      <SurfaceTechnology />
 
       {/* Categories */}
       <section className="py-24 border-t border-carbon-800">
