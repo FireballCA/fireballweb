@@ -4,11 +4,6 @@ import { Link, useLocation } from 'react-router-dom'
 import { useCart } from '@/context/CartContext'
 import { CATEGORIES } from '@/data/products'
 
-const SHOP_DROPDOWN = [
-  ...CATEGORIES.map((c) => ({ label: c.name, to: `/boutique/${c.id}` })),
-  { label: 'Tous les produits', to: '/boutique' },
-]
-
 const CERAMIC_DROPDOWN = [
   { label: 'Carrosserie', to: '/boutique/revetements' },
   { label: 'Jantes', to: '/boutique/revetements' },
@@ -57,7 +52,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [shopOpen, setShopOpen] = useState(false)
   const [ceramicOpen, setCeramicOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
+  const [scrollProgress, setScrollProgress] = useState(0)
   const [lang, setLang] = useState<'EN' | 'FR'>('FR')
   const [langOpen, setLangOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -67,9 +62,14 @@ export function Header() {
   const location = useLocation()
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', onScroll, { passive: true })
+    const onScroll = () => {
+      const scrollY = window.scrollY || window.pageYOffset || 0
+      const maxScroll = 200
+      const progress = Math.min(scrollY / maxScroll, 1)
+      setScrollProgress(progress)
+    }
     onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
@@ -89,16 +89,23 @@ export function Header() {
 
   const isActive = (path: string) => location.pathname === path
 
-  const navBg = scrolled
-    ? 'bg-carbon-950/95 backdrop-blur-md border-b border-carbon-700/50'
-    : 'bg-transparent border-b border-transparent'
+  const opacity = scrollProgress * 0.95
+  const borderOpacity = 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
+  
+  const navBgStyle: React.CSSProperties = {
+    backgroundColor: `rgba(10, 10, 10, ${opacity})`,
+    backdropFilter: opacity > 0.01 ? 'blur(12px)' : 'none',
+    borderBottom: `1px solid rgba(37, 37, 37, ${borderOpacity})`,
+    transition: 'background-color 0.2s ease-out, backdrop-filter 0.2s ease-out, border-bottom-color 0.2s ease-out',
+  }
 
   const navLink =
     'font-nav font-bold text-white transition-colors text-xs uppercase px-4 py-2 rounded-md hover:bg-carbon-700/20 group-hover:text-silver/70 hover:!text-white'
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${navBg}`}
+      className="fixed top-0 left-0 right-0 z-50"
+      style={navBgStyle}
     >
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-20">
         {/* Left: Logo + links */}
@@ -129,22 +136,144 @@ export function Header() {
                 </svg>
               </button>
               {shopOpen && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in z-50">
                   <div className="relative">
-                    <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
+                    <svg className="absolute -top-1 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
                       <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
                     </svg>
-                    <div className="bg-white py-3 min-w-[200px] shadow-xl">
-                      {SHOP_DROPDOWN.map((item) => (
-                        <Link
-                          key={item.to + item.label}
-                          to={item.to}
-                          className="block px-5 py-2 text-sm font-nav font-bold text-carbon-900 hover:bg-carbon-100"
-                          onClick={() => setShopOpen(false)}
-                        >
-                          {item.label}
-                        </Link>
-                      ))}
+                    <div className="bg-white shadow-2xl rounded-lg overflow-hidden">
+                      <div className="flex gap-12 px-8 py-5">
+                        {/* PROTECTION SYSTEMS */}
+                        <div className="min-w-[200px]">
+                          <h3 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">
+                            PROTECTION SYSTEMS
+                          </h3>
+                          <p className="text-sm text-carbon-600 mb-10">
+                            Surface durability & coating technologies
+                          </p>
+                          <ul className="space-y-1.5">
+                            <li>
+                              <Link
+                                to="/boutique/revetements"
+                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                onClick={() => setShopOpen(false)}
+                              >
+                                Coatings
+                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
+                                to="/boutique"
+                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                onClick={() => setShopOpen(false)}
+                              >
+                                Sealants
+                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
+                                to="/boutique"
+                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                onClick={() => setShopOpen(false)}
+                              >
+                                Waxes
+                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
+                                to="/boutique"
+                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                onClick={() => setShopOpen(false)}
+                              >
+                                Dressings
+                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                              </Link>
+                            </li>
+                          </ul>
+                        </div>
+
+                        {/* MAINTENANCE & PREPARATION */}
+                        <div className="min-w-[220px]">
+                          <h3 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">
+                            MAINTENANCE & PREPARATION
+                          </h3>
+                          <p className="text-sm text-carbon-600 mb-10">
+                            Preparation, cleaning & system care
+                          </p>
+                          <ul className="space-y-1.5">
+                            <li>
+                              <Link
+                                to="/boutique"
+                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                onClick={() => setShopOpen(false)}
+                              >
+                                Washing
+                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
+                                to="/boutique"
+                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                onClick={() => setShopOpen(false)}
+                              >
+                                Cleaners
+                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
+                                to="/boutique"
+                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                onClick={() => setShopOpen(false)}
+                              >
+                                Towels
+                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
+                                to="/boutique"
+                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                onClick={() => setShopOpen(false)}
+                              >
+                                Accessories
+                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                              </Link>
+                            </li>
+                          </ul>
+                        </div>
+
+                        {/* Section Image */}
+                        <div className="min-w-[160px]">
+                          <div className="h-24 w-20 bg-carbon-200 rounded mb-2.5 overflow-hidden">
+                            <div className="w-full h-full flex items-center justify-center text-carbon-400">
+                              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          </div>
+                          <h4 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">
+                            Featured Collection
+                          </h4>
+                          <p className="text-sm text-carbon-600 mb-2.5">
+                            Découvrez notre sélection premium de produits haut de gamme
+                          </p>
+                          <Link
+                            to="/boutique"
+                            className="inline-flex items-center gap-0.5 text-sm font-nav font-bold text-blue-600 hover:text-blue-700 underline transition-colors"
+                            onClick={() => setShopOpen(false)}
+                          >
+                            Explore now
+                            <svg className="w-4 h-4 transform -rotate-45 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                          </Link>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

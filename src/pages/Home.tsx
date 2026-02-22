@@ -8,34 +8,36 @@ export function Home() {
   return (
     <div>
       {/* Hero — full viewport, Porsche-style */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40"
-          style={{
-            backgroundImage: `url(https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1920)`,
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-carbon-950/80 via-carbon-950/60 to-carbon-950" />
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden -mt-20">
+        <video
+          className="absolute inset-0 w-full h-full object-cover"
+          autoPlay
+          loop
+          muted
+          playsInline
+        >
+          <source src="/videoplayback.mp4" type="video/mp4" />
+        </video>
         <div className="relative z-10 text-center px-6 max-w-4xl mx-auto animate-slide-up">
-          <p className="text-chrome text-sm uppercase mb-4">Esthétique automobile</p>
-          <h1 className="font-display text-6xl md:text-8xl lg:text-9xl text-pearl tracking-tight leading-none">
-            FIREBALL
+          <h1 className="font-nav font-bold text-6xl md:text-8xl lg:text-9xl text-pearl tracking-tight leading-none mb-4">
+            Preserve What Matters
           </h1>
-          <p className="text-silver/80 text-lg md:text-xl mt-6 max-w-xl mx-auto font-light">
-            Des produits premium pour une finition sans compromis. Classique, Pro, Revêtements.
+          <p className="text-silver/80 text-lg md:text-xl max-w-xl mx-auto font-light">
+            Advanced ceramic protection technologies engineered to defend and enhance automotive finishes.
           </p>
-          <div className="mt-12 flex flex-wrap justify-center gap-4">
+          <div className="mt-10 flex flex-wrap justify-center gap-4">
             <Link
               to="/boutique"
-              className="inline-block px-8 py-4 bg-chrome text-carbon-950 font-medium text-sm uppercase hover:bg-chrome/90 transition-colors"
+              className="inline-block px-8 py-3.5 font-nav font-bold text-sm uppercase rounded-lg hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl"
+              style={{ backgroundColor: '#B61B1B', color: 'white' }}
             >
-              Découvrir la boutique
+              Discover
             </Link>
             <Link
               to="/boutique#featured"
-              className="inline-block px-8 py-4 border border-silver/30 text-pearl text-sm uppercase hover:border-chrome hover:text-chrome transition-colors"
+              className="inline-block px-8 py-3.5 border border-silver/30 text-pearl font-nav font-bold text-sm uppercase rounded-lg hover:bg-carbon-700/30 transition-all duration-300"
             >
-              Produits phares
+              Technology
             </Link>
           </div>
         </div>
