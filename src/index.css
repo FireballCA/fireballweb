@@ -38,3 +38,49 @@
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-carbon-500;
 }
+
+.loader-logo-light-pass {
+  position: absolute;
+  inset: 0;
+  opacity: 0.95;
+  filter: brightness(3.4) saturate(0) contrast(1.25) blur(0.5px);
+  mix-blend-mode: screen;
+  mask-image: linear-gradient(
+    112deg,
+    rgba(0, 0, 0, 0) 34%,
+    rgba(0, 0, 0, 0.2) 44%,
+    rgba(0, 0, 0, 1) 50%,
+    rgba(0, 0, 0, 0.2) 56%,
+    rgba(0, 0, 0, 0) 66%
+  );
+  -webkit-mask-image: linear-gradient(
+    112deg,
+    rgba(0, 0, 0, 0) 34%,
+    rgba(0, 0, 0, 0.2) 44%,
+    rgba(0, 0, 0, 1) 50%,
+    rgba(0, 0, 0, 0.2) 56%,
+    rgba(0, 0, 0, 0) 66%
+  );
+  mask-size: 280% 280%;
+  -webkit-mask-size: 280% 280%;
+  mask-position: -170% 50%;
+  -webkit-mask-position: -170% 50%;
+  animation: fireball-light-pass 2.8s linear infinite;
+  pointer-events: none;
+}
+
+.loader-logo-ghost {
+  opacity: 0.015;
+  filter: grayscale(1) brightness(2.2) contrast(1.35);
+}
+
+@keyframes fireball-light-pass {
+  0% {
+    mask-position: -170% 50%;
+    -webkit-mask-position: -170% 50%;
+  }
+  100% {
+    mask-position: 220% 50%;
+    -webkit-mask-position: 220% 50%;
+  }
+}

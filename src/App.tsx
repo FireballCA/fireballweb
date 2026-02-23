@@ -1,10 +1,11 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { CartProvider } from '@/context/CartContext'
 import { Layout } from '@/components/Layout/Layout'
 import { Home } from '@/pages/Home'
 import { Shop } from '@/pages/Shop'
 import { Product } from '@/pages/Product'
 import { Cart } from '@/pages/Cart'
+import { Account } from '@/pages/Account'
 
 function App() {
   return (
@@ -16,6 +17,8 @@ function App() {
           <Route path="boutique/:categoryId" element={<Shop />} />
           <Route path="produit/:slug" element={<Product />} />
           <Route path="panier" element={<Cart />} />
+          <Route path="account" element={<Account />} />
+          <Route path="compte" element={<Navigate to="/account" replace />} />
         </Route>
       </Routes>
     </CartProvider>
