@@ -1,6 +1,6 @@
 import { useId, useRef, useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { loginAccount, registerAccount, setWelcomeMessage } from '@/utils/accountAuth'
+import { loginAccount, registerAccount } from '@/utils/accountAuth'
 
 function FlagEN() {
   const clipId = useId()
@@ -72,8 +72,9 @@ export function AccountRegister() {
     }
 
     loginAccount({ email, password })
-    setWelcomeMessage(result.account.fullName)
-    navigate('/account/dashboard')
+    navigate('/account/dashboard', {
+      state: { fromRegister: true, welcomeName: result.account.fullName },
+    })
   }
 
   return (

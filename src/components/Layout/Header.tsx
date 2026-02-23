@@ -1,5 +1,5 @@
 import { useId, useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCart } from '@/context/CartContext'
 import { CATEGORIES } from '@/data/products'
 
@@ -49,6 +49,7 @@ function FlagFR() {
 
 export function Header() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [shopOpen, setShopOpen] = useState(false)
   const [ceramicOpen, setCeramicOpen] = useState(false)
@@ -60,6 +61,7 @@ export function Header() {
   const langMenuMobileRef = useRef<HTMLDivElement | null>(null)
   const searchMenuRef = useRef<HTMLDivElement | null>(null)
   const { totalItems } = useCart()
+  const isAccountDashboard = location.pathname === '/account/dashboard'
 
   useEffect(() => {
     const onScroll = () => {
@@ -93,8 +95,8 @@ export function Header() {
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [langOpen, searchOpen])
 
-  const opacity = scrollProgress * 0.95
-  const borderOpacity = 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
+  const opacity = isAccountDashboard ? 0.95 : scrollProgress * 0.95
+  const borderOpacity = isAccountDashboard ? 0.45 : 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
   
   const navBgStyle: React.CSSProperties = {
     backgroundColor: `rgba(10, 10, 10, ${opacity})`,
