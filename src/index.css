@@ -22,7 +22,7 @@
 
 /* Premium selection */
 ::selection {
-  @apply bg-chrome/30 text-carbon-950;
+  @apply bg-blue-500/35 text-white;
 }
 
 /* Subtle scrollbar */
