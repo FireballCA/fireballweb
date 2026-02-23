@@ -54,6 +54,10 @@ export function Account() {
   const langMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
+    document.title = 'Account | Fireball Canada'
+  }, [])
+
+  useEffect(() => {
     if (getCurrentAccount()) {
       navigate('/account/dashboard', { replace: true })
       return

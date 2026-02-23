@@ -4,15 +4,21 @@ import { Footer } from './Footer'
 
 export function Layout() {
   const location = useLocation()
-  const isAccountPage = location.pathname === '/compte' || location.pathname.startsWith('/account')
+  const isAccountAuthPage =
+    location.pathname === '/compte' ||
+    location.pathname === '/account' ||
+    location.pathname === '/account/register'
+  const isAnyAccountPage = location.pathname === '/compte' || location.pathname.startsWith('/account')
+  const showHeader = !isAccountAuthPage
+  const showFooter = !isAnyAccountPage
 
   return (
     <div className="min-h-screen flex flex-col">
-      {!isAccountPage && <Header />}
-      <main className={isAccountPage ? 'flex-1' : 'flex-1 pt-20'}>
+      {showHeader && <Header />}
+      <main className={showHeader ? 'flex-1 pt-20' : 'flex-1'}>
         <Outlet />
       </main>
-      {!isAccountPage && <Footer />}
+      {showFooter && <Footer />}
     </div>
   )
 }
