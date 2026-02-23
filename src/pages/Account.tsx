@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { getCurrentAccount, loginAccount } from '@/utils/accountAuth'
 
 type LoaderPhase = 'loading' | 'exiting' | 'ready'
 
@@ -47,9 +48,17 @@ export function Account() {
   const [loaderEntered, setLoaderEntered] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
   const [lang, setLang] = useState<'EN' | 'FR'>('EN')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
   const langMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
+    if (getCurrentAccount()) {
+      navigate('/account/dashboard', { replace: true })
+      return
+    }
+
     const fromNav = sessionStorage.getItem('accountIntroFromNav') === '1'
     if (fromNav) {
       sessionStorage.removeItem('accountIntroFromNav')
@@ -113,7 +122,7 @@ export function Account() {
       isMounted = false
       window.clearTimeout(introTimer)
     }
-  }, [])
+  }, [navigate])
 
   useEffect(() => {
     const onClickOutside = (event: MouseEvent) => {
@@ -128,6 +137,21 @@ export function Account() {
   }, [langOpen])
 
   const loaderHidden = phase === 'exiting' || phase === 'ready'
+
+  const handleLoginSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const result = loginAccount({ email, password })
+    if (!result.ok) {
+      setErrorMessage(
+        result.reason === 'not_found'
+          ? 'Account not found. Create an account first.'
+          : 'Incorrect password. Please try again.'
+      )
+      return
+    }
+    setErrorMessage('')
+    navigate('/account/dashboard')
+  }
 
   return (
     <section className="relative min-h-screen overflow-hidden bg-carbon-950">
@@ -214,8 +238,17 @@ export function Account() {
         </div>
 
         <section className="rounded-3xl border border-carbon-700 bg-carbon-900/75 backdrop-blur-sm p-8 md:p-10 shadow-2xl mt-10">
+          <div className="flex justify-center mb-4">
+            <img
+              src="/LogoFull.avif"
+              alt="Fireball"
+              className="h-6 w-auto object-contain opacity-90"
+              style={{ filter: 'grayscale(1) brightness(5) saturate(0)' }}
+              draggable={false}
+            />
+          </div>
           <h1 className="font-nav font-bold text-4xl text-pearl uppercase mb-8 text-center">FIREBALL ACCESS</h1>
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleLoginSubmit}>
             <div>
               <label htmlFor="email" className="block text-xs font-nav font-bold uppercase text-silver mb-2">
                 Email Address
@@ -223,8 +256,11 @@ export function Account() {
               <input
                 id="email"
                 type="email"
-                className="w-full px-4 py-3 bg-carbon-950 border border-carbon-600 rounded-xl text-pearl focus:outline-none focus:border-chrome transition-colors"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-carbon-950 border border-white/60 rounded-xl text-pearl focus:outline-none focus:border-white transition-colors"
                 placeholder="you@example.com"
+                required
               />
             </div>
             <div>
@@ -234,8 +270,11 @@ export function Account() {
               <input
                 id="password"
                 type="password"
-                className="w-full px-4 py-3 bg-carbon-950 border border-carbon-600 rounded-xl text-pearl focus:outline-none focus:border-chrome transition-colors"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-carbon-950 border border-white/60 rounded-xl text-pearl focus:outline-none focus:border-white transition-colors"
                 placeholder="••••••••"
+                required
               />
             </div>
 
@@ -245,11 +284,13 @@ export function Account() {
             </label>
 
             <button
-              type="button"
+              type="submit"
               className="w-full py-3 bg-white text-carbon-950 font-nav font-bold uppercase text-sm rounded-xl hover:bg-white/95 transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-8px_14px_rgba(0,0,0,0.08),0_10px_24px_rgba(0,0,0,0.22)]"
             >
               Access Portal →
             </button>
+
+            {errorMessage && <p className="text-center text-sm text-[#E23854]">{errorMessage}</p>}
 
             <button
               type="button"
@@ -260,8 +301,11 @@ export function Account() {
 
             <p className="text-center text-sm text-silver/60">
               New here?{' '}
-              <Link to="/account/register" className="text-[#C8102E] hover:text-[#E23854] transition-colors">
+              <Link to="/account/register" className="inline-flex items-center gap-0.5 text-sm font-nav font-bold text-blue-600 hover:text-blue-700 underline transition-colors">
                 Create an account
+                <svg className="w-4 h-4 transform -rotate-45 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
               </Link>
             </p>
           </form>

@@ -4,7 +4,7 @@ import { Footer } from './Footer'
 
 export function Layout() {
   const location = useLocation()
-  const isAccountPage = location.pathname === '/account' || location.pathname === '/compte'
+  const isAccountPage = location.pathname === '/compte' || location.pathname.startsWith('/account')
 
   return (
     <div className="min-h-screen flex flex-col">
