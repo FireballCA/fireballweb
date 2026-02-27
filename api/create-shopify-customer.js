@@ -21,33 +21,35 @@ export default async function handler(req, res) {
   }
 
   const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL || 'fireball-canada.myshopify.com'
-  // Preferred: SHOPIFY_ADMIN_API_TOKEN. Fallback kept for existing env setups.
-  const SHOPIFY_ADMIN_API_TOKEN =
-    process.env.SHOPIFY_ADMIN_API_TOKEN ||
+  const SHOPIFY_STOREFRONT_TOKEN =
     process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
+    process.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
     ''
-  const SHOPIFY_API_VERSION = process.env.SHOPIFY_ADMIN_API_VERSION || '2024-10'
+  const SHOPIFY_API_VERSION = process.env.SHOPIFY_STOREFRONT_API_VERSION || '2024-10'
 
-  if (!SHOPIFY_ADMIN_API_TOKEN) {
+  if (!SHOPIFY_STOREFRONT_TOKEN) {
     return res.status(500).json({
       error:
-        'Missing admin token. Set SHOPIFY_ADMIN_API_TOKEN (preferred) or SHOPIFY_STOREFRONT_ACCESS_TOKEN if it contains an Admin API token.',
+        'Missing Storefront token. Set SHOPIFY_STOREFRONT_ACCESS_TOKEN.',
     })
   }
 
   const normalizedStoreUrl = SHOPIFY_STORE_URL.startsWith('http')
     ? SHOPIFY_STORE_URL
     : `https://${SHOPIFY_STORE_URL}`
-  const url = `${normalizedStoreUrl}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`
+  const url = `${normalizedStoreUrl}/api/${SHOPIFY_API_VERSION}/graphql.json`
 
   const mutation = `
-    mutation customerCreate($input: CustomerInput!) {
+    mutation customerCreate($input: CustomerCreateInput!) {
       customerCreate(input: $input) {
         customer {
           id
           email
+          firstName
+          lastName
         }
-        userErrors {
+        customerUserErrors {
+          code
           field
           message
         }
@@ -68,7 +70,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': SHOPIFY_ADMIN_API_TOKEN,
+        'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_TOKEN,
       },
       body: JSON.stringify({
         query: mutation,
@@ -77,7 +79,7 @@ export default async function handler(req, res) {
     })
 
     const data = await response.json()
-    const userErrors = data?.data?.customerCreate?.userErrors || []
+    const userErrors = data?.data?.customerCreate?.customerUserErrors || []
     const graphqlErrors = data?.errors || null
 
     if (!response.ok || (Array.isArray(graphqlErrors) && graphqlErrors.length) || userErrors.length) {
