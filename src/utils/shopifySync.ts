@@ -3,6 +3,7 @@
  */
 export async function createShopifyCustomer(data: {
   email: string
+  password: string
   first_name: string
   last_name: string
 }): Promise<{ success: boolean; error?: string }> {
