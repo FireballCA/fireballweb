@@ -8,6 +8,7 @@ export interface GarageVehicleRow {
   year: number
   ceramic_protection_date: string
   protection_shop?: string | null
+  protection_product?: string | null
   created_at: string
 }
 

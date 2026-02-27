@@ -17,6 +17,7 @@ interface Vehicle {
   year: number
   ceramicProtectionDate: Date // Date de complétion de la protection
   protectionShop?: string
+  protectionProduct?: string
 }
 
 type ProtectionStatus = 'green' | 'yellow' | 'red'
@@ -158,13 +159,27 @@ function VehicleSettingsModal({ vehicle, onClose, onUpdate, onDelete }: VehicleS
                 </a>
               </p>
             )}
+            {vehicle.protectionProduct && (
+              <p className="mt-0.5 text-xs text-white/70">
+                Protected with{' '}
+                <span className="font-medium">{vehicle.protectionProduct}</span>
+              </p>
+            )}
           </div>
           <div className="flex flex-col items-stretch md:items-end gap-2 min-w-[240px]">
             <button
               type="button"
-              className="px-4 py-2.5 rounded-xl bg-white text-black text-[11px] font-nav uppercase tracking-[0.18em] hover:bg-white/90 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-white/25 bg-white/[0.05] text-[11px] font-nav uppercase tracking-[0.18em] text-white/85 hover:bg-white/[0.15] hover:border-white/60 transition-colors"
             >
-              Schedule next appointment
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 3v3m8-3v3M5 9h14M7 12h4m-4 4h4M5 5h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"
+                />
+              </svg>
+              Book your next appointment
             </button>
           </div>
         </div>
@@ -252,6 +267,7 @@ export function AccountDashboard() {
           year: row.year,
           ceramicProtectionDate: new Date(row.ceramic_protection_date),
           protectionShop: row.protection_shop ?? undefined,
+          protectionProduct: row.protection_product ?? undefined,
         }))
       )
 
@@ -387,10 +403,25 @@ export function AccountDashboard() {
                   <span className="text-white/60 text-xl leading-none">©</span>
                 </h2>
                 <button
+                  type="button"
                   onClick={() => setCarModalOpen(true)}
-                  className="px-4 py-2.5 rounded-xl text-sm text-white transition-all border border-white/20 bg-white/[0.08] backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] hover:bg-white/[0.12]"
+                  className="group inline-flex items-center gap-2 text-sm font-nav text-white/80 hover:text-white transition-colors"
                 >
-                  Add new car
+                  <span className="inline-flex items-center justify-center w-5 h-5">
+                    <svg
+                      className="w-3.5 h-3.5 text-white/80 transition-transform duration-300 group-hover:rotate-90"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeWidth="2"
+                        d="M6 6l12 12M18 6l-12 12"
+                      />
+                    </svg>
+                  </span>
+                  <span className="underline-offset-4 group-hover:underline">Add new car</span>
                 </button>
               </div>
 
@@ -400,7 +431,7 @@ export function AccountDashboard() {
                   return (
                     <article
                       key={vehicle.id}
-                      className="relative rounded-2xl border border-white/20 bg-white/[0.08] backdrop-blur-2xl shadow-[0_18px_40px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] p-5"
+                      className="group relative rounded-2xl border border-white/20 bg-white/[0.08] backdrop-blur-2xl shadow-[0_18px_40px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] p-5"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <p className="text-white text-2xl font-normal">
@@ -409,7 +440,7 @@ export function AccountDashboard() {
                         <button
                           type="button"
                           onClick={() => setSettingsVehicle(vehicle)}
-                          className="shrink-0 w-9 h-9 rounded-full border border-white/25 bg-white/[0.04] flex items-center justify-center text-white/75 hover:text-white hover:bg-white/[0.12] transition-all backdrop-blur-xl"
+                          className="shrink-0 w-9 h-9 rounded-full border border-white/35 bg-white/[0.12] flex items-center justify-center text-white/80 backdrop-blur-xl shadow-[0_14px_35px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.55)] transition-all duration-300 opacity-0 scale-90 translate-y-1 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-hover:pointer-events-auto group-hover:border-white/80 group-hover:bg-white/[0.24]"
                           aria-label="Vehicle settings"
                         >
                           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -417,7 +448,13 @@ export function AccountDashboard() {
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeWidth={2}
-                              d="M11.983 6.5a2.5 2.5 0 1 1-2.59 2.5 2.5 2.5 0 0 1 2.59-2.5Zm0-4.5 2.09 1.21 2.27-.76 1.39 1.9 2.38.42.22 2.38 1.85 1.4-1.04 2.16 1.04 2.16-1.85 1.4-.22 2.38-2.38.42-1.39 1.9-2.27-.76-2.09 1.21-2.09-1.21-2.27.76-1.39-1.9-2.38-.42-.22-2.38-1.85-1.4 1.04-2.16L1.96 9.06l1.85-1.4.22-2.38 2.38-.42 1.39-1.9 2.27.76L11.983 2Z"
+                              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.89 3.31.877 2.42 2.42a1.724 1.724 0 0 0 1.065 2.572c1.757.426 1.757 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.89 1.543-.877 3.31-2.42 2.42a1.724 1.724 0 0 0-2.572 1.065c-.426 1.757-2.924 1.757-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.89-3.31-.877-2.42-2.42a1.724 1.724 0 0 0-1.065-2.572c-1.757-.426-1.757-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.89-1.543.877-3.31 2.42-2.42.996.575 2.255.05 2.572-1.065z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"
                             />
                           </svg>
                         </button>
