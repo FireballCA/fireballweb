@@ -30,6 +30,7 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          <Route path="dashboard" element={<Navigate to="/account/dashboard" replace />} />
           <Route path="compte" element={<Navigate to="/account" replace />} />
         </Route>
       </Routes>
