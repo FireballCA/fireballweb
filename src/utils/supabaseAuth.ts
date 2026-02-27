@@ -6,6 +6,7 @@ export interface UserProfile {
   last_name: string
   email: string
   created_at: string
+  subscription_tier?: string | null
 }
 
 /**
@@ -33,12 +34,14 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
       const fullName = String(metadata.full_name || '').trim()
 
       if (firstName || lastName || fullName || user.email) {
+        const subscriptionTier = String(metadata.subscription_tier || metadata.membership_tier || '').trim() || null
         return {
           id: user.id,
           first_name: firstName || fullName.split(' ')[0] || '',
           last_name: lastName || fullName.split(' ').slice(1).join(' ') || '',
           email: user.email || '',
           created_at: user.created_at || new Date().toISOString(),
+          subscription_tier: subscriptionTier,
         }
       }
 
