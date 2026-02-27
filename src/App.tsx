@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { CartProvider } from '@/context/CartContext'
 import { Layout } from '@/components/Layout/Layout'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { Home } from '@/pages/Home'
 import { Shop } from '@/pages/Shop'
 import { Product } from '@/pages/Product'
@@ -21,7 +22,14 @@ function App() {
           <Route path="panier" element={<Cart />} />
           <Route path="account" element={<Account />} />
           <Route path="account/register" element={<AccountRegister />} />
-          <Route path="account/dashboard" element={<AccountDashboard />} />
+          <Route 
+            path="account/dashboard" 
+            element={
+              <ProtectedRoute>
+                <AccountDashboard />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="compte" element={<Navigate to="/account" replace />} />
         </Route>
       </Routes>
