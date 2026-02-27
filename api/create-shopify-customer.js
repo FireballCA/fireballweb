@@ -14,10 +14,10 @@ export default async function handler(req, res) {
         })()
       : (req.body || {})
 
-  const { email, first_name, last_name } = payload
+  const { email, first_name, last_name, password } = payload
 
-  if (!email) {
-    return res.status(400).json({ error: 'Missing required field: email' })
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Missing required fields: email and password' })
   }
 
   const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL || 'fireball-canada.myshopify.com'
@@ -60,6 +60,7 @@ export default async function handler(req, res) {
   const variables = {
     input: {
       email: String(email).trim(),
+      password: String(password),
       firstName: String(first_name || '').trim(),
       lastName: String(last_name || '').trim(),
     },

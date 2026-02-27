@@ -81,6 +81,7 @@ export function AccountRegister() {
       // Étape 4: Créer le client Shopify (sync en arrière-plan côté métier, mais appel vérifié ici)
       const shopifySync = await createShopifyCustomer({
         email: email.trim(),
+        password,
         first_name: firstName || 'Member',
         last_name: lastName || '',
       })
