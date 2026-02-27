@@ -16,6 +16,7 @@ interface Vehicle {
   model: string
   year: number
   ceramicProtectionDate: Date // Date de complétion de la protection
+  protectionShop?: string
 }
 
 type ProtectionStatus = 'green' | 'yellow' | 'red'
@@ -32,6 +33,14 @@ function VehicleSettingsModal({ vehicle, onClose, onUpdate, onDelete }: VehicleS
   const [model, setModel] = useState(vehicle.model)
   const [year, setYear] = useState(vehicle.year.toString())
 
+  useEffect(() => {
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [])
+
   const lastProtection = vehicle.ceramicProtectionDate.toLocaleDateString('fr-FR', {
     day: 'numeric',
     month: 'long',
@@ -41,7 +50,11 @@ function VehicleSettingsModal({ vehicle, onClose, onUpdate, onDelete }: VehicleS
   const handleSave = () => {
     const parsedYear = Number(year)
     if (!brand.trim() || !model.trim() || Number.isNaN(parsedYear)) return
-    onUpdate({ brand: brand.trim(), model: model.trim(), year: parsedYear })
+    onUpdate({
+      brand: brand.trim(),
+      model: model.trim(),
+      year: parsedYear,
+    })
   }
 
   return (
@@ -55,7 +68,7 @@ function VehicleSettingsModal({ vehicle, onClose, onUpdate, onDelete }: VehicleS
         }}
       />
       <div
-        className="relative max-w-lg w-full rounded-3xl p-7"
+        className="relative max-w-2xl w-full rounded-3xl p-8"
         style={{
           background:
             'linear-gradient(135deg, rgba(40, 40, 40, 0.96) 0%, rgba(22, 22, 22, 0.96) 100%)',
@@ -85,11 +98,6 @@ function VehicleSettingsModal({ vehicle, onClose, onUpdate, onDelete }: VehicleS
             </svg>
           </button>
         </div>
-
-        <p className="text-xs text-white/70 mb-4">
-          Last ceramic protection:{' '}
-          <span className="font-medium text-white">{lastProtection}</span>
-        </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
           <div>
@@ -124,7 +132,44 @@ function VehicleSettingsModal({ vehicle, onClose, onUpdate, onDelete }: VehicleS
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3">
+        <div className="mt-5 border-t border-white/12 pt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-nav font-bold uppercase text-white/60 tracking-[0.18em]">
+              Last protected
+            </p>
+            <p className="mt-1 text-sm text-white">{lastProtection}</p>
+            {vehicle.protectionShop && (
+              <p className="mt-0.5 text-xs text-white/70 inline-flex items-center gap-1.5">
+                Applied at <span className="font-medium">{vehicle.protectionShop}</span>
+                <a
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-white/25 text-white/80 hover:text-white hover:border-white/70 transition-colors"
+                  aria-label="Open business details"
+                >
+                  <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 17L17 7M9 7h8v8"
+                    />
+                  </svg>
+                </a>
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col items-stretch md:items-end gap-2 min-w-[240px]">
+            <button
+              type="button"
+              className="px-4 py-2.5 rounded-xl bg-white text-black text-[11px] font-nav uppercase tracking-[0.18em] hover:bg-white/90 transition-colors"
+            >
+              Schedule next appointment
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={onDelete}
@@ -206,6 +251,7 @@ export function AccountDashboard() {
           model: row.model,
           year: row.year,
           ceramicProtectionDate: new Date(row.ceramic_protection_date),
+          protectionShop: row.protection_shop ?? undefined,
         }))
       )
 
@@ -415,6 +461,7 @@ export function AccountDashboard() {
               model: row.model,
               year: row.year,
               ceramicProtectionDate: new Date(row.ceramic_protection_date),
+              protectionShop: row.protection_shop ?? undefined,
             },
           ])
         }}

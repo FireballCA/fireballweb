@@ -7,6 +7,7 @@ export interface GarageVehicleRow {
   model: string
   year: number
   ceramic_protection_date: string
+  protection_shop?: string | null
   created_at: string
 }
 
@@ -33,19 +34,25 @@ export async function createGarageVehicle(input: {
   model: string
   year: number
   ceramicProtectionDate: Date
+  protectionShop?: string
 }): Promise<GarageVehicleRow | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
+  const payload: Record<string, unknown> = {
+    user_id: user.id,
+    brand: input.brand,
+    model: input.model,
+    year: input.year,
+    ceramic_protection_date: input.ceramicProtectionDate.toISOString(),
+  }
+  if (input.protectionShop && input.protectionShop.trim()) {
+    payload.protection_shop = input.protectionShop.trim()
+  }
+
   const { data, error } = await supabase
     .from('garage_vehicles')
-    .insert({
-      user_id: user.id,
-      brand: input.brand,
-      model: input.model,
-      year: input.year,
-      ceramic_protection_date: input.ceramicProtectionDate.toISOString(),
-    })
+    .insert(payload)
     .select('*')
     .maybeSingle()
 
@@ -62,6 +69,7 @@ export async function updateGarageVehicle(id: string, input: {
   model?: string
   year?: number
   ceramicProtectionDate?: Date
+  protectionShop?: string
 }): Promise<GarageVehicleRow | null> {
   const payload: Record<string, unknown> = {}
   if (input.brand !== undefined) payload.brand = input.brand
@@ -69,6 +77,9 @@ export async function updateGarageVehicle(id: string, input: {
   if (input.year !== undefined) payload.year = input.year
   if (input.ceramicProtectionDate) {
     payload.ceramic_protection_date = input.ceramicProtectionDate.toISOString()
+  }
+  if (input.protectionShop !== undefined) {
+    payload.protection_shop = input.protectionShop.trim()
   }
 
   const { data, error } = await supabase
