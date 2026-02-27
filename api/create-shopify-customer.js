@@ -1,9 +1,20 @@
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { email, first_name, last_name } = req.body || {}
+  const payload =
+    typeof req.body === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(req.body)
+          } catch {
+            return {}
+          }
+        })()
+      : (req.body || {})
+
+  const { email, first_name, last_name } = payload
 
   if (!email) {
     return res.status(400).json({ error: 'Missing required field: email' })

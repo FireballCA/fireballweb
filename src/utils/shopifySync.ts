@@ -16,7 +16,8 @@ export async function createShopifyCustomer(data: {
     })
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' })) as {
+      const fallbackText = await response.clone().text().catch(() => '')
+      const errorData = await response.json().catch(() => ({ error: fallbackText || 'Unknown error' })) as {
         error?: string
         details?: unknown
       }
@@ -40,7 +41,10 @@ export async function createShopifyCustomer(data: {
 
       return {
         success: false,
-        error: detailsMessage || errorData.error || `Failed to create Shopify customer (HTTP ${response.status})`,
+        error:
+          detailsMessage ||
+          errorData.error ||
+          `Failed to create Shopify customer (HTTP ${response.status})`,
       }
     }
 
