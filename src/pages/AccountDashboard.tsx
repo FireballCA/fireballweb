@@ -21,6 +21,7 @@ interface Vehicle {
 }
 
 type ProtectionStatus = 'green' | 'yellow' | 'red'
+type SubscriptionTier = 'none' | 'ignition' | 'apex'
 
 interface VehicleSettingsModalProps {
   vehicle: Vehicle
@@ -228,6 +229,7 @@ export function AccountDashboard() {
   const [carModalOpen, setCarModalOpen] = useState(false)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [settingsVehicle, setSettingsVehicle] = useState<Vehicle | null>(null)
+  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('none')
   
   useEffect(() => {
     const checkAuthAndLoadProfile = async () => {
@@ -249,10 +251,13 @@ export function AccountDashboard() {
       let customerFullName = ''
       if (profile) {
         customerFullName = `${profile.first_name} ${profile.last_name}`.trim() || profile.email
+        setSubscriptionTier(normalizeSubscriptionTier(profile.subscription_tier))
       } else if (state?.welcomeName) {
         customerFullName = state.welcomeName
+        setSubscriptionTier('none')
       } else {
         customerFullName = 'Member'
+        setSubscriptionTier('none')
       }
 
       setFullName(customerFullName)
@@ -333,6 +338,33 @@ export function AccountDashboard() {
     red: '#EF4444', // Rouge
   }
 
+  const normalizeSubscriptionTier = (tier?: string | null): SubscriptionTier => {
+    const value = String(tier || '').trim().toLowerCase()
+    if (value === 'ignition') return 'ignition'
+    if (value === 'apex') return 'apex'
+    return 'none'
+  }
+
+  const subscriptionLabel = {
+    none: 'None',
+    ignition: 'Ignition',
+    apex: 'Apex',
+  } as const
+
+  const subscriptionColorClass = {
+    none: 'text-white/55',
+    ignition: 'text-sky-400',
+    apex: 'text-red-400',
+  } as const
+
+  const apexBenefits = [
+    'Unlock $100 in premium products',
+    'Highest member discount tier',
+    'Priority support and concierge access',
+    'Early access to exclusive drops',
+    'Premium partner perks across Fireball network',
+  ]
+
   return (
     <section className="relative min-h-screen bg-[#252525] text-pearl">
       {showWelcomeScreen && (
@@ -376,7 +408,7 @@ export function AccountDashboard() {
       )}
 
       {showDashboard && (
-        <div className="w-full relative">
+        <div className="w-full relative bg-[#1D1D1D]">
           {shopifySyncWarning && (
             <div className="max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16 pt-6">
               <div className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-amber-200 text-sm">
@@ -390,17 +422,17 @@ export function AccountDashboard() {
             targetXp={targetXp}
           />
           <div 
-            className="w-full bg-[#252525] relative z-10 min-h-[300px]"
+            className="w-full bg-[#252525] relative z-20 overflow-hidden"
             style={{
               marginTop: '-40px',
-              borderRadius: '45px 45px 0 0',
+              borderRadius: '45px 45px 45px 45px',
+              boxShadow: '0 24px 36px rgba(0, 0, 0, 0.28)',
             }}
           >
-            <div className="max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16 py-12">
+            <div className="max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16 pt-12 pb-24 md:pb-28">
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <h2 className="text-white text-5xl font-bold tracking-tight inline-flex items-center gap-3">
                   My Garage
-                  <span className="text-white/60 text-xl leading-none">©</span>
                 </h2>
                 <button
                   type="button"
@@ -473,6 +505,72 @@ export function AccountDashboard() {
                     </article>
                   )
                 })}
+              </div>
+            </div>
+          </div>
+          <div className="w-full bg-[#1D1D1D] pt-24 pb-24">
+            <div className="relative max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16">
+              <p className="text-center text-xs md:text-sm text-white/55">
+                Your current subscription :{' '}
+                <span className={`font-semibold ${subscriptionColorClass[subscriptionTier]}`}>
+                  {subscriptionLabel[subscriptionTier]}
+                </span>
+              </p>
+              <h3 className="relative z-10 text-center text-white text-4xl md:text-6xl font-black tracking-tight">
+                MEMBERSHIP
+              </h3>
+              <div className="-mt-3 md:-mt-4 flex justify-center pointer-events-none select-none">
+                <p className="text-center text-[clamp(6rem,20vw,14rem)] font-black uppercase leading-[0.74] scale-y-[1.2] tracking-[-0.05em] bg-gradient-to-b from-white/[0.2] via-white/[0.08] to-transparent bg-clip-text text-transparent">
+                  APEX
+                </p>
+              </div>
+
+              <div className="hidden lg:block pointer-events-none absolute -left-28 top-[34px] z-0">
+                <img
+                  src="/Assets/Cards Mockup.png"
+                  alt="Club Member cards"
+                  className="w-[900px] max-w-none object-contain rotate-[8deg] opacity-40 drop-shadow-[0_22px_35px_rgba(0,0,0,0.45)]"
+                />
+              </div>
+
+              <div className="mt-8 lg:hidden flex items-center justify-center">
+                <img
+                  src="/Assets/Cards Mockup.png"
+                  alt="Club Member cards"
+                  className="w-full max-w-[520px] object-contain rotate-[8deg] opacity-40 drop-shadow-[0_22px_35px_rgba(0,0,0,0.45)]"
+                />
+              </div>
+
+              <div className="mt-10 lg:mt-16 w-full lg:max-w-[620px] lg:ml-auto relative z-10">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">APEX BENEFITS</p>
+                <div className="mt-4 flex flex-col gap-2.5">
+                  {apexBenefits.map((benefit) => (
+                    <div
+                      key={benefit}
+                      className="bg-[#252525] border border-white/10 text-white px-3.5 py-2.5 rounded-[8px] text-xs flex items-center gap-2 w-full"
+                    >
+                      <span className="text-red-400 text-sm select-none">+</span>
+                      <span>{benefit}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-5 flex justify-end">
+                  <a
+                    href="#"
+                    onClick={(e) => e.preventDefault()}
+                    className="inline-flex items-center gap-2 text-sm font-nav text-white/80 hover:text-white transition-colors"
+                  >
+                    <span>Join club</span>
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 17L17 7M9 7h8v8"
+                      />
+                    </svg>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
