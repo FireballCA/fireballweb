@@ -16,11 +16,35 @@ export async function createShopifyCustomer(data: {
     })
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-      return { success: false, error: errorData.error || 'Failed to create Shopify customer' }
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' })) as {
+        error?: string
+        details?: unknown
+      }
+      let detailsMessage = ''
+
+      if (Array.isArray(errorData.details)) {
+        detailsMessage = errorData.details
+          .map((d) => {
+            if (d && typeof d === 'object' && 'message' in d) {
+              return String((d as { message?: string }).message || '')
+            }
+            return ''
+          })
+          .filter(Boolean)
+          .join(', ')
+      } else if (typeof errorData.details === 'string') {
+        detailsMessage = errorData.details
+      } else if (errorData.details) {
+        detailsMessage = JSON.stringify(errorData.details)
+      }
+
+      return {
+        success: false,
+        error: detailsMessage || errorData.error || `Failed to create Shopify customer (HTTP ${response.status})`,
+      }
     }
 
-    const result = await response.json()
+    await response.json()
     return { success: true }
   } catch (error) {
     console.error('Error creating Shopify customer:', error)

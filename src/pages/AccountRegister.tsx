@@ -31,10 +31,22 @@ export function AccountRegister() {
     setLoading(true)
 
     try {
+      // Extraire first_name et last_name du fullName
+      const nameParts = fullName.trim().split(/\s+/).filter(Boolean)
+      const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : nameParts[0] || ''
+      const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''
+
       // Étape 1: Créer l'utilisateur avec Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim(),
         password: password,
+        options: {
+          data: {
+            full_name: fullName.trim(),
+            first_name: firstName || '',
+            last_name: lastName || '',
+          },
+        },
       })
 
       if (authError) {
@@ -48,11 +60,6 @@ export function AccountRegister() {
         setLoading(false)
         return
       }
-
-      // Étape 2: Extraire first_name et last_name du fullName
-      const nameParts = fullName.trim().split(/\s+/).filter(Boolean)
-      const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : nameParts[0] || ''
-      const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''
 
       // Étape 3: Insérer le profil dans la table profiles
       const { error: profileError } = await supabase
@@ -77,9 +84,10 @@ export function AccountRegister() {
         first_name: firstName || 'Member',
         last_name: lastName || '',
       })
-      if (!shopifySync.success) {
+      const shopifySyncError = shopifySync.success ? null : (shopifySync.error || 'Unknown Shopify sync error')
+      if (shopifySyncError) {
         // On ne bloque pas l'inscription Supabase, mais on trace l'erreur pour diagnostic.
-        console.error('Shopify customer sync failed:', shopifySync.error)
+        console.error('Shopify customer sync failed:', shopifySyncError)
       }
 
       // Étape 5: Rediriger vers le dashboard avec le nom pour l'écran de bienvenue
@@ -88,6 +96,7 @@ export function AccountRegister() {
         state: {
           fromRegister: true,
           welcomeName: fullName.trim(),
+          shopifySyncError,
         },
       })
     } catch (error) {
