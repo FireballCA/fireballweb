@@ -23,9 +23,25 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
-    if (error) {
+    if (error || !profile) {
+      // Fallback sur user_metadata si la table profiles est vide ou inaccessible (RLS/policy)
+      const metadata = (user.user_metadata || {}) as Record<string, unknown>
+      const firstName = String(metadata.first_name || '').trim()
+      const lastName = String(metadata.last_name || '').trim()
+      const fullName = String(metadata.full_name || '').trim()
+
+      if (firstName || lastName || fullName || user.email) {
+        return {
+          id: user.id,
+          first_name: firstName || fullName.split(' ')[0] || '',
+          last_name: lastName || fullName.split(' ').slice(1).join(' ') || '',
+          email: user.email || '',
+          created_at: user.created_at || new Date().toISOString(),
+        }
+      }
+
       console.error('Error fetching user profile:', error)
       return null
     }

@@ -17,7 +17,9 @@ type ProtectionStatus = 'green' | 'yellow' | 'red'
 export function AccountDashboard() {
   const navigate = useNavigate()
   const location = useLocation()
+  const pageState = (location.state as { fromRegister?: boolean; welcomeName?: string; shopifySyncError?: string | null } | null) || null
   const [fullName, setFullName] = useState('')
+  const [shopifySyncWarning] = useState<string | null>(pageState?.shopifySyncError || null)
   const [welcomeName, setWelcomeName] = useState<string | null>(null)
   const [welcomeLineVisible, setWelcomeLineVisible] = useState(false)
   const [subtitleVisible, setSubtitleVisible] = useState(false)
@@ -68,7 +70,7 @@ export function AccountDashboard() {
       const profile = await getCurrentUserProfile()
       
       // Récupérer le state une seule fois
-      const state = location.state as { fromRegister?: boolean; welcomeName?: string } | null
+      const state = pageState
       
       // Déterminer le nom complet
       let customerFullName = ''
@@ -102,7 +104,7 @@ export function AccountDashboard() {
     }
 
     checkAuthAndLoadProfile()
-  }, [location.state, navigate])
+  }, [pageState, navigate])
 
   const showWelcomeScreen = welcomeName !== null && !showDashboard
   const nameParts = (welcomeName ?? '').trim().split(/\s+/).filter(Boolean)
@@ -194,6 +196,13 @@ export function AccountDashboard() {
 
       {showDashboard && (
         <div className="w-full relative">
+          {shopifySyncWarning && (
+            <div className="max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16 pt-6">
+              <div className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-amber-200 text-sm">
+                Compte Supabase cree, mais la synchronisation Shopify a echoue: {shopifySyncWarning}
+              </div>
+            </div>
+          )}
           <MemberStatusHero 
             userName={fullName || 'Anthony Bergeron'}
             currentXp={currentXp}

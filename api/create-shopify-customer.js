@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -10,11 +10,18 @@ export default async function handler(req, res) {
   }
 
   const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL || 'fireball-canada.myshopify.com'
-  const SHOPIFY_ADMIN_API_TOKEN = process.env.SHOPIFY_ADMIN_API_TOKEN || ''
+  // Preferred: SHOPIFY_ADMIN_API_TOKEN. Fallback kept for existing env setups.
+  const SHOPIFY_ADMIN_API_TOKEN =
+    process.env.SHOPIFY_ADMIN_API_TOKEN ||
+    process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
+    ''
   const SHOPIFY_API_VERSION = process.env.SHOPIFY_ADMIN_API_VERSION || '2024-10'
 
   if (!SHOPIFY_ADMIN_API_TOKEN) {
-    return res.status(500).json({ error: 'Missing SHOPIFY_ADMIN_API_TOKEN' })
+    return res.status(500).json({
+      error:
+        'Missing admin token. Set SHOPIFY_ADMIN_API_TOKEN (preferred) or SHOPIFY_STOREFRONT_ACCESS_TOKEN if it contains an Admin API token.',
+    })
   }
 
   const normalizedStoreUrl = SHOPIFY_STORE_URL.startsWith('http')
@@ -60,11 +67,13 @@ export default async function handler(req, res) {
 
     const data = await response.json()
     const userErrors = data?.data?.customerCreate?.userErrors || []
+    const graphqlErrors = data?.errors || null
 
-    if (!response.ok || data?.errors?.length || userErrors.length) {
+    if (!response.ok || (Array.isArray(graphqlErrors) && graphqlErrors.length) || userErrors.length) {
+      const details = graphqlErrors || userErrors || data || null
       return res.status(400).json({
-        error: 'Failed to create Shopify customer',
-        details: data?.errors || userErrors,
+        error: `Failed to create Shopify customer (HTTP ${response.status})`,
+        details,
       })
     }
 
