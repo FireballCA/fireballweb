@@ -1,89 +1,113 @@
-import { useId, useRef, useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { loginAccount, registerAccount } from '@/utils/accountAuth'
-
-function FlagEN() {
-  const clipId = useId()
-  return (
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="flex-shrink-0">
-      <defs>
-        <clipPath id={clipId}>
-          <circle cx="10" cy="10" r="10" />
-        </clipPath>
-      </defs>
-      <g clipPath={`url(#${clipId})`}>
-        <rect width="20" height="20" fill="#012169" />
-        <path d="M0 0L20 20M20 0L0 20" stroke="white" strokeWidth="3" />
-        <path d="M0 0L20 20M20 0L0 20" stroke="#C8102E" strokeWidth="1.8" />
-        <path d="M10 0v20M0 10h20" stroke="white" strokeWidth="5" />
-        <path d="M10 0v20M0 10h20" stroke="#C8102E" strokeWidth="3" />
-      </g>
-    </svg>
-  )
-}
-
-function FlagFR() {
-  const clipId = useId()
-  return (
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="flex-shrink-0">
-      <defs>
-        <clipPath id={clipId}>
-          <circle cx="10" cy="10" r="10" />
-        </clipPath>
-      </defs>
-      <g clipPath={`url(#${clipId})`}>
-        <rect width="6.67" height="20" fill="#002395" />
-        <rect width="6.67" height="20" x="6.67" fill="#fff" />
-        <rect width="6.67" height="20" x="13.33" fill="#ED2939" />
-      </g>
-    </svg>
-  )
-}
+import { supabase } from '@/lib/supabase'
+import { isAuthenticated } from '@/utils/supabaseAuth'
+import { createShopifyCustomer } from '@/utils/shopifySync'
 
 export function AccountRegister() {
   const navigate = useNavigate()
-  const [langOpen, setLangOpen] = useState(false)
-  const [lang, setLang] = useState<'EN' | 'FR'>('EN')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
-  const langMenuRef = useRef<HTMLDivElement | null>(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const onClickOutside = (event: MouseEvent) => {
-      if (!langOpen) return
-      const target = event.target as Node
-      if (langMenuRef.current && !langMenuRef.current.contains(target)) {
-        setLangOpen(false)
+    document.title = 'Create Account | Fireball Canada'
+    
+    // Vérifier si l'utilisateur est déjà connecté
+    const checkAuth = async () => {
+      const authenticated = await isAuthenticated()
+      if (authenticated) {
+        navigate('/account/dashboard', { replace: true })
       }
     }
-    document.addEventListener('mousedown', onClickOutside)
-    return () => document.removeEventListener('mousedown', onClickOutside)
-  }, [langOpen])
+    checkAuth()
+  }, [navigate])
 
-  const handleRegisterSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleRegisterSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setErrorMessage('')
+    setLoading(true)
 
-    const result = registerAccount({ fullName, email, password })
-    if (!result.ok) {
-      setErrorMessage('An account with this email already exists.')
-      return
+    try {
+      // Étape 1: Créer l'utilisateur avec Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password,
+      })
+
+      if (authError) {
+        setErrorMessage(authError.message || 'Failed to create account. Please try again.')
+        setLoading(false)
+        return
+      }
+
+      if (!authData.user) {
+        setErrorMessage('Account creation failed. Please try again.')
+        setLoading(false)
+        return
+      }
+
+      // Étape 2: Extraire first_name et last_name du fullName
+      const nameParts = fullName.trim().split(/\s+/).filter(Boolean)
+      const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : nameParts[0] || ''
+      const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''
+
+      // Étape 3: Insérer le profil dans la table profiles
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          first_name: firstName,
+          last_name: lastName,
+          email: email.trim(),
+          created_at: new Date().toISOString(),
+        })
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError)
+        // Ne pas bloquer l'inscription si le profil échoue, mais loguer l'erreur
+        // L'utilisateur peut toujours se connecter, le profil pourra être créé plus tard
+      }
+
+      // Étape 4: Créer le client Shopify (sync en arrière-plan côté métier, mais appel vérifié ici)
+      const shopifySync = await createShopifyCustomer({
+        email: email.trim(),
+        first_name: firstName || 'Member',
+        last_name: lastName || '',
+      })
+      if (!shopifySync.success) {
+        // On ne bloque pas l'inscription Supabase, mais on trace l'erreur pour diagnostic.
+        console.error('Shopify customer sync failed:', shopifySync.error)
+      }
+
+      // Étape 5: Rediriger vers le dashboard avec le nom pour l'écran de bienvenue
+      navigate('/account/dashboard', {
+        replace: true,
+        state: {
+          fromRegister: true,
+          welcomeName: fullName.trim(),
+        },
+      })
+    } catch (error) {
+      console.error('Registration error:', error)
+      setErrorMessage('An unexpected error occurred. Please try again.')
+      setLoading(false)
     }
-
-    loginAccount({ email, password })
-    navigate('/account/dashboard', {
-      state: { fromRegister: true, welcomeName: result.account.fullName },
-    })
   }
 
   return (
-    <section className="relative min-h-screen overflow-hidden bg-carbon-950">
-      <div className="fixed top-5 left-5 z-30">
+    <section className="relative min-h-screen overflow-hidden bg-[#0B0B0B] flex items-center justify-center px-6 py-16">
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0B0B0B] via-[#1a1a1a] to-[#0B0B0B]" />
+      
+      {/* Back button */}
+      <div className="fixed top-6 left-6 z-30">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-carbon-700 text-silver hover:text-white hover:border-carbon-500 transition-colors"
+          className="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/15 text-white/80 hover:text-white hover:border-white/25 transition-all bg-white/[0.06] backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
           aria-label="Go back"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,68 +116,34 @@ export function AccountRegister() {
         </button>
       </div>
 
-      <div className="fixed top-5 right-5 z-30" ref={langMenuRef}>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setLangOpen((open) => !open)}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-nav font-bold text-silver hover:text-white transition-colors bg-white/[0.06] border border-white/15 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
-            aria-expanded={langOpen}
-          >
-            {lang === 'EN' ? <FlagEN /> : <FlagFR />}
-            {lang}
-            <svg className={`w-3.5 h-3.5 transition-transform ${langOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          {langOpen && (
-            <div className="absolute top-full right-0 mt-2 w-36 rounded-2xl border border-white/20 bg-white/[0.08] backdrop-blur-2xl shadow-[0_18px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.24)] p-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setLang('EN')
-                  setLangOpen(false)
-                }}
-                className="w-full text-left px-3 py-2 rounded-xl text-xs font-nav font-bold text-silver hover:bg-white/10 hover:text-white transition-colors inline-flex items-center gap-2"
-              >
-                <FlagEN />
-                English
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setLang('FR')
-                  setLangOpen(false)
-                }}
-                className="w-full text-left px-3 py-2 rounded-xl text-xs font-nav font-bold text-silver hover:bg-white/10 hover:text-white transition-colors inline-flex items-center gap-2"
-              >
-                <FlagFR />
-                Francais
-              </button>
-            </div>
-          )}
+      <div className="relative z-10 w-full max-w-md">
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <img
+            src="/LogoFull.avif"
+            alt="Fireball"
+            className="h-8 w-auto object-contain opacity-90"
+            draggable={false}
+          />
         </div>
-      </div>
 
-      <div className="relative z-10 max-w-lg mx-auto px-6 py-16 mt-10">
-        <section className="rounded-3xl border border-carbon-700 bg-carbon-900/75 backdrop-blur-sm p-8 md:p-10 shadow-2xl">
-          <div className="flex justify-center mb-4">
-            <img
-              src="/LogoFull.avif"
-              alt="Fireball"
-              className="h-6 w-auto object-contain opacity-90"
-              style={{ filter: 'grayscale(1) brightness(5) saturate(0)' }}
-              draggable={false}
-            />
-          </div>
-
-          <h1 className="font-nav font-bold text-4xl text-pearl uppercase mb-8 text-center">
-            Welcome to the Fireball World
+        {/* Register Card - Liquid Glass Style */}
+        <div className="rounded-2xl border border-white/20 shadow-[0_18px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.24)] p-8 md:p-10"
+          style={{
+            background: 'rgba(20, 20, 20, 0.95)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+          }}
+        >
+          <h1 className="font-nav font-bold text-3xl md:text-4xl text-white uppercase mb-2 text-center tracking-wide">
+            CREATE ACCOUNT
           </h1>
+          <p className="text-center text-white/60 text-sm mb-8">Join the Fireball community</p>
 
           <form className="space-y-5" onSubmit={handleRegisterSubmit}>
+            {/* Full Name Input - Liquid Glass Style */}
             <div>
-              <label htmlFor="fullName" className="block text-xs font-nav font-bold uppercase text-silver mb-2">
+              <label htmlFor="fullName" className="block text-white/80 text-sm mb-2 font-medium">
                 Full Name
               </label>
               <input
@@ -161,13 +151,16 @@ export function AccountRegister() {
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-4 py-3 bg-carbon-950 border border-white/60 rounded-xl text-pearl focus:outline-none focus:border-white transition-colors"
+                className="w-full rounded-xl px-4 py-3 text-left text-white placeholder:text-white/40 focus:outline-none transition-all bg-white/[0.06] border border-white/15 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] focus:border-white/30 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.1)]"
                 placeholder="John Doe"
                 required
+                disabled={loading}
               />
             </div>
+
+            {/* Email Input - Liquid Glass Style */}
             <div>
-              <label htmlFor="email" className="block text-xs font-nav font-bold uppercase text-silver mb-2">
+              <label htmlFor="email" className="block text-white/80 text-sm mb-2 font-medium">
                 Email Address
               </label>
               <input
@@ -175,13 +168,16 @@ export function AccountRegister() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-carbon-950 border border-white/60 rounded-xl text-pearl focus:outline-none focus:border-white transition-colors"
+                className="w-full rounded-xl px-4 py-3 text-left text-white placeholder:text-white/40 focus:outline-none transition-all bg-white/[0.06] border border-white/15 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] focus:border-white/30 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.1)]"
                 placeholder="you@example.com"
                 required
+                disabled={loading}
               />
             </div>
+
+            {/* Password Input - Liquid Glass Style */}
             <div>
-              <label htmlFor="password" className="block text-xs font-nav font-bold uppercase text-silver mb-2">
+              <label htmlFor="password" className="block text-white/80 text-sm mb-2 font-medium">
                 Password
               </label>
               <input
@@ -189,37 +185,46 @@ export function AccountRegister() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-carbon-950 border border-white/60 rounded-xl text-pearl focus:outline-none focus:border-white transition-colors"
+                className="w-full rounded-xl px-4 py-3 text-left text-white placeholder:text-white/40 focus:outline-none transition-all bg-white/[0.06] border border-white/15 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] focus:border-white/30 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.1)]"
                 placeholder="••••••••"
                 required
+                minLength={6}
+                disabled={loading}
               />
+              <p className="text-xs text-white/50 mt-1">Minimum 6 characters</p>
             </div>
 
-            <label className="inline-flex items-center gap-2.5 text-sm text-silver/80 select-none cursor-pointer">
-              <input type="checkbox" className="h-4 w-4 rounded border-carbon-500 bg-carbon-950 text-chrome focus:ring-0" />
-              Remember this device
-            </label>
+            {/* Error message */}
+            {errorMessage && (
+              <div className="rounded-xl px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                {errorMessage}
+              </div>
+            )}
 
+            {/* Submit Button - Liquid Glass Style */}
             <button
               type="submit"
-              className="w-full py-3 bg-white text-carbon-950 font-nav font-bold uppercase text-sm rounded-xl hover:bg-white/95 transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-8px_14px_rgba(0,0,0,0.08),0_10px_24px_rgba(0,0,0,0.22)]"
+              disabled={loading}
+              className="w-full py-3.5 bg-white text-[#0B0B0B] font-nav font-bold uppercase text-sm rounded-xl hover:bg-white/95 transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-8px_14px_rgba(0,0,0,0.08),0_10px_24px_rgba(0,0,0,0.22)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Account →
+              {loading ? 'Creating account...' : 'Create Account →'}
             </button>
 
-            {errorMessage && <p className="text-center text-sm text-[#E23854]">{errorMessage}</p>}
-
-            <p className="text-center text-sm text-silver/60">
-              Already registered?{' '}
-              <Link to="/account" className="inline-flex items-center gap-0.5 text-sm font-nav font-bold text-blue-600 hover:text-blue-700 underline transition-colors">
-                Access Portal
-                <svg className="w-4 h-4 transform -rotate-45 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {/* Login link */}
+            <p className="text-center text-sm text-white/60 pt-4 border-t border-white/10">
+              Already have an account?{' '}
+              <Link 
+                to="/account" 
+                className="inline-flex items-center gap-1 text-sm font-medium text-white hover:text-white/80 underline transition-colors"
+              >
+                Sign in
+                <svg className="w-4 h-4 transform -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </Link>
             </p>
           </form>
-        </section>
+        </div>
       </div>
     </section>
   )

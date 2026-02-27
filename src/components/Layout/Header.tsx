@@ -2,6 +2,7 @@ import { useId, useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCart } from '@/context/CartContext'
 import { CATEGORIES } from '@/data/products'
+import { isAuthenticated } from '@/utils/supabaseAuth'
 
 const CERAMIC_DROPDOWN = [
   { label: 'Carrosserie', to: '/boutique/revetements' },
@@ -61,7 +62,9 @@ export function Header() {
   const langMenuMobileRef = useRef<HTMLDivElement | null>(null)
   const searchMenuRef = useRef<HTMLDivElement | null>(null)
   const { totalItems } = useCart()
-  const isAccountDashboard = location.pathname === '/account/dashboard'
+  const isAccountPage = location.pathname.startsWith('/account') && 
+    location.pathname !== '/account' && 
+    location.pathname !== '/account/register'
 
   useEffect(() => {
     const onScroll = () => {
@@ -95,24 +98,36 @@ export function Header() {
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [langOpen, searchOpen])
 
-  const opacity = isAccountDashboard ? 0.95 : scrollProgress * 0.95
-  const borderOpacity = isAccountDashboard ? 0.45 : 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
+  const opacity = isAccountPage ? 1 : scrollProgress * 0.95
+  const borderOpacity = isAccountPage ? 0.45 : 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
   
-  const navBgStyle: React.CSSProperties = {
-    backgroundColor: `rgba(10, 10, 10, ${opacity})`,
-    backdropFilter: opacity > 0.01 ? 'blur(12px)' : 'none',
-    borderBottom: `1px solid rgba(37, 37, 37, ${borderOpacity})`,
-    transition: 'background-color 0.2s ease-out, backdrop-filter 0.2s ease-out, border-bottom-color 0.2s ease-out',
-  }
+  const navBgStyle: React.CSSProperties = isAccountPage
+    ? {
+        backgroundColor: '#1D1D1D',
+        backdropFilter: 'none',
+        borderBottom: `1px solid rgba(37, 37, 37, ${borderOpacity})`,
+        transition: 'background-color 0.2s ease-out, backdrop-filter 0.2s ease-out, border-bottom-color 0.2s ease-out',
+      }
+    : {
+        backgroundColor: `rgba(10, 10, 10, ${opacity})`,
+        backdropFilter: opacity > 0.01 ? 'blur(12px)' : 'none',
+        borderBottom: `1px solid rgba(37, 37, 37, ${borderOpacity})`,
+        transition: 'background-color 0.2s ease-out, backdrop-filter 0.2s ease-out, border-bottom-color 0.2s ease-out',
+      }
 
   const navLink =
     'font-nav font-bold text-white transition-colors text-xs uppercase px-4 py-2 rounded-md hover:bg-carbon-700/20 group-hover:text-silver/70 hover:!text-white'
   const anyMenuOpen = shopOpen || ceramicOpen || searchOpen || langOpen || menuOpen
 
-  const handleAccountClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleAccountClick = async (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault()
-    sessionStorage.setItem('accountIntroFromNav', '1')
-    navigate('/account')
+    const authenticated = await isAuthenticated()
+    if (authenticated) {
+      navigate('/account/dashboard')
+    } else {
+      sessionStorage.setItem('accountIntroFromNav', '1')
+      navigate('/account')
+    }
   }
 
   return (
