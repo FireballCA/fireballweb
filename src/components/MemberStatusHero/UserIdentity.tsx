@@ -33,6 +33,12 @@ export function UserIdentity({ userName = 'Anthony Bergeron' }: UserIdentityProp
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
           </svg>
         </button>
+        <button className="bg-[#1a1a1a] text-white px-3.5 py-2.5 rounded-[6px] text-left text-xs font-normal hover:bg-[#252525] transition-colors w-[200px] flex items-center justify-between">
+          <span>Settings</span>
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ transform: 'rotate(45deg)' }}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+        </button>
       </div>
     </div>
   )
