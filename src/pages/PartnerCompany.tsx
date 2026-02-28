@@ -66,6 +66,8 @@ const partnerResponsibilities = [
 ]
 
 export function PartnerCompany() {
+  type PartnerApplicationStatus = 'pending' | 'partner' | 'declined'
+
   const [submitted, setSubmitted] = useState(false)
   const [services, setServices] = useState<string[]>([])
   const [agreementChecked, setAgreementChecked] = useState(false)
@@ -78,6 +80,7 @@ export function PartnerCompany() {
   const [submitting, setSubmitting] = useState(false)
   const [authenticated, setAuthenticated] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
+  const [applicationStatus, setApplicationStatus] = useState<PartnerApplicationStatus | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -85,6 +88,30 @@ export function PartnerCompany() {
       const auth = await checkIsAuthenticated()
       if (!mounted) return
       setAuthenticated(auth)
+      if (auth) {
+        const { data: userData } = await supabase.auth.getUser()
+        const userId = userData.user?.id
+        if (userId) {
+          const { data: existing } = await supabase
+            .from('partner_companies')
+            .select('status')
+            .eq('user_id', userId)
+            .order('submitted_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          const normalized = String(existing?.status || '').toLowerCase()
+          if (normalized === 'pending' || normalized === 'partner' || normalized === 'declined') {
+            setApplicationStatus(normalized as PartnerApplicationStatus)
+          } else {
+            setApplicationStatus(null)
+          }
+        } else {
+          setApplicationStatus(null)
+        }
+      } else {
+        setApplicationStatus(null)
+      }
       setAuthChecked(true)
     }
     run()
@@ -92,6 +119,8 @@ export function PartnerCompany() {
       mounted = false
     }
   }, [])
+
+  const hasActiveApplication = applicationStatus === 'pending' || applicationStatus === 'partner'
 
   if (submitted) {
     return (
@@ -243,7 +272,7 @@ export function PartnerCompany() {
           onSubmit={(e) => {
             e.preventDefault()
             setFormError('')
-            if (!authenticated) return
+            if (!authenticated || hasActiveApplication) return
             const form = e.currentTarget
             if (!form.checkValidity()) {
               form.reportValidity()
@@ -324,7 +353,7 @@ export function PartnerCompany() {
             })()
           }}
         >
-          {authChecked && !authenticated && (
+          {authChecked && (!authenticated || hasActiveApplication) && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/45 backdrop-blur-md">
               <div className="max-w-[520px] mx-auto px-6 text-center">
                 <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/25 bg-white/10">
@@ -337,29 +366,50 @@ export function PartnerCompany() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-white text-xl font-semibold">Account required</h3>
-                <p className="mt-2 text-sm text-white/75">
-                  Create an account or sign in to access the Fireball certification application form.
-                </p>
-                <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <Link
-                    to="/account?returnTo=%2Faccount%2Fcompany"
-                    className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
-                  >
-                    Sign in
-                  </Link>
-                  <Link
-                    to="/account/register?returnTo=%2Faccount%2Fcompany"
-                    className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#9f1119] via-[#d21826] to-[#ff3b48] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(214,24,38,0.35)]"
-                  >
-                    Create account
-                  </Link>
-                </div>
+                {!authenticated ? (
+                  <>
+                    <h3 className="text-white text-xl font-semibold">Account required</h3>
+                    <p className="mt-2 text-sm text-white/75">
+                      Create an account or sign in to access the Fireball certification application form.
+                    </p>
+                    <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
+                      <Link
+                        to="/account?returnTo=%2Faccount%2Fcompany"
+                        className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
+                      >
+                        Sign in
+                      </Link>
+                      <Link
+                        to="/account/register?returnTo=%2Faccount%2Fcompany"
+                        className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#9f1119] via-[#d21826] to-[#ff3b48] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(214,24,38,0.35)]"
+                      >
+                        Create account
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-white text-xl font-semibold">Application already in progress</h3>
+                    <p className="mt-2 text-sm text-white/75">
+                      You already have a Fireball partner application with status{' '}
+                      <span className="font-semibold text-white">{applicationStatus}</span>. For updates, please contact
+                      our team.
+                    </p>
+                    <div className="mt-5 flex items-center justify-center">
+                      <a
+                        href="mailto:partners@fireballcanada.com?subject=Partner%20Application%20Follow-up"
+                        className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#9f1119] via-[#d21826] to-[#ff3b48] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(214,24,38,0.35)]"
+                      >
+                        Contact us
+                      </a>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
 
-          <div className={authChecked && !authenticated ? 'pointer-events-none select-none blur-sm' : ''}>
+          <div className={authChecked && (!authenticated || hasActiveApplication) ? 'pointer-events-none select-none blur-sm' : ''}>
           <div className="space-y-8">
             <section>
               <h2 className="text-xs font-nav font-bold uppercase tracking-[0.18em] text-white/65">

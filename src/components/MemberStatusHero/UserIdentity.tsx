@@ -17,19 +17,17 @@ export function UserIdentity({
   const firstName = nameParts[0] || ''
   const lastName = nameParts.slice(1).join(' ') || ''
   const normalizedPartnerStatus = String(partnerStatus || '').trim().toLowerCase()
-  const shouldShowPartnerStatus = Boolean(companyName) || ['pending', 'partner', 'declined'].includes(normalizedPartnerStatus)
+  const shouldShowPartnerStatus = ['pending', 'partner'].includes(normalizedPartnerStatus)
 
   const partnerStatusLabel = (() => {
     if (normalizedPartnerStatus === 'partner') return 'Partner'
     if (normalizedPartnerStatus === 'pending') return 'Pending'
-    if (normalizedPartnerStatus === 'declined') return 'Declined'
     return null
   })()
 
   const partnerStatusColor = (() => {
     if (normalizedPartnerStatus === 'partner') return 'text-emerald-300'
     if (normalizedPartnerStatus === 'pending') return 'text-amber-300'
-    if (normalizedPartnerStatus === 'declined') return 'text-rose-300'
     return 'text-white/60'
   })()
 

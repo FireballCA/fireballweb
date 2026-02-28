@@ -61,45 +61,57 @@ function formatFieldValue(value: unknown): string {
   return String(value)
 }
 
+function getPartnerPortalUrl(): string {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/account/dashboard`
+  }
+  return 'https://fireballcanada.com/account/dashboard'
+}
+
 function buildApprovalEmail(row: PartnerApplicationRow): { to: string; subject: string; message: string; bannerUrl: string } {
-  const contactName = String(row.application_data?.owner_primary_contact || 'there')
-  const company = row.company_name || 'your company'
   const to = String(row.application_data?.business_email || '')
-  const subject = `Fireball Canada Partner Approval - ${company}`
-  const message = `Hello ${contactName},
+  const subject = 'Your Fireball Partner Application Has Been Approved'
+  const message = `Hello,
 
-Great news - your company "${company}" has been approved as an official Fireball Canada Partner.
+We are pleased to inform you that your application to the Fireball Partner Program has been approved.
 
-Next steps:
-1) Our team will contact you for onboarding.
-2) You will receive partner resources and technical documentation.
-3) We will confirm your partner profile activation.
+Your Partner Account is now active and provides you with access to benefits reserved for authorized Fireball professionals.
 
-If you have any questions, reply directly to this email.
+You can now access your Partner Dashboard to:
+- View professional pricing
+- Order Fireball products
+- Access technical resources
+- Manage your partner account information
+
+You may log in to your Partner Portal using the link below:
+
+Access My Partner Dashboard: [BUTTON]
+
+If you have any questions regarding your account or Fireball products, our team remains available to assist you.
 
 Best regards,
-Fireball Canada Team`
+Fireball Canada team`
 
   return { to, subject, message, bannerUrl: '' }
 }
 
 function buildDeclineEmail(row: PartnerApplicationRow): { to: string; subject: string; message: string; bannerUrl: string } {
-  const contactName = String(row.application_data?.owner_primary_contact || 'there')
-  const company = row.company_name || 'your company'
   const to = String(row.application_data?.business_email || '')
-  const subject = `Fireball Canada Partner Application Update - ${company}`
-  const message = `Hello ${contactName},
+  const subject = 'Update Regarding Your Fireball Partner Application'
+  const message = `Hello,
 
-Thank you for applying to become an official Fireball Canada Partner.
+Thank you for your interest in the Fireball Partner Program.
 
-After reviewing your current application for "${company}", we are unable to approve it at this moment.
+After careful review, we regret to inform you that your application has not been approved at this time.
 
-You are welcome to apply again once you update your submission with additional details and recent installation samples.
+The Fireball Partner Program is limited to professionals who meet specific criteria aligned with the development of our authorized network.
 
-If you want specific feedback on your application, reply directly to this email and our team will assist.
+You are welcome to submit a new application in the future should your business qualifications evolve.
+
+We appreciate your interest in Fireball.
 
 Best regards,
-Fireball Canada Team`
+Fireball Canada team`
 
   return { to, subject, message, bannerUrl: '' }
 }
@@ -119,9 +131,22 @@ function buildEmailHtml(params: {
   subject: string
   message: string
   bannerUrl: string
+  ctaUrl?: string
+  ctaLabel?: string
 }): string {
   const safeSubject = escapeHtml(params.subject)
-  const safeMessage = escapeHtml(params.message).replace(/\n/g, '<br/>')
+  const buttonHtml =
+    params.ctaUrl && params.ctaLabel
+      ? `<div style="margin-top:18px;">
+           <a href="${escapeHtml(params.ctaUrl)}" style="display:inline-block;padding:11px 16px;border-radius:999px;background:#111827;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;">
+             ${escapeHtml(params.ctaLabel)}
+           </a>
+         </div>`
+      : ''
+  const messageSections = params.message.split('[BUTTON]')
+  const finalMessage = messageSections
+    .map((section, idx) => `${escapeHtml(section).replace(/\n/g, '<br/>')}${idx < messageSections.length - 1 ? buttonHtml : ''}`)
+    .join('')
   const safeCompany = escapeHtml(params.companyName || 'Partner')
   const safeBanner = params.bannerUrl.trim()
   const accent = params.decision === 'partner' ? '#10b981' : '#f97316'
@@ -139,7 +164,7 @@ function buildEmailHtml(params: {
         </td>
       </tr>
       <tr>
-        <td style="padding:8px 28px 22px 28px;font-size:15px;line-height:1.7;color:#1f2937;">${safeMessage}</td>
+        <td style="padding:8px 28px 22px 28px;font-size:15px;line-height:1.7;color:#1f2937;">${finalMessage}</td>
       </tr>
       <tr>
         <td style="padding:16px 28px 28px 28px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280;">
@@ -299,6 +324,8 @@ export function ManagePartners() {
         subject: decisionComposer.subject.trim(),
         message: decisionComposer.message.trim(),
         bannerUrl: decisionComposer.bannerUrl.trim(),
+        ctaUrl: decisionComposer.decision === 'partner' ? getPartnerPortalUrl() : undefined,
+        ctaLabel: decisionComposer.decision === 'partner' ? 'Access My Partner Dashboard' : undefined,
       })
 
       const response = await fetch('/api/send-partner-approval-email', {
