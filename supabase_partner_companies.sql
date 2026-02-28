@@ -19,6 +19,47 @@ create table if not exists public.partner_companies (
 alter table public.partner_companies
 add column if not exists application_data jsonb not null default '{}'::jsonb;
 
+alter table public.partner_companies
+add column if not exists certification_level text not null default 'standard';
+
+alter table public.partner_companies
+add column if not exists total_installations integer not null default 0;
+
+alter table public.partner_companies
+add column if not exists total_clients integer not null default 0;
+
+alter table public.partner_companies
+add column if not exists warranty_registrations integer not null default 0;
+
+alter table public.partner_companies
+add column if not exists partner_activity_status text not null default 'active';
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'partner_companies_certification_level_check'
+  ) then
+    alter table public.partner_companies
+    add constraint partner_companies_certification_level_check
+    check (certification_level in ('standard', 'advanced', 'elite'));
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'partner_companies_activity_status_check'
+  ) then
+    alter table public.partner_companies
+    add constraint partner_companies_activity_status_check
+    check (partner_activity_status in ('active', 'suspended'));
+  end if;
+end $$;
+
 create unique index if not exists partner_companies_user_id_key
   on public.partner_companies (user_id);
 

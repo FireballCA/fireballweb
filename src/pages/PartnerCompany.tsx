@@ -317,20 +317,6 @@ export function PartnerCompany() {
                   return
                 }
 
-                // Keep profile in sync so partner status appears immediately in dashboard UI.
-                const { error: profileSyncError } = await supabase
-                  .from('profiles')
-                  .update({
-                    company_name: applicationData.business_name,
-                    partner_status: 'pending',
-                  })
-                  .eq('id', userId)
-
-                if (profileSyncError) {
-                  setFormError(profileSyncError.message || 'Application sent, but profile sync failed.')
-                  return
-                }
-
                 setSubmitted(true)
               } finally {
                 setSubmitting(false)

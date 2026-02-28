@@ -59,13 +59,19 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
     }
 
     const mappedProfile = profile as UserProfile
-    const { data: companyRow } = await supabase
+    const { data: companyRow, error: companyError } = await supabase
       .from('partner_companies')
       .select('company_name,status')
       .eq('user_id', user.id)
-      .order('requested_at', { ascending: false })
+      .order('submitted_at', { ascending: false })
       .limit(1)
       .maybeSingle()
+
+    if (companyError) {
+      // Do not break dashboard/profile rendering if partner_companies query fails.
+      console.warn('Partner company lookup failed:', companyError.message)
+      return mappedProfile
+    }
 
     if (!companyRow) {
       return mappedProfile
