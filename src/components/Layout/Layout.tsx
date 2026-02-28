@@ -8,14 +8,16 @@ export function Layout() {
     location.pathname === '/compte' ||
     location.pathname === '/account' ||
     location.pathname === '/account/register'
+  const isOverlayHeaderPage = location.pathname === '/account/company'
   const isAnyAccountPage = location.pathname === '/compte' || location.pathname.startsWith('/account')
   const showHeader = !isAccountAuthPage
   const showFooter = !isAnyAccountPage
+  const mainClassName = showHeader && !isOverlayHeaderPage ? 'flex-1 pt-20' : 'flex-1'
 
   return (
     <div className="min-h-screen flex flex-col">
       {showHeader && <Header />}
-      <main className={showHeader ? 'flex-1 pt-20' : 'flex-1'}>
+      <main className={mainClassName}>
         <Outlet />
       </main>
       {showFooter && <Footer />}

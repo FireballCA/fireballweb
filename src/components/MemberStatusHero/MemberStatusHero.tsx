@@ -5,6 +5,9 @@ interface MemberStatusHeroProps {
   userName?: string
   currentXp?: number
   targetXp?: number
+  isAdmin?: boolean
+  partnerStatus?: string | null
+  companyName?: string | null
   tier?: string
   benefits?: Array<{ text: string }>
 }
@@ -13,6 +16,9 @@ export function MemberStatusHero({
   userName = 'Anthony Bergeron',
   currentXp = 2403,
   targetXp = 3000,
+  isAdmin = false,
+  partnerStatus = null,
+  companyName = null,
   tier = 'TIER 1',
   benefits = [
     { text: '5% off selected products' },
@@ -26,7 +32,12 @@ export function MemberStatusHero({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16 items-start">
           {/* Left: User Identity */}
           <div className="flex flex-col">
-            <UserIdentity userName={userName} />
+            <UserIdentity
+              userName={userName}
+              isAdmin={isAdmin}
+              partnerStatus={partnerStatus}
+              companyName={companyName}
+            />
           </div>
 
           {/* Center: XP Progress */}

@@ -7,6 +7,9 @@ export interface UserProfile {
   email: string
   created_at: string
   subscription_tier?: string | null
+  role?: string | null
+  company_name?: string | null
+  partner_status?: string | null
 }
 
 /**
@@ -35,6 +38,9 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
 
       if (firstName || lastName || fullName || user.email) {
         const subscriptionTier = String(metadata.subscription_tier || metadata.membership_tier || '').trim() || null
+        const role = String(metadata.role || metadata.user_role || '').trim() || null
+        const companyName = String(metadata.company_name || '').trim() || null
+        const partnerStatus = String(metadata.partner_status || '').trim() || null
         return {
           id: user.id,
           first_name: firstName || fullName.split(' ')[0] || '',
@@ -42,6 +48,9 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
           email: user.email || '',
           created_at: user.created_at || new Date().toISOString(),
           subscription_tier: subscriptionTier,
+          role,
+          company_name: companyName,
+          partner_status: partnerStatus,
         }
       }
 
@@ -49,7 +58,24 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
       return null
     }
 
-    return profile as UserProfile
+    const mappedProfile = profile as UserProfile
+    const { data: companyRow } = await supabase
+      .from('partner_companies')
+      .select('company_name,status')
+      .eq('user_id', user.id)
+      .order('requested_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (!companyRow) {
+      return mappedProfile
+    }
+
+    return {
+      ...mappedProfile,
+      company_name: (companyRow.company_name as string | null) ?? null,
+      partner_status: (companyRow.status as string | null) ?? null,
+    }
   } catch (error) {
     console.error('Error in getCurrentUserProfile:', error)
     return null
