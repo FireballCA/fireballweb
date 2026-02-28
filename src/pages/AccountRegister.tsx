@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { isAuthenticated } from '@/utils/supabaseAuth'
 import { createShopifyCustomer } from '@/utils/shopifySync'
+import { IOSCheckbox } from '@/components/IOSCheckbox'
 
 export function AccountRegister() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [rememberDevice, setRememberDevice] = useState(false)
+
+  const returnToParam = new URLSearchParams(location.search).get('returnTo')
+  const returnToPath = returnToParam === '/account/company' ? returnToParam : null
 
   useEffect(() => {
     document.title = 'Create Account | Fireball Canada'
@@ -19,11 +25,11 @@ export function AccountRegister() {
     const checkAuth = async () => {
       const authenticated = await isAuthenticated()
       if (authenticated) {
-        navigate('/account/dashboard', { replace: true })
+        navigate(returnToPath ?? '/account/dashboard', { replace: true })
       }
     }
     checkAuth()
-  }, [navigate])
+  }, [navigate, returnToPath])
 
   const handleRegisterSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -91,15 +97,19 @@ export function AccountRegister() {
         console.error('Shopify customer sync failed:', shopifySyncError)
       }
 
-      // Étape 5: Rediriger vers le dashboard avec le nom pour l'écran de bienvenue
-      navigate('/account/dashboard', {
-        replace: true,
-        state: {
-          fromRegister: true,
-          welcomeName: fullName.trim(),
-          shopifySyncError,
-        },
-      })
+      if (returnToPath) {
+        navigate(returnToPath, { replace: true })
+      } else {
+        // Étape 5: Rediriger vers le dashboard avec le nom pour l'écran de bienvenue
+        navigate('/account/dashboard', {
+          replace: true,
+          state: {
+            fromRegister: true,
+            welcomeName: fullName.trim(),
+            shopifySyncError,
+          },
+        })
+      }
     } catch (error) {
       console.error('Registration error:', error)
       setErrorMessage('An unexpected error occurred. Please try again.')
@@ -204,6 +214,17 @@ export function AccountRegister() {
               <p className="text-xs text-white/50 mt-1">Minimum 6 characters</p>
             </div>
 
+            <div className="inline-flex items-center gap-2.5 text-sm text-white/70 select-none cursor-pointer">
+              <IOSCheckbox
+                id="register-remember-device"
+                checked={rememberDevice}
+                onChange={setRememberDevice}
+                color="red"
+                sizeEm={0.88}
+              />
+              <span>Remember this device</span>
+            </div>
+
             {/* Error message */}
             {errorMessage && (
               <div className="rounded-xl px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
@@ -224,7 +245,7 @@ export function AccountRegister() {
             <p className="text-center text-sm text-white/60 pt-4 border-t border-white/10">
               Already have an account?{' '}
               <Link 
-                to="/account" 
+                to={returnToPath ? `/account?returnTo=${encodeURIComponent(returnToPath)}` : '/account'}
                 className="inline-flex items-center gap-1 text-sm font-medium text-white hover:text-white/80 underline transition-colors"
               >
                 Sign in

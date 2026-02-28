@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { isAuthenticated } from '@/utils/supabaseAuth'
+import { IOSCheckbox } from '@/components/IOSCheckbox'
 
 export function Account() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [rememberDevice, setRememberDevice] = useState(false)
+
+  const returnToParam = new URLSearchParams(location.search).get('returnTo')
+  const returnToPath = returnToParam === '/account/company' ? returnToParam : null
 
   useEffect(() => {
     document.title = 'Account | Fireball Canada'
@@ -17,11 +23,11 @@ export function Account() {
     const checkAuth = async () => {
       const authenticated = await isAuthenticated()
       if (authenticated) {
-        navigate('/account/dashboard', { replace: true })
+        navigate(returnToPath ?? '/account/dashboard', { replace: true })
       }
     }
     checkAuth()
-  }, [navigate])
+  }, [navigate, returnToPath])
 
   const handleLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -41,8 +47,7 @@ export function Account() {
       }
 
       if (data.user) {
-        // Rediriger vers le dashboard
-        navigate('/account/dashboard', { replace: true })
+        navigate(returnToPath ?? '/account/dashboard', { replace: true })
       }
     } catch (error) {
       console.error('Login error:', error)
@@ -130,14 +135,16 @@ export function Account() {
             </div>
 
             {/* Remember me checkbox */}
-            <label className="inline-flex items-center gap-2.5 text-sm text-white/70 select-none cursor-pointer">
-              <input 
-                type="checkbox" 
-                className="h-4 w-4 rounded border-white/20 bg-white/[0.06] text-white focus:ring-0 focus:ring-offset-0" 
-                disabled={loading}
+            <div className="inline-flex items-center gap-2.5 text-sm text-white/70 select-none cursor-pointer">
+              <IOSCheckbox
+                id="account-remember-device"
+                checked={rememberDevice}
+                onChange={setRememberDevice}
+                color="red"
+                sizeEm={0.88}
               />
-              Remember this device
-            </label>
+              <span>Remember this device</span>
+            </div>
 
             {/* Error message */}
             {errorMessage && (
@@ -168,7 +175,7 @@ export function Account() {
             <p className="text-center text-sm text-white/60 pt-4 border-t border-white/10">
               New here?{' '}
               <Link 
-                to="/account/register" 
+                to={returnToPath ? `/account/register?returnTo=${encodeURIComponent(returnToPath)}` : '/account/register'}
                 className="inline-flex items-center gap-1 text-sm font-medium text-white hover:text-white/80 underline transition-colors"
               >
                 Create an account

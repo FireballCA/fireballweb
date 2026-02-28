@@ -54,6 +54,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [shopOpen, setShopOpen] = useState(false)
   const [ceramicOpen, setCeramicOpen] = useState(false)
+  const [companyOpen, setCompanyOpen] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
   const [lang, setLang] = useState<'EN' | 'FR'>('FR')
   const [langOpen, setLangOpen] = useState(false)
@@ -62,9 +63,7 @@ export function Header() {
   const langMenuMobileRef = useRef<HTMLDivElement | null>(null)
   const searchMenuRef = useRef<HTMLDivElement | null>(null)
   const { totalItems } = useCart()
-  const isAccountPage = location.pathname.startsWith('/account') && 
-    location.pathname !== '/account' && 
-    location.pathname !== '/account/register'
+  const isDashboardPage = location.pathname === '/account/dashboard' || location.pathname === '/dashboard'
 
   useEffect(() => {
     const onScroll = () => {
@@ -98,10 +97,10 @@ export function Header() {
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [langOpen, searchOpen])
 
-  const opacity = isAccountPage ? 1 : scrollProgress * 0.95
-  const borderOpacity = isAccountPage ? 0.45 : 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
+  const opacity = isDashboardPage ? 1 : scrollProgress * 0.95
+  const borderOpacity = isDashboardPage ? 0.45 : 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
   
-  const navBgStyle: React.CSSProperties = isAccountPage
+  const navBgStyle: React.CSSProperties = isDashboardPage
     ? {
         backgroundColor: '#1D1D1D',
         backdropFilter: 'none',
@@ -117,7 +116,7 @@ export function Header() {
 
   const navLink =
     'font-nav font-bold text-white transition-colors text-xs uppercase px-4 py-2 rounded-md hover:bg-carbon-700/20 group-hover:text-silver/70 hover:!text-white'
-  const anyMenuOpen = shopOpen || ceramicOpen || searchOpen || langOpen || menuOpen
+  const anyMenuOpen = shopOpen || ceramicOpen || companyOpen || searchOpen || langOpen || menuOpen
 
   const handleAccountClick = async (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault()
@@ -356,6 +355,68 @@ export function Header() {
             <Link to="/academy" className={navLink}>
               Academy
             </Link>
+
+            <div
+              className="relative"
+              onMouseEnter={() => setCompanyOpen(true)}
+              onMouseLeave={() => setCompanyOpen(false)}
+            >
+              <button type="button" className={`${navLink} flex items-center gap-1`}>
+                Company
+                <svg
+                  className={`w-3.5 h-3.5 transition-transform ${companyOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {companyOpen && (
+                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in z-50">
+                  <div className="relative">
+                    <svg className="absolute -top-1 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
+                      <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
+                    </svg>
+                    <div className="bg-white shadow-2xl rounded-lg overflow-hidden min-w-[250px]">
+                      <div className="py-2">
+                        <Link
+                          to="/account/company"
+                          onClick={() => setCompanyOpen(false)}
+                          className="block px-4 py-2.5 text-sm font-nav font-bold text-carbon-900 hover:bg-carbon-100"
+                        >
+                          Open Fireball Center
+                        </Link>
+                        <a
+                          href="mailto:contact@fireball.fr"
+                          className="block px-4 py-2.5 text-sm font-nav font-bold text-carbon-900 hover:bg-carbon-100"
+                          onClick={() => setCompanyOpen(false)}
+                        >
+                          Contact
+                        </a>
+                        <a
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            setCompanyOpen(false)
+                          }}
+                          className="block px-4 py-2.5 text-sm font-nav font-bold text-carbon-900 hover:bg-carbon-100"
+                        >
+                          Support
+                        </a>
+                        <Link
+                          to="/account/company"
+                          onClick={() => setCompanyOpen(false)}
+                          className="block px-4 py-2.5 text-sm font-nav font-bold text-carbon-900 hover:bg-carbon-100"
+                        >
+                          Become certified
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
         </div>
 
@@ -555,6 +616,40 @@ export function Header() {
           <Link to="/academy" className="block py-2 font-nav font-bold text-white" onClick={() => setMenuOpen(false)}>
             Academy
           </Link>
+          <div className="mt-2 pt-2 border-t border-carbon-700">
+            <p className="py-2 text-xs font-nav font-bold uppercase tracking-[0.14em] text-silver/70">Company</p>
+            <Link
+              to="/account/company"
+              className="block py-2 pl-4 font-nav text-silver hover:text-chrome"
+              onClick={() => setMenuOpen(false)}
+            >
+              Open Fireball Center
+            </Link>
+            <a
+              href="mailto:contact@fireball.fr"
+              className="block py-2 pl-4 font-nav text-silver hover:text-chrome"
+              onClick={() => setMenuOpen(false)}
+            >
+              Contact
+            </a>
+            <a
+              href="#"
+              className="block py-2 pl-4 font-nav text-silver hover:text-chrome"
+              onClick={(e) => {
+                e.preventDefault()
+                setMenuOpen(false)
+              }}
+            >
+              Support
+            </a>
+            <Link
+              to="/account/company"
+              className="block py-2 pl-4 font-nav text-silver hover:text-chrome"
+              onClick={() => setMenuOpen(false)}
+            >
+              Become certified
+            </Link>
+          </div>
           <div className="relative mt-4 pt-4 border-t border-carbon-700" ref={langMenuMobileRef}>
             <button
               type="button"

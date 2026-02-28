@@ -12,6 +12,7 @@ interface LiquidGlassSelectProps {
   options: Option[]
   onChange: (value: string) => void
   placeholder?: string
+  searchable?: boolean
 }
 
 export function LiquidGlassSelect({
@@ -20,6 +21,7 @@ export function LiquidGlassSelect({
   options,
   onChange,
   placeholder = 'Select...',
+  searchable = true,
 }: LiquidGlassSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -34,7 +36,7 @@ export function LiquidGlassSelect({
       }
     }
 
-    if (isOpen) {
+    if (isOpen && searchable) {
       document.addEventListener('mousedown', handleClickOutside)
       // Focus sur la barre de recherche quand le dropdown s'ouvre
       setTimeout(() => searchInputRef.current?.focus(), 100)
@@ -46,9 +48,9 @@ export function LiquidGlassSelect({
   }, [isOpen])
 
   // Filtrer les options basées sur la recherche
-  const filteredOptions = options.filter((option) =>
-    option.label.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredOptions = searchable
+    ? options.filter((option) => option.label.toLowerCase().includes(searchQuery.toLowerCase()))
+    : options
 
   const selectedOption = options.find((opt) => opt.value === value)
 
@@ -86,18 +88,19 @@ export function LiquidGlassSelect({
               flexDirection: 'column',
             }}
           >
-            {/* Barre de recherche */}
-            <div className="p-2 border-b border-white/10">
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                className="w-full px-3 py-2 rounded-xl text-xs font-nav text-white placeholder:text-silver/50 focus:outline-none bg-white/[0.06] border border-white/15 backdrop-blur-xl"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
+            {searchable && (
+              <div className="p-2 border-b border-white/10">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search..."
+                  className="w-full px-3 py-2 rounded-xl text-xs font-nav text-white placeholder:text-silver/50 focus:outline-none bg-white/[0.06] border border-white/15 backdrop-blur-xl"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            )}
             
             {/* Liste des options */}
             <div

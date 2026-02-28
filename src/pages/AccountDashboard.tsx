@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { MemberStatusHero } from '@/components/MemberStatusHero/MemberStatusHero'
 import { AddVehicleModal } from '@/components/AddVehicleModal'
+import { Footer } from '@/components/Layout/Footer'
 import {
   fetchGarageVehicles,
   createGarageVehicle,
@@ -22,6 +23,7 @@ interface Vehicle {
 
 type ProtectionStatus = 'green' | 'yellow' | 'red'
 type SubscriptionTier = 'none' | 'ignition' | 'apex'
+type UserRole = 'member' | 'partner' | 'admin'
 
 interface VehicleSettingsModalProps {
   vehicle: Vehicle
@@ -230,6 +232,9 @@ export function AccountDashboard() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [settingsVehicle, setSettingsVehicle] = useState<Vehicle | null>(null)
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('none')
+  const [userRole, setUserRole] = useState<UserRole>('member')
+  const [companyName, setCompanyName] = useState<string | null>(null)
+  const [partnerStatus, setPartnerStatus] = useState<string | null>(null)
   
   useEffect(() => {
     const checkAuthAndLoadProfile = async () => {
@@ -252,12 +257,21 @@ export function AccountDashboard() {
       if (profile) {
         customerFullName = `${profile.first_name} ${profile.last_name}`.trim() || profile.email
         setSubscriptionTier(normalizeSubscriptionTier(profile.subscription_tier))
+        setUserRole(normalizeUserRole(profile.role))
+        setCompanyName(profile.company_name ?? null)
+        setPartnerStatus(profile.partner_status ?? null)
       } else if (state?.welcomeName) {
         customerFullName = state.welcomeName
         setSubscriptionTier('none')
+        setUserRole('member')
+        setCompanyName(null)
+        setPartnerStatus(null)
       } else {
         customerFullName = 'Member'
         setSubscriptionTier('none')
+        setUserRole('member')
+        setCompanyName(null)
+        setPartnerStatus(null)
       }
 
       setFullName(customerFullName)
@@ -345,6 +359,13 @@ export function AccountDashboard() {
     return 'none'
   }
 
+  const normalizeUserRole = (role?: string | null): UserRole => {
+    const value = String(role || '').trim().toLowerCase()
+    if (value === 'admin') return 'admin'
+    if (value === 'partner') return 'partner'
+    return 'member'
+  }
+
   const subscriptionLabel = {
     none: 'None',
     ignition: 'Ignition',
@@ -363,6 +384,18 @@ export function AccountDashboard() {
     'Priority support and concierge access',
     'Early access to exclusive drops',
     'Premium partner perks across Fireball network',
+  ]
+
+  const upcomingServices = [
+    'Ceramic Protection Inspection',
+    'Seasonal Surface Decontamination',
+    'Premium Interior Detail Session',
+  ]
+
+  const certifiedPartners = [
+    { name: 'Fireball Laval Studio', city: 'Laval, QC' },
+    { name: 'Apex Detailing Montreal', city: 'Montreal, QC' },
+    { name: 'North Shore Fireball Hub', city: 'Boisbriand, QC' },
   ]
 
   return (
@@ -420,6 +453,9 @@ export function AccountDashboard() {
             userName={fullName || 'Anthony Bergeron'}
             currentXp={currentXp}
             targetXp={targetXp}
+            isAdmin={userRole === 'admin'}
+            companyName={companyName}
+            partnerStatus={partnerStatus}
           />
           <div 
             className="w-full bg-[#252525] relative z-20 overflow-hidden"
@@ -529,15 +565,17 @@ export function AccountDashboard() {
                 <img
                   src="/Assets/Cards Mockup.png"
                   alt="Club Member cards"
-                  className="w-[900px] max-w-none object-contain rotate-[8deg] opacity-40 drop-shadow-[0_22px_35px_rgba(0,0,0,0.45)]"
+                  draggable={false}
+                  className="w-[900px] max-w-none object-contain rotate-[8deg] opacity-40 drop-shadow-[0_22px_35px_rgba(0,0,0,0.45)] select-none"
                 />
               </div>
 
-              <div className="mt-8 lg:hidden flex items-center justify-center">
+              <div className="mt-8 lg:hidden flex items-center justify-center pointer-events-none">
                 <img
                   src="/Assets/Cards Mockup.png"
                   alt="Club Member cards"
-                  className="w-full max-w-[520px] object-contain rotate-[8deg] opacity-40 drop-shadow-[0_22px_35px_rgba(0,0,0,0.45)]"
+                  draggable={false}
+                  className="w-full max-w-[520px] object-contain rotate-[8deg] opacity-40 drop-shadow-[0_22px_35px_rgba(0,0,0,0.45)] select-none"
                 />
               </div>
 
@@ -572,7 +610,42 @@ export function AccountDashboard() {
                   </a>
                 </div>
               </div>
+
+              <div className="mt-20 relative z-10">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">
+                  UPCOMING SERVICES
+                </p>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {upcomingServices.map((service) => (
+                    <article
+                      key={service}
+                      className="rounded-xl border border-white/10 bg-[#252525] px-4 py-4 text-white text-sm"
+                    >
+                      {service}
+                    </article>
+                  ))}
+                </div>
+              </div>
+
+              <div id="certified-fireball-partners" className="mt-16 relative z-10 scroll-mt-28">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">
+                  CERTIFIED FIREBALL PARTNERS
+                </p>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {certifiedPartners.map((partner) => (
+                    <article
+                      key={partner.name}
+                      className="rounded-xl border border-white/10 bg-[#252525] px-4 py-4"
+                    >
+                      <p className="text-white text-sm font-semibold">{partner.name}</p>
+                      <p className="mt-1 text-xs text-white/65">{partner.city}</p>
+                    </article>
+                  ))}
+                </div>
+              </div>
             </div>
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+            <Footer />
           </div>
         </div>
       )}

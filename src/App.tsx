@@ -9,6 +9,8 @@ import { Cart } from '@/pages/Cart'
 import { Account } from '@/pages/Account'
 import { AccountRegister } from '@/pages/AccountRegister'
 import { AccountDashboard } from '@/pages/AccountDashboard'
+import { ManagePartners } from '@/pages/ManagePartners'
+import { PartnerCompany } from '@/pages/PartnerCompany'
 
 function App() {
   return (
@@ -29,6 +31,18 @@ function App() {
                 <AccountDashboard />
               </ProtectedRoute>
             } 
+          />
+          <Route
+            path="account/manage-partners"
+            element={
+              <ProtectedRoute>
+                <ManagePartners />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="account/company"
+            element={<PartnerCompany />}
           />
           <Route path="dashboard" element={<Navigate to="/account/dashboard" replace />} />
           <Route path="compte" element={<Navigate to="/account" replace />} />
