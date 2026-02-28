@@ -259,7 +259,8 @@ export function AccountDashboard() {
         setSubscriptionTier(normalizeSubscriptionTier(profile.subscription_tier))
         setUserRole(normalizeUserRole(profile.role))
         setCompanyName(profile.company_name ?? null)
-        setPartnerStatus(profile.partner_status ?? null)
+        const normalizedPartnerStatus = String(profile.partner_status || '').trim().toLowerCase()
+        setPartnerStatus(normalizedPartnerStatus === 'declined' ? null : profile.partner_status ?? null)
       } else if (state?.welcomeName) {
         customerFullName = state.welcomeName
         setSubscriptionTier('none')
