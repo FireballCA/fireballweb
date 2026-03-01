@@ -11,6 +11,7 @@ import { AccountRegister } from '@/pages/AccountRegister'
 import { AccountDashboard } from '@/pages/AccountDashboard'
 import { ManagePartners } from '@/pages/ManagePartners'
 import { PartnerCompany } from '@/pages/PartnerCompany'
+import { CarClub } from '@/pages/CarClub'
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="boutique/:categoryId" element={<Shop />} />
           <Route path="produit/:slug" element={<Product />} />
           <Route path="panier" element={<Cart />} />
+          <Route path="car-club" element={<CarClub />} />
           <Route path="account" element={<Account />} />
           <Route path="account/register" element={<AccountRegister />} />
           <Route 

@@ -564,19 +564,19 @@ export function AccountDashboard() {
 
               <div className="hidden lg:block pointer-events-none absolute -left-28 top-[34px] z-0">
                 <img
-                  src="/Assets/Cards Mockup.png"
+                  src="/Assets/DoubleCards.png"
                   alt="Club Member cards"
                   draggable={false}
-                  className="w-[900px] max-w-none object-contain rotate-[8deg] opacity-40 drop-shadow-[0_22px_35px_rgba(0,0,0,0.45)] select-none"
+                  className="w-[900px] max-w-none object-contain rotate-[8deg] opacity-100 drop-shadow-[0_22px_35px_rgba(0,0,0,0.45)] select-none"
                 />
               </div>
 
               <div className="mt-8 lg:hidden flex items-center justify-center pointer-events-none">
                 <img
-                  src="/Assets/Cards Mockup.png"
+                  src="/Assets/DoubleCards.png"
                   alt="Club Member cards"
                   draggable={false}
-                  className="w-full max-w-[520px] object-contain rotate-[8deg] opacity-40 drop-shadow-[0_22px_35px_rgba(0,0,0,0.45)] select-none"
+                  className="w-full max-w-[520px] object-contain rotate-[8deg] opacity-100 drop-shadow-[0_22px_35px_rgba(0,0,0,0.45)] select-none"
                 />
               </div>
 
