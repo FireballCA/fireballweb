@@ -621,30 +621,17 @@ export function Header() {
               <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
             </svg>
           </Link>
-          <button
-            type="button"
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 text-white"
-            aria-label="Menu"
-          >
-            <div className="w-7 flex flex-col gap-[0.28rem]">
-              <span
-                className={`block h-0.5 rounded-full bg-white transition-transform duration-300 ease-out ${
-                  menuOpen ? 'translate-y-[0.36rem] rotate-45' : ''
-                }`}
-              />
-              <span
-                className={`block h-0.5 rounded-full bg-white transition-transform duration-300 ease-out ${
-                  menuOpen ? '-translate-y-[0.36rem] -rotate-45' : ''
-                }`}
-              />
-              <span
-                className={`block h-0.5 rounded-full bg-white transition-transform duration-300 ease-out origin-left ${
-                  menuOpen ? 'scale-x-0' : ''
-                }`}
-              />
-            </div>
-          </button>
+          <label className="fb-burger" aria-label="Menu">
+            <input
+              type="checkbox"
+              checked={menuOpen}
+              onChange={() => setMenuOpen(!menuOpen)}
+              aria-hidden="true"
+            />
+            <span />
+            <span />
+            <span />
+          </label>
         </div>
       </div>
 
