@@ -4,10 +4,46 @@ import { useCart } from '@/context/CartContext'
 import { CATEGORIES } from '@/data/products'
 import { isAuthenticated } from '@/utils/supabaseAuth'
 
-const CERAMIC_DROPDOWN = [
-  { label: 'Carrosserie', to: '/boutique/revetements' },
-  { label: 'Jantes', to: '/boutique/revetements' },
-  { label: 'Vitres', to: '/boutique/revetements' },
+const CERAMIC_SECTIONS = [
+  {
+    title: 'CARROSSERIE',
+    description: 'Protection complète de la carrosserie',
+    links: [
+      { label: 'Coatings', to: '/boutique/revetements' },
+      { label: 'Sealants', to: '/boutique/revetements' },
+    ],
+  },
+  {
+    title: 'SURFACES SPÉCIALES',
+    description: 'Jantes, vitres et plastiques',
+    links: [
+      { label: 'Jantes', to: '/boutique/revetements' },
+      { label: 'Vitres', to: '/boutique/revetements' },
+    ],
+  },
+]
+
+const COMPANY_SECTIONS: Array<{
+  title: string
+  description: string
+  links: Array<{ label: string; to?: string; href?: string }>
+}> = [
+  {
+    title: 'CENTRE & CONTACT',
+    description: 'Espace partenaire et support',
+    links: [
+      { label: 'Open Fireball Center', to: '/join-fireball' },
+      { label: 'Contact', href: 'mailto:contact@fireball.fr' },
+      { label: 'Support', href: '#' },
+    ],
+  },
+  {
+    title: 'DEVENIR PARTENAIRE',
+    description: 'Rejoignez le réseau certifié',
+    links: [
+      { label: 'Become certified', to: '/account/company' },
+    ],
+  },
 ]
 
 function FlagEN() {
@@ -56,7 +92,7 @@ export function Header() {
   const [ceramicOpen, setCeramicOpen] = useState(false)
   const [companyOpen, setCompanyOpen] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
-  const [lang, setLang] = useState<'EN' | 'FR'>('FR')
+  const [lang, setLang] = useState<'EN' | 'FR'>('EN')
   const [langOpen, setLangOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const langMenuDesktopRef = useRef<HTMLDivElement | null>(null)
@@ -139,25 +175,25 @@ export function Header() {
       )}
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-20">
         {/* Left: Logo + links */}
-        <div className="flex items-center gap-10">
+        <div className="flex items-center gap-10 h-full">
           <Link to="/" className="flex items-center h-12 w-auto select-none">
             <img src="/LogoFull.avif" alt="Fireball" className="h-6 w-auto object-contain pointer-events-none" draggable={false} />
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-1 pt-0.5 group">
+          <nav className="hidden lg:flex items-center gap-1 pt-0.5 group h-full">
             <Link to="/car-club" className={navLink}>
               Car club
             </Link>
 
             <div
-              className="relative"
+              className="relative h-full flex items-center"
               onMouseEnter={() => setShopOpen(true)}
               onMouseLeave={() => setShopOpen(false)}
             >
-              <button type="button" className={`${navLink} flex items-center gap-1`}>
+              <button type="button" className={`${navLink} flex items-center gap-1 ${shopOpen ? '!bg-carbon-700/20 !text-white' : ''}`}>
                 Shop
                 <svg
-                  className={`w-3.5 h-3.5 transition-transform ${shopOpen ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 transition-transform ${shopOpen ? 'rotate-180' : ''}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -166,12 +202,12 @@ export function Header() {
                 </svg>
               </button>
               {shopOpen && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in z-50">
-                  <div className="relative">
-                    <svg className="absolute -top-1 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-0 animate-fade-in z-50">
+                  <div className="relative bg-white shadow-2xl rounded-2xl pt-4">
+                    <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white z-10 pointer-events-none" viewBox="0 0 16 8" preserveAspectRatio="none">
                       <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
                     </svg>
-                    <div className="bg-white shadow-2xl rounded-lg overflow-hidden">
+                    <div className="overflow-hidden rounded-b-2xl">
                       <div className="flex gap-12 px-8 py-5">
                         {/* PROTECTION SYSTEMS */}
                         <div className="min-w-[200px]">
@@ -185,41 +221,41 @@ export function Header() {
                             <li>
                               <Link
                                 to="/boutique/revetements"
-                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
                                 Coatings
-                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
                             <li>
                               <Link
                                 to="/boutique"
-                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
                                 Sealants
-                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
                             <li>
                               <Link
                                 to="/boutique"
-                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
                                 Waxes
-                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
                             <li>
                               <Link
                                 to="/boutique"
-                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
                                 Dressings
-                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
                           </ul>
@@ -237,41 +273,41 @@ export function Header() {
                             <li>
                               <Link
                                 to="/boutique"
-                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
                                 Washing
-                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
                             <li>
                               <Link
                                 to="/boutique"
-                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
                                 Cleaners
-                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
                             <li>
                               <Link
                                 to="/boutique"
-                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
                                 Towels
-                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
                             <li>
                               <Link
                                 to="/boutique"
-                                className="relative inline-block text-sm text-carbon-700 group overflow-hidden"
+                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
                                 Accessories
-                                <span className="absolute bottom-0 left-0 h-px bg-black transition-all duration-300 ease-in-out w-0 group-hover:w-full"></span>
+                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
                           </ul>
@@ -311,14 +347,14 @@ export function Header() {
             </div>
 
             <div
-              className="relative"
+              className="relative h-full flex items-center"
               onMouseEnter={() => setCeramicOpen(true)}
               onMouseLeave={() => setCeramicOpen(false)}
             >
-              <button type="button" className={`${navLink} flex items-center gap-1`}>
+              <button type="button" className={`${navLink} flex items-center gap-1 ${ceramicOpen ? '!bg-carbon-700/20 !text-white' : ''}`}>
                 Ceramic coating
                 <svg
-                  className={`w-3.5 h-3.5 transition-transform ${ceramicOpen ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 transition-transform ${ceramicOpen ? 'rotate-180' : ''}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -327,23 +363,33 @@ export function Header() {
                 </svg>
               </button>
               {ceramicOpen && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in">
-                  <div className="relative">
-                    <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-0 animate-fade-in z-50">
+                  <div className="relative bg-white shadow-2xl rounded-2xl pt-4">
+                    <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white z-10 pointer-events-none" viewBox="0 0 16 8" preserveAspectRatio="none">
                       <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
                     </svg>
-                    <div className="relative left-32 bg-white py-3 min-w-[200px] shadow-xl">
-                      {CERAMIC_DROPDOWN.map((item) => (
-                        <Link
-                          key={item.to + item.label}
-                          to={item.to}
-                          className="block px-5 py-2 text-sm font-nav font-bold text-carbon-900 hover:bg-carbon-100"
-                          onClick={() => setCeramicOpen(false)}
-                        >
-                          {item.label}
-                        </Link>
-                      ))}
-                    </div>
+                    <div className="flex gap-12 px-8 py-5 rounded-b-2xl">
+                        {CERAMIC_SECTIONS.map((section) => (
+                          <div key={section.title} className="min-w-[200px]">
+                            <h3 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">{section.title}</h3>
+                            <p className="text-sm text-carbon-600 mb-10">{section.description}</p>
+                            <ul className="space-y-1.5">
+                              {section.links.map((item) => (
+                                <li key={item.label}>
+                                  <Link
+                                    to={item.to}
+                                    className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
+                                    onClick={() => setCeramicOpen(false)}
+                                  >
+                                    {item.label}
+                                    <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
                   </div>
                 </div>
               )}
@@ -357,14 +403,14 @@ export function Header() {
             </Link>
 
             <div
-              className="relative"
+              className="relative h-full flex items-center"
               onMouseEnter={() => setCompanyOpen(true)}
               onMouseLeave={() => setCompanyOpen(false)}
             >
-              <button type="button" className={`${navLink} flex items-center gap-1`}>
+              <button type="button" className={`${navLink} flex items-center gap-1 ${companyOpen ? '!bg-carbon-700/20 !text-white' : ''}`}>
                 Company
                 <svg
-                  className={`w-3.5 h-3.5 transition-transform ${companyOpen ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 transition-transform ${companyOpen ? 'rotate-180' : ''}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -373,46 +419,47 @@ export function Header() {
                 </svg>
               </button>
               {companyOpen && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in z-50">
-                  <div className="relative">
-                    <svg className="absolute -top-1 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-0 animate-fade-in z-50">
+                  <div className="relative bg-white shadow-2xl rounded-2xl pt-4">
+                    <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white z-10 pointer-events-none" viewBox="0 0 16 8" preserveAspectRatio="none">
                       <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
                     </svg>
-                    <div className="bg-white shadow-2xl rounded-lg overflow-hidden min-w-[250px]">
-                      <div className="py-2">
-                        <Link
-                          to="/account/company"
-                          onClick={() => setCompanyOpen(false)}
-                          className="block px-4 py-2.5 text-sm font-nav font-bold text-carbon-900 hover:bg-carbon-100"
-                        >
-                          Open Fireball Center
-                        </Link>
-                        <a
-                          href="mailto:contact@fireball.fr"
-                          className="block px-4 py-2.5 text-sm font-nav font-bold text-carbon-900 hover:bg-carbon-100"
-                          onClick={() => setCompanyOpen(false)}
-                        >
-                          Contact
-                        </a>
-                        <a
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            setCompanyOpen(false)
-                          }}
-                          className="block px-4 py-2.5 text-sm font-nav font-bold text-carbon-900 hover:bg-carbon-100"
-                        >
-                          Support
-                        </a>
-                        <Link
-                          to="/account/company"
-                          onClick={() => setCompanyOpen(false)}
-                          className="block px-4 py-2.5 text-sm font-nav font-bold text-carbon-900 hover:bg-carbon-100"
-                        >
-                          Become certified
-                        </Link>
+                    <div className="flex gap-12 px-8 py-5 rounded-b-2xl">
+                        {COMPANY_SECTIONS.map((section) => (
+                          <div key={section.title} className="min-w-[200px]">
+                            <h3 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">{section.title}</h3>
+                            <p className="text-sm text-carbon-600 mb-10">{section.description}</p>
+                            <ul className="space-y-1.5">
+                              {section.links.map((item) => (
+                                <li key={item.label}>
+                                  {'to' in item && item.to ? (
+                                    <Link
+                                      to={item.to}
+                                      className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
+                                      onClick={() => setCompanyOpen(false)}
+                                    >
+                                      {item.label}
+                                      <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
+                                    </Link>
+                                  ) : (
+                                    <a
+                                      href={item.href ?? '#'}
+                                      className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
+                                      onClick={(e) => {
+                                        if (item.href === '#') e.preventDefault()
+                                        setCompanyOpen(false)
+                                      }}
+                                    >
+                                      {item.label}
+                                      <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
+                                    </a>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
                       </div>
-                    </div>
                   </div>
                 </div>
               )}
@@ -421,8 +468,8 @@ export function Header() {
         </div>
 
         {/* Right: Search, separator, lang, account, cart */}
-        <div className="hidden lg:flex items-center gap-2">
-          <div className="relative" ref={searchMenuRef}>
+        <div className="hidden lg:flex items-center gap-2 h-full">
+          <div className="relative h-full flex items-center" ref={searchMenuRef}>
             <button
               type="button"
               onClick={() => setSearchOpen((open) => !open)}
@@ -435,12 +482,12 @@ export function Header() {
               </svg>
             </button>
             {searchOpen && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in">
-                <div className="relative">
-                  <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
+              <div className="absolute top-full right-0 pt-0 animate-fade-in">
+                <div className="relative bg-white p-4 min-w-[320px] w-[380px] rounded-2xl shadow-xl pt-6">
+                  <svg className="absolute -top-2 right-6 w-4 h-2 fill-white z-10" viewBox="0 0 16 8" preserveAspectRatio="none">
                     <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
                   </svg>
-                  <div className="relative left-32 bg-white p-4 min-w-[320px] w-[380px] rounded-2xl shadow-xl">
+                  <div>
                     <input
                       type="search"
                       placeholder="Search..."
@@ -473,7 +520,7 @@ export function Header() {
 
           <div className="w-px h-6 bg-carbon-600" aria-hidden />
 
-          <div className="relative" ref={langMenuDesktopRef}>
+          <div className="relative h-full flex items-center" ref={langMenuDesktopRef}>
             <button
               type="button"
               onClick={() => setLangOpen((open) => !open)}
@@ -490,12 +537,12 @@ export function Header() {
               </svg>
             </button>
             {langOpen && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in">
-                <div className="relative">
-                  <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-0 animate-fade-in">
+                <div className="relative bg-white p-2 min-w-[160px] rounded-2xl shadow-xl pt-5">
+                  <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white z-10" viewBox="0 0 16 8" preserveAspectRatio="none">
                     <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
                   </svg>
-                  <div className="relative left-32 bg-white p-2 min-w-[160px] rounded-2xl shadow-xl">
+                  <div>
                     <button
                       type="button"
                       onClick={() => {
@@ -535,8 +582,9 @@ export function Header() {
               className="px-2 py-1.5 rounded-md text-white transition-colors hover:bg-carbon-700/30"
               aria-label="My account"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
               </svg>
             </Link>
 
@@ -545,8 +593,10 @@ export function Header() {
               className="relative px-2 py-1.5 rounded-md text-white transition-colors hover:bg-carbon-700/30"
               aria-label="Panier"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <circle cx="8" cy="21" r="1" />
+                <circle cx="19" cy="21" r="1" />
+                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
               </svg>
               {totalItems > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-chrome text-carbon-950 text-[10px] font-bold flex items-center justify-center">
@@ -565,8 +615,10 @@ export function Header() {
                 {totalItems}
               </span>
             )}
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <circle cx="8" cy="21" r="1" />
+              <circle cx="19" cy="21" r="1" />
+              <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
             </svg>
           </Link>
           <button
@@ -667,12 +719,12 @@ export function Header() {
               </svg>
             </button>
             {langOpen && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 animate-fade-in">
-                <div className="relative">
-                  <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white" viewBox="0 0 16 8" preserveAspectRatio="none">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-0 animate-fade-in">
+                <div className="relative bg-white p-2 min-w-[160px] rounded-2xl shadow-xl pt-5">
+                  <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white z-10" viewBox="0 0 16 8" preserveAspectRatio="none">
                     <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
                   </svg>
-                  <div className="bg-white p-2 min-w-[160px] rounded-2xl shadow-xl">
+                  <div>
                     <button
                       type="button"
                       onClick={() => {

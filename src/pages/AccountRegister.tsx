@@ -5,6 +5,12 @@ import { isAuthenticated } from '@/utils/supabaseAuth'
 import { createShopifyCustomer } from '@/utils/shopifySync'
 import { IOSCheckbox } from '@/components/IOSCheckbox'
 
+function generateExternalMemberId(): string {
+  // ID numérique court, lisible et scannable (8 chiffres)
+  const value = Math.floor(10000000 + Math.random() * 90000000)
+  return String(value)
+}
+
 export function AccountRegister() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -68,6 +74,7 @@ export function AccountRegister() {
       }
 
       // Étape 3: Insérer le profil dans la table profiles
+      const externalMemberId = generateExternalMemberId()
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
@@ -76,6 +83,9 @@ export function AccountRegister() {
           last_name: lastName,
           email: email.trim(),
           created_at: new Date().toISOString(),
+          xp: 0,
+          external_member_id: externalMemberId,
+          barcode_value: externalMemberId,
         })
 
       if (profileError) {

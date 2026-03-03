@@ -10,6 +10,9 @@ export interface UserProfile {
   role?: string | null
   company_name?: string | null
   partner_status?: string | null
+  xp?: number | null
+  external_member_id?: string | null
+  barcode_value?: string | null
 }
 
 /**
@@ -37,10 +40,25 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
       const fullName = String(metadata.full_name || '').trim()
 
       if (firstName || lastName || fullName || user.email) {
-        const subscriptionTier = String(metadata.subscription_tier || metadata.membership_tier || '').trim() || null
-        const role = String(metadata.role || metadata.user_role || '').trim() || null
+        const subscriptionTier = String(
+          metadata.subscription_tier || (metadata as Record<string, unknown>).membership_tier || ''
+        )
+          .trim() || null
+        const role = String(metadata.role || (metadata as Record<string, unknown>).user_role || '').trim() || null
         const companyName = String(metadata.company_name || '').trim() || null
         const partnerStatus = String(metadata.partner_status || '').trim() || null
+        const rawXp = (metadata as Record<string, unknown>).xp
+        const parsedXp =
+          typeof rawXp === 'number'
+            ? rawXp
+            : Number.isNaN(Number.parseInt(String(rawXp ?? '0'), 10))
+            ? 0
+            : Number.parseInt(String(rawXp ?? '0'), 10)
+        const externalMemberId = String(
+          (metadata as Record<string, unknown>).external_member_id || ''
+        ).trim() || null
+        const barcodeValue = String((metadata as Record<string, unknown>).barcode_value || '').trim() || null
+
         return {
           id: user.id,
           first_name: firstName || fullName.split(' ')[0] || '',
@@ -51,6 +69,9 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
           role,
           company_name: companyName,
           partner_status: partnerStatus,
+          xp: Number.isFinite(parsedXp) ? parsedXp : 0,
+          external_member_id: externalMemberId,
+          barcode_value: barcodeValue,
         }
       }
 

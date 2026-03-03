@@ -24,6 +24,7 @@ function App() {
           <Route path="produit/:slug" element={<Product />} />
           <Route path="panier" element={<Cart />} />
           <Route path="car-club" element={<CarClub />} />
+          <Route path="join-fireball" element={<PartnerCompany />} />
           <Route path="account" element={<Account />} />
           <Route path="account/register" element={<AccountRegister />} />
           <Route 
