@@ -84,3 +84,64 @@
     -webkit-mask-position: 220% 50%;
   }
 }
+
+/* Mobile burger menu (Uiverse / Cevorob, adapté en blanc) */
+.fb-burger {
+  position: relative;
+  width: 26px;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+  display: block;
+}
+
+.fb-burger input {
+  display: none;
+}
+
+.fb-burger span {
+  display: block;
+  position: absolute;
+  height: 2px;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 9px;
+  opacity: 1;
+  left: 0;
+  transform: rotate(0deg);
+  transition: 0.25s ease-in-out;
+}
+
+.fb-burger span:nth-of-type(1) {
+  top: 0;
+  transform-origin: left center;
+}
+
+.fb-burger span:nth-of-type(2) {
+  top: 50%;
+  transform: translateY(-50%);
+  transform-origin: left center;
+}
+
+.fb-burger span:nth-of-type(3) {
+  top: 100%;
+  transform-origin: left center;
+  transform: translateY(-100%);
+}
+
+.fb-burger input:checked ~ span:nth-of-type(1) {
+  transform: rotate(45deg);
+  top: 0;
+  left: 5px;
+}
+
+.fb-burger input:checked ~ span:nth-of-type(2) {
+  width: 0;
+  opacity: 0;
+}
+
+.fb-burger input:checked ~ span:nth-of-type(3) {
+  transform: rotate(-45deg);
+  top: 18px;
+  left: 4px;
+}
