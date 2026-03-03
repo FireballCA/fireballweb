@@ -12,6 +12,10 @@ export interface Product {
   images?: string[]
   featured?: boolean
   badge?: string
+  /** Identifiant produit Shopify (gid) si disponible */
+  shopifyProductId?: string
+  /** Identifiant de variante Shopify (gid) pour le checkout */
+  shopifyVariantId?: string
 }
 
 export const CATEGORIES: { id: CategoryId; name: string; description: string }[] = [

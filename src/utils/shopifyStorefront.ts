@@ -13,14 +13,16 @@ function hasShopifyConfig(): boolean {
   return Boolean(SHOPIFY_STOREFRONT_TOKEN && SHOPIFY_STORE_URL)
 }
 
+function getNormalizedStoreUrl(): string {
+  return SHOPIFY_STORE_URL.startsWith('http') ? SHOPIFY_STORE_URL : `https://${SHOPIFY_STORE_URL}`
+}
+
 async function shopifyFetch<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   if (!hasShopifyConfig()) {
     throw new Error('Missing Shopify Storefront configuration')
   }
 
-  const normalizedStoreUrl = SHOPIFY_STORE_URL.startsWith('http')
-    ? SHOPIFY_STORE_URL
-    : `https://${SHOPIFY_STORE_URL}`
+  const normalizedStoreUrl = getNormalizedStoreUrl()
 
   const response = await fetch(`${normalizedStoreUrl}/api/${SHOPIFY_API_VERSION}/graphql.json`, {
     method: 'POST',
@@ -57,6 +59,7 @@ function mapShopifyProductToLocal(node: {
   tags: string[]
   featuredImage?: { url: string; altText?: string | null } | null
   priceRange: { minVariantPrice: { amount: string; currencyCode: string } }
+  variants?: { edges: { node: { id: string } }[] }
 }): Product {
   const category = resolveCategoryFromTags(node.tags)
   const image =
@@ -69,6 +72,7 @@ function mapShopifyProductToLocal(node: {
     'Premium detailing product by Fireball Canada.'
 
   const price = Number.parseFloat(node.priceRange.minVariantPrice.amount)
+  const firstVariantId = node.variants?.edges?.[0]?.node?.id
 
   return {
     id: node.id,
@@ -79,6 +83,8 @@ function mapShopifyProductToLocal(node: {
     description: rawDescription || shortDesc,
     price: Number.isFinite(price) ? price : 0,
     image,
+    shopifyProductId: node.id,
+    shopifyVariantId: firstVariantId,
   }
 }
 
@@ -107,6 +113,13 @@ export async function fetchProductsFromShopify(): Promise<Product[]> {
                 minVariantPrice {
                   amount
                   currencyCode
+                }
+              }
+              variants(first: 1) {
+                edges {
+                  node {
+                    id
+                  }
                 }
               }
             }
@@ -158,6 +171,13 @@ export async function fetchProductFromShopifyBySlug(slug: string): Promise<Produ
               currencyCode
             }
           }
+          variants(first: 1) {
+            edges {
+              node {
+                id
+              }
+            }
+          }
         }
       }
     `
@@ -178,4 +198,28 @@ export async function fetchProductFromShopifyBySlug(slug: string): Promise<Produ
     return fallback ?? null
   }
 }
+
+/**
+ * Construit l'URL de checkout Shopify (cart permalink) à partir des produits du panier.
+ * Nécessite que les produits aient un shopifyVariantId (gid) pour fonctionner.
+ */
+export function buildShopifyCartUrl(lines: { shopifyVariantId?: string; quantity: number }[]): string | null {
+  if (!hasShopifyConfig()) return null
+
+  const usable = lines
+    .filter((line) => line.shopifyVariantId && line.quantity > 0)
+    .map((line) => {
+      const gid = line.shopifyVariantId as string
+      const numericId = gid.split('/').pop()
+      if (!numericId) return null
+      return `${numericId}:${line.quantity}`
+    })
+    .filter(Boolean) as string[]
+
+  if (!usable.length) return null
+
+  const base = getNormalizedStoreUrl()
+  return `${base.replace(/\/+$/, '')}/cart/${usable.join(',')}`
+}
+
 
