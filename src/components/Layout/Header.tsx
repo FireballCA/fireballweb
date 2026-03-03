@@ -136,6 +136,20 @@ export function Header() {
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [langOpen, searchOpen])
 
+  // Bloquer le scroll de la page quand le menu mobile est ouvert
+  useEffect(() => {
+    if (menuOpen) {
+      const previous = document.body.style.overflow
+      document.body.dataset.prevOverflow = previous
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = document.body.dataset.prevOverflow || ''
+        delete document.body.dataset.prevOverflow
+      }
+    }
+    return
+  }, [menuOpen])
+
   const opacity = isDashboardPage ? 1 : scrollProgress * 0.95
   const borderOpacity = isDashboardPage ? 0.45 : 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
   
