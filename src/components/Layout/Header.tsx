@@ -664,85 +664,88 @@ export function Header() {
           style={{ backgroundColor: solidNavColor }}
         >
           <div className="h-full flex flex-col">
-            <nav className="-mx-6 space-y-1 pb-4 flex-1 overflow-y-auto overflow-x-hidden">
+            <nav className="-mx-6 space-y-0 pb-4 flex-1 overflow-y-auto overflow-x-hidden">
               <Link
                 to="/car-club"
-                className="flex items-center justify-between py-2 px-6 font-nav font-bold text-white border-b border-white/10"
+                className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white border-b border-white/[0.06]"
                 onClick={() => setMenuOpen(false)}
               >
                 <span>Car club</span>
               </Link>
 
             {/* Shop + catégories (dropdown mobile) */}
-            <button
-              type="button"
-              className="flex w-full items-center justify-between py-2 pl-6 pr-2 font-nav font-bold text-white border-b border-white/10"
-              onClick={() => setMobileShopOpen((open) => !open)}
-            >
-              <span>Shop</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`transition-transform ${mobileShopOpen ? '-rotate-180' : ''}`}
+            <div className={`border-b border-white/[0.06] ${mobileShopOpen ? 'bg-white/[0.03]' : ''}`}>
+              <button
+                type="button"
+                className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white"
+                onClick={() => setMobileShopOpen((open) => !open)}
               >
-                <path d="m19 12-7 7-7-7" />
-              </svg>
-            </button>
-            {mobileShopOpen && (
-              <div className="pl-4 pb-1 space-y-1">
-                <Link
-                  to="/boutique"
-                  className="block py-1 font-nav text-silver hover:text-chrome"
-                  onClick={() => setMenuOpen(false)}
+                <span>Shop</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-transform mr-1 ${mobileShopOpen ? '-rotate-180' : ''}`}
                 >
-                  Tous les produits
-                </Link>
-                {CATEGORIES.map((c) => (
+                  <path d="m19 12-7 7-7-7" />
+                </svg>
+              </button>
+              {mobileShopOpen && (
+                <div className="pl-10 pb-2 space-y-1 animate-fade-in">
                   <Link
-                    key={c.id}
-                    to={`/boutique/${c.id}`}
+                    to="/boutique"
                     className="block py-1 font-nav text-silver hover:text-chrome"
                     onClick={() => setMenuOpen(false)}
                   >
-                    {c.name}
+                    Tous les produits
                   </Link>
-                ))}
-                <Link
-                  to="/boutique/revetements"
-                  className="block py-1 font-nav text-silver hover:text-chrome"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Ceramic coating
-                </Link>
-              </div>
-            )}
+                  {CATEGORIES.map((c) => (
+                    <Link
+                      key={c.id}
+                      to={`/boutique/${c.id}`}
+                      className="block py-1 font-nav text-silver hover:text-chrome"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      {c.name}
+                    </Link>
+                  ))}
+                  <Link
+                    to="/boutique/revetements"
+                    className="block py-1 font-nav text-silver hover:text-chrome"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Ceramic coating
+                  </Link>
+                </div>
+              )}
+            </div>
 
             <Link
               to="/event"
-              className="flex items-center justify-between py-2 px-6 font-nav font-bold text-white border-b border-white/10"
+              className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white border-b border-white/[0.06]"
               onClick={() => setMenuOpen(false)}
             >
               <span>Event</span>
             </Link>
             <Link
               to="/academy"
-              className="flex items-center justify-between py-2 px-6 font-nav font-bold text-white border-b border-white/10"
+              className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white border-b border-white/[0.06]"
               onClick={() => setMenuOpen(false)}
             >
               <span>Academy</span>
             </Link>
 
             {/* Company (dropdown mobile) */}
+            <div className={`border-b border-white/[0.06] ${mobileCompanyOpen ? 'bg-white/[0.03]' : ''}`}>
               <button
                 type="button"
-                className="flex w-full items-center justify-between py-2 pl-6 pr-2 font-nav font-bold text-white"
+                className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white"
                 onClick={() => setMobileCompanyOpen((open) => !open)}
               >
                 <span>Company</span>
@@ -756,155 +759,156 @@ export function Header() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className={`transition-transform ${mobileCompanyOpen ? '-rotate-180' : ''}`}
+                  className={`transition-transform mr-1 ${mobileCompanyOpen ? '-rotate-180' : ''}`}
                 >
                   <path d="m19 12-7 7-7-7" />
                 </svg>
               </button>
-            {mobileCompanyOpen && (
-              <div className="pl-4 pb-1 space-y-4">
-                <div className="space-y-1.5">
-                  <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
-                    Company
-                  </p>
-                  <Link
-                    to="/join-fireball"
-                    className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M10 12h4" />
-                        <path d="M10 8h4" />
-                        <path d="M14 21v-3a2 2 0 0 0-4 0v3" />
-                        <path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2" />
-                        <path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
-                      </svg>
-                    </span>
-                    <span>Open FIREBALL Center</span>
-                  </Link>
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <circle cx="12" cy="8" r="6" />
-                        <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" />
-                      </svg>
-                    </span>
-                    <span>Awards</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                        <path d="M16 3.128a4 4 0 0 1 0 7.744" />
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                        <circle cx="9" cy="7" r="4" />
-                      </svg>
-                    </span>
-                    <span>About us</span>
-                  </button>
-                </div>
+              {mobileCompanyOpen && (
+                <div className="pl-4 pb-1 space-y-4 animate-fade-in">
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
+                      Company
+                    </p>
+                    <Link
+                      to="/join-fireball"
+                      className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M10 12h4" />
+                          <path d="M10 8h4" />
+                          <path d="M14 21v-3a2 2 0 0 0-4 0v3" />
+                          <path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2" />
+                          <path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
+                        </svg>
+                      </span>
+                      <span>Open FIREBALL Center</span>
+                    </Link>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <circle cx="12" cy="8" r="6" />
+                          <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" />
+                        </svg>
+                      </span>
+                      <span>Awards</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                          <path d="M16 3.128a4 4 0 0 1 0 7.744" />
+                          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                          <circle cx="9" cy="7" r="4" />
+                        </svg>
+                      </span>
+                      <span>About us</span>
+                    </button>
+                  </div>
 
-                <div className="pt-3 border-t border-white/10 space-y-1.5">
-                  <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
-                    Connect
-                  </p>
-                  <a
-                    href="mailto:contact@fireball.fr"
-                    className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12.5" />
-                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                        <path d="M18 15.28c.2-.4.5-.8.9-1a2.1 2.1 0 0 1 2.6.4c.3.4.5.8.5 1.3 0 1.3-2 2-2 2" />
-                        <path d="M20 22v.01" />
-                      </svg>
-                    </span>
-                    <span>Contact us</span>
-                  </a>
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
-                        <circle cx="12" cy="13" r="2" />
-                        <path d="M12 15v5" />
-                      </svg>
-                    </span>
-                    <span>Press kit</span>
-                  </button>
+                  <div className="pt-3 border-t border-white/[0.06] space-y-1.5">
+                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
+                      Connect
+                    </p>
+                    <a
+                      href="mailto:contact@fireball.fr"
+                      className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12.5" />
+                          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                          <path d="M18 15.28c.2-.4.5-.8.9-1a2.1 2.1 0 0 1 2.6.4c.3.4.5.8.5 1.3 0 1.3-2 2-2 2" />
+                          <path d="M20 22v.01" />
+                        </svg>
+                      </span>
+                      <span>Contact us</span>
+                    </a>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
+                          <circle cx="12" cy="13" r="2" />
+                          <path d="M12 15v5" />
+                        </svg>
+                      </span>
+                      <span>Press kit</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
               {/* Search */}
-              <div className="mt-4 border-t border-white/10">
+              <div className="mt-4">
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 py-2 px-6 font-nav font-bold text-white"
+                  className="inline-flex w-[96%] mx-auto items-center gap-2 py-3 px-2 font-nav text-white"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -926,11 +930,11 @@ export function Header() {
               </div>
 
               {/* Langue */}
-              <div className="mt-4 pt-1 pl-6" ref={langMenuMobileRef}>
+              <div className="mt-4 pt-1 relative" ref={langMenuMobileRef}>
                 <button
                   type="button"
                   onClick={() => setLangOpen((open) => !open)}
-                  className="flex items-center gap-2 text-sm font-nav font-bold text-white"
+                  className="flex w-[96%] mx-auto items-center gap-2 py-3 px-2 text-sm font-nav font-bold text-white"
                   aria-haspopup="menu"
                   aria-expanded={langOpen}
                 >
@@ -938,7 +942,7 @@ export function Header() {
                     <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
                       {lang === 'EN' ? <FlagEN /> : <FlagFR />}
                     </span>
-                    <span>{lang}</span>
+                    <span>{lang === 'EN' ? 'English' : 'Français'}</span>
                   </span>
                   <svg
                     className={`w-4 h-4 transition-transform ${langOpen ? '-rotate-180' : ''}`}
@@ -950,7 +954,7 @@ export function Header() {
                   </svg>
                 </button>
                 {langOpen && (
-                  <div className="mt-2 space-y-1 pl-8">
+                  <div className="absolute left-0 right-0 top-full mt-0 rounded-b-lg bg-inherit shadow-none animate-fade-in">
                     {lang === 'EN' ? (
                       <button
                         type="button"
@@ -958,9 +962,9 @@ export function Header() {
                           setLang('FR')
                           setLangOpen(false)
                         }}
-                        className="flex items-center gap-2 py-1 text-sm font-nav font-bold text-silver hover:text-white"
+                        className="flex w-[96%] mx-auto items-center gap-2 py-2 px-2 text-sm font-nav font-bold text-silver hover:text-white"
                       >
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
                           <FlagFR />
                         </span>
                         Français
@@ -972,9 +976,9 @@ export function Header() {
                           setLang('EN')
                           setLangOpen(false)
                         }}
-                        className="flex items-center gap-2 py-1 text-sm font-nav font-bold text-silver hover:text-white"
+                        className="flex w-[96%] mx-auto items-center gap-2 py-2 px-2 text-sm font-nav font-bold text-silver hover:text-white"
                       >
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
                           <FlagEN />
                         </span>
                         English
@@ -986,17 +990,27 @@ export function Header() {
 
             </nav>
 
-            {/* Bouton Sign in (tout en bas, hors zone scrollable) */}
-            <div className="shrink-0 -mx-6 px-6 pt-3 pb-3 border-t border-white/10 flex justify-center">
+            {/* Boutons d'action (tout en bas, hors zone scrollable) */}
+            <div className="shrink-0 -mx-6 px-6 pt-3 pb-3 flex flex-col items-center gap-2">
               <button
                 type="button"
                 onClick={() => {
                   setMenuOpen(false)
                   navigate('/account')
                 }}
-                className="w-[95%] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white bg-[#B61B1B] shadow-[0_14px_30px_rgba(0,0,0,0.55)] hover:bg-[#b61b1bcc] transition-colors"
+                className="w-[96%] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white bg-[#B61B1B] shadow-[0_14px_30px_rgba(0,0,0,0.55)] hover:bg-[#b61b1bcc] transition-colors"
               >
-                Sign in
+                Log in
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false)
+                  navigate('/join-fireball')
+                }}
+                className="w-[96%] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white border border-white/[0.16] bg-transparent hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors"
+              >
+                Join Fireball
               </button>
             </div>
           </div>
