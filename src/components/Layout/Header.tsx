@@ -138,24 +138,21 @@ export function Header() {
 
   // Bloquer le scroll de la page quand le menu mobile est ouvert
   useEffect(() => {
-    if (menuOpen) {
-      const previous = document.body.style.overflow
-      document.body.dataset.prevOverflow = previous
-      document.body.style.overflow = 'hidden'
-      return () => {
-        document.body.style.overflow = document.body.dataset.prevOverflow || ''
-        delete document.body.dataset.prevOverflow
-      }
+    if (!menuOpen) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
     }
-    return
   }, [menuOpen])
 
   const opacity = isDashboardPage ? 1 : scrollProgress * 0.95
   const borderOpacity = isDashboardPage ? 0.45 : 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
+  const solidNavColor = isDashboardPage ? '#1D1D1D' : '#0a0a0a'
   
   const navBgStyle: React.CSSProperties = isDashboardPage
     ? {
-        backgroundColor: '#1D1D1D',
+        backgroundColor: solidNavColor,
         backdropFilter: 'none',
         borderBottom: `1px solid rgba(37, 37, 37, ${borderOpacity})`,
         transition: 'background-color 0.2s ease-out, backdrop-filter 0.2s ease-out, border-bottom-color 0.2s ease-out',
@@ -189,13 +186,13 @@ export function Header() {
         menuOpen
           ? {
               ...(navBgStyle || {}),
-              backgroundColor: isDashboardPage ? '#1D1D1D' : 'rgba(10,10,10,0.98)',
+              backgroundColor: solidNavColor,
               backdropFilter: 'none',
             }
           : navBgStyle
       }
     >
-      {anyMenuOpen && (
+      {anyMenuOpen && !menuOpen && (
         <div className="fixed inset-0 z-40 bg-black/15 pointer-events-none" aria-hidden />
       )}
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-20">
@@ -664,7 +661,7 @@ export function Header() {
       {menuOpen && (
         <div
           className="lg:hidden fixed inset-x-0 top-20 bottom-0 border-t border-carbon-800 overflow-y-auto px-6 py-4 animate-fade-in flex flex-col h-full z-[60]"
-          style={{ backgroundColor: isDashboardPage ? '#242424' : 'rgb(16,18,22)' }}
+          style={{ backgroundColor: solidNavColor }}
         >
           <nav className="space-y-1 pb-4">
             <Link
