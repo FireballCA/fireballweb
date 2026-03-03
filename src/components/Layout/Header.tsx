@@ -29,19 +29,20 @@ const COMPANY_SECTIONS: Array<{
   links: Array<{ label: string; to?: string; href?: string }>
 }> = [
   {
-    title: 'CENTRE & CONTACT',
-    description: 'Espace partenaire et support',
+    title: 'COMPANY',
+    description: 'Brand, recognition & story',
     links: [
-      { label: 'Open Fireball Center', to: '/join-fireball' },
-      { label: 'Contact', href: 'mailto:contact@fireball.fr' },
-      { label: 'Support', href: '#' },
+      { label: 'Open FIREBALL Center', to: '/join-fireball' },
+      { label: 'Awards', href: '#' },
+      { label: 'About us', href: '#' },
     ],
   },
   {
-    title: 'DEVENIR PARTENAIRE',
-    description: 'Rejoignez le réseau certifié',
+    title: 'CONNECT',
+    description: 'Media & direct contact',
     links: [
-      { label: 'Become certified', to: '/account/company' },
+      { label: 'Contact us', href: 'mailto:contact@fireball.fr' },
+      { label: 'Press kit', href: '#' },
     ],
   },
 ]
@@ -91,6 +92,8 @@ export function Header() {
   const [shopOpen, setShopOpen] = useState(false)
   const [ceramicOpen, setCeramicOpen] = useState(false)
   const [companyOpen, setCompanyOpen] = useState(false)
+  const [mobileShopOpen, setMobileShopOpen] = useState(false)
+  const [mobileCompanyOpen, setMobileCompanyOpen] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
   const [lang, setLang] = useState<'EN' | 'FR'>('EN')
   const [langOpen, setLangOpen] = useState(false)
@@ -637,120 +640,316 @@ export function Header() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="lg:hidden border-t border-carbon-700 bg-carbon-950/98 backdrop-blur-md py-4 px-6 animate-fade-in">
-          <Link to="/car-club" className="block py-2 font-nav font-bold text-white" onClick={() => setMenuOpen(false)}>
-            Car club
-          </Link>
-          <Link to="/boutique" className="block py-2 font-nav font-bold text-white" onClick={() => setMenuOpen(false)}>
-            Shop
-          </Link>
-          {CATEGORIES.map((c) => (
+        <div
+          className="lg:hidden fixed inset-x-0 top-20 bottom-0 border-t border-carbon-800 overflow-y-auto px-6 py-4 animate-fade-in"
+          style={{ backgroundColor: isDashboardPage ? '#1D1D1D' : 'rgba(10,10,10,0.98)' }}
+        >
+          <nav className="space-y-1">
             <Link
-              key={c.id}
-              to={`/boutique/${c.id}`}
-              className="block py-2 pl-4 font-nav text-silver hover:text-chrome"
+              to="/car-club"
+              className="flex items-center justify-between py-2 font-nav font-bold text-white border-b border-carbon-800"
               onClick={() => setMenuOpen(false)}
             >
-              {c.name}
+              <span>Car club</span>
             </Link>
-          ))}
-          <Link to="/boutique/revetements" className="block py-2 font-nav font-bold text-white" onClick={() => setMenuOpen(false)}>
-            Ceramic coating
-          </Link>
-          <Link to="/event" className="block py-2 font-nav font-bold text-white" onClick={() => setMenuOpen(false)}>
-            Event
-          </Link>
-          <Link to="/academy" className="block py-2 font-nav font-bold text-white" onClick={() => setMenuOpen(false)}>
-            Academy
-          </Link>
-          <div className="mt-2 pt-2 border-t border-carbon-700">
-            <p className="py-2 text-xs font-nav font-bold uppercase tracking-[0.14em] text-silver/70">Company</p>
-            <Link
-              to="/account/company"
-              className="block py-2 pl-4 font-nav text-silver hover:text-chrome"
-              onClick={() => setMenuOpen(false)}
-            >
-              Open Fireball Center
-            </Link>
-            <a
-              href="mailto:contact@fireball.fr"
-              className="block py-2 pl-4 font-nav text-silver hover:text-chrome"
-              onClick={() => setMenuOpen(false)}
-            >
-              Contact
-            </a>
-            <a
-              href="#"
-              className="block py-2 pl-4 font-nav text-silver hover:text-chrome"
-              onClick={(e) => {
-                e.preventDefault()
-                setMenuOpen(false)
-              }}
-            >
-              Support
-            </a>
-            <Link
-              to="/account/company"
-              className="block py-2 pl-4 font-nav text-silver hover:text-chrome"
-              onClick={() => setMenuOpen(false)}
-            >
-              Become certified
-            </Link>
-          </div>
-          <div className="relative mt-4 pt-4 border-t border-carbon-700" ref={langMenuMobileRef}>
+
+            {/* Shop + catégories (dropdown mobile) */}
             <button
               type="button"
-              onClick={() => setLangOpen((open) => !open)}
-              className="flex items-center gap-2 text-sm font-nav font-bold text-white"
-              aria-haspopup="menu"
-              aria-expanded={langOpen}
+              className="flex w-full items-center justify-between py-2 font-nav font-bold text-white border-b border-carbon-800"
+              onClick={() => setMobileShopOpen((open) => !open)}
             >
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
-                {lang === 'EN' ? <FlagEN /> : <FlagFR />}
-              </span>
-              {lang}
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <span>Shop</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`transition-transform ${mobileShopOpen ? '-rotate-180' : ''}`}
+              >
+                <path d="m19 12-7 7-7-7" />
               </svg>
             </button>
-            {langOpen && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-0 animate-fade-in">
-                <div className="relative bg-white p-2 min-w-[160px] rounded-2xl shadow-xl pt-5">
-                  <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white z-10" viewBox="0 0 16 8" preserveAspectRatio="none">
-                    <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
-                  </svg>
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLang('EN')
-                        setLangOpen(false)
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-nav font-bold text-carbon-900 transition-colors rounded-2xl hover:bg-black/10"
-                    >
-                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
-                        <FlagEN />
-                      </span>
-                      English
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLang('FR')
-                        setLangOpen(false)
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-nav font-bold text-carbon-900 transition-colors rounded-2xl hover:bg-black/10"
-                    >
-                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
-                        <FlagFR />
-                      </span>
-                      Français
-                    </button>
-                  </div>
+            {mobileShopOpen && (
+              <div className="pl-4 pb-1 space-y-1">
+                <Link
+                  to="/boutique"
+                  className="block py-1 font-nav text-silver hover:text-chrome"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Tous les produits
+                </Link>
+                {CATEGORIES.map((c) => (
+                  <Link
+                    key={c.id}
+                    to={`/boutique/${c.id}`}
+                    className="block py-1 font-nav text-silver hover:text-chrome"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    {c.name}
+                  </Link>
+                ))}
+                <Link
+                  to="/boutique/revetements"
+                  className="block py-1 font-nav text-silver hover:text-chrome"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Ceramic coating
+                </Link>
+              </div>
+            )}
+
+            <Link
+              to="/event"
+              className="flex items-center justify-between py-2 font-nav font-bold text-white border-b border-carbon-800"
+              onClick={() => setMenuOpen(false)}
+            >
+              <span>Event</span>
+            </Link>
+            <Link
+              to="/academy"
+              className="flex items-center justify-between py-2 font-nav font-bold text-white border-b border-carbon-800"
+              onClick={() => setMenuOpen(false)}
+            >
+              <span>Academy</span>
+            </Link>
+
+            {/* Company (dropdown mobile) */}
+            <button
+              type="button"
+              className="mt-2 flex w-full items-center justify-between py-2 border-t border-carbon-800 font-nav font-bold text-white"
+              onClick={() => setMobileCompanyOpen((open) => !open)}
+            >
+              <span>Company</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`transition-transform ${mobileCompanyOpen ? '-rotate-180' : ''}`}
+              >
+                <path d="m19 12-7 7-7-7" />
+              </svg>
+            </button>
+            {mobileCompanyOpen && (
+              <div className="pl-4 pb-1 space-y-4">
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
+                    Company
+                  </p>
+                  <Link
+                    to="/join-fireball"
+                    className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M10 12h4" />
+                        <path d="M10 8h4" />
+                        <path d="M14 21v-3a2 2 0 0 0-4 0v3" />
+                        <path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2" />
+                        <path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
+                      </svg>
+                    </span>
+                    <span>Open FIREBALL Center</span>
+                  </Link>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="8" r="6" />
+                        <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" />
+                      </svg>
+                    </span>
+                    <span>Awards</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <path d="M16 3.128a4 4 0 0 1 0 7.744" />
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                        <circle cx="9" cy="7" r="4" />
+                      </svg>
+                    </span>
+                    <span>About us</span>
+                  </button>
+                </div>
+
+                <div className="pt-3 border-t border-carbon-800 space-y-1.5">
+                  <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
+                    Connect
+                  </p>
+                  <a
+                    href="mailto:contact@fireball.fr"
+                    className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12.5" />
+                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                        <path d="M18 15.28c.2-.4.5-.8.9-1a2.1 2.1 0 0 1 2.6.4c.3.4.5.8.5 1.3 0 1.3-2 2-2 2" />
+                        <path d="M20 22v.01" />
+                      </svg>
+                    </span>
+                    <span>Contact us</span>
+                  </a>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
+                        <circle cx="12" cy="13" r="2" />
+                        <path d="M12 15v5" />
+                      </svg>
+                    </span>
+                    <span>Press kit</span>
+                  </button>
                 </div>
               </div>
             )}
-          </div>
+
+            {/* Langue */}
+            <div className="mt-4 pt-3 border-t border-carbon-800" ref={langMenuMobileRef}>
+              <button
+                type="button"
+                onClick={() => setLangOpen((open) => !open)}
+                className="flex w-full items-center justify-between text-sm font-nav font-bold text-white"
+                aria-haspopup="menu"
+                aria-expanded={langOpen}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
+                    {lang === 'EN' ? <FlagEN /> : <FlagFR />}
+                  </span>
+                  {lang}
+                </span>
+                <svg
+                  className={`w-4 h-4 transition-transform ${langOpen ? '-rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m19 12-7 7-7-7" />
+                </svg>
+              </button>
+              {langOpen && (
+                <div className="mt-2 space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLang('EN')
+                      setLangOpen(false)
+                    }}
+                    className="flex w-full items-center gap-2 py-1 text-sm font-nav font-bold text-silver hover:text-white"
+                  >
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
+                      <FlagEN />
+                    </span>
+                    English
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLang('FR')
+                      setLangOpen(false)
+                    }}
+                    className="flex w-full items-center gap-2 py-1 text-sm font-nav font-bold text-silver hover:text-white"
+                  >
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
+                      <FlagFR />
+                    </span>
+                    Français
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Bouton Sign in (tout en bas) */}
+            <div className="mt-6 mb-2 flex justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false)
+                  navigate('/account')
+                }}
+                className="w-[95%] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white bg-apex shadow-[0_14px_30px_rgba(0,0,0,0.55)] hover:bg-apex/90 transition-colors"
+              >
+                Sign in
+              </button>
+            </div>
+          </nav>
         </div>
       )}
     </header>
