@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUserProfile } from '@/utils/supabaseAuth'
+import { adminAdjustXpByIdentifier } from '@/utils/supabaseXp'
 
 type CertificationLevel = 'standard' | 'advanced' | 'elite'
 type PartnerActivityStatus = 'active' | 'suspended'
@@ -308,6 +309,12 @@ export function ManagePartners() {
     })
   }
 
+  // Admin XP quick actions (global stats)
+  const [xpIdentifier, setXpIdentifier] = useState('')
+  const [xpAmount, setXpAmount] = useState('100')
+  const [xpLoading, setXpLoading] = useState(false)
+  const [xpMessage, setXpMessage] = useState<string | null>(null)
+
   const sendDecisionEmail = async () => {
     if (!decisionComposer.row) return
     if (!decisionComposer.to.trim()) {
@@ -476,6 +483,108 @@ export function ManagePartners() {
           <article className="rounded-2xl border border-white/15 bg-white/[0.08] backdrop-blur-2xl px-5 py-5 shadow-[0_16px_36px_rgba(0,0,0,0.35)]">
             <p className="text-xs uppercase tracking-[0.14em] text-white/55">Declined this month</p>
             <p className="mt-2 text-3xl font-bold">{loading ? '-' : declinedCount}</p>
+          </article>
+          <article className="md:col-span-3 rounded-2xl border border-white/15 bg-white/[0.08] backdrop-blur-2xl px-5 py-5 shadow-[0_16px_36px_rgba(0,0,0,0.35)]">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.14em] text-white/55">XP Quick Adjust</p>
+                <p className="mt-1 text-sm text-white/70 max-w-xl">
+                  Ajouter ou retirer rapidement de l&apos;XP à un membre en utilisant son email Fireball ou son Member ID externe.
+                </p>
+              </div>
+              <div className="flex flex-col md:flex-row gap-3 md:items-end">
+                <div className="flex-1 min-w-[220px]">
+                  <label className="block text-[11px] uppercase tracking-[0.14em] text-white/60 mb-1">
+                    Email ou Member ID
+                  </label>
+                  <input
+                    value={xpIdentifier}
+                    onChange={(e) => setXpIdentifier(e.target.value)}
+                    className="w-full rounded-xl border border-white/20 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/40 outline-none focus:border-white/60"
+                    placeholder="client@exemple.com ou 12345678"
+                  />
+                </div>
+                <div className="w-full md:w-32">
+                  <label className="block text-[11px] uppercase tracking-[0.14em] text-white/60 mb-1">
+                    Montant XP
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={xpAmount}
+                    onChange={(e) => setXpAmount(e.target.value)}
+                    className="w-full rounded-xl border border-white/20 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-white/60"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={xpLoading}
+                    onClick={async () => {
+                      setXpMessage(null)
+                      const amount = Number(xpAmount)
+                      if (!xpIdentifier.trim() || !Number.isFinite(amount) || amount <= 0) {
+                        setXpMessage('Entrez un identifiant et un montant XP valide (> 0).')
+                        return
+                      }
+                      setXpLoading(true)
+                      const result = await adminAdjustXpByIdentifier({
+                        identifier: xpIdentifier.trim(),
+                        deltaXp: amount,
+                      })
+                      if (!result.success) {
+                        setXpMessage(result.error || 'Impossible de mettre à jour l’XP.')
+                      } else {
+                        setXpMessage(
+                          `+${amount} XP appliqués à ${result.profileLabel || 'ce membre'} (${result.previousXp ?? 0} → ${
+                            result.newXp ?? 0
+                          }).`,
+                        )
+                      }
+                      setXpLoading(false)
+                    }}
+                    className="inline-flex items-center justify-center rounded-full border border-emerald-300/40 bg-emerald-500/20 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-100 hover:bg-emerald-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {xpLoading ? 'En cours…' : 'Add XP'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={xpLoading}
+                    onClick={async () => {
+                      setXpMessage(null)
+                      const amount = Number(xpAmount)
+                      if (!xpIdentifier.trim() || !Number.isFinite(amount) || amount <= 0) {
+                        setXpMessage('Entrez un identifiant et un montant XP valide (> 0).')
+                        return
+                      }
+                      setXpLoading(true)
+                      const result = await adminAdjustXpByIdentifier({
+                        identifier: xpIdentifier.trim(),
+                        deltaXp: -amount,
+                      })
+                      if (!result.success) {
+                        setXpMessage(result.error || 'Impossible de mettre à jour l’XP.')
+                      } else {
+                        setXpMessage(
+                          `-${amount} XP retirés à ${result.profileLabel || 'ce membre'} (${result.previousXp ?? 0} → ${
+                            result.newXp ?? 0
+                          }).`,
+                        )
+                      }
+                      setXpLoading(false)
+                    }}
+                    className="inline-flex items-center justify-center rounded-full border border-rose-300/40 bg-rose-500/20 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-rose-100 hover:bg-rose-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {xpLoading ? 'En cours…' : 'Remove XP'}
+                  </button>
+                </div>
+              </div>
+            </div>
+            {xpMessage && (
+              <p className="mt-3 text-xs text-white/70">
+                {xpMessage}
+              </p>
+            )}
           </article>
         </div>
         {error && (

@@ -18,6 +18,7 @@ export default {
         chrome: '#c9b896',
         silver: '#e5e5e5',
         pearl: '#f5f5f0',
+        apex: '#E23854',
       },
       fontFamily: {
         display: ['Bebas Neue', 'Oswald', 'sans-serif'],

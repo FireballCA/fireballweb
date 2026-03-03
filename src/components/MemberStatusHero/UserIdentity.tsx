@@ -5,6 +5,8 @@ interface UserIdentityProps {
   isAdmin?: boolean
   partnerStatus?: string | null
   companyName?: string | null
+  memberId?: string | null
+  barcodeValue?: string | null
 }
 
 export function UserIdentity({
@@ -12,6 +14,8 @@ export function UserIdentity({
   isAdmin = false,
   partnerStatus = null,
   companyName = null,
+  memberId = null,
+  barcodeValue = null,
 }: UserIdentityProps) {
   const nameParts = userName.split(' ')
   const firstName = nameParts[0] || ''
@@ -47,6 +51,16 @@ export function UserIdentity({
         {shouldShowPartnerStatus && (
           <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-white/55">
             Partner Status : <span className={`font-semibold ${partnerStatusColor}`}>{partnerStatusLabel || 'Pending'}</span>
+          </p>
+        )}
+        {memberId && (
+          <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-white/60">
+            Member ID : <span className="font-mono text-white/90">{memberId}</span>
+          </p>
+        )}
+        {barcodeValue && (
+          <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-white/60">
+            Barcode : <span className="font-mono text-white/90">{barcodeValue}</span>
           </p>
         )}
       </div>

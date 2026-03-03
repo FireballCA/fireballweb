@@ -1,8 +1,43 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '@/context/CartContext'
+import { isAuthenticated } from '@/utils/supabaseAuth'
+import { awardXp } from '@/utils/supabaseXp'
 
 export function Cart() {
-  const { items, removeFromCart, updateQuantity, totalItems, totalPrice } = useCart()
+  const { items, removeFromCart, updateQuantity, totalItems, totalPrice, clearCart } = useCart()
+  const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null)
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+
+  const handleCheckout = async () => {
+    setCheckoutMessage(null)
+    setCheckoutLoading(true)
+
+    try {
+      const authenticated = await isAuthenticated()
+      if (!authenticated) {
+        setCheckoutMessage("Connectez-vous à votre compte Fireball pour gagner de l'XP sur vos achats.")
+        return
+      }
+
+      const result = await awardXp({ type: 'order', amount: totalPrice })
+
+      if (!result.success) {
+        setCheckoutMessage("Impossible d'ajouter l'XP pour le moment.")
+        return
+      }
+
+      if (typeof result.awardedXp === 'number' && result.awardedXp > 0) {
+        setCheckoutMessage(`Commande enregistrée. Vous venez de gagner ${result.awardedXp.toLocaleString()} XP.`)
+      } else {
+        setCheckoutMessage('Commande enregistrée.')
+      }
+
+      clearCart()
+    } finally {
+      setCheckoutLoading(false)
+    }
+  }
 
   if (items.length === 0) {
     return (
@@ -86,10 +121,17 @@ export function Cart() {
             </div>
             <button
               type="button"
-              className="w-full mt-6 py-4 bg-chrome text-carbon-950 font-medium text-sm uppercase hover:bg-chrome/90 transition-colors"
+              onClick={handleCheckout}
+              disabled={checkoutLoading}
+              className="w-full mt-6 py-4 bg-chrome text-carbon-950 font-medium text-sm uppercase hover:bg-chrome/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Passer la commande
+              {checkoutLoading ? 'Traitement...' : 'Passer la commande'}
             </button>
+            {checkoutMessage && (
+              <p className="text-silver/70 text-xs mt-3 text-center">
+                {checkoutMessage}
+              </p>
+            )}
             <p className="text-silver/50 text-xs mt-4 text-center">
               Paiement sécurisé. Livraison offerte dès 100 €.
             </p>

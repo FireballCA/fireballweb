@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { MemberStatusHero } from '@/components/MemberStatusHero/MemberStatusHero'
 import { AddVehicleModal } from '@/components/AddVehicleModal'
+import { FireballLoading } from '@/components/FireballLoading'
 import { Footer } from '@/components/Layout/Footer'
 import {
   fetchGarageVehicles,
@@ -24,6 +25,89 @@ interface Vehicle {
 type ProtectionStatus = 'green' | 'yellow' | 'red'
 type SubscriptionTier = 'none' | 'ignition' | 'apex'
 type UserRole = 'member' | 'partner' | 'admin'
+
+const XP_TIERS = [
+  {
+    id: 'brushed_silver',
+    index: 1,
+    name: 'Brushed Silver',
+    minXp: 0,
+    colorClass: 'text-slate-100',
+    headerLabel: 'TIER 1',
+    benefits: [
+      { text: 'Base access to Fireball ecosystem' },
+      { text: 'Earn XP on every eligible purchase' },
+      { text: 'Unlock higher tiers with continued activity' },
+    ],
+  },
+  {
+    id: 'titanium',
+    index: 2,
+    name: 'Titanium',
+    minXp: 1200,
+    colorClass: 'text-sky-300',
+    headerLabel: 'TIER 2',
+    benefits: [
+      { text: 'Enhanced member recognition' },
+      { text: 'Priority access to selected drops' },
+      { text: 'Improved member-only pricing windows' },
+    ],
+  },
+  {
+    id: 'carbon_fiber',
+    index: 3,
+    name: 'Carbon Fiber',
+    minXp: 8000,
+    colorClass: 'text-zinc-100',
+    headerLabel: 'TIER 3',
+    benefits: [
+      { text: 'High-tier member status' },
+      { text: 'Invitations to selected private events' },
+      { text: 'Access to advanced care recommendations' },
+    ],
+  },
+  {
+    id: 'obsidian',
+    index: 4,
+    name: 'Obsidian',
+    minXp: 20000,
+    colorClass: 'text-purple-300',
+    headerLabel: 'TIER 4',
+    benefits: [
+      { text: 'Elite recognition across Fireball network' },
+      { text: 'Priority access to limited technologies' },
+      { text: 'Elevated support and guidance' },
+    ],
+  },
+  {
+    id: 'gold',
+    index: 5,
+    name: 'Gold',
+    minXp: 35000,
+    colorClass: 'text-amber-300',
+    headerLabel: 'TIER 5',
+    benefits: [
+      { text: 'Top tier within Fireball membership' },
+      { text: 'First access to the rarest drops' },
+      { text: 'Invite-only experiences and privileges' },
+    ],
+  },
+] as const
+
+function getTierForXp(xp: number) {
+  const sorted = [...XP_TIERS].sort((a, b) => a.minXp - b.minXp)
+  let current = sorted[0]
+  for (const tier of sorted) {
+    if (xp >= tier.minXp) {
+      current = tier
+    } else {
+      break
+    }
+  }
+  const currentIndex = sorted.findIndex((t) => t.id === current.id)
+  const next = currentIndex >= 0 && currentIndex < sorted.length - 1 ? sorted[currentIndex + 1] : null
+  return { current, next }
+}
 
 interface VehicleSettingsModalProps {
   vehicle: Vehicle
@@ -222,12 +306,14 @@ export function AccountDashboard() {
   const location = useLocation()
   const pageState = (location.state as { fromRegister?: boolean; welcomeName?: string; shopifySyncError?: string | null } | null) || null
   const [fullName, setFullName] = useState('')
+  const [xp, setXp] = useState(0)
   const [shopifySyncWarning] = useState<string | null>(pageState?.shopifySyncError || null)
   const [welcomeName, setWelcomeName] = useState<string | null>(null)
   const [welcomeLineVisible, setWelcomeLineVisible] = useState(false)
   const [subtitleVisible, setSubtitleVisible] = useState(false)
   const [enterButtonVisible, setEnterButtonVisible] = useState(false)
   const [showDashboard, setShowDashboard] = useState(false)
+  const [isEnteringDashboard, setIsEnteringDashboard] = useState(false)
   const [carModalOpen, setCarModalOpen] = useState(false)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [settingsVehicle, setSettingsVehicle] = useState<Vehicle | null>(null)
@@ -235,6 +321,8 @@ export function AccountDashboard() {
   const [userRole, setUserRole] = useState<UserRole>('member')
   const [companyName, setCompanyName] = useState<string | null>(null)
   const [partnerStatus, setPartnerStatus] = useState<string | null>(null)
+  const [memberId, setMemberId] = useState<string | null>(null)
+  const [barcodeValue, setBarcodeValue] = useState<string | null>(null)
   
   useEffect(() => {
     const checkAuthAndLoadProfile = async () => {
@@ -261,18 +349,27 @@ export function AccountDashboard() {
         setCompanyName(profile.company_name ?? null)
         const normalizedPartnerStatus = String(profile.partner_status || '').trim().toLowerCase()
         setPartnerStatus(normalizedPartnerStatus === 'declined' ? null : profile.partner_status ?? null)
+        setXp(typeof profile.xp === 'number' ? profile.xp : 0)
+        setMemberId(profile.external_member_id ?? null)
+        setBarcodeValue(profile.barcode_value ?? profile.external_member_id ?? null)
       } else if (state?.welcomeName) {
         customerFullName = state.welcomeName
         setSubscriptionTier('none')
         setUserRole('member')
         setCompanyName(null)
         setPartnerStatus(null)
+        setXp(0)
+        setMemberId(null)
+        setBarcodeValue(null)
       } else {
         customerFullName = 'Member'
         setSubscriptionTier('none')
         setUserRole('member')
         setCompanyName(null)
         setPartnerStatus(null)
+        setXp(0)
+        setMemberId(null)
+        setBarcodeValue(null)
       }
 
       setFullName(customerFullName)
@@ -317,8 +414,9 @@ export function AccountDashboard() {
   const showWelcomeScreen = welcomeName !== null && !showDashboard
   const nameParts = (welcomeName ?? '').trim().split(/\s+/).filter(Boolean)
   const firstName = (nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : nameParts[0]) || 'Member'
-  const currentXp = 2403
-  const targetXp = 3000
+
+  const { current: currentTier, next: nextTier } = getTierForXp(xp)
+  const targetXp = nextTier ? nextTier.minXp : Math.max(currentTier.minXp || 1, xp || 1)
 
   // Calculer le statut de protection en fonction de la date
   const getProtectionStatus = (protectionDate: Date): ProtectionStatus => {
@@ -401,6 +499,11 @@ export function AccountDashboard() {
 
   return (
     <section className="relative min-h-screen bg-[#252525] text-pearl">
+      {isEnteringDashboard && (
+        <div className="fixed inset-0 z-[135]">
+          <FireballLoading />
+        </div>
+      )}
       {showWelcomeScreen && (
         <div className="fixed inset-0 z-[130] bg-black">
           <div className="h-full w-full flex items-center justify-center px-6">
@@ -427,8 +530,13 @@ export function AccountDashboard() {
               <button
                 type="button"
                 onClick={() => {
-                  setShowDashboard(true)
+                  setIsEnteringDashboard(true)
                   setWelcomeName(null)
+                  // Court delai pour eviter un flash vide, puis afficher le dashboard
+                  window.setTimeout(() => {
+                    setShowDashboard(true)
+                    setIsEnteringDashboard(false)
+                  }, 400)
                 }}
                 className={`mt-10 inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 px-5 py-2.5 text-sm font-nav font-bold text-white transition-all duration-700 hover:bg-white/20 ${
                   enterButtonVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
@@ -452,11 +560,17 @@ export function AccountDashboard() {
           )}
           <MemberStatusHero 
             userName={fullName || 'Anthony Bergeron'}
-            currentXp={currentXp}
+            currentXp={xp}
             targetXp={targetXp}
             isAdmin={userRole === 'admin'}
             companyName={companyName}
             partnerStatus={partnerStatus}
+            tier={currentTier.headerLabel}
+            benefits={currentTier.benefits}
+            currentTierName={currentTier.name}
+            currentTierColorClass={currentTier.colorClass}
+            memberId={memberId}
+            barcodeValue={barcodeValue}
           />
           <div 
             className="w-full bg-[#252525] relative z-20 overflow-hidden"
