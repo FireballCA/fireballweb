@@ -1,18 +1,48 @@
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { PRODUCTS, CATEGORIES, type CategoryId } from '@/data/products'
+import { PRODUCTS, CATEGORIES, type CategoryId, type Product } from '@/data/products'
 import { useCart } from '@/context/CartContext'
+import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 
 export function Shop() {
   const { categoryId } = useParams<{ categoryId?: string }>()
   const { addToCart } = useCart()
+  const [allProducts, setAllProducts] = useState<Product[]>(PRODUCTS)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const category = categoryId
-    ? CATEGORIES.find((c) => c.id === categoryId)
-    : null
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const products = await fetchProductsFromShopify()
+        if (!cancelled) {
+          setAllProducts(products)
+        }
+      } catch (err) {
+        console.error('Unable to load Shopify products', err)
+        if (!cancelled) {
+          setError("Impossible de charger les produits en temps réel. Affichage des produits statiques.")
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const category = categoryId ? CATEGORIES.find((c) => c.id === categoryId) : null
 
   const products = categoryId
-    ? PRODUCTS.filter((p) => p.category === categoryId as CategoryId)
-    : PRODUCTS
+    ? allProducts.filter((p) => p.category === (categoryId as CategoryId))
+    : allProducts
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-16">
@@ -23,6 +53,12 @@ export function Shop() {
         </h1>
         {category && (
           <p className="text-silver/80 mt-2 max-w-xl">{category.description}</p>
+        )}
+        {loading && (
+          <p className="text-silver/70 mt-4 text-sm">Chargement des produits en temps réel…</p>
+        )}
+        {!loading && error && (
+          <p className="text-amber-300 mt-4 text-sm">{error}</p>
         )}
       </div>
 

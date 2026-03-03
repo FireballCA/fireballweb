@@ -1,21 +1,61 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
-import { getProductBySlug, CATEGORIES } from '@/data/products'
+import { useEffect, useState } from 'react'
+import { CATEGORIES, type Product as LocalProduct } from '@/data/products'
 import { useCart } from '@/context/CartContext'
+import { fetchProductFromShopifyBySlug } from '@/utils/shopifyStorefront'
+
+type ProductType = LocalProduct
 
 export function Product() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
-  const product = slug ? getProductBySlug(slug) : null
   const { addToCart } = useCart()
+  const [product, setProduct] = useState<ProductType | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      if (!slug) {
+        setLoading(false)
+        setProduct(null)
+        return
+      }
+      setLoading(true)
+      try {
+        const loaded = await fetchProductFromShopifyBySlug(slug)
+        if (!cancelled) {
+          setProduct(loaded)
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [slug])
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-24 text-center">
+        <h1 className="font-display text-3xl text-pearl mb-4">Chargement du produit…</h1>
+      </div>
+    )
+  }
 
   if (!product) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-24 text-center">
         <h1 className="font-display text-4xl text-pearl mb-4">Produit introuvable</h1>
-        <Link to="/boutique" className="text-chrome hover:underline">Retour à la boutique</Link>
+        <Link to="/boutique" className="text-chrome hover:underline">
+          Retour à la boutique
+        </Link>
       </div>
     )
   }
@@ -31,11 +71,15 @@ export function Product() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-16">
       <nav className="text-sm text-silver/70 mb-8">
-        <Link to="/boutique" className="hover:text-chrome">Boutique</Link>
+        <Link to="/boutique" className="hover:text-chrome">
+          Boutique
+        </Link>
         {category && (
           <>
             <span className="mx-2">/</span>
-            <Link to={`/boutique/${category.id}`} className="hover:text-chrome">{category.name}</Link>
+            <Link to={`/boutique/${category.id}`} className="hover:text-chrome">
+              {category.name}
+            </Link>
           </>
         )}
         <span className="mx-2">/</span>
@@ -44,11 +88,7 @@ export function Product() {
 
       <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
         <div className="aspect-square lg:aspect-auto lg:min-h-[500px] bg-carbon-800 overflow-hidden">
-          <img
-            src={product.image}
-            alt={product.name}
-            className="w-full h-full object-cover"
-          />
+          <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
         </div>
 
         <div>
@@ -87,9 +127,7 @@ export function Product() {
               type="button"
               onClick={handleAddToCart}
               className={`flex-1 min-w-[200px] py-4 px-8 text-sm uppercase transition-colors ${
-                added
-                  ? 'bg-carbon-600 text-silver cursor-default'
-                  : 'bg-chrome text-carbon-950 hover:bg-chrome/90'
+                added ? 'bg-carbon-600 text-silver cursor-default' : 'bg-chrome text-carbon-950 hover:bg-chrome/90'
               }`}
             >
               {added ? 'Ajouté au panier' : 'Ajouter au panier'}
