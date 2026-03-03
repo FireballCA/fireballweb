@@ -660,14 +660,14 @@ export function Header() {
       {/* Mobile menu */}
       {menuOpen && (
         <div
-          className="lg:hidden fixed inset-x-0 top-20 bottom-0 border-t border-carbon-800 px-6 py-4 animate-fade-in z-[60]"
+          className="lg:hidden fixed inset-x-0 top-20 bottom-0 border-t border-carbon-800 px-6 py-4 animate-fade-in z-[60] overflow-x-hidden"
           style={{ backgroundColor: solidNavColor }}
         >
           <div className="h-full flex flex-col">
-            <nav className="space-y-1 pb-4 flex-1 overflow-y-auto">
+            <nav className="-mx-6 space-y-1 pb-4 flex-1 overflow-y-auto overflow-x-hidden">
               <Link
                 to="/car-club"
-                className="flex items-center justify-between py-2 font-nav font-bold text-white border-b border-white/10 -mx-6 px-6"
+                className="flex items-center justify-between py-2 px-6 font-nav font-bold text-white border-b border-white/10"
                 onClick={() => setMenuOpen(false)}
               >
                 <span>Car club</span>
@@ -676,7 +676,7 @@ export function Header() {
             {/* Shop + catégories (dropdown mobile) */}
             <button
               type="button"
-              className="flex w-full items-center justify-between py-2 font-nav font-bold text-white border-b border-carbon-800"
+              className="flex w-full items-center justify-between py-2 pl-6 pr-2 font-nav font-bold text-white border-b border-white/10"
               onClick={() => setMobileShopOpen((open) => !open)}
             >
               <span>Shop</span>
@@ -726,14 +726,14 @@ export function Header() {
 
             <Link
               to="/event"
-              className="flex items-center justify-between py-2 font-nav font-bold text-white border-b border-white/10 -mx-6 px-6"
+              className="flex items-center justify-between py-2 px-6 font-nav font-bold text-white border-b border-white/10"
               onClick={() => setMenuOpen(false)}
             >
               <span>Event</span>
             </Link>
             <Link
               to="/academy"
-              className="flex items-center justify-between py-2 font-nav font-bold text-white border-b border-white/10 -mx-6 px-6"
+              className="flex items-center justify-between py-2 px-6 font-nav font-bold text-white border-b border-white/10"
               onClick={() => setMenuOpen(false)}
             >
               <span>Academy</span>
@@ -742,7 +742,7 @@ export function Header() {
             {/* Company (dropdown mobile) */}
               <button
                 type="button"
-                className="mt-2 flex w-full items-center justify-between py-2 border-t border-white/10 -mx-6 px-6 font-nav font-bold text-white"
+                className="flex w-full items-center justify-between py-2 pl-6 pr-2 font-nav font-bold text-white"
                 onClick={() => setMobileCompanyOpen((open) => !open)}
               >
                 <span>Company</span>
@@ -843,7 +843,7 @@ export function Header() {
                   </button>
                 </div>
 
-                <div className="pt-3 border-t border-carbon-800 space-y-1.5">
+                <div className="pt-3 border-t border-white/10 space-y-1.5">
                   <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
                     Connect
                   </p>
@@ -901,7 +901,7 @@ export function Header() {
             )}
 
               {/* Search */}
-              <div className="mt-4 -mx-6 border-t border-white/10">
+              <div className="mt-4 border-t border-white/10">
                 <button
                   type="button"
                   className="inline-flex items-center gap-2 py-2 px-6 font-nav font-bold text-white"
@@ -926,7 +926,7 @@ export function Header() {
               </div>
 
               {/* Langue */}
-              <div className="mt-4 pt-1" ref={langMenuMobileRef}>
+              <div className="mt-4 pt-1 pl-6" ref={langMenuMobileRef}>
                 <button
                   type="button"
                   onClick={() => setLangOpen((open) => !open)}
@@ -934,10 +934,12 @@ export function Header() {
                   aria-haspopup="menu"
                   aria-expanded={langOpen}
                 >
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
-                    {lang === 'EN' ? <FlagEN /> : <FlagFR />}
+                  <span className="inline-flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
+                      {lang === 'EN' ? <FlagEN /> : <FlagFR />}
+                    </span>
+                    <span>{lang}</span>
                   </span>
-                  <span>{lang}</span>
                   <svg
                     className={`w-4 h-4 transition-transform ${langOpen ? '-rotate-180' : ''}`}
                     fill="none"
@@ -948,7 +950,7 @@ export function Header() {
                   </svg>
                 </button>
                 {langOpen && (
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-2 space-y-1 pl-8">
                     {lang === 'EN' ? (
                       <button
                         type="button"
@@ -956,7 +958,7 @@ export function Header() {
                           setLang('FR')
                           setLangOpen(false)
                         }}
-                        className="flex w-full items-center gap-2 py-1 text-sm font-nav font-bold text-silver hover:text-white"
+                        className="flex items-center gap-2 py-1 text-sm font-nav font-bold text-silver hover:text-white"
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
                           <FlagFR />
@@ -970,7 +972,7 @@ export function Header() {
                           setLang('EN')
                           setLangOpen(false)
                         }}
-                        className="flex w-full items-center gap-2 py-1 text-sm font-nav font-bold text-silver hover:text-white"
+                        className="flex items-center gap-2 py-1 text-sm font-nav font-bold text-silver hover:text-white"
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
                           <FlagEN />
@@ -985,7 +987,7 @@ export function Header() {
             </nav>
 
             {/* Bouton Sign in (tout en bas, hors zone scrollable) */}
-            <div className="mt-3 mb-3 flex justify-center">
+            <div className="shrink-0 -mx-6 px-6 pt-3 pb-3 border-t border-white/10 flex justify-center">
               <button
                 type="button"
                 onClick={() => {
