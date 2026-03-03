@@ -1,42 +1,36 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '@/context/CartContext'
-import { isAuthenticated } from '@/utils/supabaseAuth'
-import { awardXp } from '@/utils/supabaseXp'
+import { buildShopifyCartUrl } from '@/utils/shopifyStorefront'
 
 export function Cart() {
-  const { items, removeFromCart, updateQuantity, totalItems, totalPrice, clearCart } = useCart()
+  const { items, removeFromCart, updateQuantity, totalItems, totalPrice } = useCart()
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null)
-  const [checkoutLoading, setCheckoutLoading] = useState(false)
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     setCheckoutMessage(null)
-    setCheckoutLoading(true)
 
-    try {
-      const authenticated = await isAuthenticated()
-      if (!authenticated) {
-        setCheckoutMessage("Connectez-vous à votre compte Fireball pour gagner de l'XP sur vos achats.")
-        return
-      }
-
-      const result = await awardXp({ type: 'order', amount: totalPrice })
-
-      if (!result.success) {
-        setCheckoutMessage("Impossible d'ajouter l'XP pour le moment.")
-        return
-      }
-
-      if (typeof result.awardedXp === 'number' && result.awardedXp > 0) {
-        setCheckoutMessage(`Commande enregistrée. Vous venez de gagner ${result.awardedXp.toLocaleString()} XP.`)
-      } else {
-        setCheckoutMessage('Commande enregistrée.')
-      }
-
-      clearCart()
-    } finally {
-      setCheckoutLoading(false)
+    if (items.length === 0) {
+      setCheckoutMessage('Votre panier est vide.')
+      return
     }
+
+    const url = buildShopifyCartUrl(
+      items.map(({ product, quantity }) => ({
+        shopifyVariantId: product.shopifyVariantId,
+        quantity,
+      })),
+    )
+
+    if (!url) {
+      setCheckoutMessage(
+        "Le checkout en ligne sera bientôt disponible pour ces produits. Aucun montant n'a été débité."
+      )
+      return
+    }
+
+    // Redirection vers le checkout Shopify
+    window.location.href = url
   }
 
   if (items.length === 0) {
@@ -122,10 +116,9 @@ export function Cart() {
             <button
               type="button"
               onClick={handleCheckout}
-              disabled={checkoutLoading}
-              className="w-full mt-6 py-4 bg-chrome text-carbon-950 font-medium text-sm uppercase hover:bg-chrome/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full mt-6 py-4 bg-chrome text-carbon-950 font-medium text-sm uppercase hover:bg-chrome/90 transition-colors"
             >
-              {checkoutLoading ? 'Traitement...' : 'Passer la commande'}
+              Passer la commande
             </button>
             {checkoutMessage && (
               <p className="text-silver/70 text-xs mt-3 text-center">
