@@ -171,7 +171,15 @@ export function Header() {
   return (
     <header
       className="fixed top-0 left-0 right-0 z-50"
-      style={navBgStyle}
+      style={
+        menuOpen
+          ? {
+              ...(navBgStyle || {}),
+              backgroundColor: isDashboardPage ? '#1D1D1D' : 'rgba(10,10,10,0.98)',
+              backdropFilter: 'none',
+            }
+          : navBgStyle
+      }
     >
       {anyMenuOpen && (
         <div className="fixed inset-0 z-40 bg-black/15 pointer-events-none" aria-hidden />
@@ -641,10 +649,10 @@ export function Header() {
       {/* Mobile menu */}
       {menuOpen && (
         <div
-          className="lg:hidden fixed inset-x-0 top-20 bottom-0 border-t border-carbon-800 overflow-y-auto px-6 py-4 animate-fade-in"
-          style={{ backgroundColor: isDashboardPage ? '#1D1D1D' : 'rgba(10,10,10,0.98)' }}
+          className="lg:hidden fixed inset-x-0 top-20 bottom-0 border-t border-carbon-800 overflow-y-auto px-6 py-4 animate-fade-in flex flex-col h-full z-[60]"
+          style={{ backgroundColor: isDashboardPage ? '#242424' : 'rgb(16,18,22)' }}
         >
-          <nav className="space-y-1">
+          <nav className="space-y-1 pb-4">
             <Link
               to="/car-club"
               className="flex items-center justify-between py-2 font-nav font-bold text-white border-b border-carbon-800"
@@ -880,21 +888,42 @@ export function Header() {
               </div>
             )}
 
+            {/* Search */}
+            <button
+              type="button"
+              className="mt-4 inline-flex items-center gap-2 py-2 border-t border-carbon-800 font-nav font-bold text-white"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-white"
+              >
+                <path d="m21 21-4.34-4.34" />
+                <circle cx="11" cy="11" r="8" />
+              </svg>
+              <span>Search</span>
+            </button>
+
             {/* Langue */}
             <div className="mt-4 pt-3 border-t border-carbon-800" ref={langMenuMobileRef}>
               <button
                 type="button"
                 onClick={() => setLangOpen((open) => !open)}
-                className="flex w-full items-center justify-between text-sm font-nav font-bold text-white"
+                className="flex items-center gap-2 text-sm font-nav font-bold text-white"
                 aria-haspopup="menu"
                 aria-expanded={langOpen}
               >
-                <span className="inline-flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
-                    {lang === 'EN' ? <FlagEN /> : <FlagFR />}
-                  </span>
-                  {lang}
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
+                  {lang === 'EN' ? <FlagEN /> : <FlagFR />}
                 </span>
+                <span>{lang}</span>
                 <svg
                   className={`w-4 h-4 transition-transform ${langOpen ? '-rotate-180' : ''}`}
                   fill="none"
@@ -936,20 +965,21 @@ export function Header() {
               )}
             </div>
 
-            {/* Bouton Sign in (tout en bas) */}
-            <div className="mt-6 mb-2 flex justify-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false)
-                  navigate('/account')
-                }}
-                className="w-[95%] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white bg-apex shadow-[0_14px_30px_rgba(0,0,0,0.55)] hover:bg-apex/90 transition-colors"
-              >
-                Sign in
-              </button>
-            </div>
           </nav>
+
+          {/* Bouton Sign in (tout en bas) */}
+          <div className="mt-auto mb-3 flex justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false)
+                navigate('/account')
+              }}
+              className="w-[95%] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white bg-[#B61B1B] shadow-[0_14px_30px_rgba(0,0,0,0.55)] hover:bg-[#b61b1bcc] transition-colors"
+            >
+              Sign in
+            </button>
+          </div>
         </div>
       )}
     </header>
