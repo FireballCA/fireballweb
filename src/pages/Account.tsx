@@ -58,22 +58,22 @@ export function Account() {
 
   useEffect(() => {
     document.title = 'Account | Fireball Canada'
-    const mq = window.matchMedia('(max-width: 767px)')
-    const apply = () => {
-      if (mq.matches) {
-        document.body.style.overflow = 'hidden'
-        document.body.style.height = '100vh'
-      } else {
-        document.body.style.overflow = ''
-        document.body.style.height = ''
-      }
-    }
-    apply()
-    mq.addEventListener('change', apply)
+
+    const previousBodyOverflow = document.body.style.overflow
+    const previousBodyHeight = document.body.style.height
+    const previousHtmlOverflow = document.documentElement.style.overflow
+    const previousHtmlHeight = document.documentElement.style.height
+
+    document.body.style.overflow = 'hidden'
+    document.body.style.height = '100vh'
+    document.documentElement.style.overflow = 'hidden'
+    document.documentElement.style.height = '100vh'
+
     return () => {
-      mq.removeEventListener('change', apply)
-      document.body.style.overflow = ''
-      document.body.style.height = ''
+      document.body.style.overflow = previousBodyOverflow
+      document.body.style.height = previousBodyHeight
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.documentElement.style.height = previousHtmlHeight
     }
   }, [])
 
@@ -122,7 +122,7 @@ export function Account() {
   }
 
   return (
-    <section className="relative h-screen md:h-auto md:min-h-screen w-screen max-w-full overflow-hidden md:overflow-visible bg-black flex flex-col md:items-center md:justify-center">
+    <section className="relative h-screen w-screen max-w-full overflow-hidden bg-black flex flex-col md:items-center md:justify-center">
       {/* Background */}
       <div className="absolute inset-0 bg-black pointer-events-none" />
       <div className="absolute -top-40 -right-32 w-80 h-80 bg-red-500/18 blur-3xl rounded-full opacity-70 pointer-events-none" aria-hidden />
@@ -193,7 +193,7 @@ export function Account() {
         </div>
       </div>
 
-      <div className="relative z-10 flex-1 min-h-0 w-full overflow-y-auto flex flex-col items-center justify-center px-4 py-4 md:py-8">
+      <div className="relative z-10 flex-1 min-h-0 w-full overflow-hidden flex flex-col items-center justify-center px-4 py-4 md:py-8">
         <div className="w-full max-w-md flex-shrink-0">
           <div className="flex flex-col bg-black rounded-xl border border-white/10 shadow-[0_22px_55px_rgba(0,0,0,0.7)] overflow-hidden md:rounded-xl">
             {/* Form */}

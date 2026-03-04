@@ -68,22 +68,22 @@ export function AccountRegister() {
 
   useEffect(() => {
     document.title = 'Create Account | Fireball Canada'
-    const mq = window.matchMedia('(max-width: 767px)')
-    const apply = () => {
-      if (mq.matches) {
-        document.body.style.overflow = 'hidden'
-        document.body.style.height = '100vh'
-      } else {
-        document.body.style.overflow = ''
-        document.body.style.height = ''
-      }
-    }
-    apply()
-    mq.addEventListener('change', apply)
+
+    const previousBodyOverflow = document.body.style.overflow
+    const previousBodyHeight = document.body.style.height
+    const previousHtmlOverflow = document.documentElement.style.overflow
+    const previousHtmlHeight = document.documentElement.style.height
+
+    document.body.style.overflow = 'hidden'
+    document.body.style.height = '100vh'
+    document.documentElement.style.overflow = 'hidden'
+    document.documentElement.style.height = '100vh'
+
     return () => {
-      mq.removeEventListener('change', apply)
-      document.body.style.overflow = ''
-      document.body.style.height = ''
+      document.body.style.overflow = previousBodyOverflow
+      document.body.style.height = previousBodyHeight
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.documentElement.style.height = previousHtmlHeight
     }
   }, [])
 
@@ -202,7 +202,7 @@ export function AccountRegister() {
   }
 
   return (
-    <section className="relative h-screen md:min-h-screen w-screen max-w-full overflow-hidden md:overflow-visible bg-black flex flex-col md:items-center md:justify-center md:py-12 md:px-6">
+    <section className="relative h-screen w-screen max-w-full overflow-hidden bg-black flex flex-col md:items-center md:justify-center md:py-12 md:px-6">
       {/* Background */}
       <div className="absolute inset-0 bg-black pointer-events-none" />
       <div className="absolute -top-40 -right-32 w-80 h-80 bg-red-500/18 blur-3xl rounded-full opacity-70 pointer-events-none" aria-hidden />
@@ -334,7 +334,7 @@ export function AccountRegister() {
           </div>
 
           {/* Right panel: form (full width on mobile, with subtle right divider on md+) */}
-          <div className="flex-1 min-h-0 min-w-0 flex flex-col overflow-y-auto bg-black px-4 sm:px-10 py-6 sm:py-10 md:py-8 md:flex md:items-center border-r border-white/10">
+          <div className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden bg-black px-4 sm:px-10 py-6 sm:py-10 md:py-8 md:flex md:items-center border-r border-white/10">
             <div className="w-full max-w-md mx-auto flex-shrink-0">
               <div className="mb-7">
                 <h1 className="text-2xl sm:text-3xl font-semibold text-white mb-1">

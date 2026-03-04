@@ -25,6 +25,24 @@
   select {
     @apply outline-none focus:outline-none;
   }
+
+  /* Neutraliser le fond jaune/gris du remplissage automatique navigateur et garder les champs transparents */
+  input:-webkit-autofill,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+    -webkit-text-fill-color: #ffffff;
+    transition: background-color 9999s ease-out 0s;
+    background-color: transparent !important;
+  }
+
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+    -webkit-text-fill-color: #ffffff;
+    background-color: transparent !important;
+  }
 }
 
 /* Premium selection */
