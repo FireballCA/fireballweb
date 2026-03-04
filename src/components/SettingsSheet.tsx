@@ -112,7 +112,7 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
           (anyRow.phone_number as string | null) ||
           (anyRow.phone as string | null) ||
           ''
-        setPhone(phoneValue || '')
+        setPhone(phoneValue ? formatPhoneForDisplay(String(phoneValue)) : '')
       } catch (phoneError) {
         console.warn('Failed to load phone number for settings:', phoneError)
       }
@@ -174,6 +174,13 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
     }
   }
 
+  const formatPhoneForDisplay = (raw: string): string => {
+    const digits = raw.replace(/\D/g, '').slice(0, 10)
+    if (digits.length <= 3) return digits
+    if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`
+  }
+
   const handleSaveSettings = async () => {
     if (saving) return
     setSaving(true)
@@ -192,6 +199,7 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
       const cleanFirst = firstName.trim()
       const cleanLast = lastName.trim()
       const cleanEmail = email.trim()
+      const normalizedPhone = phone ? formatPhoneForDisplay(phone) : ''
       const fullName = `${cleanFirst} ${cleanLast}`.trim() || displayName
 
       // Mettre à jour le profil Supabase (table profiles)
@@ -202,7 +210,7 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
             first_name: cleanFirst || null,
             last_name: cleanLast || null,
             email: cleanEmail || null,
-            phone_number: phone.trim() || null,
+            phone_number: normalizedPhone || null,
           })
           .eq('id', user.id)
       } catch (profileError) {
@@ -216,7 +224,7 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
           full_name: fullName,
           first_name: cleanFirst,
           last_name: cleanLast,
-          phone_number: phone.trim() || null,
+          phone_number: normalizedPhone || null,
           order_emails: ordersEmails,
           marketing_emails: newsletter,
         },
@@ -228,7 +236,8 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
       }
 
       // Synchroniser avec Shopify quand possible
-      if (cleanEmail) {
+      // Synchronisation Shopify uniquement en développement local pour éviter les 500 en production
+      if (cleanEmail && import.meta.env.DEV) {
         try {
           await updateShopifyCustomer({
             email: cleanEmail,
@@ -508,7 +517,7 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
                     {editingField === 'phone' ? (
                       <input
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        onChange={(e) => setPhone(formatPhoneForDisplay(e.target.value))}
                         onBlur={() => setEditingField(null)}
                         className="w-full rounded-2xl bg-black/30 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/35"
                         placeholder="Phone number"
