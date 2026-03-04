@@ -73,8 +73,8 @@ export default async function handler(req, res) {
     const userId = profile.id
     const numericTotal = Number.parseFloat(String(totalPrice ?? '0')) || 0
 
-    // Règle simple: 1 XP par dollar dépensé (arrondi)
-    const pointsEarned = Math.max(0, Math.round(numericTotal))
+    // 5 XP par dollar dépensé (arrondi)
+    const pointsEarned = Math.max(0, Math.round(numericTotal * 5))
 
     // 2) Insérer une ligne de commande dans purchases (si la table existe)
     let purchaseId = null
