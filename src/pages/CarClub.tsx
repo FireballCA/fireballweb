@@ -1,4 +1,11 @@
+import { useTranslation } from 'react-i18next'
+
 export function CarClub() {
+  const { t } = useTranslation()
+
+  const ignitionFeatures = t('carClub.ignitionFeatures', { returnObjects: true }) as string[]
+  const apexFeatures = t('carClub.apexFeatures', { returnObjects: true }) as string[]
+
   return (
     <div className="bg-black text-white">
       <section className="relative -mt-20 h-[88vh] min-h-[620px] max-h-[980px] overflow-hidden bg-black">
@@ -24,10 +31,10 @@ export function CarClub() {
         <div className="relative z-10 mx-auto flex h-full w-full max-w-7xl items-end justify-center px-6 pb-14 md:px-10 md:pb-20">
           <div className="max-w-5xl text-center">
             <h1 className="text-[clamp(2.8rem,8.5vw,7.2rem)] font-black uppercase tracking-[-0.02em] leading-[0.9] text-white [text-shadow:0_10px_24px_rgba(0,0,0,0.45)] [-webkit-text-stroke:0.35px_rgba(255,255,255,0.35)]">
-              Where Passion Meets Privilege
+              {t('carClub.heroTitle')}
             </h1>
             <p className="mx-auto mt-4 max-w-3xl text-sm text-white/80 md:text-base">
-              Unlock premium benefits, exclusive rewards, and priority access designed for serious automotive owners.
+              {t('carClub.heroSubtitle')}
             </p>
             <div className="mt-9">
               <a
@@ -35,7 +42,7 @@ export function CarClub() {
                 className="inline-block px-8 py-3.5 font-nav font-bold text-sm uppercase rounded-lg text-white transition-colors duration-200 hover:opacity-90"
                 style={{ backgroundColor: '#B61B1B' }}
               >
-                Explore Membership
+                {t('carClub.exploreMembership')}
               </a>
             </div>
           </div>
@@ -49,7 +56,7 @@ export function CarClub() {
               MEMBERSHIP
             </p>
           </div>
-          <h2 className="mt-3 text-4xl font-black tracking-tight md:text-6xl text-center">Two Memberships. One Standard: Excellence.</h2>
+          <h2 className="mt-3 text-4xl font-black tracking-tight md:text-6xl text-center">{t('carClub.membershipTitle')}</h2>
 
           <div className="grid md:grid-cols-2 gap-12 lg:gap-16 mt-12 mb-20">
             {/* CARTE GAUCHE — IGNITION MEMBER */}
@@ -60,21 +67,14 @@ export function CarClub() {
                 className="w-full max-w-[400px] mx-auto h-auto object-contain mb-8"
                 draggable={false}
               />
-              <span className="text-xs font-nav font-bold uppercase tracking-widest text-white/50 mb-2">Core Access</span>
-              <h3 className="font-display text-3xl text-white tracking-tight mb-1">Ignition Member</h3>
-              <p className="text-white/90 font-semibold text-lg mb-2">$XX / year</p>
+              <span className="text-xs font-nav font-bold uppercase tracking-widest text-white/50 mb-2">{t('carClub.coreAccess')}</span>
+              <h3 className="font-display text-3xl text-white tracking-tight mb-1">{t('carClub.ignitionMember')}</h3>
+              <p className="text-white/90 font-semibold text-lg mb-2">{t('carClub.ignitionPrice')}</p>
               <p className="text-white/70 text-sm max-w-sm mb-6">
-                A refined entry into the Fireball ownership experience.
+                {t('carClub.ignitionDesc')}
               </p>
               <div className="flex flex-col gap-2.5 max-w-sm mx-auto mb-8">
-                {[
-                  'Official Fireball digital member card',
-                  'Exclusive member-only pricing',
-                  'Access to Fireball Car Club platform',
-                  'Certified installer network access',
-                  'Priority product availability over public releases',
-                  'Early announcements & private updates',
-                ].map((label) => (
+                {ignitionFeatures.map((label) => (
                   <div
                     key={label}
                     className="bg-[#252525] border border-white/10 text-white px-3.5 py-2.5 rounded-[8px] text-xs flex items-center justify-start gap-2 w-full text-left"
@@ -89,7 +89,7 @@ export function CarClub() {
                 onClick={(e) => e.preventDefault()}
                 className="inline-block px-6 py-3 font-nav font-bold text-sm uppercase rounded-lg border-2 border-white text-white hover:bg-white hover:text-black transition-all duration-300"
               >
-                Join Ignition
+                {t('carClub.joinIgnition')}
               </a>
             </div>
 
@@ -101,22 +101,14 @@ export function CarClub() {
                 className="w-full max-w-[400px] mx-auto h-auto object-contain mb-8"
                 draggable={false}
               />
-              <span className="text-xs font-nav font-bold uppercase tracking-widest text-apex mb-2">Elite Tier</span>
-              <h3 className="font-display text-3xl text-white tracking-tight mb-1">Apex Member</h3>
-              <p className="text-white/90 font-semibold text-lg mb-2">$XXX / year</p>
+              <span className="text-xs font-nav font-bold uppercase tracking-widest text-apex mb-2">{t('carClub.eliteTier')}</span>
+              <h3 className="font-display text-3xl text-white tracking-tight mb-1">{t('carClub.apexMember')}</h3>
+              <p className="text-white/90 font-semibold text-lg mb-2">{t('carClub.apexPrice')}</p>
               <p className="text-white/70 text-sm max-w-sm mb-6">
-                The highest level of access. Reserved for those who accept nothing less.
+                {t('carClub.apexDesc')}
               </p>
               <div className="flex flex-col gap-2.5 max-w-sm mx-auto mb-8">
-                {[
-                  '$100 annual product credit',
-                  'Exclusive Apex-only discounts',
-                  'Priority access to limited inventory',
-                  'Premium black Apex digital card',
-                  'Early access to unreleased technologies',
-                  'Invitations to private Fireball events',
-                  'Elevated status within the Fireball ecosystem',
-                ].map((label) => (
+                {apexFeatures.map((label) => (
                   <div
                     key={label}
                     className="bg-[#252525] border border-white/10 text-white px-3.5 py-2.5 rounded-[8px] text-xs flex items-center justify-start gap-2 w-full text-left"
@@ -132,7 +124,7 @@ export function CarClub() {
                 className="inline-block px-6 py-3 font-nav font-bold text-sm uppercase rounded-lg text-white transition-colors duration-200 hover:opacity-90"
                 style={{ backgroundColor: '#B61B1B' }}
               >
-                Upgrade to Apex
+                {t('carClub.upgradeToApex')}
               </a>
             </div>
           </div>
@@ -140,12 +132,12 @@ export function CarClub() {
           {/* VALUE JUSTIFICATION */}
           <div className="border-t border-white/20 pt-16 pb-16">
             <h3 className="text-2xl md:text-4xl font-black text-white tracking-tight text-center max-w-3xl mx-auto">
-              Apex Is Not an Upgrade. It&apos;s a Privilege.
+              {t('carClub.privilegeTitle')}
             </h3>
             <p className="mt-6 text-white/80 text-center max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
-              Apex Membership includes a $100 annual product credit, meaning it begins paying for itself immediately — before even considering exclusive pricing, priority access, and elite-level benefits.
+              {t('carClub.privilegeDesc')}
               <br />
-              <span className="font-semibold text-white/90">This tier exists for owners who demand more.</span>
+              <span className="font-semibold text-white/90">{t('carClub.privilegeHighlight')}</span>
             </p>
           </div>
 
@@ -155,8 +147,7 @@ export function CarClub() {
               Join the Fireball Inner Circle
             </h3>
             <p className="mt-4 text-white/80 text-center max-w-xl mx-auto text-sm md:text-base">
-              Membership is not about access.<br />
-              It&apos;s about alignment with the highest standards in automotive protection.
+              {t('carClub.joinCircleDesc')}
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <a
@@ -172,7 +163,7 @@ export function CarClub() {
                 onClick={(e) => e.preventDefault()}
                 className="inline-block px-8 py-3.5 font-nav font-bold text-sm uppercase rounded-lg border-2 border-white/60 text-white hover:border-white hover:bg-white/10 transition-all duration-300"
               >
-                Start with Ignition
+                {t('carClub.startIgnition')}
               </a>
             </div>
           </div>

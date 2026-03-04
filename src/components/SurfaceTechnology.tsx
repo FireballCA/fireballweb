@@ -1,43 +1,24 @@
+import { useTranslation } from 'react-i18next'
 import './SurfaceTechnology.css'
 
-interface TechnologyCard {
-  number: string
-  title: string
-  description: string
-}
-
-const technologies: TechnologyCard[] = [
-  {
-    number: '01',
-    title: 'Chemical Resistance',
-    description: 'Protects against environmental contaminants and harsh chemical exposure.',
-  },
-  {
-    number: '02',
-    title: 'Hydrophobic Behaviour',
-    description: 'Repels water and minimizes surface contamination bonding.',
-  },
-  {
-    number: '03',
-    title: 'UV Stability',
-    description: 'Reduces long-term paint degradation caused by sunlight exposure.',
-  },
-  {
-    number: '04',
-    title: 'Molecular Bonding',
-    description: 'Forms a durable protective layer at a microscopic level.',
-  },
-]
-
 export function SurfaceTechnology() {
+  const { t } = useTranslation()
+
+  const technologies = [
+    { number: '01', title: t('surfaceTech.chemicalResistance'), description: t('surfaceTech.chemicalResistanceDesc') },
+    { number: '02', title: t('surfaceTech.hydrophobic'), description: t('surfaceTech.hydrophobicDesc') },
+    { number: '03', title: t('surfaceTech.uvStability'), description: t('surfaceTech.uvStabilityDesc') },
+    { number: '04', title: t('surfaceTech.molecularBonding'), description: t('surfaceTech.molecularBondingDesc') },
+  ]
+
   return (
     <section className="surface-technology">
       <div className="surface-technology-container">
         <div className="surface-technology-header">
-          <p className="surface-technology-label">SURFACE TECHNOLOGY</p>
-          <h2 className="surface-technology-title">The Science Behind Protection</h2>
+          <p className="surface-technology-label">{t('surfaceTech.label')}</p>
+          <h2 className="surface-technology-title">{t('surfaceTech.title')}</h2>
           <p className="surface-technology-subtitle">
-            Multi-layer ceramic protection technologies engineered to enhance durability and defend automotive finishes.
+            {t('surfaceTech.subtitle')}
           </p>
         </div>
 

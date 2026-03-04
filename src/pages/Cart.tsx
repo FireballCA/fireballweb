@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useCart } from '@/context/CartContext'
 import { buildShopifyCartUrl } from '@/utils/shopifyStorefront'
 
 export function Cart() {
+  const { t } = useTranslation()
   const { items, removeFromCart, updateQuantity, totalItems, totalPrice } = useCart()
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null)
 
@@ -11,7 +13,7 @@ export function Cart() {
     setCheckoutMessage(null)
 
     if (items.length === 0) {
-      setCheckoutMessage('Votre panier est vide.')
+      setCheckoutMessage(t('cart.emptyCartMsg'))
       return
     }
 
@@ -23,9 +25,7 @@ export function Cart() {
     )
 
     if (!url) {
-      setCheckoutMessage(
-        "Le checkout en ligne sera bientôt disponible pour ces produits. Aucun montant n'a été débité."
-      )
+      setCheckoutMessage(t('cart.checkoutSoon'))
       return
     }
 
@@ -36,13 +36,13 @@ export function Cart() {
   if (items.length === 0) {
     return (
       <div className="max-w-2xl mx-auto px-6 py-24 text-center">
-        <h1 className="font-display text-4xl text-pearl mb-4">Votre panier est vide</h1>
-        <p className="text-silver/80 mb-8">Découvrez nos produits d'esthétique automobile.</p>
+        <h1 className="font-display text-4xl text-pearl mb-4">{t('cart.empty')}</h1>
+        <p className="text-silver/80 mb-8">{t('cart.emptyDesc')}</p>
         <Link
           to="/boutique"
           className="inline-block px-8 py-4 bg-chrome text-carbon-950 font-medium text-sm uppercase hover:bg-chrome/90 transition-colors"
         >
-          Voir la boutique
+          {t('cart.viewShop')}
         </Link>
       </div>
     )
@@ -51,7 +51,7 @@ export function Cart() {
   return (
     <div className="max-w-5xl mx-auto px-6 py-16">
       <h1 className="font-display text-4xl md:text-5xl text-pearl tracking-tight mb-12">
-        Panier
+        {t('cart.title')}
       </h1>
 
       <div className="grid lg:grid-cols-3 gap-12">
@@ -94,7 +94,7 @@ export function Cart() {
                   onClick={() => removeFromCart(product.id)}
                   className="mt-2 text-xs text-silver/70 hover:text-red-400 transition-colors"
                 >
-                  Retirer
+                  {t('cart.remove')}
                 </button>
               </div>
             </div>
@@ -107,7 +107,7 @@ export function Cart() {
               Récapitulatif
             </h2>
             <div className="flex justify-between text-silver/80 text-sm mb-2">
-              <span>{totalItems} article{totalItems > 1 ? 's' : ''}</span>
+              <span>{totalItems} {totalItems > 1 ? t('cart.items') : t('cart.item')}</span>
             </div>
             <div className="border-t border-carbon-600 pt-4 mt-4 flex justify-between text-pearl font-medium">
               <span>Total</span>
@@ -118,7 +118,7 @@ export function Cart() {
               onClick={handleCheckout}
               className="w-full mt-6 py-4 bg-chrome text-carbon-950 font-medium text-sm uppercase hover:bg-chrome/90 transition-colors"
             >
-              Passer la commande
+              {t('cart.checkout')}
             </button>
             {checkoutMessage && (
               <p className="text-silver/70 text-xs mt-3 text-center">
@@ -132,7 +132,7 @@ export function Cart() {
               to="/boutique"
               className="block mt-4 text-center text-silver/70 text-sm hover:text-chrome"
             >
-              Continuer mes achats
+              {t('cart.continueShopping')}
             </Link>
           </div>
         </div>
