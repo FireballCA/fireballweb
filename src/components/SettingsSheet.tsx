@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { updateShopifyCustomer } from '@/utils/shopifySync'
+import { getCurrentUserProfile } from '@/utils/supabaseAuth'
 
 interface SettingsSheetProps {
   isOpen: boolean
@@ -53,54 +54,66 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
     let cancelled = false
 
     const loadUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user || cancelled) return
-      const metadata = (user.user_metadata || {}) as Record<string, unknown>
-      const metaFirst = String(metadata.first_name || '').trim()
-      const metaLast = String(metadata.last_name || '').trim()
-      const fullName = String(metadata.full_name || '').trim()
-      const name =
-        fullName ||
-        [metaFirst, metaLast].filter(Boolean).join(' ') ||
-        user.email ||
-        'Member'
 
-      setDisplayName(name)
-      setEmail(user.email || '')
+      // Récupérer le profil complet (même logique que le dashboard)
+      let profile = await getCurrentUserProfile().catch(() => null)
 
-      const parts = name.trim().split(/\s+/)
-      setFirstName(parts[0] || '')
-      setLastName(parts.slice(1).join(' '))
+      if (cancelled) return
 
-      const authCreatedAt = user.created_at || null
+      if (profile) {
+        const first = profile.first_name?.trim() || ''
+        const last = profile.last_name?.trim() || ''
+        const name =
+          `${first} ${last}`.trim() || profile.email || user.email || 'Member'
 
+        setFirstName(first)
+        setLastName(last)
+        setDisplayName(name)
+        setEmail(profile.email || user.email || '')
+        setMemberId((profile as any).external_member_id ?? null)
+        setMemberSince(profile.created_at || user.created_at || null)
+        setSubscriptionTier(profile.subscription_tier ?? null)
+      } else {
+        // Fallback sur les métadonnées Auth si le profil n'existe pas
+        const metadata = (user.user_metadata || {}) as Record<string, unknown>
+        const metaFirst = String(metadata.first_name || '').trim()
+        const metaLast = String(metadata.last_name || '').trim()
+        const fullName = String(metadata.full_name || '').trim()
+        const name =
+          fullName ||
+          [metaFirst, metaLast].filter(Boolean).join(' ') ||
+          user.email ||
+          'Member'
+
+        const parts = name.trim().split(/\s+/)
+        setFirstName(parts[0] || '')
+        setLastName(parts.slice(1).join(' '))
+        setDisplayName(name)
+        setEmail(user.email || '')
+        setMemberSince(user.created_at || null)
+      }
+
+      // Charger le téléphone depuis la table profiles
       try {
-        const { data: profile } = await supabase
+        const { data: profileRow } = await supabase
           .from('profiles')
-          .select('external_member_id, created_at, subscription_tier, phone_number, phone')
+          .select('phone_number, phone')
           .eq('id', user.id)
           .maybeSingle()
 
-        if (!profile || cancelled) {
-          setMemberSince(authCreatedAt)
-          return
-        }
-
-        const anyProfile = profile as Record<string, unknown>
-        setMemberId((anyProfile.external_member_id as string | null) ?? null)
-        setMemberSince(
-          (anyProfile.created_at as string | null) ||
-            authCreatedAt,
-        )
-        setSubscriptionTier((anyProfile.subscription_tier as string | null) ?? null)
+        if (!profileRow || cancelled) return
+        const anyRow = profileRow as Record<string, unknown>
         const phoneValue =
-          (anyProfile.phone_number as string | null) ||
-          (anyProfile.phone as string | null) ||
+          (anyRow.phone_number as string | null) ||
+          (anyRow.phone as string | null) ||
           ''
         setPhone(phoneValue || '')
-      } catch (profileError) {
-        console.warn('Failed to load profile for settings:', profileError)
-        setMemberSince(authCreatedAt)
+      } catch (phoneError) {
+        console.warn('Failed to load phone number for settings:', phoneError)
       }
     }
 
