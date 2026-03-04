@@ -49,6 +49,8 @@ export function Account() {
   const [loading, setLoading] = useState(false)
   const [rememberDevice, setRememberDevice] = useState(false)
   const [lang, setLang] = useState<'EN' | 'FR'>('EN')
+  const [langMenuOpen, setLangMenuOpen] = useState(false)
+  const isEN = lang === 'EN'
 
   const returnToParam = new URLSearchParams(location.search).get('returnTo')
   const returnToPath = returnToParam === '/account/company' ? returnToParam : null
@@ -78,17 +80,31 @@ export function Account() {
       })
 
       if (error) {
-        setErrorMessage(error.message || 'Invalid email or password.')
+        setErrorMessage(
+          error.message || (isEN ? 'Invalid email or password.' : 'Email ou mot de passe invalide.')
+        )
         setLoading(false)
         return
       }
 
       if (data.user) {
+        // Save language preference to profiles table
+        const languageCode = isEN ? 'en' : 'fr'
+        try {
+          await supabase.from('profiles').update({ language: languageCode }).eq('id', data.user.id)
+        } catch (e) {
+          console.error('Error saving language preference:', e)
+        }
+
         navigate(returnToPath ?? '/account/dashboard', { replace: true })
       }
     } catch (error) {
       console.error('Login error:', error)
-      setErrorMessage('An unexpected error occurred. Please try again.')
+      setErrorMessage(
+        isEN
+          ? 'An unexpected error occurred. Please try again.'
+          : 'Une erreur inattendue est survenue. Merci de réessayer.'
+      )
       setLoading(false)
     }
   }
@@ -100,7 +116,7 @@ export function Account() {
       <div className="absolute -top-40 -right-32 w-80 h-80 bg-red-500/18 blur-3xl rounded-full opacity-70 pointer-events-none" />
       <div className="absolute -bottom-40 -left-32 w-80 h-80 bg-white/8 blur-3xl rounded-full opacity-60 pointer-events-none" />
 
-      {/* Top bar: logo left, language right */}
+      {/* Top bar: logo left, language dropdown right */}
       <div className="absolute top-6 left-6 z-30">
         <Link to="/" className="inline-flex items-center gap-2">
           <img
@@ -115,17 +131,53 @@ export function Account() {
         <div className="relative">
           <button
             type="button"
-            onClick={() => setLang((prev) => (prev === 'EN' ? 'FR' : 'EN'))}
+            onClick={() => setLangMenuOpen((open) => !open)}
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-black/40 text-xs font-nav font-bold uppercase tracking-[0.16em] text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors backdrop-blur-md"
           >
             <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
               {lang === 'EN' ? <FlagEN /> : <FlagFR />}
             </span>
             <span>{lang}</span>
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <svg
+              className={`w-3 h-3 transition-transform ${langMenuOpen ? 'rotate-180' : ''}`}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
               <path d="M19 9l-7 7-7-7" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
+
+          {langMenuOpen && (
+            <div className="absolute right-0 mt-2 w-40 rounded-xl border border-white/10 bg-black/90 backdrop-blur-xl shadow-xl py-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setLang('EN')
+                  setLangMenuOpen(false)
+                }}
+                className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-white/85 hover:bg-white/5"
+              >
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
+                  <FlagEN />
+                </span>
+                <span className="font-medium">English</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLang('FR')
+                  setLangMenuOpen(false)
+                }}
+                className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-white/70 hover:bg-white/5"
+              >
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
+                  <FlagFR />
+                </span>
+                <span className="font-medium">Français</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -136,10 +188,12 @@ export function Account() {
             <div className="w-full max-w-md mx-auto">
               <div className="mb-7">
                 <h1 className="text-2xl sm:text-3xl font-semibold text-white mb-1">
-                  Sign in to your Fireball account
+                  {isEN ? 'Sign in' : 'Se connecter'}
                 </h1>
                 <p className="text-sm text-white/60">
-                  Enter your credentials to access your account.
+                  {isEN
+                    ? 'Enter your credentials to access your account.'
+                    : 'Entre tes identifiants pour accéder à ton compte.'}
                 </p>
               </div>
 
@@ -147,7 +201,7 @@ export function Account() {
                 {/* Email */}
                 <div>
                   <label htmlFor="email" className="block text-white/70 text-xs mb-2 font-medium">
-                    Email
+                    {isEN ? 'Email' : 'Email'}
                   </label>
                   <input
                     id="email"
@@ -164,7 +218,7 @@ export function Account() {
                 {/* Password with eye icon (press & hold) */}
                 <div>
                   <label htmlFor="password" className="block text-white/70 text-xs mb-2 font-medium">
-                    Password
+                    {isEN ? 'Password' : 'Mot de passe'}
                   </label>
                   <div className="relative">
                     <input
@@ -235,7 +289,7 @@ export function Account() {
                     color="red"
                     sizeEm={0.88}
                   />
-                  <span>Remember this device</span>
+                  <span>{isEN ? 'Remember this device' : 'Se souvenir de cet appareil'}</span>
                 </div>
 
                 {/* Error message */}
@@ -251,7 +305,7 @@ export function Account() {
                   disabled={loading}
                   className="w-full bg-white text-black border-none py-4 rounded-lg font-semibold text-sm cursor-pointer transition-colors hover:bg-[#e5e5e5] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Signing in...' : 'Sign in'}
+                  {loading ? (isEN ? 'Signing in...' : 'Connexion...') : isEN ? 'Sign in' : 'Se connecter'}
                 </button>
 
                 {/* Register link */}
