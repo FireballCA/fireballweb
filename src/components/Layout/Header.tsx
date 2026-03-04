@@ -155,13 +155,13 @@ export function Header() {
         backgroundColor: solidNavColor,
         backdropFilter: 'none',
         borderBottom: `1px solid rgba(37, 37, 37, ${borderOpacity})`,
-        transition: 'background-color 0.2s ease-out, backdrop-filter 0.2s ease-out, border-bottom-color 0.2s ease-out',
+        transition: 'background-color 0.12s ease-out, backdrop-filter 0.12s ease-out, border-bottom-color 0.12s ease-out',
       }
     : {
         backgroundColor: `rgba(10, 10, 10, ${opacity})`,
         backdropFilter: opacity > 0.01 ? 'blur(12px)' : 'none',
         borderBottom: `1px solid rgba(37, 37, 37, ${borderOpacity})`,
-        transition: 'background-color 0.2s ease-out, backdrop-filter 0.2s ease-out, border-bottom-color 0.2s ease-out',
+        transition: 'background-color 0.12s ease-out, backdrop-filter 0.12s ease-out, border-bottom-color 0.12s ease-out',
       }
 
   const navLink =

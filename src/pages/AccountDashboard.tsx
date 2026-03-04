@@ -5,6 +5,7 @@ import { MemberStatusHero } from '@/components/MemberStatusHero/MemberStatusHero
 import { AddVehicleModal } from '@/components/AddVehicleModal'
 import { FireballLoading } from '@/components/FireballLoading'
 import { ProductsPurchasedSheet } from '@/components/ProductsPurchasedSheet'
+import { AdminPanelSheet } from '@/components/AdminPanelSheet'
 import { Footer } from '@/components/Layout/Footer'
 import {
   fetchGarageVehicles,
@@ -317,6 +318,7 @@ export function AccountDashboard() {
   const [isEnteringDashboard, setIsEnteringDashboard] = useState(false)
   const [carModalOpen, setCarModalOpen] = useState(false)
   const [productsPurchasedOpen, setProductsPurchasedOpen] = useState(false)
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [settingsVehicle, setSettingsVehicle] = useState<Vehicle | null>(null)
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('none')
@@ -574,6 +576,7 @@ export function AccountDashboard() {
             memberId={memberId}
             barcodeValue={barcodeValue}
             onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}
+            onAdminPanelClick={() => setAdminPanelOpen(true)}
           />
           <div 
             className="w-full bg-[#0a0a0a] relative z-20 overflow-hidden"
@@ -795,6 +798,10 @@ export function AccountDashboard() {
       <ProductsPurchasedSheet
         isOpen={productsPurchasedOpen}
         onClose={() => setProductsPurchasedOpen(false)}
+      />
+      <AdminPanelSheet
+        isOpen={adminPanelOpen}
+        onClose={() => setAdminPanelOpen(false)}
       />
       {settingsVehicle && (
         <VehicleSettingsModal

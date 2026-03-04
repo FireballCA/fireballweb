@@ -16,6 +16,7 @@ interface MemberStatusHeroProps {
   memberId?: string | null
   barcodeValue?: string | null
   onProductsPurchasedClick?: () => void
+  onAdminPanelClick?: () => void
 }
 
 export function MemberStatusHero({
@@ -36,6 +37,7 @@ export function MemberStatusHero({
   memberId = null,
   barcodeValue = null,
   onProductsPurchasedClick,
+  onAdminPanelClick,
 }: MemberStatusHeroProps) {
   const [showIdModal, setShowIdModal] = useState(false)
   const hasIdentityData = Boolean(memberId || barcodeValue)
@@ -82,6 +84,7 @@ export function MemberStatusHero({
               companyName={companyName}
               memberId={memberId}
               onProductsPurchasedClick={onProductsPurchasedClick}
+              onAdminPanelClick={onAdminPanelClick}
             />
           </div>
 
