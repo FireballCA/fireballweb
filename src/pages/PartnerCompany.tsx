@@ -75,7 +75,6 @@ export function PartnerCompany() {
   const [coatingInstallationsValue, setCoatingInstallationsValue] = useState('')
   const [teamSizeValue, setTeamSizeValue] = useState('')
   const [physicalLocation, setPhysicalLocation] = useState('')
-  const [workSamples, setWorkSamples] = useState<File[]>([])
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [authenticated, setAuthenticated] = useState(false)
@@ -290,10 +289,6 @@ export function PartnerCompany() {
               setFormError('Please select at least one offered service.')
               return
             }
-            if (workSamples.length < 3 || workSamples.length > 5) {
-              setFormError('Please upload between 3 and 5 work samples.')
-              return
-            }
             if (!agreementChecked) return
             setSubmitting(true)
             ;(async () => {
@@ -319,7 +314,6 @@ export function PartnerCompany() {
                   previous_brands: String(formData.get('previousBrands') || '').trim(),
                   operation_type: physicalLocation === 'yes' ? 'physical' : 'mobile_only',
                   team_size: teamSizeValue,
-                  work_sample_count: workSamples.length,
                   agreement_accepted: agreementChecked,
                   submitted_via: 'partner_company_page',
                 }
@@ -510,23 +504,6 @@ export function PartnerCompany() {
                     className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/20 text-sm text-white focus:outline-none focus:border-white/70"
                   />
                 </div>
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-xs font-nav font-bold uppercase tracking-[0.18em] text-white/65">Work Samples</h2>
-              <p className="mt-2 text-sm text-white/70">
-                Upload 3-5 examples of previous coating or paint correction work.
-              </p>
-              <div className="mt-3 rounded-xl border border-dashed border-white/25 bg-black/25 p-4">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  required
-                  onChange={(e) => setWorkSamples(Array.from(e.target.files || []))}
-                  className="block w-full text-sm text-white/80 file:mr-3 file:rounded-full file:border-0 file:bg-white/15 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-white/20"
-                />
               </div>
             </section>
 
