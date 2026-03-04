@@ -32,6 +32,12 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
   const [email, setEmail] = useState('')
   const [newsletter, setNewsletter] = useState(true)
   const [ordersEmails, setOrdersEmails] = useState(true)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [memberId, setMemberId] = useState<string | null>(null)
+  const [memberSince, setMemberSince] = useState<string | null>(null)
+  const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null)
 
   const [activeSection, setActiveSection] = useState<string>('settings-profile')
   const sectionLinkRefs = useRef<Record<string, HTMLButtonElement | null>>({})
@@ -50,17 +56,52 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || cancelled) return
       const metadata = (user.user_metadata || {}) as Record<string, unknown>
-      const firstName = String(metadata.first_name || '').trim()
-      const lastName = String(metadata.last_name || '').trim()
+      const metaFirst = String(metadata.first_name || '').trim()
+      const metaLast = String(metadata.last_name || '').trim()
       const fullName = String(metadata.full_name || '').trim()
       const name =
         fullName ||
-        [firstName, lastName].filter(Boolean).join(' ') ||
+        [metaFirst, metaLast].filter(Boolean).join(' ') ||
         user.email ||
         'Member'
 
       setDisplayName(name)
       setEmail(user.email || '')
+
+      const parts = name.trim().split(/\s+/)
+      setFirstName(parts[0] || '')
+      setLastName(parts.slice(1).join(' '))
+
+      const authCreatedAt = user.created_at || null
+
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('external_member_id, created_at, subscription_tier, phone_number, phone')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (!profile || cancelled) {
+          setMemberSince(authCreatedAt)
+          return
+        }
+
+        const anyProfile = profile as Record<string, unknown>
+        setMemberId((anyProfile.external_member_id as string | null) ?? null)
+        setMemberSince(
+          (anyProfile.created_at as string | null) ||
+            authCreatedAt,
+        )
+        setSubscriptionTier((anyProfile.subscription_tier as string | null) ?? null)
+        const phoneValue =
+          (anyProfile.phone_number as string | null) ||
+          (anyProfile.phone as string | null) ||
+          ''
+        setPhone(phoneValue || '')
+      } catch (profileError) {
+        console.warn('Failed to load profile for settings:', profileError)
+        setMemberSince(authCreatedAt)
+      }
     }
 
     void loadUser()
@@ -134,16 +175,34 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
         throw new Error('Utilisateur non authentifié')
       }
 
-      const displayParts = displayName.trim().split(/\s+/)
-      const firstName = displayParts[0] || ''
-      const lastName = displayParts.slice(1).join(' ')
+      const cleanFirst = firstName.trim()
+      const cleanLast = lastName.trim()
+      const cleanEmail = email.trim()
+      const fullName = `${cleanFirst} ${cleanLast}`.trim() || displayName
 
-      // Mettre à jour les préférences d’email dans Supabase Auth
+      // Mettre à jour le profil Supabase (table profiles)
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            first_name: cleanFirst || null,
+            last_name: cleanLast || null,
+            email: cleanEmail || null,
+            phone_number: phone.trim() || null,
+          })
+          .eq('id', user.id)
+      } catch (profileError) {
+        console.error('Error updating profile row:', profileError)
+      }
+
+      // Mettre à jour l'auth (email + metadata)
       const { error: authError } = await supabase.auth.updateUser({
+        email: cleanEmail || undefined,
         data: {
-          full_name: displayName,
-          first_name: firstName,
-          last_name: lastName,
+          full_name: fullName,
+          first_name: cleanFirst,
+          last_name: cleanLast,
+          phone_number: phone.trim() || null,
           order_emails: ordersEmails,
           marketing_emails: newsletter,
         },
@@ -155,12 +214,12 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
       }
 
       // Synchroniser avec Shopify quand possible
-      if (email) {
+      if (cleanEmail) {
         try {
           await updateShopifyCustomer({
-            email,
-            first_name: firstName,
-            last_name: lastName,
+            email: cleanEmail,
+            first_name: cleanFirst,
+            last_name: cleanLast,
           })
         } catch (shopifyError) {
           console.error('Shopify customer update failed:', shopifyError)
@@ -318,125 +377,125 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">First name</p>
-                    <div className="w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white/90">
-                      {displayName.split(' ')[0] || '—'}
-                    </div>
+                    <input
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/35"
+                      placeholder="First name"
+                    />
                   </div>
                   <div>
                     <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">Last name</p>
-                    <div className="w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white/90">
-                      {displayName.split(' ').slice(1).join(' ') || '—'}
-                    </div>
+                    <input
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/35"
+                      placeholder="Last name"
+                    />
                   </div>
                   <div>
                     <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">Email</p>
-                    <div className="group relative w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white/90 flex items-center justify-between">
-                      <span className="truncate">{email || '—'}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy('email', email)}
-                        className="opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.06] text-white/80 hover:bg-white/[0.14]"
-                        aria-label="Copy email"
-                      >
-                        {copiedField === 'email' ? (
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        ) : (
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
+                    <input
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/35"
+                      placeholder="Email"
+                    />
                   </div>
                   <div>
                     <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">Phone number</p>
-                    <div className="w-full rounded-2xl bg-black/30 px-3.5 py-2.5 text-sm text-white/70">
-                      —
-                    </div>
+                    <input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full rounded-2xl bg-black/30 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/35"
+                      placeholder="Phone number"
+                    />
                   </div>
                   <div>
                     <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">Member ID</p>
                     <div className="group relative w-full rounded-2xl bg-black/60 px-3.5 py-2.5 text-sm text-white/80 font-mono flex items-center justify-between">
-                      <span className="truncate">Read-only</span>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy('member-id', 'Read-only')}
-                        className="opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.06] text-white/80 hover:bg-white/[0.14]"
-                        aria-label="Copy member ID"
-                      >
-                        {copiedField === 'member-id' ? (
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        ) : (
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                          </svg>
-                        )}
-                      </button>
+                      <span className="truncate">{memberId || '—'}</span>
+                      {memberId && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopy('member-id', memberId)}
+                          className="opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.06] text-white/80 hover:bg-white/[0.14]"
+                          aria-label="Copy member ID"
+                        >
+                          {copiedField === 'member-id' ? (
+                            <svg
+                              className="w-3.5 h-3.5"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          ) : (
+                            <svg
+                              className="w-3.5 h-3.5"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div>
                     <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">Member since</p>
                     <div className="group relative w-full rounded-2xl bg-black/60 px-3.5 py-2.5 text-sm text-white/80 flex items-center justify-between">
-                      <span className="truncate">Read-only</span>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy('member-since', 'Read-only')}
-                        className="opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.06] text-white/80 hover:bg-white/[0.14]"
-                        aria-label="Copy member since"
-                      >
-                        {copiedField === 'member-since' ? (
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        ) : (
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                          </svg>
-                        )}
-                      </button>
+                      <span className="truncate">
+                        {memberSince
+                          ? (() => {
+                              const date = new Date(memberSince)
+                              return Number.isNaN(date.getTime())
+                                ? memberSince
+                                : date.toLocaleDateString('fr-CA', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })
+                            })()
+                          : '—'}
+                      </span>
+                      {memberSince && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopy('member-since', memberSince)}
+                          className="opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.06] text-white/80 hover:bg-white/[0.14]"
+                          aria-label="Copy member since"
+                        >
+                          {copiedField === 'member-since' ? (
+                            <svg
+                              className="w-3.5 h-3.5"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          ) : (
+                            <svg
+                              className="w-3.5 h-3.5"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -495,45 +554,89 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
                 </button>
               </section>
 
-              {/* Membership Overview */}
+              {/* Membership Overview (simplified) */}
               <section id="settings-membership" className="py-5 flex flex-col gap-3 border-t border-white/[0.06]">
                 <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
-                  Membership overview
+                  Membership
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-white/85">
-                  <div>
-                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em]">Membership type</p>
-                    <p className="mt-1">—</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em]">Tier level</p>
-                    <p className="mt-1">—</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em]">Current XP</p>
-                    <p className="mt-1">—</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em]">Lifetime spending</p>
-                    <p className="mt-1">—</p>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">
-                    Progress to next tier
-                  </p>
-                  <div className="w-full h-2 rounded-full bg-white/[0.06] overflow-hidden">
-                    <div className="h-full w-[40%] bg-gradient-to-r from-red-500 to-red-300" />
-                  </div>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-2 rounded-full border border-white/[0.2] bg-white/[0.06] px-4 py-2 text-[11px] font-nav uppercase tracking-[0.16em] text-white/85 hover:bg-white/[0.14] hover:border-white/60 transition-colors"
-                  >
-                    Manage membership
-                  </button>
-                </div>
+                {(() => {
+                  const tier = (subscriptionTier || '').trim().toLowerCase()
+                  const hasMembership = tier === 'ignition' || tier === 'apex'
+                  if (!hasMembership) {
+                    return (
+                      <>
+                        <p className="text-[12px] text-white/60">
+                          You do not have an active membership yet. Join the Fireball Car Club to unlock benefits.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <a
+                            href="/car-club"
+                            className="inline-flex items-center gap-2 text-sm font-nav text-white/80 hover:text-white transition-colors"
+                          >
+                            <span>Go to Car Club</span>
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M7 17L17 7M9 7h8v8"
+                              />
+                            </svg>
+                          </a>
+                        </div>
+                      </>
+                    )
+                  }
+
+                  const label = tier === 'apex' ? 'Apex' : 'Ignition'
+                  const sinceText =
+                    memberSince && !Number.isNaN(Date.parse(memberSince))
+                      ? new Date(memberSince).toLocaleDateString('fr-CA', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })
+                      : memberSince || '—'
+
+                  return (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-white/85">
+                        <div>
+                          <p className="text-[11px] text-white/55 uppercase tracking-[0.14em]">Active membership</p>
+                          <p className="mt-1">{label}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-white/55 uppercase tracking-[0.14em]">Since</p>
+                          <p className="mt-1">{sinceText}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-white/55 uppercase tracking-[0.14em]">Renewal</p>
+                          <p className="mt-1 text-white/60">Managed via your billing portal</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-white/55 uppercase tracking-[0.14em]">Cost</p>
+                          <p className="mt-1 text-white/60">See billing portal</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <a
+                          href="/car-club"
+                          className="inline-flex items-center gap-2 text-sm font-nav text-white/80 hover:text-white transition-colors"
+                        >
+                          <span>Manage membership</span>
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M7 17L17 7M9 7h8v8"
+                            />
+                          </svg>
+                        </a>
+                      </div>
+                    </>
+                  )
+                })()}
               </section>
 
               {/* Payment Method */}
