@@ -15,9 +15,22 @@ interface Purchase {
   placed_at: string | null
 }
 
+interface PurchaseItem {
+  id: string
+  product_title: string | null
+  variant_title: string | null
+  sku: string | null
+  quantity: number | null
+  unit_price: number | null
+  total_price: number | null
+}
+
 export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedSheetProps) {
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(false)
+  const [selectedPurchaseId, setSelectedPurchaseId] = useState<string | null>(null)
+  const [items, setItems] = useState<PurchaseItem[]>([])
+  const [loadingItems, setLoadingItems] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -71,7 +84,49 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
     }
   }, [isOpen])
 
+  useEffect(() => {
+    if (!isOpen || !selectedPurchaseId) {
+      setItems([])
+      return
+    }
+
+    let cancelled = false
+
+    const loadItems = async () => {
+      setLoadingItems(true)
+      try {
+        const { data, error } = await supabase
+          .from('purchase_items')
+          .select('id,product_title,variant_title,sku,quantity,unit_price,total_price')
+          .eq('purchase_id', selectedPurchaseId)
+          .order('product_title', { ascending: true })
+
+        if (error) {
+          console.warn('Failed to load purchase_items', error.message)
+          if (!cancelled) setItems([])
+          return
+        }
+
+        if (!cancelled) {
+          setItems((data || []) as PurchaseItem[])
+        }
+      } finally {
+        if (!cancelled) setLoadingItems(false)
+      }
+    }
+
+    void loadItems()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, selectedPurchaseId])
+
   if (!isOpen) return null
+
+  const selectedPurchase = selectedPurchaseId
+    ? purchases.find((p) => p.id === selectedPurchaseId) || null
+    : null
 
   return (
     <div className="fixed inset-0 z-[150] flex flex-col justify-end pointer-events-none">
@@ -181,37 +236,129 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
                   </p>
                 </div>
               ) : (
-                <div className="rounded-3xl border border-white/[0.12] bg-white/[0.02] px-4 py-4 flex flex-col gap-2">
-                  {purchases.map((order) => (
-                    <div
-                      key={order.id}
-                      className="flex items-center justify-between gap-3 rounded-2xl px-3 py-3 hover:bg-white/[0.03] transition-colors"
-                    >
-                      <div className="flex flex-col gap-0.5">
-                        <p className="text-sm text-white">
-                          {order.order_number || 'Commande'}
-                        </p>
-                        <p className="text-[11px] text-white/55">
-                          {order.placed_at
-                            ? new Date(order.placed_at).toLocaleDateString('fr-FR', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric',
-                              })
-                            : 'Date inconnue'}
-                        </p>
+                <>
+                  <div className="rounded-3xl border border-white/[0.12] bg-white/[0.02] px-4 py-4 flex flex-col gap-2">
+                    {purchases.map((order) => {
+                      const isSelected = order.id === selectedPurchaseId
+                      return (
+                        <button
+                          key={order.id}
+                          type="button"
+                          onClick={() =>
+                            setSelectedPurchaseId(isSelected ? null : order.id)
+                          }
+                          className={`flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-3 text-left transition-colors ${
+                            isSelected ? 'bg-white/[0.08]' : 'hover:bg-white/[0.03]'
+                          }`}
+                        >
+                          <div className="flex flex-col gap-0.5">
+                            <p className="text-sm text-white">
+                              {order.order_number || 'Commande'}
+                            </p>
+                            <p className="text-[11px] text-white/55">
+                              {order.placed_at
+                                ? new Date(order.placed_at).toLocaleDateString('fr-FR', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })
+                                : 'Date inconnue'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex flex-col items-end gap-0.5">
+                              <p className="text-sm text-white">
+                                {order.total_price?.toFixed(2) ?? '0.00'}{' '}
+                                {order.currency || 'CAD'}
+                              </p>
+                              <p className="text-[11px] text-emerald-300">
+                                +{order.points_earned ?? 0} pts
+                              </p>
+                            </div>
+                            <span
+                              className={`w-5 h-5 inline-flex items-center justify-center rounded-full border text-[10px] ${
+                                isSelected
+                                  ? 'border-white/70 text-white'
+                                  : 'border-white/30 text-white/60'
+                              }`}
+                            >
+                              {isSelected ? '-' : '+'}
+                            </span>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {selectedPurchase && (
+                    <div className="rounded-3xl border border-white/[0.16] bg-white/[0.03] px-5 py-5">
+                      <div className="flex items-center justify-between gap-3 mb-4">
+                        <div>
+                          <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
+                            Détail de la commande
+                          </p>
+                          <p className="mt-1 text-sm text-white">
+                            {selectedPurchase.order_number || 'Commande'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-white">
+                            {selectedPurchase.total_price?.toFixed(2) ?? '0.00'}{' '}
+                            {selectedPurchase.currency || 'CAD'}
+                          </p>
+                          <p className="text-[11px] text-emerald-300">
+                            +{selectedPurchase.points_earned ?? 0} pts
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex flex-col items-end gap-0.5">
-                        <p className="text-sm text-white">
-                          {order.total_price?.toFixed(2) ?? '0.00'} {order.currency || 'CAD'}
+
+                      {loadingItems ? (
+                        <p className="text-[13px] text-white/65">
+                          Chargement des produits...
                         </p>
-                        <p className="text-[11px] text-emerald-300">
-                          +{order.points_earned ?? 0} pts
+                      ) : items.length === 0 ? (
+                        <p className="text-[13px] text-white/65">
+                          Les détails des produits ne sont pas encore disponibles pour cette
+                          commande.
                         </p>
-                      </div>
+                      ) : (
+                        <div className="divide-y divide-white/[0.08]">
+                          {items.map((item) => (
+                            <div
+                              key={item.id}
+                              className="py-3 flex items-center justify-between gap-4"
+                            >
+                              <div className="flex flex-col gap-0.5">
+                                <p className="text-sm text-white">
+                                  {item.product_title || 'Produit'}
+                                </p>
+                                {item.variant_title && (
+                                  <p className="text-[11px] text-white/55">
+                                    {item.variant_title}
+                                  </p>
+                                )}
+                                {item.sku && (
+                                  <p className="text-[11px] text-white/45">SKU: {item.sku}</p>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-end gap-0.5">
+                                <p className="text-[11px] text-white/65">
+                                  Qté: {item.quantity ?? 0}
+                                </p>
+                                <p className="text-[11px] text-white/65">
+                                  {item.unit_price?.toFixed(2) ?? '0.00'} / u
+                                </p>
+                                <p className="text-sm text-white">
+                                  {item.total_price?.toFixed(2) ?? '0.00'}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </div>
           </div>
