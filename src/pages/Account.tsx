@@ -12,6 +12,7 @@ export function Account() {
   const [errorMessage, setErrorMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [rememberDevice, setRememberDevice] = useState(false)
+  const [lang, setLang] = useState<'EN' | 'FR'>('EN')
 
   const returnToParam = new URLSearchParams(location.search).get('returnTo')
   const returnToPath = returnToParam === '/account/company' ? returnToParam : null
@@ -60,131 +61,151 @@ export function Account() {
     <section className="relative min-h-screen overflow-hidden bg-[#0B0B0B] flex items-center justify-center px-6 py-16">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#0B0B0B] via-[#1a1a1a] to-[#0B0B0B]" />
-      
-      {/* Back button */}
-      <div className="fixed top-6 left-6 z-30">
+
+      {/* Top bar: logo left, language right */}
+      <div className="absolute top-6 left-6 z-30">
+        <Link to="/" className="inline-flex items-center gap-2">
+          <img
+            src="/LogoFull.avif"
+            alt="Fireball"
+            className="h-7 w-auto object-contain opacity-95"
+            draggable={false}
+          />
+        </Link>
+      </div>
+      <div className="absolute top-6 right-6 z-30">
         <button
           type="button"
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-white/15 text-white/80 hover:text-white hover:border-white/25 transition-all bg-white/[0.06] backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
-          aria-label="Go back"
+          onClick={() => setLang((prev) => (prev === 'EN' ? 'FR' : 'EN'))}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-black/40 text-xs font-nav font-bold uppercase tracking-[0.16em] text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors backdrop-blur-md"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <span>{lang}</span>
+          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M19 9l-7 7-7-7" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       </div>
 
-      <div className="relative z-10 w-full max-w-md">
-        {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <img
-            src="/LogoFull.avif"
-            alt="Fireball"
-            className="h-8 w-auto object-contain opacity-90"
-            draggable={false}
-          />
-        </div>
-
-        {/* Login Card - Liquid Glass Style */}
-        <div className="rounded-2xl border border-white/20 shadow-[0_18px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.24)] p-8 md:p-10"
-          style={{
-            background: 'rgba(20, 20, 20, 0.95)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-          }}
-        >
-          <h1 className="font-nav font-bold text-3xl md:text-4xl text-white uppercase mb-2 text-center tracking-wide">
-            FIREBALL ACCESS
-          </h1>
-          <p className="text-center text-white/60 text-sm mb-8">Sign in to your account</p>
-
-          <form className="space-y-5" onSubmit={handleLoginSubmit}>
-            {/* Email Input - Liquid Glass Style */}
-            <div>
-              <label htmlFor="email" className="block text-white/80 text-sm mb-2 font-medium">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl px-4 py-3 text-left text-white placeholder:text-white/40 focus:outline-none transition-all bg-white/[0.06] border border-white/15 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] focus:border-white/30 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.1)]"
-                placeholder="you@example.com"
-                required
-                disabled={loading}
-              />
+      <div className="relative z-10 w-full max-w-4xl">
+        <div className="flex flex-col md:flex-row bg-black/80 rounded-3xl border border-white/12 shadow-[0_22px_55px_rgba(0,0,0,0.7)] overflow-hidden">
+          {/* Left panel (visual) */}
+          <div className="hidden md:flex md:w-1/2 relative items-center justify-center bg-gradient-to-br from-black via-[#111] to-black">
+            <div className="absolute inset-0 opacity-[0.18] pointer-events-none" />
+            <div className="relative px-10 py-12">
+              <p className="text-xs font-nav font-bold uppercase tracking-[0.28em] text-white/40 mb-4">
+                FIREBALL ACCESS
+              </p>
+              <h2 className="text-3xl lg:text-[34px] leading-tight font-semibold text-white mb-4">
+                Sign in to
+                <br />
+                your Fireball account.
+              </h2>
+              <p className="text-[13px] text-white/60 max-w-sm">
+                Access your dashboard, XP, orders and membership in one place.
+              </p>
             </div>
+          </div>
 
-            {/* Password Input - Liquid Glass Style */}
-            <div>
-              <label htmlFor="password" className="block text-white/80 text-sm mb-2 font-medium">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl px-4 py-3 text-left text-white placeholder:text-white/40 focus:outline-none transition-all bg-white/[0.06] border border-white/15 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] focus:border-white/30 focus:shadow-[0_0_0_3px_rgba(255,255,255,0.1)]"
-                placeholder="••••••••"
-                required
-                disabled={loading}
-              />
-            </div>
-
-            {/* Remember me checkbox */}
-            <div className="inline-flex items-center gap-2.5 text-sm text-white/70 select-none cursor-pointer">
-              <IOSCheckbox
-                id="account-remember-device"
-                checked={rememberDevice}
-                onChange={setRememberDevice}
-                color="red"
-                sizeEm={0.88}
-              />
-              <span>Remember this device</span>
-            </div>
-
-            {/* Error message */}
-            {errorMessage && (
-              <div className="rounded-xl px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-                {errorMessage}
+          {/* Right panel: form */}
+          <div className="w-full md:w-1/2 bg-black px-6 sm:px-10 py-8 sm:py-10 flex items-center">
+            <div className="w-full max-w-md mx-auto">
+              <div className="mb-7">
+                <h1 className="text-2xl sm:text-3xl font-semibold text-white mb-1">
+                  Sign in
+                </h1>
+                <p className="text-sm text-white/60">
+                  Enter your credentials to access your account.
+                </p>
               </div>
-            )}
 
-            {/* Submit Button - Liquid Glass Style */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 bg-white text-[#0B0B0B] font-nav font-bold uppercase text-sm rounded-xl hover:bg-white/95 transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-8px_14px_rgba(0,0,0,0.08),0_10px_24px_rgba(0,0,0,0.22)] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Signing in...' : 'Access Portal →'}
-            </button>
+              <form className="space-y-5" onSubmit={handleLoginSubmit}>
+                {/* Email */}
+                <div>
+                  <label htmlFor="email" className="block text-white/70 text-xs mb-2 font-medium">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none transition-all bg-[#121212] border border-[#1a1a1a] focus:bg-[#1a1a1a] focus:border-[#444]"
+                    placeholder="you@example.com"
+                    required
+                    disabled={loading}
+                  />
+                </div>
 
-            {/* Forgot password */}
-            <button
-              type="button"
-              className="block mx-auto text-sm text-white/60 hover:text-white/80 transition-colors"
-              disabled={loading}
-            >
-              Forgot your credentials?
-            </button>
+                {/* Password */}
+                <div>
+                  <label htmlFor="password" className="block text-white/70 text-xs mb-2 font-medium">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none transition-all bg-[#121212] border border-[#1a1a1a] focus:bg-[#1a1a1a] focus:border-[#444]"
+                      placeholder="Enter your password"
+                      required
+                      disabled={loading}
+                    />
+                    <svg
+                      className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer"
+                      viewBox="0 0 24 24"
+                      width="20"
+                      fill="none"
+                      stroke="#666"
+                      strokeWidth="2"
+                    >
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22" />
+                    </svg>
+                  </div>
+                </div>
 
-            {/* Register link */}
-            <p className="text-center text-sm text-white/60 pt-4 border-t border-white/10">
-              New here?{' '}
-              <Link 
-                to={returnToPath ? `/account/register?returnTo=${encodeURIComponent(returnToPath)}` : '/account/register'}
-                className="inline-flex items-center gap-1 text-sm font-medium text-white hover:text-white/80 underline transition-colors"
-              >
-                Create an account
-                <svg className="w-4 h-4 transform -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </Link>
-            </p>
-          </form>
+                {/* Remember me */}
+                <div className="inline-flex items-center gap-2.5 text-sm text-white/70 select-none cursor-pointer">
+                  <IOSCheckbox
+                    id="account-remember-device"
+                    checked={rememberDevice}
+                    onChange={setRememberDevice}
+                    color="red"
+                    sizeEm={0.88}
+                  />
+                  <span>Remember this device</span>
+                </div>
+
+                {/* Error message */}
+                {errorMessage && (
+                  <div className="rounded-xl px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                    {errorMessage}
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-white text-black border-none py-4 rounded-lg font-semibold text-sm cursor-pointer transition-colors hover:bg-[#e5e5e5] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Signing in...' : 'Sign in'}
+                </button>
+
+                {/* Register link */}
+                <p className="text-center text-sm text-white/60 mt-5">
+                  New here?{' '}
+                  <Link
+                    to={returnToPath ? `/account/register?returnTo=${encodeURIComponent(returnToPath)}` : '/account/register'}
+                    className="text-white hover:text-white/80 underline"
+                  >
+                    Create an account
+                  </Link>
+                </p>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </section>
