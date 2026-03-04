@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { supabase } from '@/lib/supabase'
+import { setRememberDevice, supabase } from '@/lib/supabase'
 import { isAuthenticated } from '@/utils/supabaseAuth'
 import { createShopifyCustomer } from '@/utils/shopifySync'
 import { IOSCheckbox } from '@/components/IOSCheckbox'
@@ -116,6 +116,7 @@ export function AccountRegister() {
 
       // Extraire first_name et last_name à partir des champs séparés
       setLoading(true)
+      setRememberDevice(rememberDevice)
 
       // Étape 1: Créer l'utilisateur avec Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -202,7 +203,7 @@ export function AccountRegister() {
   }
 
   return (
-    <section className="relative h-screen w-screen max-w-full overflow-hidden bg-black flex flex-col md:items-center md:justify-center md:py-12 md:px-6">
+    <section className="relative h-screen w-screen max-w-full overflow-hidden bg-black flex flex-col md:items-center md:justify-center md:py-12 md:px-6 select-none">
       {/* Background */}
       <div className="absolute inset-0 bg-black pointer-events-none" />
       <div className="absolute -top-40 -right-32 w-80 h-80 bg-red-500/18 blur-3xl rounded-full opacity-70 pointer-events-none" aria-hidden />
