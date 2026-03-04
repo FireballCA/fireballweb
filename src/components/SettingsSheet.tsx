@@ -1,10 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { updateShopifyCustomer } from '@/utils/shopifySync'
 
 interface SettingsSheetProps {
   isOpen: boolean
   onClose: () => void
 }
+
+const SETTINGS_SECTIONS = [
+  { id: 'settings-profile', label: 'Profile' },
+  { id: 'settings-security', label: 'Security' },
+  { id: 'settings-membership', label: 'Membership' },
+  { id: 'settings-payment', label: 'Payment' },
+  { id: 'settings-billing', label: 'Billing' },
+  { id: 'settings-member-card', label: 'Member card' },
+  { id: 'settings-communication', label: 'Communication' },
+  { id: 'settings-business', label: 'Business' },
+  { id: 'settings-certification', label: 'Certification' },
+  { id: 'settings-warranty', label: 'Warranty' },
+  { id: 'settings-notifications', label: 'Notifications' },
+  { id: 'settings-danger-zone', label: 'Danger zone' },
+] as const
 
 export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
   const [rendered, setRendered] = useState(isOpen)
@@ -16,6 +32,14 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
   const [email, setEmail] = useState('')
   const [newsletter, setNewsletter] = useState(true)
   const [ordersEmails, setOrdersEmails] = useState(true)
+
+  const [activeSection, setActiveSection] = useState<string>('settings-profile')
+  const sectionLinkRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const [indicatorTop, setIndicatorTop] = useState(0)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isOpen) return
@@ -47,6 +71,15 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
   }, [isOpen])
 
   useEffect(() => {
+    const current = sectionLinkRefs.current[activeSection]
+    if (!current) return
+    const parent = current.offsetParent as HTMLElement | null
+    if (!parent) return
+    const top = current.offsetTop + current.offsetHeight / 2
+    setIndicatorTop(top)
+  }, [activeSection])
+
+  useEffect(() => {
     if (isOpen) {
       setRendered(true)
       setIsExiting(false)
@@ -71,6 +104,78 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
       document.body.style.overflow = ''
     }
   }, [isOpen, rendered])
+
+  const handleCopy = async (fieldId: string, value: string | null | undefined) => {
+    const trimmed = (value || '').toString().trim()
+    if (!trimmed) return
+    try {
+      await navigator.clipboard.writeText(trimmed)
+      setCopiedField(fieldId)
+      window.setTimeout(() => {
+        setCopiedField((current) => (current === fieldId ? null : current))
+      }, 1500)
+    } catch (error) {
+      console.error('Failed to copy to clipboard', error)
+    }
+  }
+
+  const handleSaveSettings = async () => {
+    if (saving) return
+    setSaving(true)
+    setSaveMessage(null)
+    setSaveError(null)
+
+    try {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser()
+      if (error || !user) {
+        throw new Error('Utilisateur non authentifié')
+      }
+
+      const displayParts = displayName.trim().split(/\s+/)
+      const firstName = displayParts[0] || ''
+      const lastName = displayParts.slice(1).join(' ')
+
+      // Mettre à jour les préférences d’email dans Supabase Auth
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          full_name: displayName,
+          first_name: firstName,
+          last_name: lastName,
+          order_emails: ordersEmails,
+          marketing_emails: newsletter,
+        },
+      })
+
+      if (authError) {
+        console.error('Error updating auth metadata:', authError)
+        throw new Error("Erreur lors de la mise à jour des paramètres.")
+      }
+
+      // Synchroniser avec Shopify quand possible
+      if (email) {
+        try {
+          await updateShopifyCustomer({
+            email,
+            first_name: firstName,
+            last_name: lastName,
+          })
+        } catch (shopifyError) {
+          console.error('Shopify customer update failed:', shopifyError)
+          // On ne bloque pas si Shopify échoue
+        }
+      }
+
+      setSaveMessage('Settings updated.')
+    } catch (e) {
+      console.error('Error saving settings:', e)
+      setSaveError('Impossible de sauvegarder les paramètres. Réessaie dans quelques instants.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (!rendered) return null
 
@@ -120,11 +225,30 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
           onScroll={(event) => {
             const target = event.currentTarget
             setScrolledDown(target.scrollTop > 40)
+
+            const containerRect = target.getBoundingClientRect()
+            let closestId = activeSection
+            let closestDelta = Number.POSITIVE_INFINITY
+
+            for (const section of SETTINGS_SECTIONS) {
+              const el = document.getElementById(section.id)
+              if (!el) continue
+              const rect = el.getBoundingClientRect()
+              const delta = Math.abs(rect.top - containerRect.top - 40)
+              if (delta < closestDelta) {
+                closestDelta = delta
+                closestId = section.id
+              }
+            }
+
+            if (closestId !== activeSection) {
+              setActiveSection(closestId)
+            }
           }}
         >
           <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8 lg:gap-10">
-            {/* Left column: summary */}
-            <div className="w-full lg:w-[32%] flex flex-col gap-4">
+            {/* Left column: intro + shortcuts */}
+            <div className="w-full lg:w-[32%] flex flex-col gap-4 lg:sticky lg:top-4 lg:self-start">
               <div className="rounded-3xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm px-5 py-5 shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
                 <p className="text-[13px] font-medium text-white/80 mb-2">
                   Account settings
@@ -134,41 +258,356 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
                   and account security shortcuts.
                 </p>
               </div>
-            </div>
 
-            {/* Right column: controls */}
-            <div className="w-full lg:flex-1 flex flex-col gap-4">
-              <div className="rounded-3xl border border-white/[0.12] bg-white/[0.02] px-5 py-5 flex flex-col gap-4">
-                <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
-                  Profile
-                </p>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em]">Display name</p>
-                    <p className="mt-1 text-sm text-white">{displayName || 'Member'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em]">Email</p>
-                    <p className="mt-1 text-sm text-white">{email || '—'}</p>
-                  </div>
-                  <div className="mt-2">
+              {/* Shortcuts to sections - simple text list with moving dot */}
+              <div className="relative pl-5">
+                <div className="absolute left-0 top-0 bottom-0 flex flex-col items-center">
+                  <div className="w-px flex-1 bg-white/[0.18]" />
+                  <div
+                    className="absolute w-2 h-2 rounded-full bg-white translate-x-[-3px] transition-all duration-300 ease-out"
+                    style={{ top: indicatorTop }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {SETTINGS_SECTIONS.map((section) => (
                     <button
+                      key={section.id}
                       type="button"
-                      className="inline-flex items-center gap-2 rounded-full border border-white/[0.2] bg-white/[0.06] px-4 py-2 text-[11px] font-nav uppercase tracking-[0.16em] text-white/85 hover:bg-white/[0.14] hover:border-white/60 transition-colors"
-                      onClick={onClose}
+                      ref={(el) => {
+                        sectionLinkRefs.current[section.id] = el
+                      }}
+                      onClick={() => {
+                        const el = document.getElementById(section.id)
+                        if (el && scrollRef.current) {
+                          const container = scrollRef.current
+                          const containerRect = container.getBoundingClientRect()
+                          const rect = el.getBoundingClientRect()
+                          const offset = rect.top - containerRect.top - 24
+                          container.scrollTo({ top: container.scrollTop + offset, behavior: 'smooth' })
+                        }
+                      }}
+                      className={`text-left text-[12px] font-nav uppercase tracking-[0.18em] transition-colors ${
+                        activeSection === section.id ? 'text-white' : 'text-white/55 hover:text-white/80'
+                      }`}
                     >
-                      <span>Manage profile</span>
+                      {section.label}
                     </button>
-                  </div>
+                  ))}
                 </div>
               </div>
+            </div>
 
-              <div className="rounded-3xl border border-white/[0.12] bg-white/[0.02] px-5 py-5 flex flex-col gap-4">
+            {/* Right column: full settings content */}
+            <div className="w-full lg:flex-1 flex flex-col gap-4">
+              {/* Profile Information */}
+              <section
+                id="settings-profile"
+                className="py-5 flex flex-col gap-4"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
+                      Profile information
+                    </p>
+                    <p className="mt-1 text-[12px] text-white/55">
+                      Basic details used across your Fireball and Shopify experiences.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">First name</p>
+                    <div className="w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white/90">
+                      {displayName.split(' ')[0] || '—'}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">Last name</p>
+                    <div className="w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white/90">
+                      {displayName.split(' ').slice(1).join(' ') || '—'}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">Email</p>
+                    <div className="group relative w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white/90 flex items-center justify-between">
+                      <span className="truncate">{email || '—'}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy('email', email)}
+                        className="opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.06] text-white/80 hover:bg-white/[0.14]"
+                        aria-label="Copy email"
+                      >
+                        {copiedField === 'email' ? (
+                          <svg
+                            className="w-3.5 h-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        ) : (
+                          <svg
+                            className="w-3.5 h-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">Phone number</p>
+                    <div className="w-full rounded-2xl bg-black/30 px-3.5 py-2.5 text-sm text-white/70">
+                      —
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">Member ID</p>
+                    <div className="group relative w-full rounded-2xl bg-black/60 px-3.5 py-2.5 text-sm text-white/80 font-mono flex items-center justify-between">
+                      <span className="truncate">Read-only</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy('member-id', 'Read-only')}
+                        className="opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.06] text-white/80 hover:bg-white/[0.14]"
+                        aria-label="Copy member ID"
+                      >
+                        {copiedField === 'member-id' ? (
+                          <svg
+                            className="w-3.5 h-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        ) : (
+                          <svg
+                            className="w-3.5 h-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">Member since</p>
+                    <div className="group relative w-full rounded-2xl bg-black/60 px-3.5 py-2.5 text-sm text-white/80 flex items-center justify-between">
+                      <span className="truncate">Read-only</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy('member-since', 'Read-only')}
+                        className="opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.06] text-white/80 hover:bg-white/[0.14]"
+                        aria-label="Copy member since"
+                      >
+                        {copiedField === 'member-since' ? (
+                          <svg
+                            className="w-3.5 h-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        ) : (
+                          <svg
+                            className="w-3.5 h-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-col items-end gap-2">
+                  {saveError && (
+                    <p className="text-[11px] text-red-300 text-right max-w-xs">{saveError}</p>
+                  )}
+                  {saveMessage && !saveError && (
+                    <p className="text-[11px] text-emerald-300 text-right max-w-xs">{saveMessage}</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleSaveSettings}
+                    disabled={saving}
+                    className="group inline-flex items-center text-[12px] font-nav font-bold uppercase tracking-[0.18em] text-white/85 hover:text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <span className="mr-2 h-px w-0 bg-white transition-all duration-400 ease-out group-hover:w-12" />
+                    <span>{saving ? 'Saving…' : 'Save changes'}</span>
+                  </button>
+                </div>
+              </section>
+
+              {/* Security */}
+              <section id="settings-security" className="py-5 flex flex-col gap-3 border-t border-white/[0.06]">
                 <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
-                  Notifications
+                  Security
+                </p>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between py-2 text-sm text-white/85 hover:text-white hover:bg-white/[0.04] rounded-2xl px-3 transition-colors"
+                >
+                  <span>Change password</span>
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Email flow</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between py-2 text-sm text-white/85 hover:text-white hover:bg-white/[0.04] rounded-2xl px-3 transition-colors"
+                >
+                  <span>Enable 2FA</span>
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Coming soon</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between py-2 text-sm text-white/85 hover:text-white hover:bg-white/[0.04] rounded-2xl px-3 transition-colors"
+                >
+                  <span>Active sessions</span>
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Logout others</span>
+                </button>
+                <button
+                  type="button"
+                  className="mt-1 flex w-full items-center justify-between py-2 text-sm text-red-300 hover:text-red-200 hover:bg-red-500/10 rounded-2xl px-3 border border-red-500/30 transition-colors"
+                >
+                  <span>Delete account</span>
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-red-300">Danger zone</span>
+                </button>
+              </section>
+
+              {/* Membership Overview */}
+              <section id="settings-membership" className="py-5 flex flex-col gap-3 border-t border-white/[0.06]">
+                <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
+                  Membership overview
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-white/85">
+                  <div>
+                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em]">Membership type</p>
+                    <p className="mt-1">—</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em]">Tier level</p>
+                    <p className="mt-1">—</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em]">Current XP</p>
+                    <p className="mt-1">—</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-white/55 uppercase tracking-[0.14em]">Lifetime spending</p>
+                    <p className="mt-1">—</p>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">
+                    Progress to next tier
+                  </p>
+                  <div className="w-full h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                    <div className="h-full w-[40%] bg-gradient-to-r from-red-500 to-red-300" />
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/[0.2] bg-white/[0.06] px-4 py-2 text-[11px] font-nav uppercase tracking-[0.16em] text-white/85 hover:bg-white/[0.14] hover:border-white/60 transition-colors"
+                  >
+                    Manage membership
+                  </button>
+                </div>
+              </section>
+
+              {/* Payment Method */}
+              <section id="settings-payment" className="py-5 flex flex-col gap-3 border-t border-white/[0.06]">
+                <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
+                  Payment method
+                </p>
+                <p className="text-[12px] text-white/55">
+                  Manage saved cards and billing through your secure Stripe or Shopify portal.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/[0.2] bg-white/[0.06] px-4 py-2 text-[11px] font-nav uppercase tracking-[0.16em] text-white/85 hover:bg-white/[0.14] hover:border-white/60 transition-colors"
+                  >
+                    Open billing portal
+                  </button>
+                </div>
+              </section>
+
+              {/* Billing History */}
+              <section id="settings-billing" className="py-5 flex flex-col gap-3 border-t border-white/[0.06]">
+                <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
+                  Billing history
+                </p>
+                <p className="text-[12px] text-white/55 mb-2">
+                  Recent orders imported from Shopify. Detailed invoices coming soon.
+                </p>
+                <div className="space-y-2 text-sm text-white/85">
+                  <div className="flex items-center justify-between text-[11px] text-white/45 uppercase tracking-[0.16em]">
+                    <span>Date</span>
+                    <span className="w-24 text-right">Amount</span>
+                    <span className="w-20 text-right">Status</span>
+                    <span className="w-28 text-right">Invoice</span>
+                  </div>
+                  <div className="h-px w-full bg-white/[0.08]" />
+                  <p className="text-[12px] text-white/50">No billing history available yet.</p>
+                </div>
+              </section>
+
+              {/* Digital Member Card */}
+              <section id="settings-member-card" className="py-5 flex flex-col gap-4 border-t border-white/[0.06]">
+                <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
+                  Digital member card
+                </p>
+                <div className="rounded-2xl border border-white/[0.18] bg-gradient-to-br from-white/[0.08] to-white/[0.02] px-4 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.6)]">
+                  <p className="text-[11px] text-white/65 uppercase tracking-[0.14em] mb-1.5">Preview</p>
+                  <div className="h-28 rounded-xl bg-black/40 border border-white/15 flex items-center justify-center text-white/60 text-xs">
+                    Digital member card preview
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/[0.2] bg-white/[0.06] px-4 py-2 text-[11px] font-nav uppercase tracking-[0.16em] text-white/85 hover:bg-white/[0.14] hover:border-white/60 transition-colors"
+                  >
+                    Download card
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/[0.2] bg-transparent px-4 py-2 text-[11px] font-nav uppercase tracking-[0.16em] text-white/70 hover:bg-white/[0.06] transition-colors"
+                  >
+                    Share profile link
+                  </button>
+                </div>
+              </section>
+
+              {/* Communication Preferences */}
+              <section id="settings-communication" className="py-5 flex flex-col gap-4 border-t border-white/[0.06]">
+                <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
+                  Communication preferences
                 </p>
                 <label className="flex items-center justify-between gap-3 cursor-pointer">
-                  <span className="text-sm text-white/80">Order updates</span>
+                  <span className="text-sm text-white/85">Email notifications</span>
                   <button
                     type="button"
                     onClick={() => setOrdersEmails((v) => !v)}
@@ -184,7 +623,7 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
                   </button>
                 </label>
                 <label className="flex items-center justify-between gap-3 cursor-pointer">
-                  <span className="text-sm text-white/80">News & announcements</span>
+                  <span className="text-sm text-white/85">Product launches</span>
                   <button
                     type="button"
                     onClick={() => setNewsletter((v) => !v)}
@@ -199,7 +638,92 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
                     />
                   </button>
                 </label>
-              </div>
+                <label className="flex items-center justify-between gap-3 cursor-pointer">
+                  <span className="text-sm text-white/85">Events</span>
+                  <button
+                    type="button"
+                    className="w-10 h-6 rounded-full flex items-center px-1 bg-white/[0.20]"
+                  >
+                    <span className="w-4 h-4 bg-white rounded-full shadow-sm transform translate-x-0" />
+                  </button>
+                </label>
+                <label className="flex items-center justify-between gap-3 cursor-pointer">
+                  <span className="text-sm text-white/85">Partner offers</span>
+                  <button
+                    type="button"
+                    className="w-10 h-6 rounded-full flex items-center px-1 bg-white/[0.20]"
+                  >
+                    <span className="w-4 h-4 bg-white rounded-full shadow-sm transform translate-x-0" />
+                  </button>
+                </label>
+              </section>
+
+              {/* Business Information (placeholder, only for partners later) */}
+              <section id="settings-business" className="py-5 flex flex-col gap-3 border-t border-white/[0.06]">
+                <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
+                  Business information
+                </p>
+                <p className="text-[12px] text-white/55 mb-2">
+                  Visible only for partners. Business details editing will be connected to your partner profile.
+                </p>
+              </section>
+
+              {/* Certification Status */}
+              <section id="settings-certification" className="py-5 flex flex-col gap-3 border-t border-white/[0.06]">
+                <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
+                  Certification status
+                </p>
+                <p className="text-[12px] text-white/55">
+                  Certification details will appear here when available (academy history, certified products, expiry).
+                </p>
+              </section>
+
+              {/* Warranty Management */}
+              <section id="settings-warranty" className="py-5 flex flex-col gap-3 border-t border-white/[0.06]">
+                <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
+                  Warranty management
+                </p>
+                <p className="text-[12px] text-white/55">
+                  View and export registered warranties once they are connected to your account.
+                </p>
+              </section>
+
+              {/* Notifications Center */}
+              <section id="settings-notifications" className="py-5 flex flex-col gap-3 border-t border-white/[0.06]">
+                <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
+                  Notifications center
+                </p>
+                <p className="text-[12px] text-white/55">
+                  A feed of your latest XP events, tier upgrades and membership reminders will appear here.
+                </p>
+              </section>
+
+              {/* Danger Zone */}
+              <section
+                id="settings-danger-zone"
+                className="mt-4 rounded-3xl border border-red-500/40 bg-red-500/[0.07] px-5 py-5 flex flex-col gap-3"
+              >
+                <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-red-200">
+                  Danger zone
+                </p>
+                <p className="text-[12px] text-red-100/90">
+                  Deactivating or deleting your account will affect access to your membership, XP and billing history.
+                </p>
+                <div className="mt-2 flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    className="flex-1 rounded-xl border border-red-400/50 bg-transparent px-4 py-2.5 text-[12px] font-nav font-bold uppercase tracking-[0.16em] text-red-200 hover:bg-red-500/10 transition-colors"
+                  >
+                    Deactivate account
+                  </button>
+                  <button
+                    type="button"
+                    className="flex-1 rounded-xl bg-red-500 px-4 py-2.5 text-[12px] font-nav font-bold uppercase tracking-[0.16em] text-white hover:bg-red-500/90 transition-colors"
+                  >
+                    Delete account
+                  </button>
+                </div>
+              </section>
             </div>
           </div>
         </div>
