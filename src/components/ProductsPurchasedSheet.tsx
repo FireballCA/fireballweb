@@ -33,17 +33,34 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
   const [loadingItems, setLoadingItems] = useState(false)
   const [dateFilter, setDateFilter] = useState<'all' | '30d' | '6m' | 'year'>('all')
   const [dateMenuOpen, setDateMenuOpen] = useState(false)
+  const [rendered, setRendered] = useState(isOpen)
+  const [isExiting, setIsExiting] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
+      setRendered(true)
+      setIsExiting(false)
       document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
+      return
     }
+
+    if (!isOpen && rendered) {
+      setIsExiting(true)
+      const timeout = window.setTimeout(() => {
+        setRendered(false)
+        setIsExiting(false)
+        document.body.style.overflow = ''
+      }, 450)
+      return () => {
+        window.clearTimeout(timeout)
+        document.body.style.overflow = ''
+      }
+    }
+
     return () => {
       document.body.style.overflow = ''
     }
-  }, [isOpen])
+  }, [isOpen, rendered])
 
   useEffect(() => {
     if (!isOpen) return
@@ -124,7 +141,7 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
     }
   }, [isOpen, selectedPurchaseId])
 
-  if (!isOpen) return null
+  if (!rendered) return null
 
   const now = new Date()
   const filteredPurchases = purchases.filter((p) => {
@@ -172,7 +189,9 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
         className="relative w-full h-[92vh] md:h-[88vh] overflow-hidden pointer-events-auto flex flex-col rounded-t-[28px] shadow-[0_-24px_60px_rgba(0,0,0,0.55)]"
         style={{
           backgroundColor: '#0a0a0a',
-          animation: 'productsPurchasedSlideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+          animation: isExiting
+            ? 'productsPurchasedSlideDown 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards'
+            : 'productsPurchasedSlideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards',
         }}
       >
         {/* Header type Apple */}
@@ -473,6 +492,16 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
           to {
             transform: translateY(0);
             opacity: 1;
+          }
+        }
+        @keyframes productsPurchasedSlideDown {
+          from {
+            transform: translateY(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateY(100%);
+            opacity: 0.98;
           }
         }
       `}</style>

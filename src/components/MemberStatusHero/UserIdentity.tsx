@@ -94,21 +94,10 @@ export function UserIdentity({
         </button>
         {isAdmin && (
           <Link
-            to="/account/manage-partners#global-statistics"
-            className="bg-[#3a171a] border border-red-400/25 text-red-100 px-3.5 py-2.5 rounded-[6px] text-left text-xs font-normal hover:bg-[#4a1d21] transition-colors w-[200px] flex items-center justify-between"
-          >
-            <span>Global statistics</span>
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ transform: 'rotate(45deg)' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-            </svg>
-          </Link>
-        )}
-        {isAdmin && (
-          <Link
             to="/account/manage-partners"
             className="bg-[#3a171a] border border-red-400/25 text-red-100 px-3.5 py-2.5 rounded-[6px] text-left text-xs font-normal hover:bg-[#4a1d21] transition-colors w-[200px] flex items-center justify-between"
           >
-            <span>Manage Partner</span>
+            <span>Admin Panel</span>
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ transform: 'rotate(45deg)' }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
             </svg>
