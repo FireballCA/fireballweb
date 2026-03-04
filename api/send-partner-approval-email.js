@@ -68,6 +68,7 @@ export default async function handler(req, res) {
     return res.status(400).json({
       error:
         'Invalid sender domain for Resend. Public domains (gmail/outlook/yahoo/icloud) cannot be used as FROM. Verify your own domain in Resend and set FIREBALL_FROM_EMAIL with that domain.',
+      resendDomainsUrl: 'https://resend.com/domains',
       debug: { from: FIREBALL_FROM_EMAIL, fromDomain },
     })
   }
