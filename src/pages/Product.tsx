@@ -1,5 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CATEGORIES, type Product as LocalProduct } from '@/data/products'
 import { useCart } from '@/context/CartContext'
 import { fetchProductFromShopifyBySlug } from '@/utils/shopifyStorefront'
@@ -7,6 +8,7 @@ import { fetchProductFromShopifyBySlug } from '@/utils/shopifyStorefront'
 type ProductType = LocalProduct
 
 export function Product() {
+  const { t } = useTranslation()
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
   const { addToCart } = useCart()
@@ -44,7 +46,7 @@ export function Product() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-24 text-center">
-        <h1 className="font-display text-3xl text-pearl mb-4">Chargement du produit…</h1>
+        <h1 className="font-display text-3xl text-pearl mb-4">{t('product.loading')}</h1>
       </div>
     )
   }
@@ -52,9 +54,9 @@ export function Product() {
   if (!product) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-24 text-center">
-        <h1 className="font-display text-4xl text-pearl mb-4">Produit introuvable</h1>
+        <h1 className="font-display text-4xl text-pearl mb-4">{t('product.notFound')}</h1>
         <Link to="/boutique" className="text-chrome hover:underline">
-          Retour à la boutique
+          {t('product.backToShop')}
         </Link>
       </div>
     )
@@ -72,7 +74,7 @@ export function Product() {
     <div className="max-w-7xl mx-auto px-6 py-16">
       <nav className="text-sm text-silver/70 mb-8">
         <Link to="/boutique" className="hover:text-chrome">
-          Boutique
+          {t('product.shop')}
         </Link>
         {category && (
           <>
@@ -142,7 +144,7 @@ export function Product() {
             }}
             className="mt-4 w-full py-3 border border-carbon-600 text-silver text-sm uppercase hover:border-chrome hover:text-chrome transition-colors"
           >
-            Acheter maintenant
+            {t('product.buyNow')}
           </button>
         </div>
       </div>

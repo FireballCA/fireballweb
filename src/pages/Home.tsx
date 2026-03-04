@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { CATEGORIES } from '@/data/products'
 import { getFeaturedProducts } from '@/data/products'
 import { SurfaceTechnology } from '@/components/SurfaceTechnology'
 
 export function Home() {
+  const { t } = useTranslation()
   const featured = getFeaturedProducts()
 
   return (
@@ -21,10 +23,10 @@ export function Home() {
         </video>
         <div className="relative z-10 text-center px-6 max-w-4xl mx-auto animate-slide-up">
           <h1 className="font-nav font-bold text-6xl md:text-8xl lg:text-9xl text-pearl tracking-tight leading-none mb-4">
-            Preserve What Matters
+            {t('home.heroTitle')}
           </h1>
           <p className="text-silver/80 text-lg md:text-xl max-w-xl mx-auto font-light">
-            Advanced ceramic protection technologies engineered to defend and enhance automotive finishes.
+            {t('home.heroSubtitle')}
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <Link
@@ -38,7 +40,7 @@ export function Home() {
               to="/boutique#featured"
               className="inline-block px-8 py-3.5 border border-silver/30 text-pearl font-nav font-bold text-sm uppercase rounded-lg hover:bg-carbon-700/30 transition-all duration-300"
             >
-              Technology
+              {t('home.technology')}
             </Link>
           </div>
         </div>
@@ -55,7 +57,7 @@ export function Home() {
         <div className="max-w-7xl mx-auto px-6">
           <p className="text-chrome text-sm uppercase mb-2">Gammes</p>
           <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight mb-16">
-            Trois univers, une exigence
+            {t('home.categoriesTitle')}
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             {CATEGORIES.map((cat, i) => (
@@ -88,7 +90,7 @@ export function Home() {
         <div className="max-w-7xl mx-auto px-6">
           <p className="text-chrome text-sm uppercase mb-2">Sélection</p>
           <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight mb-16">
-            Produits phares
+            {t('home.featuredTitle')}
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {featured.map((product) => (
@@ -132,16 +134,16 @@ export function Home() {
       <section className="py-24 border-t border-carbon-800">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight mb-6">
-            L'excellence en détail
+            {t('home.ctaTitle')}
           </h2>
           <p className="text-silver/80 mb-10">
-            Des formulations professionnelles pour les passionnés et les experts. Livraison soignée, conseils inclus.
+            {t('home.ctaSubtitle')}
           </p>
           <Link
             to="/boutique"
             className="inline-block px-8 py-4 border border-chrome text-chrome text-sm uppercase hover:bg-chrome hover:text-carbon-950 transition-colors"
           >
-            Accéder à la boutique
+            {t('home.ctaButton')}
           </Link>
         </div>
       </section>

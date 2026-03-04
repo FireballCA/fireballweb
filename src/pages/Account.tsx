@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { isAuthenticated } from '@/utils/supabaseAuth'
 import { IOSCheckbox } from '@/components/IOSCheckbox'
@@ -41,6 +42,7 @@ function FlagFR() {
 }
 
 export function Account() {
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
@@ -48,17 +50,34 @@ export function Account() {
   const [errorMessage, setErrorMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [rememberDevice, setRememberDevice] = useState(false)
-  const [lang, setLang] = useState<'EN' | 'FR'>('EN')
   const [langMenuOpen, setLangMenuOpen] = useState(false)
-  const isEN = lang === 'EN'
+  const lang = i18n.language === 'fr' ? 'FR' : 'EN'
 
   const returnToParam = new URLSearchParams(location.search).get('returnTo')
   const returnToPath = returnToParam === '/account/company' ? returnToParam : null
 
   useEffect(() => {
     document.title = 'Account | Fireball Canada'
-    
-    // Vérifier si l'utilisateur est déjà connecté
+    const mq = window.matchMedia('(max-width: 767px)')
+    const apply = () => {
+      if (mq.matches) {
+        document.body.style.overflow = 'hidden'
+        document.body.style.height = '100vh'
+      } else {
+        document.body.style.overflow = ''
+        document.body.style.height = ''
+      }
+    }
+    apply()
+    mq.addEventListener('change', apply)
+    return () => {
+      mq.removeEventListener('change', apply)
+      document.body.style.overflow = ''
+      document.body.style.height = ''
+    }
+  }, [])
+
+  useEffect(() => {
     const checkAuth = async () => {
       const authenticated = await isAuthenticated()
       if (authenticated) {
@@ -80,16 +99,13 @@ export function Account() {
       })
 
       if (error) {
-        setErrorMessage(
-          error.message || (isEN ? 'Invalid email or password.' : 'Email ou mot de passe invalide.')
-        )
+        setErrorMessage(error.message || t('auth.signInDesc'))
         setLoading(false)
         return
       }
 
       if (data.user) {
-        // Save language preference to profiles table
-        const languageCode = isEN ? 'en' : 'fr'
+        const languageCode = i18n.language === 'fr' ? 'fr' : 'en'
         try {
           await supabase.from('profiles').update({ language: languageCode }).eq('id', data.user.id)
         } catch (e) {
@@ -100,21 +116,17 @@ export function Account() {
       }
     } catch (error) {
       console.error('Login error:', error)
-      setErrorMessage(
-        isEN
-          ? 'An unexpected error occurred. Please try again.'
-          : 'Une erreur inattendue est survenue. Merci de réessayer.'
-      )
+      setErrorMessage(t('common.error'))
       setLoading(false)
     }
   }
 
   return (
-    <section className="relative min-h-screen overflow-hidden bg-black flex items-center justify-center px-6 py-16">
+    <section className="relative h-screen md:h-auto md:min-h-screen w-screen max-w-full overflow-hidden md:overflow-visible bg-black flex flex-col md:items-center md:justify-center">
       {/* Background */}
-      <div className="absolute inset-0 bg-black" />
-      <div className="absolute -top-40 -right-32 w-80 h-80 bg-red-500/18 blur-3xl rounded-full opacity-70 pointer-events-none" />
-      <div className="absolute -bottom-40 -left-32 w-80 h-80 bg-white/8 blur-3xl rounded-full opacity-60 pointer-events-none" />
+      <div className="absolute inset-0 bg-black pointer-events-none" />
+      <div className="absolute -top-40 -right-32 w-80 h-80 bg-red-500/18 blur-3xl rounded-full opacity-70 pointer-events-none" aria-hidden />
+      <div className="absolute -bottom-40 -left-32 w-80 h-80 bg-white/8 blur-3xl rounded-full opacity-60 pointer-events-none" aria-hidden />
 
       {/* Top bar: logo left, language dropdown right */}
       <div className="absolute top-6 left-6 z-30">
@@ -153,7 +165,7 @@ export function Account() {
               <button
                 type="button"
                 onClick={() => {
-                  setLang('EN')
+                  i18n.changeLanguage('en')
                   setLangMenuOpen(false)
                 }}
                 className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-white/85 hover:bg-white/5"
@@ -166,7 +178,7 @@ export function Account() {
               <button
                 type="button"
                 onClick={() => {
-                  setLang('FR')
+                  i18n.changeLanguage('fr')
                   setLangMenuOpen(false)
                 }}
                 className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-white/70 hover:bg-white/5"
@@ -181,19 +193,18 @@ export function Account() {
         </div>
       </div>
 
-      <div className="relative z-10 w-full max-w-md">
-        <div className="flex flex-col bg-black rounded-xl border border-white/10 shadow-[0_22px_55px_rgba(0,0,0,0.7)] overflow-hidden">
-          {/* Form */}
-          <div className="w-full bg-black px-6 sm:px-10 py-8 sm:py-10 flex items-center">
+      <div className="relative z-10 flex-1 min-h-0 w-full overflow-y-auto flex flex-col items-center justify-center px-4 py-4 md:py-8">
+        <div className="w-full max-w-md flex-shrink-0">
+          <div className="flex flex-col bg-black rounded-xl border border-white/10 shadow-[0_22px_55px_rgba(0,0,0,0.7)] overflow-hidden md:rounded-xl">
+            {/* Form */}
+            <div className="w-full bg-black px-6 sm:px-10 py-6 sm:py-10 flex items-center">
             <div className="w-full max-w-md mx-auto">
               <div className="mb-7">
                 <h1 className="text-2xl sm:text-3xl font-semibold text-white mb-1">
-                  {isEN ? 'Sign in' : 'Se connecter'}
+                  {t('auth.signIn')}
                 </h1>
                 <p className="text-sm text-white/60">
-                  {isEN
-                    ? 'Enter your credentials to access your account.'
-                    : 'Entre tes identifiants pour accéder à ton compte.'}
+                  {t('auth.signInDesc')}
                 </p>
               </div>
 
@@ -201,7 +212,7 @@ export function Account() {
                 {/* Email */}
                 <div>
                   <label htmlFor="email" className="block text-white/70 text-xs mb-2 font-medium">
-                    {isEN ? 'Email' : 'Email'}
+                    {t('auth.email')}
                   </label>
                   <input
                     id="email"
@@ -209,7 +220,7 @@ export function Account() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none transition-all bg-[#121212] border border-[#1a1a1a] focus:bg-[#1a1a1a] focus:border-[#444]"
-                    placeholder="you@example.com"
+                    placeholder={t('auth.emailPlaceholder')}
                     required
                     disabled={loading}
                   />
@@ -218,7 +229,7 @@ export function Account() {
                 {/* Password with eye icon (press & hold) */}
                 <div>
                   <label htmlFor="password" className="block text-white/70 text-xs mb-2 font-medium">
-                    {isEN ? 'Password' : 'Mot de passe'}
+                    {t('auth.password')}
                   </label>
                   <div className="relative">
                     <input
@@ -227,7 +238,7 @@ export function Account() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none transition-all bg-[#121212] border border-[#1a1a1a] focus:bg-[#1a1a1a] focus:border-[#444]"
-                      placeholder="Enter your password"
+                      placeholder={t('auth.passwordPlaceholder')}
                       required
                       disabled={loading}
                     />
@@ -289,7 +300,7 @@ export function Account() {
                     color="red"
                     sizeEm={0.88}
                   />
-                  <span>{isEN ? 'Remember this device' : 'Se souvenir de cet appareil'}</span>
+                  <span>{t('auth.rememberDevice')}</span>
                 </div>
 
                 {/* Error message */}
@@ -305,17 +316,17 @@ export function Account() {
                   disabled={loading}
                   className="w-full bg-white text-black border-none py-4 rounded-lg font-semibold text-sm cursor-pointer transition-colors hover:bg-[#e5e5e5] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? (isEN ? 'Signing in...' : 'Connexion...') : isEN ? 'Sign in' : 'Se connecter'}
+                  {loading ? t('auth.signingIn') : t('auth.signIn')}
                 </button>
 
                 {/* Register link */}
                 <p className="text-center text-sm text-white/60 mt-5">
-                  New here?{' '}
+                  {t('auth.newHere')}{' '}
                   <Link
                     to={returnToPath ? `/account/register?returnTo=${encodeURIComponent(returnToPath)}` : '/account/register'}
                     className="inline-flex items-center gap-1 text-sm font-medium text-white hover:text-white/80 underline transition-colors"
                   >
-                    Create an account
+                    {t('auth.createAccount')}
                     <svg className="w-4 h-4 transform -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
@@ -323,18 +334,19 @@ export function Account() {
                 </p>
               </form>
             </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Global help link at bottom of page */}
-      <div className="absolute inset-x-0 bottom-6 z-10 text-center text-sm">
-        <span className="text-white/45">Need help? </span>
+      <div className="absolute inset-x-0 bottom-4 md:bottom-6 z-10 text-center text-sm flex-shrink-0">
+        <span className="text-white/45">{t('auth.needHelp')} </span>
         <a
           href="mailto:contact@fireball.fr"
           className="text-white hover:text-white/80 underline"
         >
-          Contact Us
+          {t('auth.contactUs')}
         </a>
       </div>
     </section>

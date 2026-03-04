@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { PRODUCTS, CATEGORIES, type CategoryId, type Product } from '@/data/products'
 import { useCart } from '@/context/CartContext'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 
 export function Shop() {
+  const { t } = useTranslation()
   const { categoryId } = useParams<{ categoryId?: string }>()
   const { addToCart } = useCart()
   const [allProducts, setAllProducts] = useState<Product[]>(PRODUCTS)
@@ -24,7 +26,7 @@ export function Shop() {
       } catch (err) {
         console.error('Unable to load Shopify products', err)
         if (!cancelled) {
-          setError("Impossible de charger les produits en temps réel. Affichage des produits statiques.")
+          setError(t('shop.loadError'))
         }
       } finally {
         if (!cancelled) {
@@ -47,15 +49,15 @@ export function Shop() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-16">
       <div className="mb-12">
-        <p className="text-chrome text-sm uppercase mb-2">Boutique</p>
+        <p className="text-chrome text-sm uppercase mb-2">{t('shop.label')}</p>
         <h1 className="font-display text-4xl md:text-6xl text-pearl tracking-tight">
-          {category ? category.name : 'Tous les produits'}
+          {category ? category.name : t('shop.allProducts')}
         </h1>
         {category && (
           <p className="text-silver/80 mt-2 max-w-xl">{category.description}</p>
         )}
         {loading && (
-          <p className="text-silver/70 mt-4 text-sm">Chargement des produits en temps réel…</p>
+          <p className="text-silver/70 mt-4 text-sm">{t('shop.loading')}</p>
         )}
         {!loading && error && (
           <p className="text-amber-300 mt-4 text-sm">{error}</p>
@@ -125,7 +127,7 @@ export function Shop() {
                 }}
                 className="w-full py-3 border border-carbon-600 text-silver text-sm uppercase hover:border-chrome hover:text-chrome transition-colors"
               >
-                Ajouter au panier
+                {t('shop.addToCart')}
               </button>
             </div>
           </article>

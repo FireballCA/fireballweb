@@ -1,5 +1,6 @@
-import { useId, useState, useEffect, useRef } from 'react'
+﻿import { useId, useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useCart } from '@/context/CartContext'
 import { CATEGORIES } from '@/data/products'
 import { isAuthenticated } from '@/utils/supabaseAuth'
@@ -88,6 +89,7 @@ function FlagFR() {
 }
 
 export function Header() {
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -97,7 +99,7 @@ export function Header() {
   const [mobileShopOpen, setMobileShopOpen] = useState(false)
   const [mobileCompanyOpen, setMobileCompanyOpen] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
-  const [lang, setLang] = useState<'EN' | 'FR'>('EN')
+  const lang = i18n.language === 'fr' ? 'FR' : 'EN'
   const [langOpen, setLangOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const langMenuDesktopRef = useRef<HTMLDivElement | null>(null)
@@ -570,7 +572,7 @@ export function Header() {
                     <button
                       type="button"
                       onClick={() => {
-                        setLang('EN')
+                        i18n.changeLanguage('en')
                         setLangOpen(false)
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm font-nav font-bold text-carbon-900 transition-colors rounded-2xl hover:bg-black/10"
@@ -583,7 +585,7 @@ export function Header() {
                     <button
                       type="button"
                       onClick={() => {
-                        setLang('FR')
+                        i18n.changeLanguage('fr')
                         setLangOpen(false)
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm font-nav font-bold text-carbon-900 transition-colors rounded-2xl hover:bg-black/10"
@@ -1013,7 +1015,7 @@ export function Header() {
                       <button
                         type="button"
                         onClick={() => {
-                          setLang('FR')
+                          i18n.changeLanguage('fr')
                           setLangOpen(false)
                         }}
                         className="flex w-[96%] mx-auto items-center gap-2 py-2 px-2 text-sm font-nav font-bold text-silver hover:text-white"
@@ -1027,7 +1029,7 @@ export function Header() {
                       <button
                         type="button"
                         onClick={() => {
-                          setLang('EN')
+                          i18n.changeLanguage('en')
                           setLangOpen(false)
                         }}
                         className="flex w-[96%] mx-auto items-center gap-2 py-2 px-2 text-sm font-nav font-bold text-silver hover:text-white"
