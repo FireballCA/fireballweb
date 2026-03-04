@@ -40,21 +40,38 @@ export function AccountRegister() {
   const handleRegisterSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setErrorMessage('')
-    setLoading(true)
 
     try {
-      // Extraire first_name et last_name du fullName
-      const nameParts = fullName.trim().split(/\s+/).filter(Boolean)
-      const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : nameParts[0] || ''
-      const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''
+      const trimmedName = fullName.trim()
+      const trimmedEmail = email.trim()
+      const trimmedPassword = password.trim()
+
+      // Validation côté client : tous les champs obligatoires
+      if (!trimmedName || !trimmedEmail || !trimmedPassword) {
+        setErrorMessage('Tous les champs sont obligatoires.')
+        return
+      }
+
+      // Le nom complet doit contenir au moins deux parties (Prénom + Nom)
+      const nameParts = trimmedName.split(/\s+/).filter(Boolean)
+      if (nameParts.length < 2) {
+        setErrorMessage('Entre ton nom complet (prénom + nom de famille).')
+        return
+      }
+
+      // Extraire first_name et last_name du fullName validé
+      const firstName = nameParts.slice(0, -1).join(' ')
+      const lastName = nameParts[nameParts.length - 1]
+
+      setLoading(true)
 
       // Étape 1: Créer l'utilisateur avec Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password,
+        email: trimmedEmail,
+        password: trimmedPassword,
         options: {
           data: {
-            full_name: fullName.trim(),
+            full_name: trimmedName,
             first_name: firstName || '',
             last_name: lastName || '',
           },
@@ -81,7 +98,7 @@ export function AccountRegister() {
           id: authData.user.id,
           first_name: firstName,
           last_name: lastName,
-          email: email.trim(),
+          email: trimmedEmail,
           created_at: new Date().toISOString(),
           xp: 0,
           external_member_id: externalMemberId,
@@ -96,8 +113,8 @@ export function AccountRegister() {
 
       // Étape 4: Créer le client Shopify (sync en arrière-plan côté métier, mais appel vérifié ici)
       const shopifySync = await createShopifyCustomer({
-        email: email.trim(),
-        password,
+        email: trimmedEmail,
+        password: trimmedPassword,
         first_name: firstName || 'Member',
         last_name: lastName || '',
       })
@@ -115,7 +132,7 @@ export function AccountRegister() {
           replace: true,
           state: {
             fromRegister: true,
-            welcomeName: fullName.trim(),
+            welcomeName: trimmedName,
             shopifySyncError,
           },
         })
@@ -123,6 +140,9 @@ export function AccountRegister() {
     } catch (error) {
       console.error('Registration error:', error)
       setErrorMessage('An unexpected error occurred. Please try again.')
+      setLoading(false)
+    } finally {
+      // Si la navigation a été faite, ce setLoading est sans effet
       setLoading(false)
     }
   }
