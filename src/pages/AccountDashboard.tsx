@@ -319,6 +319,7 @@ export function AccountDashboard() {
   const [carModalOpen, setCarModalOpen] = useState(false)
   const [productsPurchasedOpen, setProductsPurchasedOpen] = useState(false)
   const [adminPanelOpen, setAdminPanelOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [settingsVehicle, setSettingsVehicle] = useState<Vehicle | null>(null)
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('none')
@@ -795,14 +796,8 @@ export function AccountDashboard() {
           ])
         }}
       />
-      <ProductsPurchasedSheet
-        isOpen={productsPurchasedOpen}
-        onClose={() => setProductsPurchasedOpen(false)}
-      />
-      <AdminPanelSheet
-        isOpen={adminPanelOpen}
-        onClose={() => setAdminPanelOpen(false)}
-      />
+      <ProductsPurchasedSheet isOpen={productsPurchasedOpen} onClose={() => setProductsPurchasedOpen(false)} />
+      <AdminPanelSheet isOpen={adminPanelOpen} onClose={() => setAdminPanelOpen(false)} />
       {settingsVehicle && (
         <VehicleSettingsModal
           vehicle={settingsVehicle}
