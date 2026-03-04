@@ -32,6 +32,7 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
   const [items, setItems] = useState<PurchaseItem[]>([])
   const [loadingItems, setLoadingItems] = useState(false)
   const [dateFilter, setDateFilter] = useState<'all' | '30d' | '6m' | 'year'>('all')
+  const [dateMenuOpen, setDateMenuOpen] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -233,32 +234,62 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
                 <p className="text-[13px] font-medium text-white/80">
                   Your orders
                 </p>
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.02] px-2 py-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-[11px] font-nav uppercase tracking-[0.16em] text-white/55 mr-1">
-                    Date range
-                  </span>
-                  {[
-                    { id: 'all', label: 'All time' },
-                    { id: '30d', label: 'Last 30 days' },
-                    { id: '6m', label: 'Last 6 months' },
-                    { id: 'year', label: 'This year' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() =>
-                        setSelectedPurchaseId(null) || setDateFilter(opt.id as 'all' | '30d' | '6m' | 'year')
-                      }
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-nav uppercase tracking-[0.14em] ${
-                        dateFilter === opt.id
-                          ? 'bg-white text-black'
-                          : 'text-white/65 hover:bg-white/[0.08]'
-                      }`}
+                <div className="relative inline-flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setDateMenuOpen((open) => !open)}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.02] px-3 py-1.5 text-[11px] font-nav uppercase tracking-[0.16em] text-white/70 hover:bg-white/[0.06]"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span>Date range</span>
+                    <span className="text-white/60 text-[10px]">
+                      {dateFilter === 'all'
+                        ? 'All time'
+                        : dateFilter === '30d'
+                        ? 'Last 30 days'
+                        : dateFilter === '6m'
+                        ? 'Last 6 months'
+                        : 'This year'}
+                    </span>
+                    <svg
+                      className={`w-3 h-3 transition-transform ${dateMenuOpen ? 'rotate-180' : ''}`}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.7}
                     >
-                      {opt.label}
-                    </button>
-                  ))}
+                      <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  {dateMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl border border-white/[0.16] bg-[#060606] shadow-[0_18px_45px_rgba(0,0,0,0.7)] z-10">
+                      <div className="py-2">
+                        {[
+                          { id: 'all', label: 'All time' },
+                          { id: '30d', label: 'Last 30 days' },
+                          { id: '6m', label: 'Last 6 months' },
+                          { id: 'year', label: 'This year' },
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedPurchaseId(null)
+                              setDateFilter(opt.id as 'all' | '30d' | '6m' | 'year')
+                              setDateMenuOpen(false)
+                            }}
+                            className={`w-full px-3 py-1.5 text-left text-[11px] font-nav uppercase tracking-[0.14em] ${
+                              dateFilter === opt.id
+                                ? 'bg-white text-black'
+                                : 'text-white/75 hover:bg-white/[0.06]'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
