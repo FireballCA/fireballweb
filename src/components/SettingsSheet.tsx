@@ -47,6 +47,7 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [editingField, setEditingField] = useState<'firstName' | 'lastName' | 'email' | 'phone' | null>(null)
 
   useEffect(() => {
     if (!isOpen) return
@@ -390,39 +391,155 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">First name</p>
-                    <input
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/35"
-                      placeholder="First name"
-                    />
+                    {editingField === 'firstName' ? (
+                      <input
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        onBlur={() => setEditingField(null)}
+                        className="w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/35"
+                        placeholder="First name"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="group relative w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white/90 flex items-center justify-between cursor-default">
+                        <span className="truncate">{firstName || '—'}</span>
+                        <button
+                          type="button"
+                          onClick={() => setEditingField('firstName')}
+                          className="opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.06] text-white/80 hover:bg-white/[0.14]"
+                          aria-label="Edit first name"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+                            <path d="m15 5 4 4" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">Last name</p>
-                    <input
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/35"
-                      placeholder="Last name"
-                    />
+                    {editingField === 'lastName' ? (
+                      <input
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        onBlur={() => setEditingField(null)}
+                        className="w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/35"
+                        placeholder="Last name"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="group relative w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white/90 flex items-center justify-between cursor-default">
+                        <span className="truncate">{lastName || '—'}</span>
+                        <button
+                          type="button"
+                          onClick={() => setEditingField('lastName')}
+                          className="opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.06] text-white/80 hover:bg-white/[0.14]"
+                          aria-label="Edit last name"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+                            <path d="m15 5 4 4" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">Email</p>
-                    <input
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/35"
-                      placeholder="Email"
-                    />
+                    {editingField === 'email' ? (
+                      <input
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onBlur={() => setEditingField(null)}
+                        className="w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/35"
+                        placeholder="Email"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="group relative w-full rounded-2xl bg-black/40 px-3.5 py-2.5 text-sm text-white/90 flex items-center justify-between cursor-default">
+                        <span className="truncate">{email || '—'}</span>
+                        <button
+                          type="button"
+                          onClick={() => setEditingField('email')}
+                          className="opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.06] text-white/80 hover:bg-white/[0.14]"
+                          aria-label="Edit email"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+                            <path d="m15 5 4 4" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">Phone number</p>
-                    <input
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full rounded-2xl bg-black/30 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/35"
-                      placeholder="Phone number"
-                    />
+                    {editingField === 'phone' ? (
+                      <input
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        onBlur={() => setEditingField(null)}
+                        className="w-full rounded-2xl bg-black/30 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/35"
+                        placeholder="Phone number"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="group relative w-full rounded-2xl bg-black/30 px-3.5 py-2.5 text-sm text-white/80 flex items-center justify-between cursor-default">
+                        <span className="truncate">{phone || '—'}</span>
+                        <button
+                          type="button"
+                          onClick={() => setEditingField('phone')}
+                          className="opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 ease-out flex items-center justify-center w-8 h-8 rounded-full bg-white/[0.06] text-white/80 hover:bg-white/[0.14]"
+                          aria-label="Edit phone number"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+                            <path d="m15 5 4 4" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className="text-[11px] text-white/55 uppercase tracking-[0.14em] mb-1.5">Member ID</p>

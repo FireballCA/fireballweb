@@ -33,6 +33,7 @@ const COMPANY_SECTIONS: Array<{
     description: 'Brand, recognition & story',
     links: [
       { label: 'Open FIREBALL Center', to: '/join-fireball' },
+      { label: 'Merch', to: '/boutique' },
       { label: 'Awards', href: '#' },
       { label: 'About us', href: '#' },
     ],
@@ -796,6 +797,28 @@ export function Header() {
                           </svg>
                         </span>
                         <span>Open FIREBALL Center</span>
+                      </Link>
+                      <Link
+                        to="/boutique"
+                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+                          </svg>
+                        </span>
+                        <span>Merch</span>
                       </Link>
                       <button
                         type="button"
