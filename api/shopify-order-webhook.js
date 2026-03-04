@@ -32,6 +32,7 @@ export default async function handler(req, res) {
   const totalPrice = payload.total_price || null
   const currency = payload.currency || payload.presentment_currency || null
   const createdAt = payload.created_at || new Date().toISOString()
+  const lineItems = Array.isArray(payload.line_items) ? payload.line_items : []
 
   console.log('[shopify-order-webhook] Order received', {
     orderId,
@@ -76,18 +77,53 @@ export default async function handler(req, res) {
     const pointsEarned = Math.max(0, Math.round(numericTotal))
 
     // 2) Insérer une ligne de commande dans purchases (si la table existe)
+    let purchaseId = null
     try {
-      await supabase.from('purchases').insert({
-        user_id: userId,
-        shopify_order_id: String(orderId ?? ''),
-        order_number: orderNumber ? String(orderNumber) : null,
-        total_price: numericTotal,
-        currency: currency || 'CAD',
-        points_earned: pointsEarned,
-        placed_at: createdAt,
-      })
+      const { data: inserted, error: insertError } = await supabase
+        .from('purchases')
+        .insert({
+          user_id: userId,
+          shopify_order_id: String(orderId ?? ''),
+          order_number: orderNumber ? String(orderNumber) : null,
+          total_price: numericTotal,
+          currency: currency || 'CAD',
+          points_earned: pointsEarned,
+          placed_at: createdAt,
+        })
+        .select('id')
+        .maybeSingle()
+
+      if (insertError) {
+        console.warn('[shopify-order-webhook] Could not insert into purchases (table may not exist yet)', insertError)
+      } else if (inserted && inserted.id) {
+        purchaseId = inserted.id
+      }
     } catch (insertError) {
-      console.warn('[shopify-order-webhook] Could not insert into purchases (table may not exist yet)', insertError)
+      console.warn('[shopify-order-webhook] Unexpected error inserting into purchases', insertError)
+    }
+
+    // 2b) Enregistrer les line_items dans purchase_items si la table existe
+    if (purchaseId && lineItems.length > 0) {
+      try {
+        const rows = lineItems.map((item) => {
+          const qty = typeof item.quantity === 'number' ? item.quantity : Number(item.quantity || 1) || 1
+          const unit = Number.parseFloat(String(item.price ?? '0')) || 0
+          return {
+            purchase_id: purchaseId,
+            shopify_line_item_id: String(item.id ?? ''),
+            product_title: String(item.title || item.name || 'Produit').trim(),
+            variant_title: item.variant_title ? String(item.variant_title).trim() : null,
+            sku: item.sku ? String(item.sku).trim() : null,
+            quantity: qty,
+            unit_price: unit,
+            total_price: unit * qty,
+          }
+        })
+
+        await supabase.from('purchase_items').insert(rows)
+      } catch (itemsError) {
+        console.warn('[shopify-order-webhook] Could not insert into purchase_items (table may not exist yet)', itemsError)
+      }
     }
 
     // 3) Mettre à jour le XP cumulé sur le profil
