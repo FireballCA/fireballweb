@@ -6,6 +6,7 @@ import { AddVehicleModal } from '@/components/AddVehicleModal'
 import { FireballLoading } from '@/components/FireballLoading'
 import { ProductsPurchasedSheet } from '@/components/ProductsPurchasedSheet'
 import { AdminPanelSheet } from '@/components/AdminPanelSheet'
+import { SettingsSheet } from '@/components/SettingsSheet'
 import { Footer } from '@/components/Layout/Footer'
 import {
   fetchGarageVehicles,
@@ -578,6 +579,7 @@ export function AccountDashboard() {
             barcodeValue={barcodeValue}
             onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}
             onAdminPanelClick={() => setAdminPanelOpen(true)}
+            onSettingsClick={() => setSettingsOpen(true)}
           />
           <div 
             className="w-full bg-[#0a0a0a] relative z-20 overflow-hidden"
@@ -798,6 +800,7 @@ export function AccountDashboard() {
       />
       <ProductsPurchasedSheet isOpen={productsPurchasedOpen} onClose={() => setProductsPurchasedOpen(false)} />
       <AdminPanelSheet isOpen={adminPanelOpen} onClose={() => setAdminPanelOpen(false)} />
+      <SettingsSheet isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
       {settingsVehicle && (
         <VehicleSettingsModal
           vehicle={settingsVehicle}

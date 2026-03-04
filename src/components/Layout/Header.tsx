@@ -770,135 +770,139 @@ export function Header() {
                     <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
                       Company
                     </p>
-                    <Link
-                      to="/join-fireball"
-                      className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M10 12h4" />
-                          <path d="M10 8h4" />
-                          <path d="M14 21v-3a2 2 0 0 0-4 0v3" />
-                          <path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2" />
-                          <path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
-                        </svg>
-                      </span>
-                      <span>Open FIREBALL Center</span>
-                    </Link>
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <circle cx="12" cy="8" r="6" />
-                          <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" />
-                        </svg>
-                      </span>
-                      <span>Awards</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                          <path d="M16 3.128a4 4 0 0 1 0 7.744" />
-                          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                          <circle cx="9" cy="7" r="4" />
-                        </svg>
-                      </span>
-                      <span>About us</span>
-                    </button>
+                    <div className="mt-1 space-y-1.5 pl-3">
+                      <Link
+                        to="/join-fireball"
+                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M10 12h4" />
+                            <path d="M10 8h4" />
+                            <path d="M14 21v-3a2 2 0 0 0-4 0v3" />
+                            <path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2" />
+                            <path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
+                          </svg>
+                        </span>
+                        <span>Open FIREBALL Center</span>
+                      </Link>
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <circle cx="12" cy="8" r="6" />
+                            <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" />
+                          </svg>
+                        </span>
+                        <span>Awards</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                            <path d="M16 3.128a4 4 0 0 1 0 7.744" />
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                            <circle cx="9" cy="7" r="4" />
+                          </svg>
+                        </span>
+                        <span>About us</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="pt-3 border-t border-white/[0.06] space-y-1.5">
                     <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
                       Connect
                     </p>
-                    <a
-                      href="mailto:contact@fireball.fr"
-                      className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12.5" />
-                          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                          <path d="M18 15.28c.2-.4.5-.8.9-1a2.1 2.1 0 0 1 2.6.4c.3.4.5.8.5 1.3 0 1.3-2 2-2 2" />
-                          <path d="M20 22v.01" />
-                        </svg>
-                      </span>
-                      <span>Contact us</span>
-                    </a>
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
-                          <circle cx="12" cy="13" r="2" />
-                          <path d="M12 15v5" />
-                        </svg>
-                      </span>
-                      <span>Press kit</span>
-                    </button>
+                    <div className="mt-1 space-y-1.5 pl-3">
+                      <a
+                        href="mailto:contact@fireball.fr"
+                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12.5" />
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                            <path d="M18 15.28c.2-.4.5-.8.9-1a2.1 2.1 0 0 1 2.6.4c.3.4.5.8.5 1.3 0 1.3-2 2-2 2" />
+                            <path d="M20 22v.01" />
+                          </svg>
+                        </span>
+                        <span>Contact us</span>
+                      </a>
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
+                            <circle cx="12" cy="13" r="2" />
+                            <path d="M12 15v5" />
+                          </svg>
+                        </span>
+                        <span>Press kit</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -908,7 +912,7 @@ export function Header() {
               <div className="mt-4">
                 <button
                   type="button"
-                  className="inline-flex w-[96%] mx-auto items-center gap-2 py-3 px-2 font-nav text-white"
+                  className="flex w-[96%] mx-auto items-center gap-2 py-3 px-2 text-sm font-nav font-bold text-white"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -998,7 +1002,7 @@ export function Header() {
                   setMenuOpen(false)
                   navigate('/account')
                 }}
-                className="w-[96%] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white bg-[#B61B1B] shadow-[0_14px_30px_rgba(0,0,0,0.55)] hover:bg-[#b61b1bcc] transition-colors"
+                className="w-[95vw] max-w-[520px] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white bg-[#B61B1B] shadow-[0_14px_30px_rgba(0,0,0,0.55)] hover:bg-[#b61b1bcc] transition-colors"
               >
                 Log in
               </button>
@@ -1008,7 +1012,7 @@ export function Header() {
                   setMenuOpen(false)
                   navigate('/join-fireball')
                 }}
-                className="w-[96%] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white border border-white/[0.16] bg-transparent hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors"
+                className="w-[95vw] max-w-[520px] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white border border-white/[0.16] bg-transparent hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors"
               >
                 Join Fireball
               </button>

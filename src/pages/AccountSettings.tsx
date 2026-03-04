@@ -174,66 +174,36 @@ export function AccountSettings() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] gap-8 lg:gap-12 items-start">
-          <div className="space-y-4">
-            <div
-              className="rounded-3xl border border-white/15 bg-white/[0.05] px-5 py-5 shadow-[0_18px_45px_rgba(0,0,0,0.45)]"
-              style={{
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-              }}
-            >
-              <p className="text-[13px] font-medium text-white/90 mb-1.5">Profile & contact</p>
-              <p className="text-[12px] leading-relaxed text-white/65">
-                Modifie ton nom affiché et confirme l’adresse email utilisée pour ta
-                connexion, tes points et tes factures Shopify.
-              </p>
-            </div>
+        <div className="w-full max-w-[720px] mx-auto">
+          <form
+            onSubmit={handleSave}
+            className="rounded-3xl border border-white/15 bg-white/[0.04] px-5 md:px-7 py-6 md:py-7 shadow-[0_22px_55px_rgba(0,0,0,0.6)]"
+            style={{
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
+            }}
+          >
+            {loading ? (
+              <div className="py-10 text-sm text-white/60">Chargement de tes paramètres…</div>
+            ) : (
+              <>
+                {error && (
+                  <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[13px] text-red-100">
+                    {error}
+                  </div>
+                )}
+                {success && (
+                  <div className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-100">
+                    {success}
+                  </div>
+                )}
 
-            <div
-              className="rounded-3xl border border-white/10 bg-white/[0.03] px-5 py-5 shadow-[0_16px_40px_rgba(0,0,0,0.45)]"
-              style={{
-                backdropFilter: 'blur(18px)',
-                WebkitBackdropFilter: 'blur(18px)',
-              }}
-            >
-              <p className="text-[13px] font-medium text-white/90 mb-1.5">Notifications</p>
-              <p className="text-[12px] leading-relaxed text-white/65">
-                Choisis comment on te contacte pour les mises à jour de commandes et les
-                nouveautés Fireball.
-              </p>
-              <ul className="mt-3 space-y-1.5 text-[12px] text-white/55">
-                <li>- Email de suivi de commandes et factures Shopify</li>
-                <li>- Emails d’actualités, drops et promotions</li>
-              </ul>
-            </div>
-          </div>
-
-          <div>
-            <form
-              onSubmit={handleSave}
-              className="rounded-3xl border border-white/15 bg-white/[0.04] px-5 md:px-7 py-6 md:py-7 shadow-[0_22px_55px_rgba(0,0,0,0.6)]"
-              style={{
-                backdropFilter: 'blur(24px)',
-                WebkitBackdropFilter: 'blur(24px)',
-              }}
-            >
-              {loading ? (
-                <div className="py-10 text-sm text-white/60">Chargement de tes paramètres…</div>
-              ) : (
-                <>
-                  {error && (
-                    <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[13px] text-red-100">
-                      {error}
-                    </div>
-                  )}
-                  {success && (
-                    <div className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-100">
-                      {success}
-                    </div>
-                  )}
-
-                  <div className="space-y-5">
+                <div className="space-y-6">
+                  {/* Profile */}
+                  <div className="space-y-4">
+                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/60">
+                      Profile
+                    </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/60 mb-2">
@@ -272,74 +242,75 @@ export function AccountSettings() {
                         Utilisée pour te connecter, suivre tes points et lier tes commandes Shopify.
                       </p>
                     </div>
-
-                    <div className="pt-1.5 space-y-3">
-                      <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/60">
-                        Email preferences
-                      </p>
-                      <label className="flex items-center justify-between gap-3 cursor-pointer">
-                        <div>
-                          <p className="text-sm text-white/90">Order updates & receipts</p>
-                          <p className="text-[11px] text-white/55">
-                            Emails liés à tes achats, commandes Shopify et factures.
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setOrderEmails((v) => !v)}
-                          className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
-                            orderEmails ? 'bg-emerald-500' : 'bg-white/[0.25]'
-                          }`}
-                        >
-                          <span
-                            className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${
-                              orderEmails ? 'translate-x-4' : 'translate-x-0'
-                            }`}
-                          />
-                        </button>
-                      </label>
-
-                      <label className="flex items-center justify-between gap-3 cursor-pointer">
-                        <div>
-                          <p className="text-sm text-white/90">News & drops</p>
-                          <p className="text-[11px] text-white/55">
-                            Lancements de produits, promos et contenu exclusif Fireball.
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setMarketingEmails((v) => !v)}
-                          className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
-                            marketingEmails ? 'bg-emerald-500' : 'bg-white/[0.25]'
-                          }`}
-                        >
-                          <span
-                            className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${
-                              marketingEmails ? 'translate-x-4' : 'translate-x-0'
-                            }`}
-                          />
-                        </button>
-                      </label>
-                    </div>
                   </div>
 
-                  <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <p className="text-[11px] text-white/45 max-w-xs">
-                      Certaines modifications peuvent prendre quelques minutes avant d’être visibles
-                      sur Shopify et dans tes emails.
+                  {/* Notifications */}
+                  <div className="pt-5 space-y-3 border-t border-white/10">
+                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/60">
+                      Email preferences
                     </p>
-                    <button
-                      type="submit"
-                      disabled={saving}
-                      className="inline-flex items-center justify-center rounded-2xl bg-white text-black px-5 py-2.5 text-[12px] font-nav font-bold uppercase tracking-[0.18em] hover:bg-white/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {saving ? 'Saving…' : 'Save changes'}
-                    </button>
+                    <label className="flex items-center justify-between gap-3 cursor-pointer">
+                      <div>
+                        <p className="text-sm text-white/90">Order updates & receipts</p>
+                        <p className="text-[11px] text-white/55">
+                          Emails liés à tes achats, commandes Shopify et factures.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setOrderEmails((v) => !v)}
+                        className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
+                          orderEmails ? 'bg-emerald-500' : 'bg-white/[0.25]'
+                        }`}
+                      >
+                        <span
+                          className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${
+                            orderEmails ? 'translate-x-4' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </label>
+
+                    <label className="flex items-center justify-between gap-3 cursor-pointer">
+                      <div>
+                        <p className="text-sm text-white/90">News & drops</p>
+                        <p className="text-[11px] text-white/55">
+                          Lancements de produits, promos et contenu exclusif Fireball.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMarketingEmails((v) => !v)}
+                        className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
+                          marketingEmails ? 'bg-emerald-500' : 'bg-white/[0.25]'
+                        }`}
+                      >
+                        <span
+                          className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${
+                            marketingEmails ? 'translate-x-4' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </label>
                   </div>
-                </>
-              )}
-            </form>
-          </div>
+                </div>
+
+                <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <p className="text-[11px] text-white/45 max-w-xs">
+                    Certaines modifications peuvent prendre quelques minutes avant d’être visibles
+                    sur Shopify et dans tes emails.
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="inline-flex items-center justify-center rounded-2xl bg-white text-black px-5 py-2.5 text-[12px] font-nav font-bold uppercase tracking-[0.18em] hover:bg-white/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {saving ? 'Saving…' : 'Save changes'}
+                  </button>
+                </div>
+              </>
+            )}
+          </form>
         </div>
       </div>
     </section>
