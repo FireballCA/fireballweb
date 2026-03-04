@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface ProductsPurchasedSheetProps {
@@ -35,6 +35,8 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
   const [dateMenuOpen, setDateMenuOpen] = useState(false)
   const [rendered, setRendered] = useState(isOpen)
   const [isExiting, setIsExiting] = useState(false)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const [scrolledDown, setScrolledDown] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -217,7 +219,14 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
         </div>
 
         {/* Contenu type page Apple */}
-        <div className="flex-1 overflow-y-auto px-6 md:px-10 pt-5 pb-8">
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto px-6 md:px-10 pt-5 pb-8"
+          onScroll={(event) => {
+            const target = event.currentTarget
+            setScrolledDown(target.scrollTop > 40)
+          }}
+        >
           <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8 lg:gap-10">
             {/* Colonne gauche : résumé */}
             <div className="w-full lg:w-[32%] flex flex-col gap-4">
@@ -464,11 +473,15 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
           </div>
         </div>
         {/* Mobile close button */}
-        <div className="px-6 md:px-10 pb-5 lg:hidden">
+        <div className="pb-5 lg:hidden pointer-events-none flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-white/[0.18] bg-white/[0.02] px-4 py-3 text-sm font-nav font-bold uppercase tracking-[0.16em] text-white/80 hover:bg-white/[0.08] hover:text-white transition-colors"
+            className={`pointer-events-auto inline-flex items-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.08] backdrop-blur-md text-white/80 hover:bg-white/[0.16] hover:text-white transition-all duration-300 ${
+              scrolledDown
+                ? 'w-10 h-10 mr-5 justify-center px-0 text-[0]'
+                : 'w-full mx-6 px-4 py-3 text-sm font-nav font-bold uppercase tracking-[0.16em]'
+            }`}
           >
             <svg
               className="w-3.5 h-3.5"
@@ -479,7 +492,7 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
             >
               <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span>Close</span>
+            {!scrolledDown && <span>Close</span>}
           </button>
         </div>
       </div>
