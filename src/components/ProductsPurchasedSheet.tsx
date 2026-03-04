@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { LiquidGlassSelect } from '@/components/LiquidGlassSelect'
 
 interface ProductsPurchasedSheetProps {
   isOpen: boolean
@@ -32,7 +33,6 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
   const [items, setItems] = useState<PurchaseItem[]>([])
   const [loadingItems, setLoadingItems] = useState(false)
   const [dateFilter, setDateFilter] = useState<'all' | '30d' | '6m' | 'year'>('all')
-  const [dateMenuOpen, setDateMenuOpen] = useState(false)
   const [rendered, setRendered] = useState(isOpen)
   const [isExiting, setIsExiting] = useState(false)
   const scrollRef = useRef<HTMLDivElement | null>(null)
@@ -262,62 +262,23 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
                 <p className="text-[13px] font-medium text-white/80">
                   Your orders
                 </p>
-                <div className="relative inline-flex items-center">
-                  <button
-                    type="button"
-                    onClick={() => setDateMenuOpen((open) => !open)}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.02] px-3 py-1.5 text-[11px] font-nav uppercase tracking-[0.16em] text-white/70 hover:bg-white/[0.06]"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span>Date range</span>
-                    <span className="text-white/60 text-[10px]">
-                      {dateFilter === 'all'
-                        ? 'All time'
-                        : dateFilter === '30d'
-                        ? 'Last 30 days'
-                        : dateFilter === '6m'
-                        ? 'Last 6 months'
-                        : 'This year'}
-                    </span>
-                    <svg
-                      className={`w-3 h-3 transition-transform ${dateMenuOpen ? 'rotate-180' : ''}`}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={1.7}
-                    >
-                      <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                  {dateMenuOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl border border-white/[0.16] bg-[#060606] shadow-[0_18px_45px_rgba(0,0,0,0.7)] z-10">
-                      <div className="py-2">
-                        {[
-                          { id: 'all', label: 'All time' },
-                          { id: '30d', label: 'Last 30 days' },
-                          { id: '6m', label: 'Last 6 months' },
-                          { id: 'year', label: 'This year' },
-                        ].map((opt) => (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedPurchaseId(null)
-                              setDateFilter(opt.id as 'all' | '30d' | '6m' | 'year')
-                              setDateMenuOpen(false)
-                            }}
-                            className={`w-full px-3 py-1.5 text-left text-[11px] font-nav uppercase tracking-[0.14em] ${
-                              dateFilter === opt.id
-                                ? 'bg-white text-black'
-                                : 'text-white/75 hover:bg-white/[0.06]'
-                            }`}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                <div className="w-[180px]">
+                  <LiquidGlassSelect
+                    label="Date range"
+                    value={dateFilter}
+                    options={[
+                      { value: 'all', label: 'All time' },
+                      { value: '30d', label: 'Last 30 days' },
+                      { value: '6m', label: 'Last 6 months' },
+                      { value: 'year', label: 'This year' },
+                    ]}
+                    onChange={(val) => {
+                      setSelectedPurchaseId(null)
+                      setDateFilter(val as 'all' | '30d' | '6m' | 'year')
+                    }}
+                    placeholder="All time"
+                    searchable={false}
+                  />
                 </div>
               </div>
 
@@ -477,7 +438,7 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
           type="button"
           onClick={onClose}
           className={`lg:hidden pointer-events-auto flex items-center justify-start rounded-full border border-white/[0.18] bg-white/[0.12] backdrop-blur-md text-white/85 hover:bg-white/[0.2] hover:text-white transition-all duration-300 ease-in-out overflow-hidden absolute right-5 bottom-5 z-20 shadow-[0_12px_35px_rgba(0,0,0,0.6)] ${
-            scrolledDown ? 'w-11 h-11' : 'w-[150px] h-11'
+            scrolledDown ? 'w-11 h-11' : 'w-[130px] h-11'
           }`}
         >
           <div

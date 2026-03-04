@@ -146,7 +146,7 @@ export function AdminPanelSheet({ isOpen, onClose }: AdminPanelSheetProps) {
           type="button"
           onClick={onClose}
           className={`lg:hidden pointer-events-auto flex items-center justify-start rounded-full border border-white/[0.18] bg-white/[0.12] backdrop-blur-md text-white/85 hover:bg-white/[0.2] hover:text-white transition-all duration-300 ease-in-out overflow-hidden absolute right-5 bottom-5 z-20 shadow-[0_12px_35px_rgba(0,0,0,0.6)] ${
-            scrolledDown ? 'w-11 h-11' : 'w-[150px] h-11'
+            scrolledDown ? 'w-11 h-11' : 'w-[130px] h-11'
           }`}
         >
           <div
