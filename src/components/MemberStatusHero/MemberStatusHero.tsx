@@ -15,6 +15,7 @@ interface MemberStatusHeroProps {
   currentTierColorClass?: string
   memberId?: string | null
   barcodeValue?: string | null
+  onProductsPurchasedClick?: () => void
 }
 
 export function MemberStatusHero({
@@ -34,12 +35,13 @@ export function MemberStatusHero({
   currentTierColorClass = 'text-white/90',
   memberId = null,
   barcodeValue = null,
+  onProductsPurchasedClick,
 }: MemberStatusHeroProps) {
   const [showIdModal, setShowIdModal] = useState(false)
   const hasIdentityData = Boolean(memberId || barcodeValue)
 
   return (
-    <section className="relative w-full bg-[#1D1D1D] pt-[180px] pb-[220px] px-6 md:px-12 lg:px-16">
+    <section className="relative w-full bg-[#0a0a0a] pt-[180px] pb-[220px] px-6 md:px-12 lg:px-16">
       {hasIdentityData && (
         <button
           type="button"
@@ -79,7 +81,7 @@ export function MemberStatusHero({
               partnerStatus={partnerStatus}
               companyName={companyName}
               memberId={memberId}
-              barcodeValue={barcodeValue}
+              onProductsPurchasedClick={onProductsPurchasedClick}
             />
           </div>
 

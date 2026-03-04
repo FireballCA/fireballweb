@@ -148,7 +148,7 @@ export function Header() {
 
   const opacity = isDashboardPage ? 1 : scrollProgress * 0.95
   const borderOpacity = isDashboardPage ? 0.45 : 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
-  const solidNavColor = isDashboardPage ? '#1D1D1D' : '#0a0a0a'
+  const solidNavColor = '#0a0a0a'
   
   const navBgStyle: React.CSSProperties = isDashboardPage
     ? {

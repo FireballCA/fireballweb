@@ -4,6 +4,7 @@ import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { MemberStatusHero } from '@/components/MemberStatusHero/MemberStatusHero'
 import { AddVehicleModal } from '@/components/AddVehicleModal'
 import { FireballLoading } from '@/components/FireballLoading'
+import { ProductsPurchasedSheet } from '@/components/ProductsPurchasedSheet'
 import { Footer } from '@/components/Layout/Footer'
 import {
   fetchGarageVehicles,
@@ -315,6 +316,7 @@ export function AccountDashboard() {
   const [showDashboard, setShowDashboard] = useState(false)
   const [isEnteringDashboard, setIsEnteringDashboard] = useState(false)
   const [carModalOpen, setCarModalOpen] = useState(false)
+  const [productsPurchasedOpen, setProductsPurchasedOpen] = useState(false)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [settingsVehicle, setSettingsVehicle] = useState<Vehicle | null>(null)
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('none')
@@ -498,7 +500,7 @@ export function AccountDashboard() {
   ]
 
   return (
-    <section className="relative min-h-screen bg-[#252525] text-pearl">
+    <section className="relative min-h-screen bg-[#0a0a0a] text-pearl">
       {isEnteringDashboard && (
         <div className="fixed inset-0 z-[135]">
           <FireballLoading />
@@ -550,7 +552,7 @@ export function AccountDashboard() {
       )}
 
       {showDashboard && (
-        <div className="w-full relative bg-[#1D1D1D]">
+        <div className="w-full relative bg-[#0a0a0a]">
           {shopifySyncWarning && (
             <div className="max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16 pt-6">
               <div className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-amber-200 text-sm">
@@ -571,9 +573,10 @@ export function AccountDashboard() {
             currentTierColorClass={currentTier.colorClass}
             memberId={memberId}
             barcodeValue={barcodeValue}
+            onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}
           />
           <div 
-            className="w-full bg-[#252525] relative z-20 overflow-hidden"
+            className="w-full bg-[#0a0a0a] relative z-20 overflow-hidden"
             style={{
               marginTop: '-40px',
               borderRadius: '45px 45px 45px 45px',
@@ -659,7 +662,7 @@ export function AccountDashboard() {
               </div>
             </div>
           </div>
-          <div className="w-full bg-[#1D1D1D] pt-24 pb-24">
+          <div className="w-full bg-[#0a0a0a] pt-24 pb-24">
             <div className="relative max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16">
               <p className="text-center text-xs md:text-sm text-white/55">
                 Your current subscription :{' '}
@@ -788,6 +791,10 @@ export function AccountDashboard() {
             },
           ])
         }}
+      />
+      <ProductsPurchasedSheet
+        isOpen={productsPurchasedOpen}
+        onClose={() => setProductsPurchasedOpen(false)}
       />
       {settingsVehicle && (
         <VehicleSettingsModal
