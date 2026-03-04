@@ -473,14 +473,14 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
           </div>
         </div>
         {/* Mobile close button */}
-        <div className="pb-5 lg:hidden pointer-events-none flex justify-end">
+        <div className="pb-5 lg:hidden pointer-events-none flex justify-end pr-6">
           <button
             type="button"
             onClick={onClose}
-            className={`pointer-events-auto inline-flex items-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.08] backdrop-blur-md text-white/80 hover:bg-white/[0.16] hover:text-white transition-all duration-300 ${
+            className={`pointer-events-auto inline-flex items-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.08] backdrop-blur-md text-white/80 hover:bg-white/[0.16] hover:text-white transition-all duration-300 ease-out ${
               scrolledDown
-                ? 'w-10 h-10 mr-5 justify-center px-0 text-[0]'
-                : 'w-full mx-6 px-4 py-3 text-sm font-nav font-bold uppercase tracking-[0.16em]'
+                ? 'w-10 h-10 justify-center px-0 text-[0]'
+                : 'w-full px-4 py-3 text-sm font-nav font-bold uppercase tracking-[0.16em]'
             }`}
           >
             <svg
