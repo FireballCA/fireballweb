@@ -1,3 +1,13 @@
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.SUPABASE_URL || ''
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+
+const supabase =
+  supabaseUrl && supabaseServiceKey
+    ? createClient(supabaseUrl, supabaseServiceKey)
+    : null
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
@@ -17,21 +27,88 @@ export default async function handler(req, res) {
 
   // Payload standard d'un order Shopify
   const orderId = payload.id || null
+  const orderNumber = payload.order_number || payload.name || null
   const email = payload.email || payload.customer?.email || null
   const totalPrice = payload.total_price || null
   const currency = payload.currency || payload.presentment_currency || null
+  const createdAt = payload.created_at || new Date().toISOString()
 
   console.log('[shopify-order-webhook] Order received', {
     orderId,
     email,
+    orderNumber,
     totalPrice,
     currency,
   })
 
-  // TODO: ici plus tard
-  // - retrouver le profil Supabase correspondant (par email)
-  // - créer une ligne dans une table purchases / purchase_items
-  // - calculer et ajouter les points / XP
+  if (!supabase) {
+    console.warn('[shopify-order-webhook] Supabase client not configured, skipping persistence')
+    return res.status(200).json({ ok: true, skipped: 'supabase_not_configured' })
+  }
+
+  if (!email) {
+    console.warn('[shopify-order-webhook] No email on order, cannot link to profile')
+    return res.status(200).json({ ok: true, skipped: 'no_email' })
+  }
+
+  try {
+    // 1) Trouver le profil par email
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id,xp,email')
+      .eq('email', email)
+      .maybeSingle()
+
+    if (profileError) {
+      console.error('[shopify-order-webhook] Error loading profile by email', profileError)
+      return res.status(200).json({ ok: true, skipped: 'profile_error' })
+    }
+
+    if (!profile) {
+      console.warn('[shopify-order-webhook] No profile found for email', email)
+      return res.status(200).json({ ok: true, skipped: 'profile_not_found' })
+    }
+
+    const userId = profile.id
+    const numericTotal = Number.parseFloat(String(totalPrice ?? '0')) || 0
+
+    // Règle simple: 1 XP par dollar dépensé (arrondi)
+    const pointsEarned = Math.max(0, Math.round(numericTotal))
+
+    // 2) Insérer une ligne de commande dans purchases (si la table existe)
+    try {
+      await supabase.from('purchases').insert({
+        user_id: userId,
+        shopify_order_id: String(orderId ?? ''),
+        order_number: orderNumber ? String(orderNumber) : null,
+        total_price: numericTotal,
+        currency: currency || 'CAD',
+        points_earned: pointsEarned,
+        placed_at: createdAt,
+      })
+    } catch (insertError) {
+      console.warn('[shopify-order-webhook] Could not insert into purchases (table may not exist yet)', insertError)
+    }
+
+    // 3) Mettre à jour le XP cumulé sur le profil
+    if (pointsEarned > 0) {
+      const currentXp = Number.isFinite(Number(profile.xp)) ? Number(profile.xp) : 0
+      const newXp = currentXp + pointsEarned
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ xp: newXp })
+        .eq('id', userId)
+
+      if (updateError) {
+        console.error('[shopify-order-webhook] Failed to update XP on profile', updateError)
+      } else {
+        console.log('[shopify-order-webhook] XP updated', { userId, currentXp, pointsEarned, newXp })
+      }
+    }
+  } catch (e) {
+    console.error('[shopify-order-webhook] Unexpected error', e)
+  }
 
   return res.status(200).json({ ok: true })
 }

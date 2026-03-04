@@ -1,11 +1,24 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 
 interface ProductsPurchasedSheetProps {
   isOpen: boolean
   onClose: () => void
 }
 
+interface Purchase {
+  id: string
+  order_number: string | null
+  total_price: number | null
+  currency: string | null
+  points_earned: number | null
+  placed_at: string | null
+}
+
 export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedSheetProps) {
+  const [purchases, setPurchases] = useState<Purchase[]>([])
+  const [loading, setLoading] = useState(false)
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -14,6 +27,47 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
     }
     return () => {
       document.body.style.overflow = ''
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    let cancelled = false
+
+    const loadPurchases = async () => {
+      setLoading(true)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          if (!cancelled) setPurchases([])
+          return
+        }
+
+        const { data, error } = await supabase
+          .from('purchases')
+          .select('id,order_number,total_price,currency,points_earned,placed_at')
+          .eq('user_id', user.id)
+          .order('placed_at', { ascending: false })
+
+        if (error) {
+          console.warn('Failed to load purchases', error.message)
+          if (!cancelled) setPurchases([])
+          return
+        }
+
+        if (!cancelled) {
+          setPurchases(data as Purchase[])
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void loadPurchases()
+
+    return () => {
+      cancelled = true
     }
   }, [isOpen])
 
@@ -66,7 +120,7 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
                   Historique d’achats
                 </p>
                 <p className="text-[28px] font-semibold tracking-[-0.03em] text-white">
-                  0&nbsp;orders
+                  {purchases.length}&nbsp;order{purchases.length === 1 ? '' : 's'}
                 </p>
                 <p className="mt-2 text-[12px] leading-relaxed text-white/60">
                   Une fois que vous aurez passé une commande avec votre compte Fireball,
@@ -79,7 +133,7 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
                   Points
                 </p>
                 <p className="text-[22px] font-semibold tracking-[-0.03em] text-white">
-                  0 points
+                  {purchases.reduce((sum, p) => sum + (p.points_earned || 0), 0)} points
                 </p>
                 <p className="mt-1 text-[12px] text-white/60">
                   Chaque achat admissible vous fait progresser dans votre niveau de membre.
@@ -88,7 +142,7 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
             </div>
 
             {/* Colonne droite : liste des commandes */}
-              <div className="w-full lg:flex-1 flex flex-col gap-4">
+            <div className="w-full lg:flex-1 flex flex-col gap-4">
               <div className="flex items-center justify-between gap-3 mb-1">
                 <p className="text-[13px] font-medium text-white/80">
                   Vos commandes
@@ -101,26 +155,64 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-dashed border-white/[0.18] bg-white/[0.03] px-6 py-7 flex flex-col items-center text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/[0.04] text-white/70 mb-3.5">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M3 11h18M7 11V7a5 5 0 0 1 10 0v4m-9 7h8"
-                    />
-                  </svg>
+              {loading ? (
+                <div className="rounded-3xl border border-white/[0.12] bg-white/[0.02] px-6 py-7 text-sm text-white/70">
+                  Chargement de vos commandes...
                 </div>
-                <p className="text-[15px] font-medium text-white mb-1">
-                  Aucune commande pour l’instant
-                </p>
-                <p className="text-[13px] text-white/65 max-w-md">
-                  Quand vous validerez un achat sur la boutique avec ce compte, nous
-                  afficherons ici le détail de la commande, les produits et les points
-                  associés.
-                </p>
-              </div>
+              ) : purchases.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-white/[0.18] bg-white/[0.03] px-6 py-7 flex flex-col items-center text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/[0.04] text-white/70 mb-3.5">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M3 11h18M7 11V7a5 5 0 0 1 10 0v4m-9 7h8"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-[15px] font-medium text-white mb-1">
+                    Aucune commande pour l’instant
+                  </p>
+                  <p className="text-[13px] text-white/65 max-w-md">
+                    Quand vous validerez un achat sur la boutique avec ce compte, nous
+                    afficherons ici le détail de la commande, les produits et les points
+                    associés.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-3xl border border-white/[0.12] bg-white/[0.02] px-4 py-4 flex flex-col gap-2">
+                  {purchases.map((order) => (
+                    <div
+                      key={order.id}
+                      className="flex items-center justify-between gap-3 rounded-2xl px-3 py-3 hover:bg-white/[0.03] transition-colors"
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-sm text-white">
+                          {order.order_number || 'Commande'}
+                        </p>
+                        <p className="text-[11px] text-white/55">
+                          {order.placed_at
+                            ? new Date(order.placed_at).toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              })
+                            : 'Date inconnue'}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-0.5">
+                        <p className="text-sm text-white">
+                          {order.total_price?.toFixed(2) ?? '0.00'} {order.currency || 'CAD'}
+                        </p>
+                        <p className="text-[11px] text-emerald-300">
+                          +{order.points_earned ?? 0} pts
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
