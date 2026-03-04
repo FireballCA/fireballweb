@@ -169,6 +169,171 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
         })
       })
 
+      server.middlewares.use('/api/update-shopify-customer', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Method not allowed' }))
+          return
+        }
+
+        if (!shopifyStoreUrl || !shopifyAdminApiToken) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              error: 'Missing SHOPIFY_STORE_URL or SHOPIFY_ADMIN_API_TOKEN in server env.',
+            }),
+          )
+          return
+        }
+
+        try {
+          const body = (await readJsonBody(req)) as {
+            email?: string
+            first_name?: string
+            last_name?: string
+          }
+
+          const email = (body.email || '').trim()
+          const firstName = (body.first_name || '').trim()
+          const lastName = (body.last_name || '').trim()
+
+          if (!email) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: 'Missing required field: email' }))
+            return
+          }
+
+          const normalizedStoreUrl = shopifyStoreUrl.startsWith('http')
+            ? shopifyStoreUrl
+            : `https://${shopifyStoreUrl}`
+          const endpoint = `${normalizedStoreUrl}/admin/api/${shopifyApiVersion}/graphql.json`
+
+          const lookupQuery = `
+            query customersByEmail($query: String!) {
+              customers(first: 1, query: $query) {
+                edges {
+                  node {
+                    id
+                    email
+                  }
+                }
+              }
+            }
+          `
+
+          const lookupResponse = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Shopify-Access-Token': shopifyAdminApiToken,
+            },
+            body: JSON.stringify({
+              query: lookupQuery,
+              variables: {
+                query: `email:${email}`,
+              },
+            }),
+          })
+
+          const lookupResult = (await lookupResponse.json()) as any
+
+          if (!lookupResponse.ok || lookupResult?.errors?.length) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(
+              JSON.stringify({
+                error: 'Failed to lookup Shopify customer',
+                details: lookupResult?.errors || null,
+              }),
+            )
+            return
+          }
+
+          const edges = lookupResult?.data?.customers?.edges || []
+          if (!Array.isArray(edges) || edges.length === 0 || !edges[0]?.node?.id) {
+            res.statusCode = 200
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ ok: true, skipped: 'customer_not_found' }))
+            return
+          }
+
+          const customerId = edges[0].node.id
+
+          const updateMutation = `
+            mutation customerUpdate($id: ID!, $input: CustomerInput!) {
+              customerUpdate(id: $id, input: $input) {
+                customer {
+                  id
+                  email
+                  firstName
+                  lastName
+                }
+                userErrors {
+                  field
+                  message
+                }
+              }
+            }
+          `
+
+          const input = {
+            ...(firstName ? { firstName } : {}),
+            ...(lastName ? { lastName } : {}),
+          }
+
+          const updateResponse = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Shopify-Access-Token': shopifyAdminApiToken,
+            },
+            body: JSON.stringify({
+              query: updateMutation,
+              variables: {
+                id: customerId,
+                input,
+              },
+            }),
+          })
+
+          const updateResult = (await updateResponse.json()) as any
+          const userErrors = updateResult?.data?.customerUpdate?.userErrors || []
+
+          if (!updateResponse.ok || updateResult?.errors?.length || userErrors.length) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(
+              JSON.stringify({
+                error: 'Failed to update Shopify customer',
+                details: updateResult?.errors || userErrors || null,
+              }),
+            )
+            return
+          }
+
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              ok: true,
+              customer: updateResult?.data?.customerUpdate?.customer || null,
+            }),
+          )
+        } catch (error) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              error: 'Internal server error',
+              details: error instanceof Error ? error.message : 'Unknown error',
+            }),
+          )
+        }
+      })
+
       server.middlewares.use('/api/send-partner-approval-email', async (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405
