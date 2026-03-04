@@ -262,7 +262,7 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
                 <p className="text-[13px] font-medium text-white/80">
                   Your orders
                 </p>
-                <div className="w-[180px]">
+                <div className="w-[150px] scale-[0.9] origin-right">
                   <LiquidGlassSelect
                     label="Date range"
                     value={dateFilter}
