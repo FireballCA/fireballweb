@@ -59,6 +59,8 @@ export function AccountRegister() {
   const [rememberDevice, setRememberDevice] = useState(false)
   const [lang, setLang] = useState<'EN' | 'FR'>('EN')
   const [langMenuOpen, setLangMenuOpen] = useState(false)
+  const isEN = lang === 'EN'
+  const languageCode = isEN ? 'en' : 'fr'
 
   const returnToParam = new URLSearchParams(location.search).get('returnTo')
   const returnToPath = returnToParam === '/account/company' ? returnToParam : null
@@ -89,7 +91,7 @@ export function AccountRegister() {
 
       // Client-side validation: all fields required
       if (!trimmedFirst || !trimmedLast || !trimmedEmail || !trimmedPassword) {
-        setErrorMessage('All fields are required.')
+        setErrorMessage(isEN ? 'All fields are required.' : 'Tous les champs sont obligatoires.')
         return
       }
 
@@ -105,6 +107,7 @@ export function AccountRegister() {
             full_name: trimmedName,
             first_name: trimmedFirst || '',
             last_name: trimmedLast || '',
+            language: languageCode,
           },
         },
       })
@@ -134,6 +137,7 @@ export function AccountRegister() {
           xp: 0,
           external_member_id: externalMemberId,
           barcode_value: externalMemberId,
+          language: languageCode,
         })
 
       if (profileError) {

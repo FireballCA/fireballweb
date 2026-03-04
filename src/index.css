@@ -18,6 +18,13 @@
   body {
     @apply bg-carbon-950 text-pearl font-sans antialiased;
   }
+
+  /* Remove default bright focus outline on all form fields */
+  input,
+  textarea,
+  select {
+    @apply outline-none focus:outline-none;
+  }
 }
 
 /* Premium selection */
