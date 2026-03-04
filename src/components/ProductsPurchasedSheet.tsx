@@ -31,6 +31,7 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
   const [selectedPurchaseId, setSelectedPurchaseId] = useState<string | null>(null)
   const [items, setItems] = useState<PurchaseItem[]>([])
   const [loadingItems, setLoadingItems] = useState(false)
+  const [dateFilter, setDateFilter] = useState<'all' | '30d' | '6m' | 'year'>('all')
 
   useEffect(() => {
     if (isOpen) {
@@ -124,8 +125,38 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
 
   if (!isOpen) return null
 
+  const now = new Date()
+  const filteredPurchases = purchases.filter((p) => {
+    if (!p.placed_at) return dateFilter === 'all'
+    if (dateFilter === 'all') return true
+    const placed = new Date(p.placed_at)
+    if (Number.isNaN(placed.getTime())) return false
+
+    if (dateFilter === '30d') {
+      const cutoff = new Date(now)
+      cutoff.setDate(cutoff.getDate() - 30)
+      return placed >= cutoff
+    }
+
+    if (dateFilter === '6m') {
+      const cutoff = new Date(now)
+      cutoff.setMonth(cutoff.getMonth() - 6)
+      return placed >= cutoff
+    }
+
+    // 'year' -> depuis le début de l'année courante
+    const cutoff = new Date(now.getFullYear(), 0, 1)
+    return placed >= cutoff
+  })
+
+  const orderCount = filteredPurchases.length
+  const totalPoints = filteredPurchases.reduce(
+    (sum, p) => sum + (p.points_earned || 0),
+    0,
+  )
+
   const selectedPurchase = selectedPurchaseId
-    ? purchases.find((p) => p.id === selectedPurchaseId) || null
+    ? filteredPurchases.find((p) => p.id === selectedPurchaseId) || null
     : null
 
   return (
@@ -172,14 +203,14 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
             <div className="w-full lg:w-[32%] flex flex-col gap-4">
               <div className="rounded-3xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm px-5 py-5 shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
                 <p className="text-[13px] font-medium text-white/80 mb-2">
-                  Historique d’achats
+                  Purchase history
                 </p>
                 <p className="text-[28px] font-semibold tracking-[-0.03em] text-white">
-                  {purchases.length}&nbsp;order{purchases.length === 1 ? '' : 's'}
+                  {orderCount}&nbsp;order{orderCount === 1 ? '' : 's'}
                 </p>
                 <p className="mt-2 text-[12px] leading-relaxed text-white/60">
-                  Une fois que vous aurez passé une commande avec votre compte Fireball,
-                  elle apparaîtra ici avec les produits, le total et les points gagnés.
+                  Once you place an order with your Fireball account, it will appear
+                  here with products, total and points earned.
                 </p>
               </div>
 
@@ -188,10 +219,10 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
                   Points
                 </p>
                 <p className="text-[22px] font-semibold tracking-[-0.03em] text-white">
-                  {purchases.reduce((sum, p) => sum + (p.points_earned || 0), 0)} points
+                  {totalPoints} points
                 </p>
                 <p className="mt-1 text-[12px] text-white/60">
-                  Chaque achat admissible vous fait progresser dans votre niveau de membre.
+                  Every eligible purchase helps you progress in your membership level.
                 </p>
               </div>
             </div>
@@ -200,21 +231,42 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
             <div className="w-full lg:flex-1 flex flex-col gap-4">
               <div className="flex items-center justify-between gap-3 mb-1">
                 <p className="text-[13px] font-medium text-white/80">
-                  Vos commandes
+                  Your orders
                 </p>
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.02] px-3 py-1.5">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.02] px-2 py-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-[11px] font-nav uppercase tracking-[0.16em] text-white/65">
-                    All time
+                  <span className="text-[11px] font-nav uppercase tracking-[0.16em] text-white/55 mr-1">
+                    Date range
                   </span>
+                  {[
+                    { id: 'all', label: 'All time' },
+                    { id: '30d', label: 'Last 30 days' },
+                    { id: '6m', label: 'Last 6 months' },
+                    { id: 'year', label: 'This year' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() =>
+                        setSelectedPurchaseId(null) || setDateFilter(opt.id as 'all' | '30d' | '6m' | 'year')
+                      }
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-nav uppercase tracking-[0.14em] ${
+                        dateFilter === opt.id
+                          ? 'bg-white text-black'
+                          : 'text-white/65 hover:bg-white/[0.08]'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
               {loading ? (
                 <div className="rounded-3xl border border-white/[0.12] bg-white/[0.02] px-6 py-7 text-sm text-white/70">
-                  Chargement de vos commandes...
+                  Loading your orders...
                 </div>
-              ) : purchases.length === 0 ? (
+              ) : filteredPurchases.length === 0 ? (
                 <div className="rounded-3xl border border-dashed border-white/[0.18] bg-white/[0.03] px-6 py-7 flex flex-col items-center text-center">
                   <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/[0.04] text-white/70 mb-3.5">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -227,18 +279,17 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
                     </svg>
                   </div>
                   <p className="text-[15px] font-medium text-white mb-1">
-                    Aucune commande pour l’instant
+                    No orders yet
                   </p>
                   <p className="text-[13px] text-white/65 max-w-md">
-                    Quand vous validerez un achat sur la boutique avec ce compte, nous
-                    afficherons ici le détail de la commande, les produits et les points
-                    associés.
+                    Once you place an order on the store with this account, we will show
+                    the order details, products and points here.
                   </p>
                 </div>
               ) : (
                 <>
                   <div className="rounded-3xl border border-white/[0.12] bg-white/[0.02] px-4 py-4 flex flex-col gap-2">
-                    {purchases.map((order) => {
+                    {filteredPurchases.map((order) => {
                       const isSelected = order.id === selectedPurchaseId
                       return (
                         <button
@@ -262,7 +313,7 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
                                     month: 'short',
                                     year: 'numeric',
                                   })
-                                : 'Date inconnue'}
+                                : 'Unknown date'}
                             </p>
                           </div>
                           <div className="flex items-center gap-3">
@@ -295,7 +346,7 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
                       <div className="flex items-center justify-between gap-3 mb-4">
                         <div>
                           <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
-                            Détail de la commande
+                            Order details
                           </p>
                           <p className="mt-1 text-sm text-white">
                             {selectedPurchase.order_number || 'Commande'}
@@ -314,12 +365,11 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
 
                       {loadingItems ? (
                         <p className="text-[13px] text-white/65">
-                          Chargement des produits...
+                          Loading products...
                         </p>
                       ) : items.length === 0 ? (
                         <p className="text-[13px] text-white/65">
-                          Les détails des produits ne sont pas encore disponibles pour cette
-                          commande.
+                          Product details are not yet available for this order.
                         </p>
                       ) : (
                         <div className="divide-y divide-white/[0.08]">
@@ -330,7 +380,7 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
                             >
                               <div className="flex flex-col gap-0.5">
                                 <p className="text-sm text-white">
-                                  {item.product_title || 'Produit'}
+                                  {item.product_title || 'Product'}
                                 </p>
                                 {item.variant_title && (
                                   <p className="text-[11px] text-white/55">
@@ -343,7 +393,7 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
                               </div>
                               <div className="flex flex-col items-end gap-0.5">
                                 <p className="text-[11px] text-white/65">
-                                  Qté: {item.quantity ?? 0}
+                                  Qty: {item.quantity ?? 0}
                                 </p>
                                 <p className="text-[11px] text-white/65">
                                   {item.unit_price?.toFixed(2) ?? '0.00'} / u
@@ -362,6 +412,25 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
               )}
             </div>
           </div>
+        </div>
+        {/* Mobile close button */}
+        <div className="px-6 md:px-10 pb-5 lg:hidden">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-white/[0.18] bg-white/[0.02] px-4 py-3 text-sm font-nav font-bold uppercase tracking-[0.16em] text-white/80 hover:bg-white/[0.08] hover:text-white transition-colors"
+          >
+            <svg
+              className="w-3.5 h-3.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.7}
+            >
+              <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span>Close</span>
+          </button>
         </div>
       </div>
       <style>{`
