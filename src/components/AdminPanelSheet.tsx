@@ -141,19 +141,21 @@ export function AdminPanelSheet({ isOpen, onClose }: AdminPanelSheetProps) {
           </div>
         </div>
 
-        {/* Mobile close button */}
-        <div className="pb-5 lg:hidden pointer-events-none flex justify-end pr-6">
-          <button
-            type="button"
-            onClick={onClose}
-            className={`pointer-events-auto inline-flex items-center justify-center gap-2 rounded-full border border-white/[0.18] bg-white/[0.08] backdrop-blur-md text-white/80 hover:bg-white/[0.16] hover:text-white transition-all duration-300 ease-in-out overflow-hidden ${
-              scrolledDown
-                ? 'w-11 h-11 px-0'
-                : 'w-full max-w-[260px] px-4 py-3 text-sm font-nav font-bold uppercase tracking-[0.16em]'
+        {/* Mobile close button (floating only, slide like example) */}
+        <button
+          type="button"
+          onClick={onClose}
+          className={`lg:hidden pointer-events-auto flex items-center justify-start rounded-full border border-white/[0.18] bg-white/[0.12] backdrop-blur-md text-white/85 hover:bg-white/[0.2] hover:text-white transition-all duration-300 ease-in-out overflow-hidden absolute right-5 bottom-5 z-20 shadow-[0_12px_35px_rgba(0,0,0,0.6)] ${
+            scrolledDown ? 'w-11 h-11' : 'w-[150px] h-11'
+          }`}
+        >
+          <div
+            className={`flex items-center justify-center transition-all duration-300 ease-in-out ${
+              scrolledDown ? 'w-full pl-0' : 'w-[32%] pl-3'
             }`}
           >
             <svg
-              className="w-3.5 h-3.5"
+              className="w-[17px] h-[17px]"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -161,15 +163,15 @@ export function AdminPanelSheet({ isOpen, onClose }: AdminPanelSheetProps) {
             >
               <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span
-              className={`transition-all duration-300 ease-in-out whitespace-nowrap ${
-                scrolledDown ? 'opacity-0 max-w-0 ml-0' : 'opacity-100 max-w-[200px] ml-1'
-              }`}
-            >
-              Close
-            </span>
-          </button>
-        </div>
+          </div>
+          <div
+            className={`text-white text-[13px] font-semibold transition-all duration-300 ease-in-out whitespace-nowrap ${
+              scrolledDown ? 'opacity-0 w-0 pr-0' : 'opacity-100 w-[68%] pr-3'
+            }`}
+          >
+            Close
+          </div>
+        </button>
       </div>
       <style>{`
         @keyframes adminPanelSlideUp {
