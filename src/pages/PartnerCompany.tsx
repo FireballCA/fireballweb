@@ -4,6 +4,7 @@ import { LiquidGlassSelect } from '@/components/LiquidGlassSelect'
 import { IOSCheckbox } from '@/components/IOSCheckbox'
 import { isAuthenticated as checkIsAuthenticated } from '@/utils/supabaseAuth'
 import { supabase } from '@/lib/supabase'
+import { useNotifications } from '@/context/NotificationsContext'
 
 const yearsInOperation = ['Less than 1 year', '1-3 years', '3-5 years', '5+ years']
 const coatingInstallations = ['0-10', '10-50', '50-100', '100+']
@@ -80,6 +81,7 @@ export function PartnerCompany() {
   const [authenticated, setAuthenticated] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
   const [applicationStatus, setApplicationStatus] = useState<PartnerApplicationStatus | null>(null)
+  const { notify } = useNotifications()
 
   useEffect(() => {
     let mounted = true
@@ -336,11 +338,22 @@ export function PartnerCompany() {
                   )
 
                 if (error) {
-                  setFormError(error.message || 'Unable to submit your application right now.')
+                  const message = error.message || 'Unable to submit your application right now.'
+                  setFormError(message)
+                  notify({
+                    kind: 'error',
+                    title: 'Submission failed',
+                    message,
+                  })
                   return
                 }
 
                 setSubmitted(true)
+                notify({
+                  kind: 'success',
+                  title: 'Application submitted',
+                  message: 'Your Fireball partner application has been submitted successfully.',
+                })
               } finally {
                 setSubmitting(false)
               }

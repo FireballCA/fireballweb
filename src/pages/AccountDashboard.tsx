@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
@@ -15,6 +15,7 @@ import {
   updateGarageVehicle,
   deleteGarageVehicle,
 } from '@/utils/supabaseGarage'
+import { supabase } from '@/lib/supabase'
 
 interface Vehicle {
   id: string
@@ -29,6 +30,13 @@ interface Vehicle {
 type ProtectionStatus = 'green' | 'yellow' | 'red'
 type SubscriptionTier = 'none' | 'ignition' | 'apex'
 type UserRole = 'member' | 'partner' | 'admin'
+
+interface DashboardNotification {
+  id: string
+  title: string | null
+  message: string
+  created_at: string
+}
 
 const XP_TIERS = [
   {
@@ -330,6 +338,25 @@ export function AccountDashboard() {
   const [partnerStatus, setPartnerStatus] = useState<string | null>(null)
   const [memberId, setMemberId] = useState<string | null>(null)
   const [barcodeValue, setBarcodeValue] = useState<string | null>(null)
+  const [latestNotification, setLatestNotification] = useState<DashboardNotification | null>(null)
+  const [notifications, setNotifications] = useState<DashboardNotification[]>([])
+  const [notificationDismissed, setNotificationDismissed] = useState(false)
+  const [notificationsMenuOpen, setNotificationsMenuOpen] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const notificationsMenuRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!notificationsMenuOpen) return
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationsMenuRef.current && !notificationsMenuRef.current.contains(event.target as Node)) {
+        setNotificationsMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [notificationsMenuOpen])
   
   useEffect(() => {
     const checkAuthAndLoadProfile = async () => {
@@ -386,6 +413,26 @@ export function AccountDashboard() {
       }
 
       setFullName(customerFullName)
+
+      // Charger la dernière notification destinée à cet utilisateur
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        const userId = user?.id
+        if (userId) {
+          setCurrentUserId(userId)
+          const role: UserRole =
+            profile && profile.role ? normalizeUserRole(profile.role) : 'member'
+          const list = await fetchNotificationsForUser(userId, role)
+          setNotifications(list)
+          const latest = list[0] ?? null
+          setLatestNotification(latest)
+          setNotificationDismissed(!latest)
+        }
+      } catch (error) {
+        console.error('Error loading dashboard notifications:', error)
+      }
 
       // Charger les véhicules du garage depuis Supabase
       const rows = await fetchGarageVehicles()
@@ -478,6 +525,101 @@ export function AccountDashboard() {
     return 'member'
   }
 
+  const fetchNotificationsForUser = async (
+    userId: string,
+    role: UserRole,
+  ): Promise<DashboardNotification[]> => {
+    try {
+      const [allRes, roleRes, userRes] = await Promise.all([
+        supabase
+          .from('user_notifications')
+          .select('id,title,message,created_at,target_type')
+          .eq('target_type', 'all')
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase
+          .from('user_notifications')
+          .select('id,title,message,created_at,target_type,target_role')
+          .eq('target_type', 'role')
+          .eq('target_role', role)
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase
+          .from('user_notifications')
+          .select('id,title,message,created_at,target_type,target_user_id')
+          .eq('target_type', 'user')
+          .eq('target_user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(5),
+      ])
+
+      const rows: DashboardNotification[] = []
+
+      if (!allRes.error && allRes.data) {
+        for (const row of allRes.data) {
+          rows.push({
+            id: row.id as string,
+            title: (row as any).title ?? null,
+            message: (row as any).message ?? '',
+            created_at: (row as any).created_at as string,
+          })
+        }
+      }
+
+      if (!roleRes.error && roleRes.data) {
+        for (const row of roleRes.data) {
+          rows.push({
+            id: row.id as string,
+            title: (row as any).title ?? null,
+            message: (row as any).message ?? '',
+            created_at: (row as any).created_at as string,
+          })
+        }
+      }
+
+      if (!userRes.error && userRes.data) {
+        for (const row of userRes.data) {
+          rows.push({
+            id: row.id as string,
+            title: (row as any).title ?? null,
+            message: (row as any).message ?? '',
+            created_at: (row as any).created_at as string,
+          })
+        }
+      }
+
+      if (!rows.length) return []
+
+      rows.sort((a, b) => {
+        const aTime = new Date(a.created_at).getTime()
+        const bTime = new Date(b.created_at).getTime()
+        return bTime - aTime
+      })
+
+      return rows
+    } catch (error) {
+      console.error('Error fetching notifications for user:', error)
+      return []
+    }
+  }
+
+  const formatNotificationTimeAgo = (isoDate: string): string => {
+    if (!isoDate) return ''
+    const date = new Date(isoDate)
+    if (Number.isNaN(date.getTime())) return ''
+    try {
+      return date.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    } catch {
+      return isoDate
+    }
+  }
+
   const subscriptionLabel = {
     none: 'None',
     ignition: 'Ignition',
@@ -564,6 +706,162 @@ export function AccountDashboard() {
 
       {showDashboard && (
         <div className="w-full relative bg-[#0a0a0a]">
+          <div
+            ref={notificationsMenuRef}
+            className="pointer-events-none fixed top-[92px] md:top-[96px] right-4 z-[95] flex items-center gap-2"
+          >
+            <button
+              type="button"
+              className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/90 hover:bg-white/20 transition-colors"
+              aria-label="Open membership QR"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 15h2M19 15h2M17 17v2M17 21h4" />
+              </svg>
+            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={async () => {
+                  setNotificationsMenuOpen((open) => !open)
+                  if (!notificationsMenuOpen && currentUserId) {
+                    const role: UserRole = userRole
+                    const list = await fetchNotificationsForUser(currentUserId, role)
+                    setNotifications(list)
+                  }
+                }}
+                className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/90 hover:bg-white/20 transition-colors"
+                aria-label="Open notifications"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                >
+                  <path
+                    d="M18 8a6 6 0 1 0-12 0c0 3-1 5-2 6h16c-1-1-2-3-2-6Z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path d="M9.5 18a2.5 2.5 0 0 0 5 0" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {notificationsMenuOpen && (
+                <div className="pointer-events-auto absolute right-0 mt-2 w-80 rounded-2xl bg-black/90 border border-white/15 backdrop-blur-2xl shadow-[0_18px_45px_rgba(0,0,0,0.65)] px-3 py-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/65">
+                      Notifications
+                    </span>
+                    <button
+                      type="button"
+                      className="text-[11px] text-white/55 hover:text-white/80"
+                      onClick={async () => {
+                        if (!currentUserId) return
+                        const ids = notifications.map((n) => n.id)
+                        if (!ids.length) return
+                        await supabase.from('user_notifications').delete().in('id', ids)
+                        setNotifications([])
+                        setLatestNotification(null)
+                        setNotificationDismissed(true)
+                      }}
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                  {notifications.length === 0 ? (
+                    <p className="text-xs text-white/60">No notifications.</p>
+                  ) : (
+                    <div className="max-h-64 overflow-y-auto flex flex-col gap-2">
+                      {notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          className="group rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2 text-xs text-white/85 flex items-start gap-2"
+                        >
+                          <div className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            {n.title && (
+                              <p className="font-semibold text-[12px] mb-0.5 truncate">{n.title}</p>
+                            )}
+                            <p className="text-[11px] text-white/75 line-clamp-2">{n.message}</p>
+                            <p className="mt-1 text-[10px] text-white/45">
+                              {formatNotificationTimeAgo(n.created_at)}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className="ml-1 text-[11px] text-white/45 hover:text-red-300"
+                            onClick={async () => {
+                              await supabase.from('user_notifications').delete().eq('id', n.id)
+                              setNotifications((prev) => prev.filter((x) => x.id !== n.id))
+                              if (latestNotification?.id === n.id) {
+                                setLatestNotification(
+                                  (prev) => (prev && prev.id === n.id ? null : prev),
+                                )
+                              }
+                            }}
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          {latestNotification && !notificationDismissed && (
+            <div className="pointer-events-none fixed top-[92px] md:top-[96px] left-0 right-0 z-[90] flex justify-center">
+              <div className="pointer-events-auto max-w-3xl w-full mx-4 rounded-[24px] bg-white backdrop-blur-2xl shadow-[0_22px_55px_rgba(0,0,0,0.55)] px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center gap-3 sm:gap-4">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-black">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5 text-white"
+                  >
+                    <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
+                    <rect x="2" y="4" width="20" height="16" rx="2" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  {latestNotification.title && (
+                    <p className="text-[13px] sm:text-[14px] font-semibold text-[#0B1020] mb-0.5 truncate">
+                      {latestNotification.title}
+                    </p>
+                  )}
+                  <p className="text-[12px] sm:text-[13px] text-[#111827] truncate">
+                    {latestNotification.message}
+                  </p>
+                </div>
+                <div className="ml-2 flex-shrink-0 text-[11px] sm:text-[12px] font-medium text-[#4B5563]">
+                  {formatNotificationTimeAgo(latestNotification.created_at)}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNotificationDismissed(true)}
+                  className="ml-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/5 text-[#374151] hover:bg-black/10 hover:text-[#111827] transition-colors"
+                  aria-label="Close notification"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
           {shopifySyncWarning && (
             <div className="max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16 pt-6">
               <div className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-amber-200 text-sm">

@@ -1,4 +1,4 @@
-﻿import { useId, useState, useEffect, useRef } from 'react'
+import { useId, useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCart } from '@/context/CartContext'
