@@ -54,6 +54,8 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
   const [findEmail, setFindEmail] = useState('')
   const [findAccountLoading, setFindAccountLoading] = useState(false)
   const [findAccountProfile, setFindAccountProfile] = useState<{ full_name: string; vehicles: VehicleRow[] } | null>(null)
+  const [emailSuggestions, setEmailSuggestions] = useState<Array<{ id: string; first_name: string | null; last_name: string | null; email: string }>>([])
+  const [emailSuggestionsLoading, setEmailSuggestionsLoading] = useState(false)
   const [newClientName, setNewClientName] = useState('')
   const [newClientPhone, setNewClientPhone] = useState('')
   const [newClientEmail, setNewClientEmail] = useState('')
@@ -107,6 +109,29 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
     return () => clearTimeout(t)
   }, [isOpen, searchQuery, runSearch])
 
+  // Suggestions as you type (email lookup step 2)
+  useEffect(() => {
+    if (step !== 2 || hasFireballAccount !== 'yes') {
+      setEmailSuggestions([])
+      return
+    }
+    const q = findEmail.trim()
+    if (q.length < 2) {
+      setEmailSuggestions([])
+      return
+    }
+    const t = setTimeout(async () => {
+      setEmailSuggestionsLoading(true)
+      const { data: rows, error } = await supabase.rpc('search_profiles_by_email_for_partner', {
+        email_input: q,
+      })
+      setEmailSuggestionsLoading(false)
+      if (!error && Array.isArray(rows)) setEmailSuggestions(rows as Array<{ id: string; first_name: string | null; last_name: string | null; email: string }>)
+      else setEmailSuggestions([])
+    }, 350)
+    return () => clearTimeout(t)
+  }, [step, hasFireballAccount, findEmail])
+
   const handleCreateNewClient = () => {
     setSelectedClient(null)
     setSearchQuery('')
@@ -115,6 +140,7 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
     setHasFireballAccount(null)
     setFindEmail('')
     setFindAccountProfile(null)
+    setEmailSuggestions([])
     setNewClientName('')
     setNewClientPhone('')
     setNewClientEmail('')
@@ -140,6 +166,49 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
     setClientVehicles((data ?? []) as VehicleRow[])
   }
 
+  const applyProfileAsFound = useCallback(
+    async (profile: { id: string; first_name: string | null; last_name: string | null; email: string }) => {
+      const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ') || profile.email || 'Member'
+      setFindAccountProfile({ full_name: fullName, vehicles: [] })
+      let vehicles: VehicleRow[] = []
+      // Véhicules déjà liés à ce client chez le partenaire
+      const { data: clientRow } = await supabase
+        .from('partner_clients')
+        .select('id')
+        .eq('partner_id', partnerId)
+        .eq('email', profile.email)
+        .maybeSingle()
+      if (clientRow) {
+        const { data: vList } = await supabase
+          .from('partner_vehicles')
+          .select('id,brand,model,year,color')
+          .eq('client_id', (clientRow as { id: string }).id)
+        vehicles = (vList ?? []) as VehicleRow[]
+      }
+      // Véhicules du garage Fireball du compte (ajoutés par la personne dans son app)
+      const { data: garageRows } = await supabase.rpc('get_garage_vehicles_for_partner', {
+        profile_id: profile.id,
+      })
+      const garageVehicles = (Array.isArray(garageRows) ? garageRows : []) as VehicleRow[]
+      const seen = new Set(vehicles.map((v) => v.id))
+      garageVehicles.forEach((v) => {
+        if (!seen.has(v.id)) {
+          seen.add(v.id)
+          vehicles.push(v)
+        }
+      })
+      setFindAccountProfile((p) => ({ ...p!, vehicles }))
+    },
+    [partnerId]
+  )
+
+  const handleSelectEmailSuggestion = (profile: { id: string; first_name: string | null; last_name: string | null; email: string }) => {
+    setFindEmail(profile.email)
+    setEmailSuggestions([])
+    setError('')
+    applyProfileAsFound(profile)
+  }
+
   const handleFindAccount = async () => {
     if (!findEmail.trim()) {
       setError('Enter an email address.')
@@ -147,7 +216,6 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
     }
     setFindAccountLoading(true)
     setError('')
-    // RPC allows partners to look up a profile by email (RLS blocks direct profiles read for other users)
     const { data: profileRows, error: rpcError } = await supabase.rpc('get_profile_by_email_for_partner', {
       email_input: findEmail.trim(),
     })
@@ -158,25 +226,7 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
       return
     }
     if (profile) {
-      const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ') || profile.email || 'Member'
-      setFindAccountProfile({ full_name: fullName, vehicles: [] })
-      const { data: vehicles } = await supabase
-        .from('partner_vehicles')
-        .select('id,brand,model,year,color')
-        .eq('partner_id', partnerId)
-      const clientRows = await supabase
-        .from('partner_clients')
-        .select('id')
-        .eq('partner_id', partnerId)
-        .eq('email', profile.email)
-        .maybeSingle()
-      if (clientRows.data) {
-        const { data: vList } = await supabase
-          .from('partner_vehicles')
-          .select('id,brand,model,year,color')
-          .eq('client_id', (clientRows.data as { id: string }).id)
-        setFindAccountProfile((p) => ({ ...p!, vehicles: (vList ?? []) as VehicleRow[] }))
-      }
+      await applyProfileAsFound(profile)
     } else {
       setError('No Fireball account found for this email.')
     }
@@ -425,13 +475,40 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
               {hasFireballAccount === 'yes' && (
                 <div className="space-y-3">
                   <label className="block text-xs text-white/60">Email</label>
-                  <input
-                    type="email"
-                    value={findEmail}
-                    onChange={(e) => setFindEmail(e.target.value)}
-                    placeholder="Client email"
-                    className="w-full rounded-[14px] border border-white/10 bg-black/30 px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none"
-                  />
+                  <div className="relative">
+                    <input
+                      type="email"
+                      value={findEmail}
+                      onChange={(e) => {
+                        setFindEmail(e.target.value)
+                        setFindAccountProfile(null)
+                      }}
+                      placeholder="Start typing to see suggestions…"
+                      className="w-full rounded-[14px] border border-white/10 bg-black/30 px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none"
+                    />
+                    {emailSuggestions.length > 0 && (
+                      <ul className="absolute top-full left-0 right-0 z-10 mt-1 max-h-48 overflow-auto rounded-[14px] border border-white/10 bg-black/80 py-1 shadow-lg">
+                        {emailSuggestions.map((p) => {
+                          const fullName = [p.first_name, p.last_name].filter(Boolean).join(' ') || p.email
+                          return (
+                            <li key={p.id}>
+                              <button
+                                type="button"
+                                onClick={() => handleSelectEmailSuggestion(p)}
+                                className="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/10"
+                              >
+                                <span className="font-medium">{fullName}</span>
+                                <span className="ml-2 text-white/60">{p.email}</span>
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                    {emailSuggestionsLoading && findEmail.trim().length >= 2 && (
+                      <p className="mt-1 text-xs text-white/50">Searching…</p>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={handleFindAccount}
