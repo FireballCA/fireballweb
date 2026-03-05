@@ -36,16 +36,15 @@ export function LiquidGlassSelect({
       }
     }
 
-    if (isOpen && searchable) {
+    if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside)
-      // Focus sur la barre de recherche quand le dropdown s'ouvre
-      setTimeout(() => searchInputRef.current?.focus(), 100)
+      if (searchable) setTimeout(() => searchInputRef.current?.focus(), 100)
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [isOpen])
+  }, [isOpen, searchable])
 
   // Filtrer les options basées sur la recherche
   const filteredOptions = searchable
