@@ -1,4 +1,7 @@
--- Run in Supabase SQL Editor
+-- =============================================================================
+-- À exécuter dans le Supabase SQL Editor (Dashboard Supabase → SQL Editor → New query)
+-- Sans ce script, la recherche par email et les suggestions renvoient 404.
+-- =============================================================================
 -- Allows certified partners to look up a Fireball member profile by email (for "Find their account" in Add Client).
 -- RLS on profiles normally blocks reading other users' rows; this function runs with definer rights and only
 -- returns one profile when the caller is a partner, so partners can link existing Fireball accounts to their client list.
