@@ -1,18 +1,9 @@
 import { useEffect, useState } from 'react'
-import {
-  IconSearch,
-  IconPlus,
-  IconCar,
-  IconChevronRight,
-  IconX,
-  IconPhoto,
-  IconNote,
-  IconCalendar,
-  IconCertificate,
-} from '@tabler/icons-react'
+import { IconSearch, IconCar, IconChevronRight, IconX, IconCalendar } from '@tabler/icons-react'
+import { LiquidGlassSelect } from '@/components/LiquidGlassSelect'
+import { AddClientFlow } from '@/components/business/AddClientFlow'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUserProfile } from '@/utils/supabaseAuth'
-import { cn } from '@/lib/utils'
 
 interface ClientRow {
   id: string
@@ -52,9 +43,9 @@ export function BusinessClientsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
-  const [filterOpen, setFilterOpen] = useState(false)
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
   const [detailPanelOpen, setDetailPanelOpen] = useState(false)
+  const [addClientOpen, setAddClientOpen] = useState(false)
 
   const loadData = async () => {
     const profile = await getCurrentUserProfile()
@@ -138,14 +129,14 @@ export function BusinessClientsPage() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#0A84FF] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#007AFF]"
+            onClick={() => setAddClientOpen(true)}
+            className="h-[40px] min-h-[40px] rounded-[14px] bg-[#0A84FF] px-8 text-center text-sm font-medium text-white transition-colors hover:bg-[#007AFF]"
           >
-            <IconPlus className="h-4 w-4" />
             Add Client
           </button>
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-[#2C2C2E] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#3A3A3C]"
+            className="h-[40px] min-h-[40px] rounded-[14px] border border-white/20 bg-[#2C2C2E] px-8 text-center text-sm font-medium text-white transition-colors hover:bg-[#3A3A3C]"
           >
             New Installation
           </button>
@@ -153,7 +144,7 @@ export function BusinessClientsPage() {
       </div>
 
       {/* Search + Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="relative flex-1">
           <IconSearch className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
           <input
@@ -161,40 +152,18 @@ export function BusinessClientsPage() {
             placeholder="Search clients, vehicles, or phone number"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-[#1C1C1E] py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none"
+            className="w-full rounded-[14px] border border-white/10 bg-[#1C1C1E] py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none"
           />
         </div>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setFilterOpen(!filterOpen)}
-            className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#1C1C1E] px-4 py-2.5 text-sm text-white/90"
-          >
-            {FILTER_OPTIONS.find((f) => f.value === filter)?.label ?? 'All Clients'}
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          {filterOpen && (
-            <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-xl border border-white/10 bg-[#1C1C1E] py-1 shadow-xl">
-              {FILTER_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    setFilter(opt.value)
-                    setFilterOpen(false)
-                  }}
-                  className={cn(
-                    'w-full px-4 py-2 text-left text-sm',
-                    filter === opt.value ? 'bg-white/10 text-white' : 'text-white/80 hover:bg-white/5'
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="w-full sm:w-52">
+          <LiquidGlassSelect
+            label="Filter"
+            value={filter}
+            options={FILTER_OPTIONS}
+            onChange={(value) => setFilter(value)}
+            placeholder="All Clients"
+            searchable={false}
+          />
         </div>
       </div>
 
@@ -252,6 +221,15 @@ export function BusinessClientsPage() {
         )}
       </div>
 
+      {partnerId && (
+        <AddClientFlow
+          isOpen={addClientOpen}
+          onClose={() => setAddClientOpen(false)}
+          partnerId={partnerId}
+          onSuccess={loadData}
+        />
+      )}
+
       {/* 3. Client Details Panel (slide-over) */}
       {detailPanelOpen && selectedClient && (
         <>
@@ -266,7 +244,8 @@ export function BusinessClientsPage() {
               <button
                 type="button"
                 onClick={() => setDetailPanelOpen(false)}
-                className="rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white"
+                className="flex h-[40px] w-[40px] items-center justify-center rounded-[14px] text-white/60 hover:bg-white/10 hover:text-white"
+                aria-label="Close"
               >
                 <IconX className="h-5 w-5" />
               </button>
@@ -331,21 +310,21 @@ export function BusinessClientsPage() {
               {/* Actions */}
               <section className="mb-8">
                 <h3 className="text-[11px] font-semibold uppercase tracking-wider text-white/50 mb-3">Actions</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <button type="button" className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#2C2C2E] px-3 py-2.5 text-sm text-white hover:bg-[#3A3A3C]">
-                    <IconCar className="h-4 w-4" /> Add Vehicle
+                <div className="grid grid-cols-2 gap-3">
+                  <button type="button" className="h-[40px] min-h-[40px] rounded-[14px] border border-white/10 bg-[#2C2C2E] px-6 text-center text-sm text-white hover:bg-[#3A3A3C]">
+                    Add Vehicle
                   </button>
-                  <button type="button" className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#2C2C2E] px-3 py-2.5 text-sm text-white hover:bg-[#3A3A3C]">
-                    <IconCertificate className="h-4 w-4" /> Add Service
+                  <button type="button" className="h-[40px] min-h-[40px] rounded-[14px] border border-white/10 bg-[#2C2C2E] px-6 text-center text-sm text-white hover:bg-[#3A3A3C]">
+                    Add Service
                   </button>
-                  <button type="button" className="flex items-center gap-2 rounded-xl bg-[#0A84FF] px-3 py-2.5 text-sm text-white hover:bg-[#007AFF]">
-                    <IconCertificate className="h-4 w-4" /> Register Fireball Installation
+                  <button type="button" className="h-[40px] min-h-[40px] rounded-[14px] bg-[#0A84FF] px-6 text-center text-sm text-white hover:bg-[#007AFF]">
+                    Register Fireball Installation
                   </button>
-                  <button type="button" className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#2C2C2E] px-3 py-2.5 text-sm text-white hover:bg-[#3A3A3C]">
-                    <IconPhoto className="h-4 w-4" /> Upload Photos
+                  <button type="button" className="h-[40px] min-h-[40px] rounded-[14px] border border-white/10 bg-[#2C2C2E] px-6 text-center text-sm text-white hover:bg-[#3A3A3C]">
+                    Upload Photos
                   </button>
-                  <button type="button" className="col-span-2 flex items-center gap-2 rounded-xl border border-white/10 bg-[#2C2C2E] px-3 py-2.5 text-sm text-white hover:bg-[#3A3A3C]">
-                    <IconNote className="h-4 w-4" /> Add Notes
+                  <button type="button" className="col-span-2 h-[40px] min-h-[40px] rounded-[14px] border border-white/10 bg-[#2C2C2E] px-6 text-center text-sm text-white hover:bg-[#3A3A3C]">
+                    Add Notes
                   </button>
                 </div>
               </section>

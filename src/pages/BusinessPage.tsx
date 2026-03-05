@@ -247,7 +247,7 @@ export function BusinessPage() {
               <button
                 type="submit"
                 disabled={formLoading}
-                className="w-full bg-[#0A84FF] text-white border-none py-4 rounded-lg font-semibold text-sm cursor-pointer transition-colors hover:bg-[#007AFF] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-[40px] w-full rounded-[14px] border-none bg-[#0A84FF] px-8 text-center text-white font-semibold transition-colors hover:bg-[#007AFF] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {formLoading ? 'Saving…' : 'Save and continue'}
               </button>
