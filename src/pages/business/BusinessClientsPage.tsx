@@ -46,6 +46,7 @@ export function BusinessClientsPage() {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
   const [detailPanelOpen, setDetailPanelOpen] = useState(false)
   const [addClientOpen, setAddClientOpen] = useState(false)
+  const [deletingClientId, setDeletingClientId] = useState<string | null>(null)
 
   const loadData = async () => {
     const profile = await getCurrentUserProfile()
@@ -116,6 +117,21 @@ export function BusinessClientsPage() {
   const openClientDetail = (id: string) => {
     setSelectedClientId(id)
     setDetailPanelOpen(true)
+  }
+
+  const handleDeleteClient = async () => {
+    if (!selectedClientId) return
+    if (!window.confirm('Supprimer ce client et toutes ses données (véhicules, garanties) ?')) return
+    setDeletingClientId(selectedClientId)
+    const { error } = await supabase.from('partner_clients').delete().eq('id', selectedClientId)
+    setDeletingClientId(null)
+    if (error) {
+      alert(error.message || 'Impossible de supprimer le client.')
+      return
+    }
+    setDetailPanelOpen(false)
+    setSelectedClientId(null)
+    loadData()
   }
 
   return (
@@ -299,14 +315,6 @@ export function BusinessClientsPage() {
                 )}
               </section>
 
-              {/* Installation Photos placeholder */}
-              <section className="mb-8">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-white/50 mb-3">Installation photos</h3>
-                <div className="rounded-xl border border-dashed border-white/20 bg-black/20 p-8 text-center text-white/50 text-sm">
-                  Grid gallery — upload photos from actions below
-                </div>
-              </section>
-
               {/* Actions */}
               <section className="mb-8">
                 <h3 className="text-[11px] font-semibold uppercase tracking-wider text-white/50 mb-3">Actions</h3>
@@ -317,14 +325,19 @@ export function BusinessClientsPage() {
                   <button type="button" className="h-[40px] min-h-[40px] rounded-[14px] border border-white/10 bg-[#2C2C2E] px-6 text-center text-sm text-white hover:bg-[#3A3A3C]">
                     Add Service
                   </button>
-                  <button type="button" className="h-[40px] min-h-[40px] rounded-[14px] bg-[#0A84FF] px-6 text-center text-sm text-white hover:bg-[#007AFF]">
+                  <button type="button" className="col-span-2 h-[40px] min-h-[40px] rounded-[14px] bg-[#0A84FF] px-6 text-center text-sm text-white hover:bg-[#007AFF]">
                     Register Fireball Installation
-                  </button>
-                  <button type="button" className="h-[40px] min-h-[40px] rounded-[14px] border border-white/10 bg-[#2C2C2E] px-6 text-center text-sm text-white hover:bg-[#3A3A3C]">
-                    Upload Photos
                   </button>
                   <button type="button" className="col-span-2 h-[40px] min-h-[40px] rounded-[14px] border border-white/10 bg-[#2C2C2E] px-6 text-center text-sm text-white hover:bg-[#3A3A3C]">
                     Add Notes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteClient}
+                    disabled={!!deletingClientId}
+                    className="col-span-2 h-[40px] min-h-[40px] rounded-[14px] border border-red-500/50 bg-red-500/10 px-6 text-center text-sm text-red-400 hover:bg-red-500/20 disabled:opacity-50"
+                  >
+                    {deletingClientId ? 'Suppression…' : 'Supprimer le client'}
                   </button>
                 </div>
               </section>
