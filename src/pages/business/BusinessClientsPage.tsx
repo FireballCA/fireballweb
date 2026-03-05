@@ -168,7 +168,7 @@ export function BusinessClientsPage() {
             placeholder="Search clients, vehicles, or phone number"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-[14px] border border-white/10 bg-[#1C1C1E] py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none"
+            className="w-full rounded-[14px] border border-white/10 bg-[#0f0f0f] py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none"
           />
         </div>
         <div className="w-full sm:w-52">
@@ -187,14 +187,14 @@ export function BusinessClientsPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {loading ? (
           [...Array(6)].map((_, i) => (
-            <div key={i} className="rounded-2xl border border-white/10 bg-[#1C1C1E]/80 p-5 animate-pulse">
+            <div key={i} className="rounded-2xl border border-white/10 bg-[#0f0f0f]/80 p-5 animate-pulse">
               <div className="h-12 w-12 rounded-full bg-white/10" />
               <div className="mt-3 h-5 w-3/4 rounded bg-white/10" />
               <div className="mt-2 h-4 w-1/2 rounded bg-white/10" />
             </div>
           ))
         ) : filteredClients.length === 0 ? (
-          <div className="col-span-full rounded-2xl border border-white/10 bg-[#1C1C1E]/50 p-12 text-center text-white/60">
+          <div className="col-span-full rounded-2xl border border-white/10 bg-[#0f0f0f]/50 p-12 text-center text-white/60">
             No clients found. Add your first client to get started.
           </div>
         ) : (
@@ -209,7 +209,7 @@ export function BusinessClientsPage() {
                 key={client.id}
                 type="button"
                 onClick={() => openClientDetail(client.id)}
-                className="rounded-2xl border border-white/10 bg-[#1C1C1E] p-5 text-left transition-colors hover:border-white/20 hover:bg-[#1C1C1E]/90"
+                className="rounded-2xl border border-white/10 bg-[#0f0f0f] p-5 text-left transition-colors hover:border-white/20 hover:bg-[#141414]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0A84FF]/20 text-lg font-semibold text-[#0A84FF]">
@@ -254,7 +254,7 @@ export function BusinessClientsPage() {
             onClick={() => setDetailPanelOpen(false)}
             aria-hidden
           />
-          <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg flex-col border-l border-white/10 bg-[#1C1C1E] shadow-2xl">
+          <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg flex-col border-l border-white/10 bg-[#0f0f0f] shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 p-4">
               <h2 className="text-lg font-semibold text-white">Client details</h2>
               <button

@@ -31,6 +31,30 @@ const SERVICE_TYPES = [
 
 const COATING_OPTIONS = COATING_PRODUCTS.map((c) => ({ value: c.id, label: c.label }))
 
+/** Tier par XP (aligné sur AccountDashboard). */
+const XP_TIER_NAMES: { minXp: number; name: string }[] = [
+  { minXp: 0, name: 'Brushed Silver' },
+  { minXp: 1200, name: 'Titanium' },
+  { minXp: 8000, name: 'Carbon Fiber' },
+  { minXp: 20000, name: 'Obsidian' },
+  { minXp: 35000, name: 'Gold' },
+]
+function getTierNameFromXp(xp: number): string {
+  let current = XP_TIER_NAMES[0]
+  for (const t of XP_TIER_NAMES) {
+    if (xp >= t.minXp) current = t
+    else break
+  }
+  return current.name
+}
+
+function getSubscriptionLabel(tier: string | null | undefined): string {
+  const v = String(tier || '').trim().toLowerCase()
+  if (v === 'ignition') return 'Ignition'
+  if (v === 'apex') return 'Apex'
+  return 'None'
+}
+
 interface AddClientFlowProps {
   isOpen: boolean
   onClose: () => void
@@ -49,8 +73,20 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
   const [hasFireballAccount, setHasFireballAccount] = useState<'yes' | 'no' | null>(null)
   const [findEmail, setFindEmail] = useState('')
   const [findAccountLoading, setFindAccountLoading] = useState(false)
-  const [findAccountProfile, setFindAccountProfile] = useState<{ full_name: string; vehicles: VehicleRow[] } | null>(null)
-  const [emailSuggestions, setEmailSuggestions] = useState<Array<{ id: string; first_name: string | null; last_name: string | null; email: string }>>([])
+  const [findAccountProfile, setFindAccountProfile] = useState<{
+    full_name: string
+    vehicles: VehicleRow[]
+    tier_label?: string
+    subscription_label?: string
+  } | null>(null)
+  const [emailSuggestions, setEmailSuggestions] = useState<Array<{
+    id: string
+    first_name: string | null
+    last_name: string | null
+    email: string
+    xp?: number
+    subscription_tier?: string | null
+  }>>([])
   const [emailSuggestionsLoading, setEmailSuggestionsLoading] = useState(false)
   const [newClientName, setNewClientName] = useState('')
   const [newClientPhone, setNewClientPhone] = useState('')
@@ -134,7 +170,7 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
           email_input: q,
         })
         if (cancelled) return
-        if (!error && Array.isArray(rows)) setEmailSuggestions(rows as Array<{ id: string; first_name: string | null; last_name: string | null; email: string }>)
+        if (!error && Array.isArray(rows)) setEmailSuggestions(rows as Array<{ id: string; first_name: string | null; last_name: string | null; email: string; xp?: number; subscription_tier?: string | null }>)
         else setEmailSuggestions([])
       } catch {
         if (!cancelled) setEmailSuggestions([])
@@ -183,9 +219,19 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
   }
 
   const applyProfileAsFound = useCallback(
-    async (profile: { id: string; first_name: string | null; last_name: string | null; email: string }) => {
+    async (profile: {
+      id: string
+      first_name: string | null
+      last_name: string | null
+      email: string
+      xp?: number
+      subscription_tier?: string | null
+    }) => {
       const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ') || profile.email || 'Member'
-      setFindAccountProfile({ full_name: fullName, vehicles: [] })
+      const xp = typeof profile.xp === 'number' ? profile.xp : 0
+      const tier_label = getTierNameFromXp(xp)
+      const subscription_label = getSubscriptionLabel(profile.subscription_tier)
+      setFindAccountProfile({ full_name: fullName, vehicles: [], tier_label, subscription_label })
       let vehicles: VehicleRow[] = []
       // Véhicules déjà liés à ce client chez le partenaire
       const { data: clientRow } = await supabase
@@ -399,7 +445,7 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
   return (
     <>
       <div className="fixed inset-0 z-[160] bg-black/50" onClick={resetAndClose} aria-hidden />
-      <div className="fixed right-0 top-0 z-[161] flex h-full w-full max-w-lg flex-col border-l border-white/10 bg-[#1C1C1E] shadow-2xl">
+      <div className="fixed right-0 top-0 z-[161] flex h-full w-full max-w-lg flex-col border-l border-white/10 bg-[#0f0f0f] shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/10 p-4">
           <h2 className="text-lg font-semibold text-white">
             {step === 1 && 'Find or create a client'}
@@ -447,7 +493,6 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
                     >
                       <p className="font-medium text-white">{client.full_name}</p>
                       <p className="text-xs text-white/50">{client.email}</p>
-                      <p className="mt-2 text-[11px] text-white/40">Fireball Member – Carbon Tier</p>
                       <button
                         type="button"
                         onClick={() => handleSelectClient(client)}
@@ -557,6 +602,12 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
                     <div className="rounded-[14px] border border-white/10 bg-black/30 p-4">
                       <p className="font-medium text-white">{findAccountProfile.full_name}</p>
                       <p className="text-xs text-white/50">{findEmail}</p>
+                      <p className="mt-2 text-[11px] text-white/70">
+                        Fireball Member – {findAccountProfile.tier_label ?? 'Brushed Silver'} Tier
+                      </p>
+                      <p className="text-[11px] text-white/50">
+                        Abonnement : {findAccountProfile.subscription_label ?? 'None'}
+                      </p>
                       <button
                         type="button"
                         onClick={handleLinkExistingAccount}
