@@ -2,12 +2,16 @@
 -- À exécuter dans le Supabase SQL Editor (Dashboard Supabase → SQL Editor → New query)
 -- Sans ce script, la recherche par email et les suggestions renvoient 404.
 -- =============================================================================
+-- Colonnes optionnelles pour tier / abonnement (si pas déjà présentes sur profiles)
+alter table public.profiles add column if not exists xp integer default 0;
+alter table public.profiles add column if not exists subscription_tier text;
+
 -- Allows certified partners to look up a Fireball member profile by email (for "Find their account" in Add Client).
 -- RLS on profiles normally blocks reading other users' rows; this function runs with definer rights and only
 -- returns one profile when the caller is a partner, so partners can link existing Fireball accounts to their client list.
 
 create or replace function public.get_profile_by_email_for_partner(email_input text)
-returns table (id uuid, first_name text, last_name text, email text)
+returns table (id uuid, first_name text, last_name text, email text, xp integer, subscription_tier text)
 language plpgsql
 security definer
 set search_path = public
@@ -16,7 +20,6 @@ begin
   if email_input is null or trim(email_input) = '' then
     return;
   end if;
-  -- Only allow if the current user is a certified partner
   if not exists (
     select 1 from public.partner_companies pc
     where pc.user_id = auth.uid() and pc.status = 'partner'
@@ -24,7 +27,9 @@ begin
     return;
   end if;
   return query
-  select p.id, p.first_name, p.last_name, p.email
+  select p.id, p.first_name, p.last_name, p.email,
+         coalesce(p.xp, 0)::integer,
+         p.subscription_tier
   from public.profiles p
   where lower(trim(p.email)) = lower(trim(email_input))
   limit 1;
@@ -39,7 +44,7 @@ grant execute on function public.get_profile_by_email_for_partner(text) to servi
 
 -- Search profiles by email (partial match) for suggestions as the partner types. Returns up to 8 matches.
 create or replace function public.search_profiles_by_email_for_partner(email_input text)
-returns table (id uuid, first_name text, last_name text, email text)
+returns table (id uuid, first_name text, last_name text, email text, xp integer, subscription_tier text)
 language plpgsql
 security definer
 set search_path = public
@@ -55,7 +60,9 @@ begin
     return;
   end if;
   return query
-  select p.id, p.first_name, p.last_name, p.email
+  select p.id, p.first_name, p.last_name, p.email,
+         coalesce(p.xp, 0)::integer,
+         p.subscription_tier
   from public.profiles p
   where p.email is not null and trim(p.email) <> ''
     and lower(p.email) like '%' || lower(trim(email_input)) || '%'

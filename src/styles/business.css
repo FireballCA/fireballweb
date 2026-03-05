@@ -1,15 +1,15 @@
 /* Fireball Business — SF Pro Display (system on Apple), fonds et couleurs */
 .business-layout {
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Segoe UI', sans-serif;
-  background: #1C1C1E;
+  background: #0f0f0f;
 }
 
 .business-layout .business-sidebar {
-  background: #1C1C1E;
+  background: #0f0f0f;
 }
 
 .business-layout .business-main {
-  background: #1C1C1E;
+  background: #0f0f0f;
 }
 
 /* Boutons principaux */
