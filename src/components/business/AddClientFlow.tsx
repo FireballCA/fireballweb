@@ -109,7 +109,7 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
     return () => clearTimeout(t)
   }, [isOpen, searchQuery, runSearch])
 
-  // Suggestions as you type (email lookup step 2)
+  // Suggestions as you type (email lookup step 2). RPC can 404 if SQL not run in Supabase.
   useEffect(() => {
     if (step !== 2 || hasFireballAccount !== 'yes') {
       setEmailSuggestions([])
@@ -120,16 +120,26 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
       setEmailSuggestions([])
       return
     }
+    let cancelled = false
     const t = setTimeout(async () => {
       setEmailSuggestionsLoading(true)
-      const { data: rows, error } = await supabase.rpc('search_profiles_by_email_for_partner', {
-        email_input: q,
-      })
-      setEmailSuggestionsLoading(false)
-      if (!error && Array.isArray(rows)) setEmailSuggestions(rows as Array<{ id: string; first_name: string | null; last_name: string | null; email: string }>)
-      else setEmailSuggestions([])
+      try {
+        const { data: rows, error } = await supabase.rpc('search_profiles_by_email_for_partner', {
+          email_input: q,
+        })
+        if (cancelled) return
+        if (!error && Array.isArray(rows)) setEmailSuggestions(rows as Array<{ id: string; first_name: string | null; last_name: string | null; email: string }>)
+        else setEmailSuggestions([])
+      } catch {
+        if (!cancelled) setEmailSuggestions([])
+      } finally {
+        if (!cancelled) setEmailSuggestionsLoading(false)
+      }
     }, 350)
-    return () => clearTimeout(t)
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+    }
   }, [step, hasFireballAccount, findEmail])
 
   const handleCreateNewClient = () => {
@@ -185,11 +195,16 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
           .eq('client_id', (clientRow as { id: string }).id)
         vehicles = (vList ?? []) as VehicleRow[]
       }
-      // Véhicules du garage Fireball du compte (ajoutés par la personne dans son app)
-      const { data: garageRows } = await supabase.rpc('get_garage_vehicles_for_partner', {
-        profile_id: profile.id,
-      })
-      const garageVehicles = (Array.isArray(garageRows) ? garageRows : []) as VehicleRow[]
+      // Véhicules du garage Fireball du compte (ignoré si la RPC n'existe pas encore en base)
+      let garageVehicles: VehicleRow[] = []
+      try {
+        const { data: garageRows } = await supabase.rpc('get_garage_vehicles_for_partner', {
+          profile_id: profile.id,
+        })
+        garageVehicles = (Array.isArray(garageRows) ? garageRows : []) as VehicleRow[]
+      } catch {
+        garageVehicles = []
+      }
       const seen = new Set(vehicles.map((v) => v.id))
       garageVehicles.forEach((v) => {
         if (!seen.has(v.id)) {
