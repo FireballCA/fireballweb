@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { IconSearch, IconX } from '@tabler/icons-react'
 import { LiquidGlassSelect } from '@/components/LiquidGlassSelect'
+import { IOSStyleCalendar } from '@/components/IOSStyleCalendar'
+import { COATING_PRODUCTS, getCoatingById, getWarrantyEndDate, getRecommendedNextServiceDate } from '@/data/coatings'
 import { supabase } from '@/lib/supabase'
 
 interface ClientRow {
@@ -27,13 +29,7 @@ const SERVICE_TYPES = [
   { value: 'interior', label: 'Interior Detail' },
 ]
 
-const FIREBALL_PRODUCTS = [
-  { value: 'aegis', label: 'Aegis' },
-  { value: 'typhoon', label: 'Typhoon' },
-  { value: 'devils_blood', label: "Devil's Blood" },
-  { value: 'dok_do', label: 'Dok Do' },
-  { value: 'silla', label: 'Silla' },
-]
+const COATING_OPTIONS = COATING_PRODUCTS.map((c) => ({ value: c.id, label: c.label }))
 
 interface AddClientFlowProps {
   isOpen: boolean
@@ -71,11 +67,11 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
   const [newVehicleLicense, setNewVehicleLicense] = useState('')
   const [saveVehicleLoading, setSaveVehicleLoading] = useState(false)
   const [serviceType, setServiceType] = useState('ceramic')
-  const [productUsed, setProductUsed] = useState('aegis')
+  const [productUsed, setProductUsed] = useState(COATING_PRODUCTS[0]?.id ?? 'aegis')
   const [installationDate, setInstallationDate] = useState(new Date().toISOString().slice(0, 10))
-  const [activateWarranty, setActivateWarranty] = useState(true)
   const [registerLoading, setRegisterLoading] = useState(false)
   const [error, setError] = useState('')
+  const emailSuggestionsRef = useRef<HTMLDivElement>(null)
 
   const currentClientId = selectedClient?.id ?? createdClientId
 
@@ -108,6 +104,16 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
     const t = setTimeout(runSearch, 300)
     return () => clearTimeout(t)
   }, [isOpen, searchQuery, runSearch])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (emailSuggestionsRef.current && !emailSuggestionsRef.current.contains(e.target as Node)) {
+        setEmailSuggestions([])
+      }
+    }
+    if (emailSuggestions.length > 0) document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [emailSuggestions.length])
 
   // Suggestions as you type (email lookup step 2). RPC can 404 if SQL not run in Supabase.
   useEffect(() => {
@@ -343,14 +349,20 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
     }
     setRegisterLoading(true)
     setError('')
-    const productLabel = FIREBALL_PRODUCTS.find((p) => p.value === productUsed)?.label ?? productUsed
+    const coating = getCoatingById(productUsed)
+    const productLabel = coating?.label ?? productUsed
+    const warrantyLabel = coating ? coating.warrantyLabel : null
+    const recommendedNext = coating ? getRecommendedNextServiceDate(installationDate, productUsed) : null
+    const notesPayload = recommendedNext ? { recommended_next_service: recommendedNext } : {}
+    const notes = Object.keys(notesPayload).length > 0 ? JSON.stringify(notesPayload) : null
     const { error: insertError } = await supabase.from('partner_warranties').insert({
       partner_id: partnerId,
       client_id: currentClientId,
       vehicle_id: vehicleId,
       product_used: productLabel,
       installation_date: installationDate,
-      warranty_length: activateWarranty ? 'Standard' : null,
+      warranty_length: warrantyLabel,
+      notes,
       photos: [],
     })
     if (insertError) {
@@ -488,8 +500,8 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
               </div>
 
               {hasFireballAccount === 'yes' && (
-                <div className="space-y-3">
-                  <label className="block text-xs text-white/60">Email</label>
+                <div className="space-y-3" ref={emailSuggestionsRef}>
+                  <label className="block text-white/80 text-sm mb-2 font-medium">Email</label>
                   <div className="relative">
                     <input
                       type="email"
@@ -499,29 +511,38 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
                         setFindAccountProfile(null)
                       }}
                       placeholder="Start typing to see suggestions…"
-                      className="w-full rounded-[14px] border border-white/10 bg-black/30 px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none"
+                      className="w-full rounded-xl px-4 py-3 text-left text-sm text-white placeholder:text-white/40 focus:outline-none transition-all bg-white/[0.06] border border-white/15 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
                     />
                     {emailSuggestions.length > 0 && (
-                      <ul className="absolute top-full left-0 right-0 z-10 mt-1 max-h-48 overflow-auto rounded-[14px] border border-white/10 bg-black/80 py-1 shadow-lg">
-                        {emailSuggestions.map((p) => {
-                          const fullName = [p.first_name, p.last_name].filter(Boolean).join(' ') || p.email
-                          return (
-                            <li key={p.id}>
+                      <div
+                        className="absolute z-50 w-full mt-2 rounded-2xl border border-white/20 shadow-[0_18px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.24)] overflow-hidden"
+                        style={{
+                          background: 'rgba(20, 20, 20, 0.95)',
+                          backdropFilter: 'blur(20px)',
+                          WebkitBackdropFilter: 'blur(20px)',
+                          maxHeight: '280px',
+                        }}
+                      >
+                        <div className="overflow-y-auto p-1.5" style={{ maxHeight: '260px' }}>
+                          {emailSuggestions.map((p) => {
+                            const fullName = [p.first_name, p.last_name].filter(Boolean).join(' ') || p.email
+                            return (
                               <button
+                                key={p.id}
                                 type="button"
                                 onClick={() => handleSelectEmailSuggestion(p)}
-                                className="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-white/10"
+                                className="w-full px-3 py-2.5 rounded-xl text-left text-xs font-medium text-white/90 hover:bg-white/10 hover:text-white transition-colors"
                               >
-                                <span className="font-medium">{fullName}</span>
+                                <span className="font-semibold text-white">{fullName}</span>
                                 <span className="ml-2 text-white/60">{p.email}</span>
                               </button>
-                            </li>
-                          )
-                        })}
-                      </ul>
+                            )
+                          })}
+                        </div>
+                      </div>
                     )}
                     {emailSuggestionsLoading && findEmail.trim().length >= 2 && (
-                      <p className="mt-1 text-xs text-white/50">Searching…</p>
+                      <p className="mt-1.5 text-xs text-white/50">Searching…</p>
                     )}
                   </div>
                   <button
@@ -687,59 +708,78 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
             </>
           )}
 
-          {/* Step 4 */}
+          {/* Step 4 — Service: uniquement type + sous-options si Ceramic */}
           {step === 4 && (
             <>
-              <p className="mb-3 text-xs text-white/50">Service Details</p>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs text-white/60 mb-1">Service Type</label>
+              <p className="mb-3 text-xs font-medium text-white/80">Service</p>
+              <div className="flex flex-wrap gap-2 mb-6">
+                {SERVICE_TYPES.map((s) => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => setServiceType(s.value)}
+                    className={`h-[40px] min-h-[40px] rounded-xl px-4 text-sm font-medium transition-all ${
+                      serviceType === s.value
+                        ? 'bg-[#0A84FF] text-white'
+                        : 'bg-white/[0.06] border border-white/15 text-white/80 hover:bg-white/10'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              {serviceType === 'ceramic' && (
+                <div className="space-y-4 mb-6">
                   <LiquidGlassSelect
-                    label=""
-                    value={serviceType}
-                    options={SERVICE_TYPES}
-                    onChange={setServiceType}
-                    searchable={false}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-white/60 mb-1">Fireball Product Used</label>
-                  <LiquidGlassSelect
-                    label=""
+                    label="Produit Fireball"
                     value={productUsed}
-                    options={FIREBALL_PRODUCTS}
+                    options={COATING_OPTIONS}
                     onChange={setProductUsed}
                     searchable={false}
                   />
+                  <div>
+                    <label className="block text-white/80 text-sm mb-2 font-medium">Date d’installation</label>
+                    <IOSStyleCalendar value={installationDate} onChange={setInstallationDate} />
+                  </div>
+                  {(() => {
+                    const coating = getCoatingById(productUsed)
+                    const warrantyEnd = coating ? getWarrantyEndDate(installationDate, productUsed) : null
+                    const nextService = coating ? getRecommendedNextServiceDate(installationDate, productUsed) : null
+                    return (
+                      <div className="rounded-xl border border-white/10 bg-black/30 p-4 space-y-2">
+                        {coating && (
+                          <>
+                            <p className="text-xs text-white/50">Garantie : {coating.warrantyLabel}</p>
+                            {warrantyEnd && (
+                              <p className="text-sm text-white/80">Fin garantie : {new Date(warrantyEnd).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                            )}
+                            {nextService && (
+                              <p className="text-sm text-[#0A84FF]">Prochain service conseillé : {new Date(nextService).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })} (visible dans My Garage pour le client)</p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
-                <div>
-                  <label className="block text-xs text-white/60 mb-1">Installation Date</label>
-                  <input
-                    type="date"
-                    value={installationDate}
-                    onChange={(e) => setInstallationDate(e.target.value)}
-                    className="w-full rounded-[14px] border border-white/10 bg-black/30 px-4 py-2.5 text-sm text-white focus:outline-none"
-                  />
+              )}
+
+              {serviceType !== 'ceramic' && (
+                <div className="mb-6">
+                  <label className="block text-white/80 text-sm mb-2 font-medium">Date</label>
+                  <IOSStyleCalendar value={installationDate} onChange={setInstallationDate} />
                 </div>
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={activateWarranty}
-                    onChange={(e) => setActivateWarranty(e.target.checked)}
-                    className="h-4 w-4 rounded accent-[#0A84FF]"
-                  />
-                  <span className="text-white">Activate Fireball Warranty?</span>
-                </label>
-                <p className="text-xs text-white/50">Upload photos (optional)</p>
-              </div>
-              <div className="mt-6 flex gap-3">
+              )}
+
+              <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={handleRegisterInstallation}
                   disabled={registerLoading || !(selectedVehicleId || clientVehicles[0]?.id)}
                   className="h-[40px] min-h-[40px] flex-1 rounded-[14px] bg-[#0A84FF] px-6 text-center text-sm text-white hover:bg-[#007AFF] disabled:opacity-50"
                 >
-                  {registerLoading ? 'Registering…' : 'Register Installation'}
+                  {registerLoading ? 'Enregistrement…' : 'Register Installation'}
                 </button>
                 <button
                   type="button"

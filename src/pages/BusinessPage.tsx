@@ -291,7 +291,7 @@ export function BusinessPage() {
     <div
       className={cn(
         'business-layout flex w-full flex-1 flex-col overflow-hidden md:flex-row',
-        'h-[calc(100vh-5rem)] min-h-[calc(100vh-5rem)] bg-[#000000]'
+        'h-[calc(100vh-5rem)] min-h-[calc(100vh-5rem)] bg-[#1C1C1E]'
       )}
     >
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
@@ -305,8 +305,8 @@ export function BusinessPage() {
           />
         </SidebarBody>
       </Sidebar>
-      <div className="flex flex-1 min-h-0 bg-[#000000]">
-        <div className="flex h-full min-h-full w-full flex-1 flex-col gap-6 rounded-tl-2xl border border-white/10 bg-[#000000] p-6 md:p-10 overflow-auto">
+      <div className="flex flex-1 min-h-0 bg-[#1C1C1E]">
+        <div className="flex h-full min-h-full w-full flex-1 flex-col gap-6 rounded-tl-2xl border border-white/10 bg-[#1C1C1E] p-6 md:p-10 overflow-auto">
           {isAdminPath ? (
             <>
               {!isAdmin ? (
