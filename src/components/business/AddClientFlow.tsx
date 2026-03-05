@@ -147,11 +147,16 @@ export function AddClientFlow({ isOpen, onClose, partnerId, onSuccess }: AddClie
     }
     setFindAccountLoading(true)
     setError('')
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id,first_name,last_name,email')
-      .ilike('email', findEmail.trim())
-      .maybeSingle()
+    // RPC allows partners to look up a profile by email (RLS blocks direct profiles read for other users)
+    const { data: profileRows, error: rpcError } = await supabase.rpc('get_profile_by_email_for_partner', {
+      email_input: findEmail.trim(),
+    })
+    const profile = Array.isArray(profileRows) && profileRows.length > 0 ? profileRows[0] : null
+    if (rpcError) {
+      setError(rpcError.message || 'Unable to search. If the function is missing, run supabase_partner_lookup_profile.sql in Supabase.')
+      setFindAccountLoading(false)
+      return
+    }
     if (profile) {
       const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ') || profile.email || 'Member'
       setFindAccountProfile({ full_name: fullName, vehicles: [] })
