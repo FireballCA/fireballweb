@@ -706,118 +706,6 @@ export function AccountDashboard() {
 
       {showDashboard && (
         <div className="w-full relative bg-[#0a0a0a]">
-          <div
-            ref={notificationsMenuRef}
-            className="pointer-events-none fixed top-[92px] md:top-[96px] right-4 z-[95] flex items-center gap-2"
-          >
-            <button
-              type="button"
-              className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/90 hover:bg-white/20 transition-colors"
-              aria-label="Open membership QR"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-              >
-                <path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 15h2M19 15h2M17 17v2M17 21h4" />
-              </svg>
-            </button>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={async () => {
-                  setNotificationsMenuOpen((open) => !open)
-                  if (!notificationsMenuOpen && currentUserId) {
-                    const role: UserRole = userRole
-                    const list = await fetchNotificationsForUser(currentUserId, role)
-                    setNotifications(list)
-                  }
-                }}
-                className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/90 hover:bg-white/20 transition-colors"
-                aria-label="Open notifications"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                >
-                  <path
-                    d="M18 8a6 6 0 1 0-12 0c0 3-1 5-2 6h16c-1-1-2-3-2-6Z"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path d="M9.5 18a2.5 2.5 0 0 0 5 0" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-              {notificationsMenuOpen && (
-                <div className="pointer-events-auto absolute right-0 mt-2 w-80 rounded-2xl bg-black/90 border border-white/15 backdrop-blur-2xl shadow-[0_18px_45px_rgba(0,0,0,0.65)] px-3 py-3">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/65">
-                      Notifications
-                    </span>
-                    <button
-                      type="button"
-                      className="text-[11px] text-white/55 hover:text-white/80"
-                      onClick={async () => {
-                        if (!currentUserId) return
-                        const ids = notifications.map((n) => n.id)
-                        if (!ids.length) return
-                        await supabase.from('user_notifications').delete().in('id', ids)
-                        setNotifications([])
-                        setLatestNotification(null)
-                        setNotificationDismissed(true)
-                      }}
-                    >
-                      Clear all
-                    </button>
-                  </div>
-                  {notifications.length === 0 ? (
-                    <p className="text-xs text-white/60">No notifications.</p>
-                  ) : (
-                    <div className="max-h-64 overflow-y-auto flex flex-col gap-2">
-                      {notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          className="group rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2 text-xs text-white/85 flex items-start gap-2"
-                        >
-                          <div className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            {n.title && (
-                              <p className="font-semibold text-[12px] mb-0.5 truncate">{n.title}</p>
-                            )}
-                            <p className="text-[11px] text-white/75 line-clamp-2">{n.message}</p>
-                            <p className="mt-1 text-[10px] text-white/45">
-                              {formatNotificationTimeAgo(n.created_at)}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            className="ml-1 text-[11px] text-white/45 hover:text-red-300"
-                            onClick={async () => {
-                              await supabase.from('user_notifications').delete().eq('id', n.id)
-                              setNotifications((prev) => prev.filter((x) => x.id !== n.id))
-                              if (latestNotification?.id === n.id) {
-                                setLatestNotification(
-                                  (prev) => (prev && prev.id === n.id ? null : prev),
-                                )
-                              }
-                            }}
-                          >
-                            Clear
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
           {latestNotification && !notificationDismissed && (
             <div className="pointer-events-none fixed top-[92px] md:top-[96px] left-0 right-0 z-[90] flex justify-center">
               <div className="pointer-events-auto max-w-3xl w-full mx-4 rounded-[24px] bg-white backdrop-blur-2xl shadow-[0_22px_55px_rgba(0,0,0,0.55)] px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center gap-3 sm:gap-4">
@@ -885,8 +773,110 @@ export function AccountDashboard() {
             onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}
             onAdminPanelClick={() => setAdminPanelOpen(true)}
             onSettingsClick={() => setSettingsOpen(true)}
+            headerRight={
+              <div ref={notificationsMenuRef} className="flex items-center gap-6">
+                <button
+                  type="button"
+                  className="flex items-center justify-center text-white/90 hover:text-white transition-colors"
+                  aria-label="Open membership QR"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                    <path d="M17 12v4a1 1 0 0 1-1 1h-4" />
+                    <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                    <path d="M17 8V7" />
+                    <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                    <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                    <path d="M7 17h.01" />
+                    <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                    <rect x="7" y="7" width="5" height="5" rx="1" />
+                  </svg>
+                </button>
+                <div className="relative flex items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setNotificationsMenuOpen((open) => !open)
+                      if (!notificationsMenuOpen && currentUserId) {
+                        const role: UserRole = userRole
+                        const list = await fetchNotificationsForUser(currentUserId, role)
+                        setNotifications(list)
+                      }
+                    }}
+                    className="flex items-center justify-center text-white/90 hover:text-white transition-colors"
+                    aria-label="Open notifications"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                      <path d="M10.268 21a2 2 0 0 0 3.464 0" />
+                      <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
+                    </svg>
+                  </button>
+                  {notificationsMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-black/90 border border-white/15 backdrop-blur-2xl shadow-[0_18px_45px_rgba(0,0,0,0.65)] px-3 py-3 z-50">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/65">
+                          Notifications
+                        </span>
+                        <button
+                          type="button"
+                          className="text-[11px] text-white/55 hover:text-white/80"
+                          onClick={async () => {
+                            if (!currentUserId) return
+                            const ids = notifications.map((n) => n.id)
+                            if (!ids.length) return
+                            await supabase.from('user_notifications').delete().in('id', ids)
+                            setNotifications([])
+                            setLatestNotification(null)
+                            setNotificationDismissed(true)
+                          }}
+                        >
+                          Clear all
+                        </button>
+                      </div>
+                      {notifications.length === 0 ? (
+                        <p className="text-xs text-white/60">No notifications.</p>
+                      ) : (
+                        <div className="max-h-64 overflow-y-auto flex flex-col gap-2">
+                          {notifications.map((n) => (
+                            <div
+                              key={n.id}
+                              className="group rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2 text-xs text-white/85 flex items-start gap-2"
+                            >
+                              <div className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                {n.title && (
+                                  <p className="font-semibold text-[12px] mb-0.5 truncate">{n.title}</p>
+                                )}
+                                <p className="text-[11px] text-white/75 line-clamp-2">{n.message}</p>
+                                <p className="mt-1 text-[10px] text-white/45">
+                                  {formatNotificationTimeAgo(n.created_at)}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                className="ml-1 text-[11px] text-white/45 hover:text-red-300"
+                                onClick={async () => {
+                                  await supabase.from('user_notifications').delete().eq('id', n.id)
+                                  setNotifications((prev) => prev.filter((x) => x.id !== n.id))
+                                  if (latestNotification?.id === n.id) {
+                                    setLatestNotification(
+                                      (prev) => (prev && prev.id === n.id ? null : prev),
+                                    )
+                                  }
+                                }}
+                              >
+                                Clear
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            }
           />
-          <div 
+          <div
             className="w-full bg-[#0a0a0a] relative z-20 overflow-hidden"
             style={{
               marginTop: '-40px',

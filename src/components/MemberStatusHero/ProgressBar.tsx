@@ -8,26 +8,41 @@ export function ProgressBar({ currentXp, targetXp }: ProgressBarProps) {
   const xpToGo = Math.max(targetXp - currentXp, 0)
 
   return (
-    <div className="flex flex-col items-center w-full">
-      <div className="flex items-start gap-2 mb-5">
-        <span className="text-white text-[68px] font-bold leading-none">{currentXp.toLocaleString()}</span>
-        <span className="text-white text-sm font-normal pt-1">XP</span>
+    <div className="flex flex-col items-center w-full max-w-[380px]">
+      {/* XP Number + Label */}
+      <div className="flex items-start">
+        <span
+          className="text-[#F4F4F4] font-inter leading-[1.2]"
+          style={{ fontSize: 110, fontWeight: 400 }}
+        >
+          {currentXp.toLocaleString()}
+        </span>
+        <span
+          className="text-white font-inter mt-1"
+          style={{ fontSize: 18, fontWeight: 400, lineHeight: '22px' }}
+        >
+          XP
+        </span>
       </div>
 
-      <div className="w-full max-w-[320px] mb-3">
-        <div className="h-1 w-full bg-[#c8c8c8]/35 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-white rounded-full transition-all duration-300"
+      {/* Progress bar */}
+      <div className="w-full mt-2">
+        <div className="h-[5px] w-full bg-[#484848] rounded-[20px] overflow-hidden">
+          <div
+            className="h-full bg-white rounded-[20px] transition-all duration-500"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
       </div>
 
-      <div className="w-full max-w-[320px] flex items-center justify-between text-[13px]">
-        <span className="text-white">
+      {/* Counters */}
+      <div className="w-full flex items-center justify-between mt-2">
+        <span className="text-white font-inter" style={{ fontSize: 16, fontWeight: 400, lineHeight: '20px' }}>
           {currentXp.toLocaleString()}/{targetXp.toLocaleString()}
         </span>
-        <span className="text-[#c8c8c8]">{xpToGo.toLocaleString()} XP to go</span>
+        <span className="text-[#484848] font-inter" style={{ fontSize: 16, fontWeight: 400, lineHeight: '20px' }}>
+          {xpToGo.toLocaleString()} XP to go
+        </span>
       </div>
     </div>
   )

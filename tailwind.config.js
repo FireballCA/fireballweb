@@ -22,8 +22,9 @@ export default {
       },
       fontFamily: {
         display: ['Bebas Neue', 'Oswald', 'sans-serif'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['SF Pro', 'SF Pro Display', '-apple-system', 'BlinkMacSystemFont', 'Inter', 'Segoe UI', 'sans-serif'],
         nav: ['HKG Wide', 'Hanken Grotesk', 'sans-serif'],
+        inter: ['Inter', 'system-ui', 'sans-serif'],
       },
       letterSpacing: {
         'luxury': '0.2em',
