@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { MemberStatusHero } from '@/components/MemberStatusHero/MemberStatusHero'
@@ -25,6 +25,14 @@ interface Vehicle {
   ceramicProtectionDate: Date // Date de complétion de la protection
   protectionShop?: string
   protectionProduct?: string
+}
+
+interface Order {
+  id: string
+  name: string
+  date?: string
+  description?: string
+  imageUrl?: string
 }
 
 type ProtectionStatus = 'green' | 'yellow' | 'red'
@@ -331,7 +339,10 @@ export function AccountDashboard() {
   const [adminPanelOpen, setAdminPanelOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [vehiclePhotos, setVehiclePhotos] = useState<Record<string, string>>({})
+  const [garageCarouselIndex, setGarageCarouselIndex] = useState(0)
   const [settingsVehicle, setSettingsVehicle] = useState<Vehicle | null>(null)
+  const [orders, setOrders] = useState<Order[]>([])
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('none')
   const [userRole, setUserRole] = useState<UserRole>('member')
   const [companyName, setCompanyName] = useState<string | null>(null)
@@ -876,93 +887,494 @@ export function AccountDashboard() {
               </div>
             }
           />
-          <div
-            className="w-full bg-[#0a0a0a] relative z-20 overflow-hidden"
-            style={{
-              marginTop: '-40px',
-              borderRadius: '45px 45px 45px 45px',
-              boxShadow: '0 24px 36px rgba(0, 0, 0, 0.28)',
-            }}
+          <div className="w-full flex justify-center relative z-20" style={{ marginTop: '-40px' }}>
+            <svg viewBox="0 0 361 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="block w-[95vw] h-[10px] opacity-80" preserveAspectRatio="none">
+              <path d="M0 10C0 4.47715 4.47715 0 10 0H351C356.523 0 361 4.47715 361 10H0Z" fill="#000000" fillOpacity="0.25" />
+              <path d="M0 10C0 4.47715 4.47715 0 10 0H351C356.523 0 361 4.47715 361 10H0Z" fill="#000000" fillOpacity="0.8" />
+            </svg>
+          </div>
+          <div 
+            className="w-full min-w-full bg-[#0A0A0A] relative z-20 overflow-hidden px-6 md:px-12 lg:px-16 pt-12 pb-16 md:pb-24 lg:pb-32 min-h-[960px] lg:min-h-[1200px]"
+            style={{ borderRadius: '45px 45px 45px 45px' }}
           >
-            <div className="max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16 pt-12 pb-24 md:pb-28">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <h2 className="text-white text-5xl font-bold tracking-tight inline-flex items-center gap-3">
-                  My Garage
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setCarModalOpen(true)}
-                  className="group inline-flex items-center gap-2 text-sm font-nav text-white/80 hover:text-white transition-colors"
-                >
-                  <span className="inline-flex items-center justify-center w-5 h-5">
-                    <svg
-                      className="w-3.5 h-3.5 text-white/80 transition-transform duration-300 group-hover:rotate-90"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeWidth="2"
-                        d="M6 6l12 12M18 6l-12 12"
-                      />
-                    </svg>
-                  </span>
-                  <span className="underline-offset-4 group-hover:underline">Add new car</span>
-                </button>
-              </div>
+              {/* Section My Garage (standalone) */}
+              <div className="w-full">
+                <div className="flex flex-col items-start gap-4">
+                  <h2
+                    className="text-white font-bold whitespace-nowrap"
+                    style={{
+                      fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                      fontSize: 46,
+                      lineHeight: '54px',
+                      letterSpacing: '0.4px',
+                    }}
+                  >
+                    My Garage
+                  </h2>
+                  <p
+                    className="font-bold whitespace-nowrap"
+                    style={{
+                      fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                      fontSize: 46,
+                      lineHeight: '54px',
+                      letterSpacing: '0.2px',
+                      color: '#83868B',
+                    }}
+                  >
+                    Your vehicles. <span className="text-white">All in one place.</span>
+                  </p>
+                </div>
 
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {vehicles.map((vehicle) => {
+                {/* Vehicle carousel ou empty state */}
+                {vehicles.length === 0 ? (
+                  <div className="mt-8 relative min-h-[280px] lg:min-h-[320px] w-full">
+                    <div className="flex flex-col items-start gap-2 max-w-[375px]">
+                      <h3
+                        className="text-white font-bold"
+                        style={{
+                          fontFamily: 'SF Pro, sans-serif',
+                          fontSize: 28,
+                          lineHeight: '34px',
+                          letterSpacing: '0.38px',
+                        }}
+                      >
+                        Your garage is empty
+                      </h3>
+                      <p
+                        className="text-white/60"
+                        style={{
+                          fontFamily: 'SF Pro, sans-serif',
+                          fontWeight: 400,
+                          fontSize: 17,
+                          lineHeight: '22px',
+                          letterSpacing: '-0.43px',
+                        }}
+                      >
+                        Track your vehicles, services and Fireball protection history.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setCarModalOpen(true)}
+                        className="group mt-2 inline-flex items-center gap-1.5 font-medium transition-colors duration-200 hover:opacity-95"
+                        style={{
+                          fontSize: 12,
+                          lineHeight: '16px',
+                          color: '#FF6363',
+                        }}
+                      >
+                        Add new car
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" className="shrink-0 w-[14px] h-[14px] transition-transform duration-200 group-hover:translate-x-0.5" style={{ color: '#FF6363' }}>
+                          <path fill="currentColor" d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="absolute right-0 bottom-16 lg:bottom-20 flex flex-col gap-5 w-full lg:w-auto lg:max-w-[260px] mt-10 lg:mt-0 lg:items-end">
+                      <div
+                        className="flex flex-col gap-1.5 w-full lg:text-right"
+                        style={{
+                          fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                          color: '#83868B',
+                          fontWeight: 600,
+                          fontSize: 14,
+                          lineHeight: '20px',
+                        }}
+                      >
+                        <div className="font-bold text-[16px] leading-[22px] text-white">Track services</div>
+                        <div className="w-full lg:w-auto h-px shrink-0" style={{ background: '#83868B' }} />
+                        <p>Follow every service performed by <span className="text-white">Fireball partners</span>.</p>
+                      </div>
+                      <div
+                        className="flex flex-col gap-1.5 w-full lg:text-right"
+                        style={{
+                          fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                          color: '#83868B',
+                          fontWeight: 600,
+                          fontSize: 14,
+                          lineHeight: '20px',
+                        }}
+                      >
+                        <div className="font-bold text-[16px] leading-[22px] text-white">Manage vehicles</div>
+                        <div className="w-full lg:w-auto h-px shrink-0" style={{ background: '#83868B' }} />
+                        <p>Keep all your vehicles <span className="text-white">organized</span>.</p>
+                      </div>
+                      <div
+                        className="flex flex-col gap-1.5 w-full lg:text-right"
+                        style={{
+                          fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                          color: '#83868B',
+                          fontWeight: 600,
+                          fontSize: 14,
+                          lineHeight: '20px',
+                        }}
+                      >
+                        <div className="font-bold text-[16px] leading-[22px] text-white">View protection history</div>
+                        <div className="w-full lg:w-auto h-px shrink-0" style={{ background: '#83868B' }} />
+                        <p>Track your <span className="text-white">coatings and protection</span> over time.</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                <div className="mt-8 flex items-center gap-3 w-full">
+                {vehicles.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setGarageCarouselIndex((i) => Math.max(0, i - 1))}
+                    disabled={garageCarouselIndex === 0}
+                    className="shrink-0 w-10 h-10 rounded-full border border-white/30 bg-white/10 flex items-center justify-center text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label="Previous vehicles"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                )}
+                <div className="flex flex-wrap gap-5 min-w-0 justify-start">
+                {(vehicles.length > 2 ? vehicles.slice(garageCarouselIndex, garageCarouselIndex + 2) : vehicles).map((vehicle) => {
                   const protectionStatus = getProtectionStatus(vehicle.ceramicProtectionDate)
+                  const isActive = protectionStatus === 'green' || protectionStatus === 'yellow'
                   return (
                     <article
                       key={vehicle.id}
-                      className="group relative rounded-2xl border border-white/20 bg-white/[0.08] backdrop-blur-2xl shadow-[0_18px_40px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] p-5"
+                      className="relative w-[358px] h-[410px] flex-none rounded-[34px] overflow-hidden"
+                      style={{
+                        background: 'rgba(30, 30, 30, 0.75)',
+                        backdropFilter: 'blur(40px)',
+                      }}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="text-white text-2xl font-normal">
-                          {vehicle.brand} <span className="font-bold">{vehicle.model}</span> {vehicle.year}
-                        </p>
+                      {/* Image - 358×236, top */}
+                      <div
+                        className="absolute left-0 top-0 w-full h-[236px] bg-cover bg-center bg-no-repeat bg-neutral-800"
+                        style={{
+                          backgroundImage: vehiclePhotos[vehicle.id]
+                            ? `url(${vehiclePhotos[vehicle.id]})`
+                            : 'url(/image.png)',
+                        }}
+                      />
+
+                      {/* Upload photo for banner */}
+                      <input
+                        id={`vehicle-photo-${vehicle.id}`}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0]
+                          if (!file) return
+                          const url = URL.createObjectURL(file)
+                          setVehiclePhotos((prev) => ({ ...prev, [vehicle.id]: url }))
+                        }}
+                      />
+                      <label
+                        htmlFor={`vehicle-photo-${vehicle.id}`}
+                        className="absolute z-10 flex items-center justify-center cursor-pointer whitespace-nowrap px-2 py-1.5"
+                        style={{
+                          left: 12,
+                          top: 12,
+                          minHeight: 28,
+                          background: 'rgba(120, 120, 120, 0.2)',
+                          borderRadius: 9999,
+                          fontFamily:
+                            'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                          fontWeight: 590,
+                          fontSize: 11,
+                          lineHeight: '13px',
+                          letterSpacing: '0.06px',
+                          color: '#FFFFFF',
+                        }}
+                      >
+                        {vehiclePhotos[vehicle.id] ? 'Change Photo' : 'Add Photo'}
+                      </label>
+
+                      {/* Trailing Button (Settings) - plus petit, dans le coin haut droit */}
+                      <div
+                        className="absolute flex flex-row justify-center items-center isolate"
+                        style={{
+                          width: 36,
+                          height: 36,
+                          right: 16,
+                          top: 16,
+                          borderRadius: 296,
+                        }}
+                      >
+                        <div
+                          className="absolute inset-0 rounded-full"
+                          style={{
+                            background: '#0088FF',
+                            zIndex: 0,
+                          }}
+                        />
                         <button
                           type="button"
                           onClick={() => setSettingsVehicle(vehicle)}
-                          className="shrink-0 w-9 h-9 rounded-full border border-white/35 bg-white/[0.12] flex items-center justify-center text-white/80 backdrop-blur-xl shadow-[0_14px_35px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.55)] transition-all duration-300 opacity-0 scale-90 translate-y-1 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-hover:pointer-events-auto group-hover:border-white/80 group-hover:bg-white/[0.24]"
+                          className="relative z-10 w-9 h-9 rounded-full flex items-center justify-center text-white"
                           aria-label="Vehicle settings"
                         >
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.89 3.31.877 2.42 2.42a1.724 1.724 0 0 0 1.065 2.572c1.757.426 1.757 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.89 1.543-.877 3.31-2.42 2.42a1.724 1.724 0 0 0-2.572 1.065c-.426 1.757-2.924 1.757-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.89-3.31-.877-2.42-2.42a1.724 1.724 0 0 0-1.065-2.572c-1.757-.426-1.757-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.89-1.543.877-3.31 2.42-2.42.996.575 2.255.05 2.572-1.065z"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"
-                            />
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="lucide lucide-settings-2"
+                          >
+                            <path d="M14 17H5" />
+                            <path d="M19 7h-9" />
+                            <circle cx="17" cy="17" r="3" />
+                            <circle cx="7" cy="7" r="3" />
+                            <circle cx="7" cy="7" r="3" />
                           </svg>
                         </button>
                       </div>
 
-                      <div className="mt-5 flex items-center gap-2">
-                        <div
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: statusColors[protectionStatus] }}
-                        />
-                        <span className="text-white text-sm">Ceramic protection: Active</span>
+                      {/* Name + Desc. - left 24px, top 261px */}
+                      <div
+                        className="absolute flex flex-col items-start gap-1"
+                        style={{ left: 24, right: 24, top: 262 }}
+                      >
+                        <p
+                          className="font-bold text-white truncate max-w-[178px]"
+                          style={{
+                            fontFamily: 'SF Pro Display, sans-serif',
+                            fontSize: 22,
+                            lineHeight: '28px',
+                            letterSpacing: '0.35px',
+                          }}
+                        >
+                          {vehicle.brand} {vehicle.model} {vehicle.year}
+                        </p>
+                        <p
+                          className="text-white/90 max-w-[178px] line-clamp-2"
+                          style={{
+                            fontFamily: 'SF Pro Text, sans-serif',
+                            fontWeight: 400,
+                            fontSize: 12,
+                            lineHeight: '16px',
+                          }}
+                        >
+                          Ceramic protection:{' '}
+                          <span style={{ color: isActive ? '#30D158' : '#FF453A', fontWeight: 600 }}>
+                            {isActive ? 'Active' : 'Inactive'}
+                          </span>
+                          . Completed the {formatDate(vehicle.ceramicProtectionDate)}
+                        </p>
                       </div>
-                      <p className="mt-2 text-white/65 text-xs">
-                        Completed the {formatDate(vehicle.ceramicProtectionDate)}
-                      </p>
+
+                      {/* Separator - bottom 67.5px */}
+                      <div
+                        className="absolute left-6 right-6 h-px"
+                        style={{
+                          bottom: 67.5,
+                          background: 'rgba(84, 84, 88, 0.65)',
+                        }}
+                      />
+
+                      {/* Bottom row: Done at (left) + See details (right), aligned */}
+                      <div
+                        className="absolute left-6 right-6 flex flex-row items-center justify-between"
+                        style={{ bottom: 18 }}
+                      >
+                        <span
+                          className="text-xs text-white/70"
+                          style={{ fontSize: 12, lineHeight: '16px' }}
+                        >
+                          Done at: {vehicle.protectionShop || 'Not specified'}
+                        </span>
+                        <a
+                          href="#"
+                          onClick={(event) => {
+                            event.preventDefault()
+                            setSettingsVehicle(vehicle)
+                          }}
+                          className="flex flex-row items-center gap-1.5"
+                        >
+                          <span
+                            className="font-medium"
+                            style={{
+                              fontSize: 12,
+                              lineHeight: '16px',
+                              color: 'rgba(235, 235, 245, 0.6)',
+                            }}
+                          >
+                            See details
+                          </span>
+                        <svg
+                          width="4.83"
+                          height="8.09"
+                          viewBox="0 0 6 8"
+                          fill="none"
+                          className="shrink-0"
+                          style={{ color: 'rgba(235, 235, 245, 0.6)' }}
+                        >
+                          <path
+                            d="M1 1l4 3-4 3"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        </a>
+                      </div>
                     </article>
                   )
                 })}
+                </div>
+                {vehicles.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setGarageCarouselIndex((i) => Math.min(vehicles.length - 2, i + 1))}
+                    disabled={garageCarouselIndex >= vehicles.length - 2}
+                    className="shrink-0 w-10 h-10 rounded-full border border-white/30 bg-white/10 flex items-center justify-center text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label="Next vehicles"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                )}
+                </div>
+                )}
+              </div>
+
+              {/* Section My Orders: encore plus bas, textes plus gros, lien remonté de quelques px */}
+              <div
+                className="hidden lg:block absolute top-0 right-6 md:right-12 xl:right-16"
+                style={{ left: '55%', paddingTop: 'calc(147px + 32px + 298px + 28px + 24px + 140px + 120px)' }}
+              >
+                <div className="flex flex-col items-start text-left w-full">
+                  <h2
+                    className="text-white font-bold whitespace-nowrap"
+                    style={{
+                      fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                      fontSize: 46,
+                      lineHeight: '54px',
+                      letterSpacing: '0.4px',
+                    }}
+                  >
+                    My Orders
+                  </h2>
+                  <div className="flex items-end justify-between gap-4 w-full mt-1">
+                    <div className="inline-flex flex-col items-end">
+                      <p
+                        className="font-bold whitespace-nowrap"
+                        style={{
+                          fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                          fontSize: 46,
+                          lineHeight: '54px',
+                          letterSpacing: '0.2px',
+                          color: '#83868B',
+                        }}
+                      >
+                        Orders and <span className="text-white">delivery</span> status
+                      </p>
+                      {orders.length === 0 && (
+                        <div className="flex flex-col items-end gap-2 mt-8">
+                          <h3
+                            className="text-right text-white font-bold"
+                            style={{
+                              fontFamily: 'SF Pro, sans-serif',
+                              fontSize: 28,
+                              lineHeight: '34px',
+                              letterSpacing: '0.38px',
+                            }}
+                          >
+                            No orders yet
+                          </h3>
+                          <p
+                            className="text-right text-white/60"
+                            style={{
+                              fontFamily: 'SF Pro, sans-serif',
+                              fontWeight: 400,
+                              fontSize: 17,
+                              lineHeight: '22px',
+                              letterSpacing: '-0.43px',
+                            }}
+                          >
+                            Your Fireball purchases will appear here.
+                          </p>
+                          <Link
+                            to="/shop"
+                            className="group mt-2 inline-flex items-center gap-1.5 font-medium transition-colors duration-200 hover:opacity-95"
+                            style={{
+                              fontSize: 12,
+                              lineHeight: '16px',
+                              color: '#FF6363',
+                            }}
+                          >
+                            Browse the shop
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" className="shrink-0 w-[14px] h-[14px] transition-transform duration-200 group-hover:translate-x-0.5" style={{ color: '#FF6363' }}>
+                              <path fill="currentColor" d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z" />
+                            </svg>
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                    {orders.length > 0 && (
+                      <a
+                        href="#"
+                        onClick={(e) => e.preventDefault()}
+                        className="inline-flex items-center gap-1.5 font-medium hover:opacity-90 shrink-0"
+                        style={{
+                          fontSize: 12,
+                          lineHeight: '16px',
+                          color: '#007AFF',
+                          marginBottom: 8,
+                        }}
+                      >
+                        Open Fireball Journal
+                        <svg width="4.83" height="8.09" viewBox="0 0 6 8" fill="none" className="shrink-0" style={{ color: '#007AFF' }}>
+                          <path d="M1 1l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </a>
+                    )}
+                  </div>
+
+                  {orders.length > 0 && (
+                      <div className="mt-8 flex flex-col gap-4 items-end">
+                        {orders.map((order) => (
+                          <article
+                            key={order.id}
+                            className="relative w-full max-w-[343px] rounded-2xl overflow-hidden flex-none"
+                            style={{
+                              height: 412,
+                              background: 'rgba(30, 30, 30, 0.75)',
+                              backdropFilter: 'blur(40px)',
+                            }}
+                          >
+                            {/* Bitmap - remplit la carte */}
+                            <div
+                              className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-neutral-800"
+                              style={{ backgroundImage: order.imageUrl ? `url(${order.imageUrl})` : 'url(/image.png)' }}
+                            />
+                            <div
+                              className="absolute inset-0 pointer-events-none"
+                              style={{ background: 'rgba(0, 0, 0, 0.2)' }}
+                            />
+                            {/* Attribute 28x28 top right */}
+                            <div
+                              className="absolute w-7 h-7 rounded-md right-2 top-2"
+                              style={{ background: 'rgba(255, 255, 255, 0.06)' }}
+                            />
+                            <div className="absolute left-4 right-4 bottom-4">
+                              <p className="text-white font-bold truncate" style={{ fontSize: 18, lineHeight: '24px' }}>
+                                {order.name}
+                              </p>
+                              {order.date && (
+                                <p className="text-white/70 text-sm mt-0.5">{order.date}</p>
+                              )}
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
           <div className="w-full bg-[#0a0a0a] pt-24 pb-24">
             <div className="relative max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16">
               <p className="text-center text-xs md:text-sm text-white/55">
@@ -1066,6 +1478,7 @@ export function AccountDashboard() {
             <div className="h-px w-full bg-gradient-to-r from-transparent via-white/30 to-transparent" />
             <Footer />
           </div>
+        </div>
         </div>
       )}
 
