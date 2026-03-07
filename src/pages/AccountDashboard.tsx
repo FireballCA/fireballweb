@@ -33,6 +33,9 @@ interface Order {
   date?: string
   description?: string
   imageUrl?: string
+  orderNumber?: string
+  totalPrice?: number
+  currency?: string
 }
 
 type ProtectionStatus = 'green' | 'yellow' | 'red'
@@ -511,6 +514,91 @@ export function AccountDashboard() {
         }))
       )
 
+      // Charger les commandes Shopify/Supabase pour la section My Orders
+      if (currentUserId || true) {
+        try {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser()
+          const userId = user?.id
+
+          if (userId) {
+            const { data: purchases, error: purchasesError } = await supabase
+              .from('purchases')
+              .select('id,order_number,placed_at,total_price,currency')
+              .eq('user_id', userId)
+              .order('placed_at', { ascending: false })
+
+            if (purchasesError) {
+              console.warn('Failed to load purchases for dashboard cards', purchasesError.message)
+              setOrders([])
+            } else {
+              const purchaseIds = (purchases || []).map((p: any) => p.id).filter(Boolean)
+              let purchaseItemsByPurchaseId: Record<string, any[]> = {}
+
+              if (purchaseIds.length > 0) {
+                const { data: purchaseItems, error: itemsError } = await supabase
+                  .from('purchase_items')
+                  .select('*')
+                  .in('purchase_id', purchaseIds)
+
+                if (itemsError) {
+                  console.warn('Failed to load purchase_items for dashboard cards', itemsError.message)
+                } else {
+                  purchaseItemsByPurchaseId = (purchaseItems || []).reduce((acc: Record<string, any[]>, item: any) => {
+                    const key = String(item.purchase_id || '')
+                    if (!key) return acc
+                    if (!acc[key]) acc[key] = []
+                    acc[key].push(item)
+                    return acc
+                  }, {})
+                }
+              }
+
+              const mappedOrders: Order[] = (purchases || []).map((purchase: any) => {
+                const orderItems = purchaseItemsByPurchaseId[String(purchase.id)] || []
+                const firstItem = orderItems[0]
+                const productTitle = firstItem?.product_title || null
+                const variantTitle = firstItem?.variant_title || null
+                const imageFromItem =
+                  firstItem?.image_url ||
+                  firstItem?.product_image_url ||
+                  firstItem?.image ||
+                  firstItem?.product_image ||
+                  null
+
+                const placedAt = purchase?.placed_at ? new Date(purchase.placed_at) : null
+                const formattedDate =
+                  placedAt && !Number.isNaN(placedAt.getTime())
+                    ? placedAt.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })
+                    : undefined
+
+                return {
+                  id: String(purchase.id),
+                  orderNumber: purchase?.order_number ? String(purchase.order_number) : undefined,
+                  name: productTitle ? String(productTitle) : (purchase?.order_number ? String(purchase.order_number) : 'Order'),
+                  date: formattedDate,
+                  description: variantTitle ? String(variantTitle) : undefined,
+                  imageUrl: imageFromItem ? String(imageFromItem) : '/image.png',
+                  totalPrice:
+                    typeof purchase?.total_price === 'number'
+                      ? purchase.total_price
+                      : Number.parseFloat(String(purchase?.total_price ?? '0')) || 0,
+                  currency: purchase?.currency ? String(purchase.currency).toUpperCase() : 'CAD',
+                }
+              })
+
+              setOrders(mappedOrders)
+            }
+          } else {
+            setOrders([])
+          }
+        } catch (ordersError) {
+          console.error('Error loading dashboard orders:', ordersError)
+          setOrders([])
+        }
+      }
+
       const shouldShowWelcome = state?.fromRegister === true && Boolean(state.welcomeName)
       if (!shouldShowWelcome) {
         setShowDashboard(true)
@@ -714,6 +802,7 @@ export function AccountDashboard() {
     { name: 'Apex Detailing Montreal', city: 'Montreal, QC' },
     { name: 'North Shore Fireball Hub', city: 'Boisbriand, QC' },
   ]
+  const primaryOrder = orders[0] || null
 
   return (
     <section className="relative min-h-screen bg-[#0a0a0a] text-pearl">
@@ -1251,62 +1340,112 @@ export function AccountDashboard() {
                 )}
               </div>
 
-              {/* Section My Orders (theme clair) */}
-              <div
-                className="hidden lg:block absolute top-0 right-6 md:right-12 xl:right-16"
-                style={{ left: '48%', paddingTop: 'calc(147px + 32px + 298px + 28px + 24px + 140px + 120px)' }}
-              >
-                <div className="rounded-[42px] bg-[#f5f5f7] px-10 py-10">
-                  <div className="flex flex-col items-start text-left w-full">
-                    <h2
-                      className="text-[#111111] font-bold whitespace-nowrap"
-                      style={{
-                        fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                        fontSize: 46,
-                        lineHeight: '54px',
-                        letterSpacing: '0.4px',
-                      }}
-                    >
-                      My Orders
-                    </h2>
-                    <p
-                      className="font-bold whitespace-nowrap"
-                      style={{
-                        fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                        fontSize: 46,
-                        lineHeight: '54px',
-                        letterSpacing: '0.2px',
-                        color: '#6E7075',
-                      }}
-                    >
-                      Where every order lives.
-                    </p>
+              {/* Section My Orders */}
+              <section className="mt-20 -mx-6 md:-mx-12 lg:-mx-16 min-h-[90vh] bg-white py-14 md:py-20">
+                <div className="mx-auto flex h-full w-full max-w-[1400px] flex-col px-6 md:px-12 lg:pr-0 lg:pl-[176px] xl:pl-[188px]">
+                  <p
+                    className="font-bold text-[#111111]"
+                    style={{
+                      fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                      fontSize: 52,
+                      lineHeight: '60px',
+                      letterSpacing: '0.4px',
+                    }}
+                  >
+                    Where every order lives.
+                  </p>
 
-                    <div className="mt-8 ml-auto w-[52%] min-w-[420px] rounded-[34px] bg-white px-10 py-10">
-                      {orders.length === 0 ? (
-                        <div className="flex min-h-[380px] flex-col items-center justify-center text-center">
-                          <OrdersEmptyStateSvg />
-                          <p className="mt-6 text-[#6E7075] text-sm">
-                            Your Fireball purchases will appear here.
-                          </p>
+                  <div
+                    className={`mt-10 flex-1 ${
+                      orders.length === 0
+                        ? 'rounded-[36px] bg-[#f5f5f7] px-6 py-8 md:px-10 md:py-10'
+                        : ''
+                    }`}
+                  >
+                    {orders.length === 0 ? (
+                      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+                        <OrdersEmptyStateSvg />
+                        <p className="mt-6 text-[#6E7075] text-sm">
+                          Your Fireball purchases will appear here.
+                        </p>
+                        <Link
+                          to="/shop"
+                          className="group mt-4 inline-flex items-center gap-1.5 font-medium transition-colors duration-200"
+                          style={{ fontSize: 12, lineHeight: '16px', color: '#B61B1B' }}
+                        >
+                          Browse the shop
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" className="shrink-0 h-[14px] w-[14px] transition-transform duration-200 group-hover:translate-x-0.5" style={{ color: '#B61B1B' }}>
+                            <path fill="currentColor" d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z" />
+                          </svg>
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(260px,1fr)_minmax(0,2fr)] lg:gap-8">
+                        <div className="relative min-h-[320px] lg:min-h-[420px] overflow-hidden rounded-[24px] bg-[#E3E5EA] px-5 py-5 md:px-6 md:py-6">
+                          <div
+                            className="pointer-events-none absolute inset-0 bg-cover bg-top bg-no-repeat"
+                            style={{ backgroundImage: `url(${primaryOrder?.imageUrl || '/image.png'})` }}
+                          />
+                          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(227,229,234,0)_20%,rgba(227,229,234,0.68)_58%,#E3E5EA_84%,#E3E5EA_100%)]" />
+
+                          <div className="relative z-10 flex min-h-[280px] lg:min-h-[380px] flex-col">
+                            <p className="text-[15px] font-semibold tracking-[-0.24px] text-[#111111]">
+                              Last commands
+                            </p>
+                            <h3 className="mt-2 line-clamp-2 text-[#111111] text-[28px] leading-[34px] tracking-[-0.4px] font-bold">
+                              {primaryOrder?.name || 'Fireball Order'}
+                            </h3>
+
+                            <div className="mt-auto">
+                              <div className="flex items-start gap-2">
+                                <p className="text-[#111111] text-[28px] leading-[34px] tracking-[-0.4px] font-semibold">
+                                  {(primaryOrder?.totalPrice ?? 0).toFixed(2)}
+                                </p>
+                                <span className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#111111]/80">
+                                  {primaryOrder?.currency || 'CAD'}
+                                </span>
+                              </div>
+                              <div className="mt-2 flex items-center justify-between text-xs font-medium text-[#6E7075]">
+                                <span>{primaryOrder?.date || '-'}</span>
+                                <span>#{primaryOrder?.orderNumber || '-'}</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      ) : (
-                        <div className="flex flex-col gap-4">
-                          {orders.map((order) => (
-                            <article
-                              key={order.id}
-                              className="rounded-2xl border border-[#E8E8EA] bg-white px-4 py-4"
+
+                        <div className="min-h-[320px] lg:min-h-[420px] rounded-[24px] bg-[#E3E5EA] px-5 py-5 md:px-6 md:py-6 flex flex-col justify-between">
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.16em] text-[#8A8C91]">
+                              Keep shopping
+                            </p>
+                            <h3 className="mt-2 text-[#111111] text-2xl font-semibold leading-tight">
+                              Add another Fireball product
+                            </h3>
+                            <p className="mt-3 max-w-xl text-sm text-[#6E7075]">
+                              Discover coatings, maintenance and accessories for your next order.
+                            </p>
+                          </div>
+                          <Link
+                            to="/shop"
+                            className="mt-6 inline-flex items-center gap-1.5 font-medium transition-colors duration-200"
+                            style={{ fontSize: 12, lineHeight: '16px', color: '#B61B1B' }}
+                          >
+                            Browse the shop
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 640 640"
+                              className="shrink-0 h-[14px] w-[14px] transition-transform duration-200 group-hover:translate-x-0.5"
+                              style={{ color: '#B61B1B' }}
                             >
-                              <p className="text-[#111111] font-semibold">{order.name}</p>
-                              {order.date && <p className="text-[#7E7E85] text-sm mt-1">{order.date}</p>}
-                            </article>
-                          ))}
+                              <path fill="currentColor" d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z" />
+                            </svg>
+                          </Link>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
+              </section>
             <div className="w-full bg-[#0a0a0a] pt-24 pb-24">
             <div className="relative max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16">
               <p className="text-center text-xs md:text-sm text-white/55">
