@@ -1374,8 +1374,7 @@ export function AccountDashboard() {
                   </div>
                 </div>
               </div>
-            </div>
-          <div className="w-full bg-[#0a0a0a] pt-24 pb-24">
+            <div className="w-full bg-[#0a0a0a] pt-24 pb-24">
             <div className="relative max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16">
               <p className="text-center text-xs md:text-sm text-white/55">
                 Your current subscription :{' '}
@@ -1478,7 +1477,6 @@ export function AccountDashboard() {
             <div className="h-px w-full bg-gradient-to-r from-transparent via-white/30 to-transparent" />
             <Footer />
           </div>
-        </div>
         </div>
       )}
 
