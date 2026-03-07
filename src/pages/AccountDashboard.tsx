@@ -9,6 +9,7 @@ import { ProductsPurchasedSheet } from '@/components/ProductsPurchasedSheet'
 import { AdminPanelSheet } from '@/components/AdminPanelSheet'
 import { SettingsSheet } from '@/components/SettingsSheet'
 import { Footer } from '@/components/Layout/Footer'
+import { PRODUCTS } from '@/data/products'
 import {
   fetchGarageVehicles,
   createGarageVehicle,
@@ -29,6 +30,7 @@ interface Vehicle {
 
 interface Order {
   id: string
+  shopifyOrderId?: string
   name: string
   date?: string
   description?: string
@@ -47,6 +49,131 @@ interface DashboardNotification {
   title: string | null
   message: string
   created_at: string
+}
+
+function normalizeProductLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function getCatalogImageFromTitle(title: string | null | undefined): string | null {
+  if (!title) return null
+  const normalizedTitle = normalizeProductLabel(title)
+  if (!normalizedTitle) return null
+
+  const exact = PRODUCTS.find((product) => normalizeProductLabel(product.name) === normalizedTitle)
+  if (exact?.image) return exact.image
+
+  const partial = PRODUCTS.find((product) => {
+    const normalizedName = normalizeProductLabel(product.name)
+    return normalizedName.includes(normalizedTitle) || normalizedTitle.includes(normalizedName)
+  })
+
+  return partial?.image || null
+}
+
+function getImageFromPurchaseRow(purchase: any): string | null {
+  const direct =
+    purchase?.image_url ||
+    purchase?.product_image_url ||
+    purchase?.first_product_image_url ||
+    purchase?.first_item_image_url ||
+    purchase?.featured_image ||
+    null
+
+  if (typeof direct === 'string' && direct.trim()) return direct.trim()
+
+  const lineItemsRaw = purchase?.line_items || purchase?.items || purchase?.products || null
+  if (lineItemsRaw) {
+    try {
+      const parsed = typeof lineItemsRaw === 'string' ? JSON.parse(lineItemsRaw) : lineItemsRaw
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const first = parsed[0]
+        const fromItem =
+          first?.image_url ||
+          first?.product_image_url ||
+          first?.image ||
+          first?.featured_image ||
+          first?.image?.src ||
+          first?.featured_image?.src ||
+          null
+        if (typeof fromItem === 'string' && fromItem.trim()) return fromItem.trim()
+      }
+    } catch {
+      // Ignore malformed JSON stored in optional metadata fields.
+    }
+  }
+
+  return null
+}
+
+function getFirstPurchaseItemFromPayload(payload: any): any | null {
+  if (!payload) return null
+
+  if (Array.isArray(payload)) {
+    const firstObject = payload.find((item) => item && typeof item === 'object')
+    return firstObject || null
+  }
+
+  if (typeof payload !== 'object') return null
+
+  const lineItems =
+    (payload as any).line_items ||
+    (payload as any).items ||
+    (payload as any).products ||
+    null
+
+  if (Array.isArray(lineItems) && lineItems.length > 0) {
+    const firstObject = lineItems.find((item) => item && typeof item === 'object')
+    if (firstObject) return firstObject
+  }
+
+  return null
+}
+
+function getTitleFromPurchaseRow(purchase: any): string | null {
+  const directTitle =
+    purchase?.product_title ||
+    purchase?.first_product_title ||
+    purchase?.title ||
+    purchase?.name ||
+    null
+
+  if (typeof directTitle === 'string' && directTitle.trim()) return directTitle.trim()
+
+  const payloadCandidates = [
+    purchase?.line_items,
+    purchase?.items,
+    purchase?.products,
+    purchase?.raw_payload,
+    purchase?.payload,
+    purchase?.shopify_payload,
+    purchase?.order_payload,
+    purchase?.metadata,
+    purchase?.raw_order,
+  ]
+
+  for (const candidate of payloadCandidates) {
+    if (!candidate) continue
+    let parsed: any = candidate
+    if (typeof candidate === 'string') {
+      try {
+        parsed = JSON.parse(candidate)
+      } catch {
+        continue
+      }
+    }
+    const firstItem = getFirstPurchaseItemFromPayload(parsed)
+    if (!firstItem) continue
+    const title = firstItem?.product_title || firstItem?.title || firstItem?.name || null
+    if (typeof title === 'string' && title.trim()) return title.trim()
+  }
+
+  return null
 }
 
 function GarageEmptyStateSvg() {
@@ -525,7 +652,7 @@ export function AccountDashboard() {
           if (userId) {
             const { data: purchases, error: purchasesError } = await supabase
               .from('purchases')
-              .select('id,order_number,placed_at,total_price,currency')
+              .select('*')
               .eq('user_id', userId)
               .order('placed_at', { ascending: false })
 
@@ -533,53 +660,24 @@ export function AccountDashboard() {
               console.warn('Failed to load purchases for dashboard cards', purchasesError.message)
               setOrders([])
             } else {
-              const purchaseIds = (purchases || []).map((p: any) => p.id).filter(Boolean)
-              let purchaseItemsByPurchaseId: Record<string, any[]> = {}
-
-              if (purchaseIds.length > 0) {
-                const { data: purchaseItems, error: itemsError } = await supabase
-                  .from('purchase_items')
-                  .select('*')
-                  .in('purchase_id', purchaseIds)
-
-                if (itemsError) {
-                  console.warn('Failed to load purchase_items for dashboard cards', itemsError.message)
-                } else {
-                  purchaseItemsByPurchaseId = (purchaseItems || []).reduce((acc: Record<string, any[]>, item: any) => {
-                    const key = String(item.purchase_id || '')
-                    if (!key) return acc
-                    if (!acc[key]) acc[key] = []
-                    acc[key].push(item)
-                    return acc
-                  }, {})
-                }
-              }
-
               const mappedOrders: Order[] = (purchases || []).map((purchase: any) => {
-                const orderItems = purchaseItemsByPurchaseId[String(purchase.id)] || []
-                const firstItem = orderItems[0]
-                const productTitle = firstItem?.product_title || null
-                const variantTitle = firstItem?.variant_title || null
-                const imageFromItem =
-                  firstItem?.image_url ||
-                  firstItem?.product_image_url ||
-                  firstItem?.image ||
-                  firstItem?.product_image ||
-                  null
-
                 const placedAt = purchase?.placed_at ? new Date(purchase.placed_at) : null
                 const formattedDate =
                   placedAt && !Number.isNaN(placedAt.getTime())
                     ? placedAt.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })
                     : undefined
+                const extractedProductTitle = getTitleFromPurchaseRow(purchase)
+                const catalogImage = getCatalogImageFromTitle(extractedProductTitle)
+                const purchaseImage = getImageFromPurchaseRow(purchase)
 
                 return {
                   id: String(purchase.id),
+                  shopifyOrderId: purchase?.shopify_order_id ? String(purchase.shopify_order_id) : undefined,
                   orderNumber: purchase?.order_number ? String(purchase.order_number) : undefined,
-                  name: productTitle ? String(productTitle) : (purchase?.order_number ? String(purchase.order_number) : 'Order'),
+                  name: extractedProductTitle || (purchase?.order_number ? String(purchase.order_number) : 'Order'),
                   date: formattedDate,
-                  description: variantTitle ? String(variantTitle) : undefined,
-                  imageUrl: imageFromItem ? String(imageFromItem) : '/image.png',
+                  description: 'Product ordered via Fireball store.',
+                  imageUrl: purchaseImage || catalogImage || PRODUCTS[0]?.image || '',
                   totalPrice:
                     typeof purchase?.total_price === 'number'
                       ? purchase.total_price
@@ -588,7 +686,37 @@ export function AccountDashboard() {
                 }
               })
 
-              setOrders(mappedOrders)
+              const shopifyOrderIds = mappedOrders
+                .map((order) => order.shopifyOrderId)
+                .filter((id): id is string => Boolean(id))
+
+              if (shopifyOrderIds.length > 0) {
+                try {
+                  const previewResponse = await fetch('/api/shopify-order-preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderIds: shopifyOrderIds }),
+                  })
+                  const previewJson = await previewResponse.json().catch(() => null)
+                  const previews = (previewJson && typeof previewJson === 'object' ? (previewJson as any).previews : {}) || {}
+
+                  const ordersWithPreview = mappedOrders.map((order) => {
+                    const preview = order.shopifyOrderId ? previews[order.shopifyOrderId] : null
+                    if (!preview) return order
+                    return {
+                      ...order,
+                      name: preview.productTitle || order.name,
+                      imageUrl: preview.imageUrl || order.imageUrl,
+                      currency: preview.currency || order.currency,
+                    }
+                  })
+                  setOrders(ordersWithPreview)
+                } catch {
+                  setOrders(mappedOrders)
+                }
+              } else {
+                setOrders(mappedOrders)
+              }
             }
           } else {
             setOrders([])
@@ -1147,7 +1275,7 @@ export function AccountDashboard() {
                         style={{
                           backgroundImage: vehiclePhotos[vehicle.id]
                             ? `url(${vehiclePhotos[vehicle.id]})`
-                            : 'url(/image.png)',
+                            : 'url(/Assets/DoubleCards.png)',
                         }}
                       />
 
@@ -1384,7 +1512,9 @@ export function AccountDashboard() {
                         <div className="relative min-h-[320px] lg:min-h-[420px] overflow-hidden rounded-[24px] bg-[#E3E5EA] px-5 py-5 md:px-6 md:py-6">
                           <div
                             className="pointer-events-none absolute inset-0 bg-cover bg-top bg-no-repeat"
-                            style={{ backgroundImage: `url(${primaryOrder?.imageUrl || '/image.png'})` }}
+                            style={{
+                              backgroundImage: primaryOrder?.imageUrl ? `url(${primaryOrder.imageUrl})` : (PRODUCTS[0]?.image ? `url(${PRODUCTS[0].image})` : 'none'),
+                            }}
                           />
                           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(227,229,234,0)_20%,rgba(227,229,234,0.68)_58%,#E3E5EA_84%,#E3E5EA_100%)]" />
 
