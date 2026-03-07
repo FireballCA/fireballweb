@@ -44,22 +44,22 @@ export function MemberStatusHero({
   const normalizedPartnerStatus = String(partnerStatus || '').trim().toLowerCase()
 
   return (
-    <section className="relative w-full h-screen bg-[#0A0A0A] overflow-hidden">
+    <section className="relative w-full min-h-[88vh] bg-[#0A0A0A] overflow-hidden">
       {/* ── Desktop layout ── */}
       <div className="hidden lg:flex flex-col h-full relative z-10 px-16">
         {/* Header row — Name left, icons right */}
         <div className="pt-8 shrink-0 flex items-center justify-between">
           <h1
             className="text-white"
-            style={{ fontSize: 50, fontWeight: 400, lineHeight: '60px' }}
+            style={{ fontSize: 40, fontWeight: 400, lineHeight: '50px' }}
           >
             {userName}
           </h1>
           {headerRight}
         </div>
 
-        {/* 3-column content — centered vertically */}
-        <div className="flex-1 flex items-center">
+        {/* 3-column content — légèrement dans la moitié basse */}
+        <div className="flex-1 flex items-center pt-[22vh]">
           <div className="w-full grid grid-cols-[240px_1fr_240px] items-start gap-8">
             {/* Left: Quick Links */}
             <UserIdentity
@@ -103,9 +103,9 @@ export function MemberStatusHero({
         to={normalizedPartnerStatus === 'partner' ? '/account/business' : '/account/company'}
         className="hidden lg:flex items-center justify-between absolute z-20 text-white text-[13px] leading-[16px] px-3 h-[34px] rounded-[6px] w-[240px] transition-colors hover:brightness-125"
         style={{
-          background: 'rgba(10, 132, 255, 0.7)',
+          background: '#96182c',
           fontWeight: 400,
-          bottom: 272,
+          bottom: 140,
           left: 64,
         }}
       >
@@ -120,7 +120,7 @@ export function MemberStatusHero({
         <div className="flex items-center justify-between">
           <h1
             className="text-white"
-            style={{ fontSize: 'clamp(28px, 7vw, 50px)', fontWeight: 400, lineHeight: '1.2' }}
+            style={{ fontSize: 'clamp(24px, 5.5vw, 40px)', fontWeight: 400, lineHeight: '1.2' }}
           >
             {userName}
           </h1>
@@ -158,7 +158,7 @@ export function MemberStatusHero({
         <Link
           to={normalizedPartnerStatus === 'partner' ? '/account/business' : '/account/company'}
           className="flex items-center justify-between text-white text-[13px] leading-[16px] px-3 h-[34px] rounded-[6px] w-[240px] transition-colors hover:brightness-125"
-          style={{ background: 'rgba(10, 132, 255, 0.7)', fontWeight: 400 }}
+          style={{ background: '#96182c', fontWeight: 400 }}
         >
           <span>Manage Business</span>
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
