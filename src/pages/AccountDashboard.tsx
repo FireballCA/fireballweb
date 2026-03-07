@@ -46,6 +46,58 @@ interface DashboardNotification {
   created_at: string
 }
 
+function GarageEmptyStateSvg() {
+  return (
+    <svg width="171" height="216" viewBox="0 0 171 216" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[170px] h-auto">
+      <rect x="0.48" y="0.48" width="169.4" height="214.43" fill="#111214" stroke="#2C3138" strokeWidth="0.95" />
+      <path d="M56.91 31.41H110.21C111.536 31.41 112.808 31.9368 113.746 32.8745C114.683 33.8122 115.21 35.084 115.21 36.41V99.82C115.21 101.146 114.683 102.418 113.746 103.356C112.808 104.293 111.536 104.82 110.21 104.82H50.08C48.754 104.82 47.4822 104.293 46.5445 103.356C45.6069 102.418 45.08 101.146 45.08 99.82V43.36L56.91 31.41Z" fill="#17191D" stroke="#5D6572" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M45.08 43.36H54.77C55.3386 43.3574 55.8829 43.1297 56.2839 42.7268C56.6849 42.3239 56.91 41.7785 56.91 41.21V31.41L45.08 43.36Z" fill="#17191D" stroke="#5D6572" strokeLinecap="round" strokeLinejoin="round"/>
+      <rect x="56.51" y="48.54" width="62.02" height="19.29" rx="3.83" fill="#111214" stroke="#5D6572" />
+      <rect x="56.51" y="69.92" width="62.02" height="19.29" rx="3.83" fill="#111214" stroke="#5D6572" />
+      <rect x="56.51" y="91.31" width="62.02" height="19.29" rx="3.83" fill="#111214" stroke="#5D6572" />
+      <circle cx="67.07" cy="58.21" r="3.34" fill="#5D6572"/>
+      <circle cx="77.57" cy="58.21" r="3.34" fill="#5D6572"/>
+      <circle cx="88.06" cy="58.21" r="3.34" fill="#5D6572"/>
+      <circle cx="67.07" cy="79.6" r="3.34" fill="#5D6572"/>
+      <circle cx="77.57" cy="79.6" r="3.34" fill="#5D6572"/>
+      <circle cx="88.06" cy="79.6" r="3.34" fill="#5D6572"/>
+      <circle cx="67.07" cy="100.98" r="3.34" fill="#5D6572"/>
+      <circle cx="77.57" cy="100.98" r="3.34" fill="#5D6572"/>
+      <circle cx="88.06" cy="100.98" r="3.34" fill="#5D6572"/>
+      <circle cx="119.62" cy="52.17" r="20.73" fill="#17191D" stroke="#5D6572" />
+      <path d="M134.34 67.21L139.86 72.73" stroke="#5D6572" strokeLinecap="round" strokeLinejoin="round"/>
+      <rect x="137.82" y="69.69" width="21.8" height="7.2" rx="3.6" transform="rotate(43.7 137.82 69.69)" fill="#17191D" stroke="#5D6572"/>
+      <path d="M57 157.5H113" stroke="#2C3138"/>
+      <text x="85.5" y="176" textAnchor="middle" fill="#7E8794" fontSize="11" fontFamily="SF Pro, system-ui, sans-serif" fontWeight="600">
+        NO VEHICLES YET
+      </text>
+      <text x="85.5" y="191" textAnchor="middle" fill="#616A77" fontSize="9" fontFamily="SF Pro, system-ui, sans-serif">
+        Add your first car to start tracking
+      </text>
+    </svg>
+  )
+}
+
+function OrdersEmptyStateSvg() {
+  return (
+    <svg width="171" height="216" viewBox="0 0 171 216" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[170px] h-auto">
+      <rect x="0.48" y="0.48" width="169.4" height="214.43" fill="white" stroke="#BABABA" strokeWidth="0.95" />
+      <path d="M33.78 39.12L46.78 38.02C48.4011 37.878 50.0218 38.2973 51.3707 39.2075C52.7196 40.1177 53.7149 41.4636 54.19 43.02L66.65 84.72L64.21 89.09C63.5833 90.216 63.2739 91.4909 63.3149 92.7789C63.3558 94.0669 63.7455 95.3196 64.4424 96.4035C65.1394 97.4874 66.1174 98.3619 67.2723 98.9336C68.4271 99.5053 69.7155 99.7529 71 99.65L120.9 95.41" stroke="#BABABA" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M56.05 49.35L114.05 44.43C114.621 44.381 115.196 44.4613 115.733 44.665C116.269 44.8686 116.752 45.1903 117.147 45.6062C117.542 46.0221 117.838 46.5216 118.013 47.0675C118.188 47.6135 118.239 48.192 118.16 48.76L114.23 77.13C114.111 77.9812 113.709 78.7675 113.088 79.3624C112.468 79.9573 111.665 80.3263 110.81 80.41L66.65 84.72L56.05 49.35Z" fill="white" stroke="#BABABA" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="76.55" cy="104.5" r="4.71" fill="white" stroke="#BABABA" />
+      <circle cx="109.35" cy="101.72" r="4.71" fill="white" stroke="#BABABA" />
+      <path d="M80.47 71.26C80.7091 69.4349 81.565 67.7465 82.8957 66.4747C84.2263 65.2029 85.9517 64.4242 87.7857 64.2678C89.6197 64.1113 91.4521 64.5866 92.9789 65.6146C94.5057 66.6427 95.6352 68.1618 96.18 69.92" stroke="#BABABA" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M66.5 157.5H104.5" stroke="#D0D0D0"/>
+      <text x="85.5" y="176" textAnchor="middle" fill="#8B8B8B" fontSize="11" fontFamily="SF Pro, system-ui, sans-serif" fontWeight="600">
+        NO ORDERS YET
+      </text>
+      <text x="85.5" y="191" textAnchor="middle" fill="#A0A0A0" fontSize="9" fontFamily="SF Pro, system-ui, sans-serif">
+        Your purchases will appear here
+      </text>
+    </svg>
+  )
+}
+
 const XP_TIERS = [
   {
     id: 'brushed_silver',
@@ -968,49 +1020,8 @@ export function AccountDashboard() {
                         </svg>
                       </button>
                     </div>
-                    <div className="absolute right-0 bottom-16 lg:bottom-20 flex flex-col gap-5 w-full lg:w-auto lg:max-w-[260px] mt-10 lg:mt-0 lg:items-end">
-                      <div
-                        className="flex flex-col gap-1.5 w-full lg:text-right"
-                        style={{
-                          fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                          color: '#83868B',
-                          fontWeight: 600,
-                          fontSize: 14,
-                          lineHeight: '20px',
-                        }}
-                      >
-                        <div className="font-bold text-[16px] leading-[22px] text-white">Track services</div>
-                        <div className="w-full lg:w-auto h-px shrink-0" style={{ background: '#83868B' }} />
-                        <p>Follow every service performed by <span className="text-white">Fireball partners</span>.</p>
-                      </div>
-                      <div
-                        className="flex flex-col gap-1.5 w-full lg:text-right"
-                        style={{
-                          fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                          color: '#83868B',
-                          fontWeight: 600,
-                          fontSize: 14,
-                          lineHeight: '20px',
-                        }}
-                      >
-                        <div className="font-bold text-[16px] leading-[22px] text-white">Manage vehicles</div>
-                        <div className="w-full lg:w-auto h-px shrink-0" style={{ background: '#83868B' }} />
-                        <p>Keep all your vehicles <span className="text-white">organized</span>.</p>
-                      </div>
-                      <div
-                        className="flex flex-col gap-1.5 w-full lg:text-right"
-                        style={{
-                          fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                          color: '#83868B',
-                          fontWeight: 600,
-                          fontSize: 14,
-                          lineHeight: '20px',
-                        }}
-                      >
-                        <div className="font-bold text-[16px] leading-[22px] text-white">View protection history</div>
-                        <div className="w-full lg:w-auto h-px shrink-0" style={{ background: '#83868B' }} />
-                        <p>Track your <span className="text-white">coatings and protection</span> over time.</p>
-                      </div>
+                    <div className="absolute right-0 bottom-8 lg:bottom-10 flex flex-col items-end w-full lg:w-auto mt-10 lg:mt-0">
+                      <GarageEmptyStateSvg />
                     </div>
                   </div>
                 ) : (
@@ -1240,137 +1251,59 @@ export function AccountDashboard() {
                 )}
               </div>
 
-              {/* Section My Orders: encore plus bas, textes plus gros, lien remonté de quelques px */}
+              {/* Section My Orders (theme clair) */}
               <div
                 className="hidden lg:block absolute top-0 right-6 md:right-12 xl:right-16"
-                style={{ left: '55%', paddingTop: 'calc(147px + 32px + 298px + 28px + 24px + 140px + 120px)' }}
+                style={{ left: '48%', paddingTop: 'calc(147px + 32px + 298px + 28px + 24px + 140px + 120px)' }}
               >
-                <div className="flex flex-col items-start text-left w-full">
-                  <h2
-                    className="text-white font-bold whitespace-nowrap"
-                    style={{
-                      fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                      fontSize: 46,
-                      lineHeight: '54px',
-                      letterSpacing: '0.4px',
-                    }}
-                  >
-                    My Orders
-                  </h2>
-                  <div className="flex items-end justify-between gap-4 w-full mt-1">
-                    <div className="inline-flex flex-col items-end">
-                      <p
-                        className="font-bold whitespace-nowrap"
-                        style={{
-                          fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                          fontSize: 46,
-                          lineHeight: '54px',
-                          letterSpacing: '0.2px',
-                          color: '#83868B',
-                        }}
-                      >
-                        Orders and <span className="text-white">delivery</span> status
-                      </p>
-                      {orders.length === 0 && (
-                        <div className="flex flex-col items-end gap-2 mt-8">
-                          <h3
-                            className="text-right text-white font-bold"
-                            style={{
-                              fontFamily: 'SF Pro, sans-serif',
-                              fontSize: 28,
-                              lineHeight: '34px',
-                              letterSpacing: '0.38px',
-                            }}
-                          >
-                            No orders yet
-                          </h3>
-                          <p
-                            className="text-right text-white/60"
-                            style={{
-                              fontFamily: 'SF Pro, sans-serif',
-                              fontWeight: 400,
-                              fontSize: 17,
-                              lineHeight: '22px',
-                              letterSpacing: '-0.43px',
-                            }}
-                          >
+                <div className="rounded-[42px] bg-[#f5f5f7] px-10 py-10">
+                  <div className="flex flex-col items-start text-left w-full">
+                    <h2
+                      className="text-[#111111] font-bold whitespace-nowrap"
+                      style={{
+                        fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                        fontSize: 46,
+                        lineHeight: '54px',
+                        letterSpacing: '0.4px',
+                      }}
+                    >
+                      My Orders
+                    </h2>
+                    <p
+                      className="font-bold whitespace-nowrap"
+                      style={{
+                        fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                        fontSize: 46,
+                        lineHeight: '54px',
+                        letterSpacing: '0.2px',
+                        color: '#6E7075',
+                      }}
+                    >
+                      Where every order lives.
+                    </p>
+
+                    <div className="mt-8 ml-auto w-[52%] min-w-[420px] rounded-[34px] bg-white px-10 py-10">
+                      {orders.length === 0 ? (
+                        <div className="flex min-h-[380px] flex-col items-center justify-center text-center">
+                          <OrdersEmptyStateSvg />
+                          <p className="mt-6 text-[#6E7075] text-sm">
                             Your Fireball purchases will appear here.
                           </p>
-                          <Link
-                            to="/shop"
-                            className="group mt-2 inline-flex items-center gap-1.5 font-medium transition-colors duration-200 hover:opacity-95"
-                            style={{
-                              fontSize: 12,
-                              lineHeight: '16px',
-                              color: '#FF6363',
-                            }}
-                          >
-                            Browse the shop
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" className="shrink-0 w-[14px] h-[14px] transition-transform duration-200 group-hover:translate-x-0.5" style={{ color: '#FF6363' }}>
-                              <path fill="currentColor" d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z" />
-                            </svg>
-                          </Link>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-4">
+                          {orders.map((order) => (
+                            <article
+                              key={order.id}
+                              className="rounded-2xl border border-[#E8E8EA] bg-white px-4 py-4"
+                            >
+                              <p className="text-[#111111] font-semibold">{order.name}</p>
+                              {order.date && <p className="text-[#7E7E85] text-sm mt-1">{order.date}</p>}
+                            </article>
+                          ))}
                         </div>
                       )}
                     </div>
-                    {orders.length > 0 && (
-                      <a
-                        href="#"
-                        onClick={(e) => e.preventDefault()}
-                        className="inline-flex items-center gap-1.5 font-medium hover:opacity-90 shrink-0"
-                        style={{
-                          fontSize: 12,
-                          lineHeight: '16px',
-                          color: '#007AFF',
-                          marginBottom: 8,
-                        }}
-                      >
-                        Open Fireball Journal
-                        <svg width="4.83" height="8.09" viewBox="0 0 6 8" fill="none" className="shrink-0" style={{ color: '#007AFF' }}>
-                          <path d="M1 1l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </a>
-                    )}
-                  </div>
-
-                  {orders.length > 0 && (
-                      <div className="mt-8 flex flex-col gap-4 items-end">
-                        {orders.map((order) => (
-                          <article
-                            key={order.id}
-                            className="relative w-full max-w-[343px] rounded-2xl overflow-hidden flex-none"
-                            style={{
-                              height: 412,
-                              background: 'rgba(30, 30, 30, 0.75)',
-                              backdropFilter: 'blur(40px)',
-                            }}
-                          >
-                            {/* Bitmap - remplit la carte */}
-                            <div
-                              className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-neutral-800"
-                              style={{ backgroundImage: order.imageUrl ? `url(${order.imageUrl})` : 'url(/image.png)' }}
-                            />
-                            <div
-                              className="absolute inset-0 pointer-events-none"
-                              style={{ background: 'rgba(0, 0, 0, 0.2)' }}
-                            />
-                            {/* Attribute 28x28 top right */}
-                            <div
-                              className="absolute w-7 h-7 rounded-md right-2 top-2"
-                              style={{ background: 'rgba(255, 255, 255, 0.06)' }}
-                            />
-                            <div className="absolute left-4 right-4 bottom-4">
-                              <p className="text-white font-bold truncate" style={{ fontSize: 18, lineHeight: '24px' }}>
-                                {order.name}
-                              </p>
-                              {order.date && (
-                                <p className="text-white/70 text-sm mt-0.5">{order.date}</p>
-                              )}
-                            </div>
-                          </article>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1478,6 +1411,7 @@ export function AccountDashboard() {
             <Footer />
           </div>
         </div>
+      </div>
       )}
 
       <AddVehicleModal
