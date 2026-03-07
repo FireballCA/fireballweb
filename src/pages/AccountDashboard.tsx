@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
@@ -27,6 +27,13 @@ interface Vehicle {
   protectionProduct?: string
 }
 
+interface OrderLineItem {
+  title: string
+  price: number
+  quantity: number
+  imageUrl?: string
+}
+
 interface Order {
   id: string
   shopifyOrderId?: string
@@ -37,6 +44,8 @@ interface Order {
   orderNumber?: string
   totalPrice?: number
   currency?: string
+  lineItems?: OrderLineItem[]
+  pointsEarned?: number
 }
 
 type ProtectionStatus = 'green' | 'yellow' | 'red'
@@ -160,6 +169,58 @@ function getTitleFromPurchaseRow(purchase: any): string | null {
   }
 
   return null
+}
+
+function getLineItemsFromPurchase(purchase: any): OrderLineItem[] {
+  const lineItemsRaw =
+    purchase?.line_items ||
+    purchase?.items ||
+    purchase?.products ||
+    (purchase?.raw_payload && (() => {
+      try {
+        const p = typeof purchase.raw_payload === 'string' ? JSON.parse(purchase.raw_payload) : purchase.raw_payload
+        return p?.line_items || p?.items || p?.products || null
+      } catch {
+        return null
+      }
+    })()) ||
+    null
+
+  if (!lineItemsRaw) return []
+
+  try {
+    const parsed = typeof lineItemsRaw === 'string' ? JSON.parse(lineItemsRaw) : lineItemsRaw
+    if (!Array.isArray(parsed)) return []
+
+    return parsed
+      .filter((item: any) => item && typeof item === 'object')
+      .map((item: any) => {
+        const price =
+          typeof item?.price === 'number'
+            ? item.price
+            : Number.parseFloat(String(item?.price ?? item?.original_unit_price ?? 0)) || 0
+        const qty = Math.max(1, Number(item?.quantity) || 1)
+        const img =
+          item?.image_url ||
+          item?.product_image_url ||
+          item?.image?.src ||
+          item?.featured_image?.src ||
+          item?.image ||
+          item?.featured_image ||
+          null
+        return {
+          title:
+            typeof (item?.product_title ?? item?.title ?? item?.name) === 'string'
+              ? (item.product_title ?? item.title ?? item.name).trim()
+              : 'Product',
+          price,
+          quantity: qty,
+          imageUrl: typeof img === 'string' && img.trim() ? img.trim() : undefined,
+        }
+      })
+  } catch {
+    return []
+  }
 }
 
 function GarageEmptyStateSvg() {
@@ -511,6 +572,8 @@ export function AccountDashboard() {
   const [garageCarouselIndex, setGarageCarouselIndex] = useState(0)
   const [settingsVehicle, setSettingsVehicle] = useState<Vehicle | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
+  const [orderDetailsOrder, setOrderDetailsOrder] = useState<Order | null>(null)
+  const [ordersCarouselIndex, setOrdersCarouselIndex] = useState(0)
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('none')
   const [userRole, setUserRole] = useState<UserRole>('member')
   const [companyName, setCompanyName] = useState<string | null>(null)
@@ -656,6 +719,14 @@ export function AccountDashboard() {
 
                 const purchaseImage = getImageFromPurchaseRow(purchase)
 
+                const lineItems = getLineItemsFromPurchase(purchase)
+                const pointsEarned =
+                  typeof purchase?.points_earned === 'number'
+                    ? purchase.points_earned
+                    : typeof purchase?.xp_earned === 'number'
+                      ? purchase.xp_earned
+                      : undefined
+
                 return {
                   id: String(purchase.id),
                   shopifyOrderId: purchase?.shopify_order_id ? String(purchase.shopify_order_id) : undefined,
@@ -663,13 +734,14 @@ export function AccountDashboard() {
                   name: extractedProductTitle || (purchase?.order_number ? String(purchase.order_number) : 'Order'),
                   date: formattedDate,
                   description: 'Product ordered via Fireball store.',
-                  // The final background image is resolved from Shopify preview.
                   imageUrl: purchaseImage || '',
                   totalPrice:
                     typeof purchase?.total_price === 'number'
                       ? purchase.total_price
                       : Number.parseFloat(String(purchase?.total_price ?? '0')) || 0,
                   currency: purchase?.currency ? String(purchase.currency).toUpperCase() : 'CAD',
+                  lineItems: lineItems.length > 0 ? lineItems : undefined,
+                  pointsEarned,
                 }
               })
 
@@ -922,7 +994,18 @@ export function AccountDashboard() {
     { name: 'Apex Detailing Montreal', city: 'Montreal, QC' },
     { name: 'North Shore Fireball Hub', city: 'Boisbriand, QC' },
   ]
-  const primaryOrder = orders[0] || null
+  const displayOrders = useMemo(() => [...orders], [orders])
+  const hasTwoOrders = displayOrders.length >= 2
+  const hasThreeOrders = displayOrders.length >= 3
+  const hasFourOrMoreOrders = displayOrders.length >= 4
+  const showAddAnotherBlock = displayOrders.length > 0 && displayOrders.length < 3
+  const carouselMaxIndex = Math.max(0, displayOrders.length - 3)
+  const visiblePrimary = hasFourOrMoreOrders ? (displayOrders[ordersCarouselIndex] ?? null) : (displayOrders[0] ?? null)
+  const visibleSecond = hasFourOrMoreOrders ? (displayOrders[ordersCarouselIndex + 1] ?? null) : (displayOrders[1] ?? null)
+  const visibleThird = hasFourOrMoreOrders ? (displayOrders[ordersCarouselIndex + 2] ?? null) : (displayOrders[2] ?? null)
+  useEffect(() => {
+    setOrdersCarouselIndex((i) => Math.min(i, carouselMaxIndex))
+  }, [carouselMaxIndex, displayOrders.length])
 
   return (
     <section className="relative min-h-screen bg-[#0a0a0a] text-pearl">
@@ -1462,27 +1545,45 @@ export function AccountDashboard() {
 
               {/* Section My Orders */}
               <section className="mt-20 -mx-6 md:-mx-12 lg:-mx-16 min-h-[90vh] bg-white py-14 md:py-20">
-                <div className="mx-auto flex h-full w-full max-w-[1400px] flex-col px-6 md:px-12 lg:pr-0 lg:pl-[176px] xl:pl-[188px]">
-                  <p
-                    className="font-bold text-[#111111]"
-                    style={{
-                      fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                      fontSize: 52,
-                      lineHeight: '60px',
-                      letterSpacing: '0.4px',
-                    }}
-                  >
-                    Where every order lives.
-                  </p>
+                <div className="mx-auto flex h-full w-full max-w-[1400px] flex-col px-6 md:px-12 lg:pl-[176px] lg:pr-16 xl:pl-[188px] xl:pr-16">
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <p
+                      className="font-bold text-[#111111]"
+                      style={{
+                        fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+                        fontSize: 52,
+                        lineHeight: '60px',
+                        letterSpacing: '0.4px',
+                      }}
+                    >
+                      Where every order lives.
+                    </p>
+                    {displayOrders.length > 0 && (
+                      <a
+                        href="#"
+                        onClick={(e) => e.preventDefault()}
+                        className="group/journal flex shrink-0 items-center gap-1.5 text-xs font-medium text-[#c73659] hover:text-[#a82d4a] transition-colors duration-200 pb-1"
+                      >
+                        <span>Open FIREBALL journal</span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 640 640"
+                          className="h-3.5 w-3.5 transition-transform duration-200 group-hover/journal:translate-x-0.5"
+                        >
+                          <path fill="currentColor" d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z" />
+                        </svg>
+                      </a>
+                    )}
+                  </div>
 
                   <div
-                    className={`mt-10 flex-1 ${
-                      orders.length === 0
+                    className={`mt-10 flex-1 min-w-0 ${
+                      displayOrders.length === 0
                         ? 'rounded-[36px] bg-[#f5f5f7] px-6 py-8 md:px-10 md:py-10'
                         : ''
                     }`}
                   >
-                    {orders.length === 0 ? (
+                    {displayOrders.length === 0 ? (
                       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
                         <OrdersEmptyStateSvg />
                         <p className="mt-6 text-[#6E7075] text-sm">
@@ -1490,75 +1591,204 @@ export function AccountDashboard() {
                         </p>
                         <Link
                           to="/shop"
-                          className="group mt-4 inline-flex items-center gap-1.5 font-medium transition-colors duration-200"
-                          style={{ fontSize: 12, lineHeight: '16px', color: '#B61B1B' }}
+                          className="group mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-[#5c5c5e] hover:text-[#111111] transition-colors duration-200"
                         >
                           Browse the shop
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" className="shrink-0 h-[14px] w-[14px] transition-transform duration-200 group-hover:translate-x-0.5" style={{ color: '#B61B1B' }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" className="shrink-0 h-[14px] w-[14px] transition-transform duration-200 group-hover:translate-x-0.5">
                             <path fill="currentColor" d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z" />
                           </svg>
                         </Link>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(260px,1fr)_minmax(0,2fr)] lg:gap-8">
-                        <div className="relative min-h-[320px] lg:min-h-[420px] overflow-hidden rounded-[24px] bg-[#E3E5EA] px-5 py-5 md:px-6 md:py-6">
+                      <div
+                        className={`grid grid-cols-1 gap-6 sm:gap-8 w-full overflow-visible ${
+                          hasTwoOrders
+                            ? 'lg:grid-cols-[minmax(260px,1fr)_minmax(260px,1fr)_minmax(260px,1fr)] lg:gap-8'
+                            : 'lg:grid-cols-[minmax(260px,1fr)_minmax(280px,2fr)] lg:gap-8'
+                        }`}
+                      >
+                        {/* Carte 1 : Last commands */}
+                        <div className="relative min-h-[320px] lg:min-h-[420px] overflow-hidden rounded-[24px] bg-[#E3E5EA] px-5 py-5 md:px-6 md:py-6 lg:min-w-0">
                           <div
                             className="pointer-events-none absolute inset-0 bg-cover bg-top bg-no-repeat"
                             style={{
-                              backgroundImage: primaryOrder?.imageUrl ? `url(${primaryOrder.imageUrl})` : 'none',
+                              backgroundImage: visiblePrimary?.imageUrl ? `url(${visiblePrimary.imageUrl})` : 'none',
                             }}
                           />
                           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(227,229,234,0)_20%,rgba(227,229,234,0.68)_58%,#E3E5EA_84%,#E3E5EA_100%)]" />
-
                           <div className="relative z-10 flex min-h-[280px] lg:min-h-[380px] flex-col">
-                            <p className="text-[15px] font-semibold tracking-[-0.24px] text-[#111111]">
-                              Last commands
-                            </p>
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-[15px] font-semibold tracking-[-0.24px] text-[#111111]">
+                                {(!hasFourOrMoreOrders || ordersCarouselIndex === 0) ? 'Last commands' : 'Previous order'}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setOrderDetailsOrder(visiblePrimary ?? null)}
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#2a2a2a]"
+                                aria-label="Voir les détails de la commande"
+                              >
+                                <span className="text-lg leading-none">+</span>
+                              </button>
+                            </div>
                             <div className="mt-auto">
                               <div className="flex items-start gap-2">
                                 <p className="text-[#111111] text-[28px] leading-[34px] tracking-[-0.4px] font-semibold">
-                                  {(primaryOrder?.totalPrice ?? 0).toFixed(2)}
+                                  {(visiblePrimary?.totalPrice ?? 0).toFixed(2)}
                                 </p>
                                 <span className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#111111]/80">
-                                  {primaryOrder?.currency || 'CAD'}
+                                  {visiblePrimary?.currency || 'CAD'}
                                 </span>
                               </div>
                               <div className="mt-2 flex items-center justify-between text-xs font-medium text-[#6E7075]">
-                                <span>{primaryOrder?.date || '-'}</span>
-                                <span>{formatOrderRef(primaryOrder?.orderNumber)}</span>
+                                <span>{visiblePrimary?.date || '-'}</span>
+                                <span>{formatOrderRef(visiblePrimary?.orderNumber)}</span>
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="min-h-[320px] lg:min-h-[420px] rounded-[24px] bg-[#E3E5EA] px-5 py-5 md:px-6 md:py-6 flex flex-col justify-between">
-                          <div>
-                            <p className="text-[11px] uppercase tracking-[0.16em] text-[#8A8C91]">
-                              Keep shopping
-                            </p>
-                            <h3 className="mt-2 text-[#111111] text-2xl font-semibold leading-tight">
-                              Add another Fireball product
-                            </h3>
-                            <p className="mt-3 max-w-xl text-sm text-[#6E7075]">
-                              Discover coatings, maintenance and accessories for your next order.
-                            </p>
+                        {/* Carte 2 */}
+                        {hasTwoOrders && (
+                          <div className="relative min-h-[320px] lg:min-h-[420px] overflow-hidden rounded-[24px] bg-[#E3E5EA] px-5 py-5 md:px-6 md:py-6 lg:min-w-0">
+                            <div
+                              className="pointer-events-none absolute inset-0 bg-cover bg-top bg-no-repeat"
+                              style={{
+                                backgroundImage: visibleSecond?.imageUrl ? `url(${visibleSecond.imageUrl})` : 'none',
+                              }}
+                            />
+                            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(227,229,234,0)_20%,rgba(227,229,234,0.68)_58%,#E3E5EA_84%,#E3E5EA_100%)]" />
+                            <div className="relative z-10 flex min-h-[280px] lg:min-h-[380px] flex-col">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-[15px] font-semibold tracking-[-0.24px] text-[#111111]">
+                                  Previous order
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => setOrderDetailsOrder(visibleSecond!)}
+                                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#2a2a2a]"
+                                  aria-label="Voir les détails de la commande"
+                                >
+                                  <span className="text-lg leading-none">+</span>
+                                </button>
+                              </div>
+                              <div className="mt-auto">
+                                <div className="flex items-start gap-2">
+                                  <p className="text-[#111111] text-[28px] leading-[34px] tracking-[-0.4px] font-semibold">
+                                    {(visibleSecond?.totalPrice ?? 0).toFixed(2)}
+                                  </p>
+                                  <span className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#111111]/80">
+                                    {visibleSecond?.currency || 'CAD'}
+                                  </span>
+                                </div>
+                                <div className="mt-2 flex items-center justify-between text-xs font-medium text-[#6E7075]">
+                                  <span>{visibleSecond?.date || '-'}</span>
+                                  <span>{formatOrderRef(visibleSecond?.orderNumber)}</span>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <Link
-                            to="/shop"
-                            className="mt-6 inline-flex items-center gap-1.5 font-medium transition-colors duration-200"
-                            style={{ fontSize: 12, lineHeight: '16px', color: '#B61B1B' }}
-                          >
-                            Browse the shop
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 640 640"
-                              className="shrink-0 h-[14px] w-[14px] transition-transform duration-200 group-hover:translate-x-0.5"
-                              style={{ color: '#B61B1B' }}
+                        )}
+
+                        {/* Carte 3 (seulement si 3 commandes, pas de Add another) */}
+                        {hasThreeOrders && (
+                          <div className="relative min-h-[320px] lg:min-h-[420px] overflow-hidden rounded-[24px] bg-[#E3E5EA] px-5 py-5 md:px-6 md:py-6 lg:min-w-0">
+                            <div
+                              className="pointer-events-none absolute inset-0 bg-cover bg-top bg-no-repeat"
+                              style={{
+                                backgroundImage: visibleThird?.imageUrl ? `url(${visibleThird.imageUrl})` : 'none',
+                              }}
+                            />
+                            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(227,229,234,0)_20%,rgba(227,229,234,0.68)_58%,#E3E5EA_84%,#E3E5EA_100%)]" />
+                            <div className="relative z-10 flex min-h-[280px] lg:min-h-[380px] flex-col">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-[15px] font-semibold tracking-[-0.24px] text-[#111111]">
+                                  Previous order
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => setOrderDetailsOrder(visibleThird!)}
+                                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#2a2a2a]"
+                                  aria-label="Voir les détails de la commande"
+                                >
+                                  <span className="text-lg leading-none">+</span>
+                                </button>
+                              </div>
+                              <div className="mt-auto">
+                                <div className="flex items-start gap-2">
+                                  <p className="text-[#111111] text-[28px] leading-[34px] tracking-[-0.4px] font-semibold">
+                                    {(visibleThird?.totalPrice ?? 0).toFixed(2)}
+                                  </p>
+                                  <span className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#111111]/80">
+                                    {visibleThird?.currency || 'CAD'}
+                                  </span>
+                                </div>
+                                <div className="mt-2 flex items-center justify-between text-xs font-medium text-[#6E7075]">
+                                  <span>{visibleThird?.date || '-'}</span>
+                                  <span>{formatOrderRef(visibleThird?.orderNumber)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Add another Fireball product (seulement si 1 ou 2 commandes) */}
+                        {showAddAnotherBlock && (
+                          <div className="min-h-[320px] lg:min-h-[420px] rounded-[24px] bg-[#E3E5EA] px-5 py-5 md:px-6 md:py-6 flex flex-col justify-between min-[1400px]:mr-[calc(-50vw+700px)] min-[1400px]:w-[calc(100%+50vw-700px)] lg:min-w-0">
+                            <div>
+                              <p className="text-[11px] uppercase tracking-[0.16em] text-[#8A8C91]">
+                                Keep shopping
+                              </p>
+                              <h3 className="mt-2 text-[#111111] text-2xl font-semibold leading-tight">
+                                Add another Fireball product
+                              </h3>
+                              <p className="mt-3 max-w-xl text-sm text-[#6E7075]">
+                                Discover coatings, maintenance and accessories for your next order.
+                              </p>
+                            </div>
+                            <Link
+                              to="/shop"
+                              className="group/shop mt-6 inline-flex items-center gap-1.5 text-xs font-medium text-[#5c5c5e] hover:text-[#111111] transition-colors duration-200"
                             >
-                              <path fill="currentColor" d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z" />
-                            </svg>
-                          </Link>
-                        </div>
+                              Browse the shop
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 640 640"
+                                className="shrink-0 h-[14px] w-[14px] transition-transform duration-200 group-hover/shop:translate-x-0.5"
+                              >
+                                <path fill="currentColor" d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z" />
+                              </svg>
+                            </Link>
+                          </div>
+                        )}
+                        {hasFourOrMoreOrders && (
+                          <>
+                            <div className="hidden lg:block lg:col-span-2" />
+                            <div className="mt-4 flex items-center gap-3 lg:justify-end">
+                              <button
+                                type="button"
+                                onClick={() => setOrdersCarouselIndex((i) => Math.max(0, i - 1))}
+                                disabled={ordersCarouselIndex === 0}
+                                className="flex h-10 w-10 items-center justify-center rounded-full border border-[#111111]/25 bg-white text-[#111111] transition hover:bg-[#f5f5f7] disabled:opacity-40 disabled:pointer-events-none"
+                                aria-label="Commandes précédentes"
+                              >
+                                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setOrdersCarouselIndex((i) => Math.min(carouselMaxIndex, i + 1))}
+                                disabled={ordersCarouselIndex >= carouselMaxIndex}
+                                className="flex h-10 w-10 items-center justify-center rounded-full border border-[#111111]/25 bg-white text-[#111111] transition hover:bg-[#f5f5f7] disabled:opacity-40 disabled:pointer-events-none"
+                                aria-label="Commandes suivantes"
+                              >
+                                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                </svg>
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1696,6 +1926,86 @@ export function AccountDashboard() {
         }}
       />
       <ProductsPurchasedSheet isOpen={productsPurchasedOpen} onClose={() => setProductsPurchasedOpen(false)} />
+      {orderDetailsOrder && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50"
+          onClick={() => setOrderDetailsOrder(null)}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-[#E3E5EA] shadow-xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label="Détails de la commande"
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#111111]/10">
+              <div>
+                <p className="text-[13px] font-semibold text-[#111111]">
+                  Commande {formatOrderRef(orderDetailsOrder.orderNumber)}
+                </p>
+                <p className="text-xs text-[#6E7075] mt-0.5">{orderDetailsOrder.date ?? '-'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOrderDetailsOrder(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-[#111111] text-white hover:bg-[#2a2a2a]"
+                aria-label="Fermer"
+              >
+                <span className="text-lg leading-none">×</span>
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto px-5 py-4">
+              {orderDetailsOrder.lineItems && orderDetailsOrder.lineItems.length > 0 ? (
+                <ul className="space-y-3">
+                  {orderDetailsOrder.lineItems.map((item, idx) => (
+                    <li
+                      key={idx}
+                      className="flex items-center gap-3 rounded-xl bg-white/70 p-3 border border-[#111111]/8"
+                    >
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-[#E3E5EA]">
+                        {item.imageUrl ? (
+                          <img
+                            src={item.imageUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center text-[#8A8C91] text-xs">
+                            —
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-medium text-[#111111] truncate">{item.title}</p>
+                        <p className="text-xs text-[#6E7075] mt-0.5">
+                          {item.quantity} × {(item.price || 0).toFixed(2)} {orderDetailsOrder.currency ?? 'CAD'}
+                        </p>
+                      </div>
+                      <p className="text-[13px] font-semibold text-[#111111] shrink-0">
+                        {((item.price || 0) * item.quantity).toFixed(2)} {orderDetailsOrder.currency ?? 'CAD'}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-[#6E7075]">Aucun détail de produit disponible pour cette commande.</p>
+              )}
+              <div className="mt-4 pt-4 border-t border-[#111111]/10 flex items-center justify-between">
+                <span className="text-sm font-medium text-[#111111]">Total</span>
+                <span className="text-base font-semibold text-[#111111]">
+                  {(orderDetailsOrder.totalPrice ?? 0).toFixed(2)} {orderDetailsOrder.currency ?? 'CAD'}
+                </span>
+              </div>
+              {orderDetailsOrder.pointsEarned != null && orderDetailsOrder.pointsEarned > 0 && (
+                <div className="mt-2 flex items-center justify-between text-sm text-[#6E7075]">
+                  <span>Points gagnés</span>
+                  <span className="font-medium text-[#111111]">+{orderDetailsOrder.pointsEarned} XP</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <AdminPanelSheet isOpen={adminPanelOpen} onClose={() => setAdminPanelOpen(false)} />
       <SettingsSheet isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
       {settingsVehicle && (
