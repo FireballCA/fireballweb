@@ -48,6 +48,18 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
       })
     })
 
+  const fetchShopifyAdminJson = async (url: string) => {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': shopifyAdminApiToken,
+      },
+    })
+    const data = (await response.json().catch(() => null)) as any
+    return { ok: response.ok, data }
+  }
+
   return {
     name: 'shopify-customer-api-dev',
     configureServer(server) {
@@ -322,6 +334,106 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
               customer: updateResult?.data?.customerUpdate?.customer || null,
             }),
           )
+        } catch (error) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              error: 'Internal server error',
+              details: error instanceof Error ? error.message : 'Unknown error',
+            }),
+          )
+        }
+      })
+
+      server.middlewares.use('/api/shopify-order-preview', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Method not allowed' }))
+          return
+        }
+
+        if (!shopifyStoreUrl || !shopifyAdminApiToken) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              error: 'Missing SHOPIFY_STORE_URL or SHOPIFY_ADMIN_API_TOKEN in server env.',
+            }),
+          )
+          return
+        }
+
+        try {
+          const body = (await readJsonBody(req)) as { orderIds?: unknown[] }
+          const orderIds = Array.isArray(body.orderIds)
+            ? body.orderIds.map((id) => String(id || '').trim()).filter(Boolean).slice(0, 10)
+            : []
+
+          if (!orderIds.length) {
+            res.statusCode = 200
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ ok: true, previews: {} }))
+            return
+          }
+
+          const normalizedStoreUrl = shopifyStoreUrl.startsWith('http')
+            ? shopifyStoreUrl
+            : `https://${shopifyStoreUrl}`
+
+          const previews: Record<string, any> = {}
+
+          for (const orderId of orderIds) {
+            try {
+              const orderUrl = `${normalizedStoreUrl}/admin/api/${shopifyApiVersion}/orders/${encodeURIComponent(
+                orderId,
+              )}.json?status=any&fields=id,name,currency,line_items`
+              const orderRes = await fetchShopifyAdminJson(orderUrl)
+              const order = orderRes?.data?.order || null
+              if (!order) continue
+
+              const firstItem =
+                Array.isArray(order.line_items) && order.line_items.length > 0
+                  ? order.line_items[0]
+                  : null
+
+              let imageUrl =
+                firstItem?.image?.src ||
+                firstItem?.image?.url ||
+                firstItem?.featured_image?.src ||
+                firstItem?.featured_image?.url ||
+                null
+
+              if (!imageUrl && firstItem?.product_id) {
+                const productUrl = `${normalizedStoreUrl}/admin/api/${shopifyApiVersion}/products/${encodeURIComponent(
+                  String(firstItem.product_id),
+                )}.json?fields=id,image,images,title`
+                const productRes = await fetchShopifyAdminJson(productUrl)
+                const product = productRes?.data?.product || null
+                imageUrl =
+                  product?.image?.src ||
+                  (Array.isArray(product?.images) ? product.images[0]?.src : null) ||
+                  null
+              }
+
+              previews[orderId] = {
+                orderName: typeof order.name === 'string' ? order.name : null,
+                currency: typeof order.currency === 'string' ? order.currency : null,
+                productTitle:
+                  typeof firstItem?.title === 'string'
+                    ? firstItem.title
+                    : (typeof firstItem?.name === 'string' ? firstItem.name : null),
+                imageUrl: typeof imageUrl === 'string' ? imageUrl : null,
+              }
+            } catch {
+              // Ignore per-order failures in dev middleware.
+            }
+          }
+
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ ok: true, previews }))
         } catch (error) {
           res.statusCode = 500
           res.setHeader('Content-Type', 'application/json')
