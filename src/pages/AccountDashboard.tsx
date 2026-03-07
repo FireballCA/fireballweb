@@ -9,7 +9,6 @@ import { ProductsPurchasedSheet } from '@/components/ProductsPurchasedSheet'
 import { AdminPanelSheet } from '@/components/AdminPanelSheet'
 import { SettingsSheet } from '@/components/SettingsSheet'
 import { Footer } from '@/components/Layout/Footer'
-import { PRODUCTS } from '@/data/products'
 import {
   fetchGarageVehicles,
   createGarageVehicle,
@@ -51,29 +50,16 @@ interface DashboardNotification {
   created_at: string
 }
 
-function normalizeProductLabel(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-}
-
-function getCatalogImageFromTitle(title: string | null | undefined): string | null {
-  if (!title) return null
-  const normalizedTitle = normalizeProductLabel(title)
-  if (!normalizedTitle) return null
-
-  const exact = PRODUCTS.find((product) => normalizeProductLabel(product.name) === normalizedTitle)
-  if (exact?.image) return exact.image
-
-  const partial = PRODUCTS.find((product) => {
-    const normalizedName = normalizeProductLabel(product.name)
-    return normalizedName.includes(normalizedTitle) || normalizedTitle.includes(normalizedName)
-  })
-
-  return partial?.image || null
+function formatOrderRef(orderNumber?: string | null): string {
+  if (!orderNumber) return '-'
+  // Utiliser directement le numéro de commande tel qu'il est stocké dans la base
+  const raw = String(orderNumber).trim()
+  // Si c'est déjà au format "#1066", on garde tel quel, sinon on extrait les chiffres
+  if (raw.startsWith('#')) {
+    return raw
+  }
+  const digits = raw.replace(/\D+/g, '')
+  return digits ? `#${digits.padStart(5, '0')}` : raw
 }
 
 function getImageFromPurchaseRow(purchase: any): string | null {
@@ -667,7 +653,7 @@ export function AccountDashboard() {
                     ? placedAt.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })
                     : undefined
                 const extractedProductTitle = getTitleFromPurchaseRow(purchase)
-                const catalogImage = getCatalogImageFromTitle(extractedProductTitle)
+
                 const purchaseImage = getImageFromPurchaseRow(purchase)
 
                 return {
@@ -677,7 +663,8 @@ export function AccountDashboard() {
                   name: extractedProductTitle || (purchase?.order_number ? String(purchase.order_number) : 'Order'),
                   date: formattedDate,
                   description: 'Product ordered via Fireball store.',
-                  imageUrl: purchaseImage || catalogImage || PRODUCTS[0]?.image || '',
+                  // The final background image is resolved from Shopify preview.
+                  imageUrl: purchaseImage || '',
                   totalPrice:
                     typeof purchase?.total_price === 'number'
                       ? purchase.total_price
@@ -702,11 +689,16 @@ export function AccountDashboard() {
 
                   const ordersWithPreview = mappedOrders.map((order) => {
                     const preview = order.shopifyOrderId ? previews[order.shopifyOrderId] : null
-                    if (!preview) return order
+                    if (!preview) {
+                      return {
+                        ...order,
+                        imageUrl: '',
+                      }
+                    }
                     return {
                       ...order,
                       name: preview.productTitle || order.name,
-                      imageUrl: preview.imageUrl || order.imageUrl,
+                      imageUrl: preview.imageUrl || order.imageUrl || '',
                       currency: preview.currency || order.currency,
                     }
                   })
@@ -1513,7 +1505,7 @@ export function AccountDashboard() {
                           <div
                             className="pointer-events-none absolute inset-0 bg-cover bg-top bg-no-repeat"
                             style={{
-                              backgroundImage: primaryOrder?.imageUrl ? `url(${primaryOrder.imageUrl})` : (PRODUCTS[0]?.image ? `url(${PRODUCTS[0].image})` : 'none'),
+                              backgroundImage: primaryOrder?.imageUrl ? `url(${primaryOrder.imageUrl})` : 'none',
                             }}
                           />
                           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(227,229,234,0)_20%,rgba(227,229,234,0.68)_58%,#E3E5EA_84%,#E3E5EA_100%)]" />
@@ -1522,10 +1514,6 @@ export function AccountDashboard() {
                             <p className="text-[15px] font-semibold tracking-[-0.24px] text-[#111111]">
                               Last commands
                             </p>
-                            <h3 className="mt-2 line-clamp-2 text-[#111111] text-[28px] leading-[34px] tracking-[-0.4px] font-bold">
-                              {primaryOrder?.name || 'Fireball Order'}
-                            </h3>
-
                             <div className="mt-auto">
                               <div className="flex items-start gap-2">
                                 <p className="text-[#111111] text-[28px] leading-[34px] tracking-[-0.4px] font-semibold">
@@ -1537,7 +1525,7 @@ export function AccountDashboard() {
                               </div>
                               <div className="mt-2 flex items-center justify-between text-xs font-medium text-[#6E7075]">
                                 <span>{primaryOrder?.date || '-'}</span>
-                                <span>#{primaryOrder?.orderNumber || '-'}</span>
+                                <span>{formatOrderRef(primaryOrder?.orderNumber)}</span>
                               </div>
                             </div>
                           </div>
