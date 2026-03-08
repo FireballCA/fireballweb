@@ -144,6 +144,7 @@
     "passwordHint": "Doit contenir au moins 6 caractères.",
     "rememberDevice": "Se souvenir de cet appareil",
     "signingIn": "Connexion...",
+    "continueWithGoogle": "Continuer avec Google",
     "creatingAccount": "Création du compte...",
     "signUp": "Créer un compte",
     "newHere": "Nouveau ici ?",
