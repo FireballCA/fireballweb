@@ -6,7 +6,7 @@ export async function createShopifyCustomer(data: {
   password: string
   first_name: string
   last_name: string
-}): Promise<{ success: boolean; error?: string }> {
+}): Promise<{ success: boolean; error?: string; shopifyCustomerId?: string }> {
   try {
     const response = await fetch('/api/create-shopify-customer', {
       method: 'POST',
@@ -49,8 +49,13 @@ export async function createShopifyCustomer(data: {
       }
     }
 
-    await response.json()
-    return { success: true }
+    const body = (await response.json()) as {
+      success?: boolean
+      customer?: { id?: string; email?: string; firstName?: string; lastName?: string }
+    }
+    const shopifyCustomerId =
+      body?.customer?.id && typeof body.customer.id === 'string' ? body.customer.id : undefined
+    return { success: true, shopifyCustomerId }
   } catch (error) {
     console.error('Error creating Shopify customer:', error)
     // Ne pas bloquer l'inscription si la création Shopify échoue

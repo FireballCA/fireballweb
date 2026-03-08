@@ -43,7 +43,7 @@ const COMPANY_SECTIONS: Array<{
     title: 'CONNECT',
     description: 'Media & direct contact',
     links: [
-      { label: 'Contact us', href: 'mailto:contact@fireball.fr' },
+      { label: 'Contact us', to: '/contact' },
       { label: 'Press kit', href: '#' },
       { label: 'Legal', to: '/legal' },
     ],
@@ -879,8 +879,8 @@ export function Header() {
                       Connect
                     </p>
                     <div className="mt-1 space-y-1.5 pl-3">
-                      <a
-                        href="mailto:contact@fireball.fr"
+                      <Link
+                        to="/contact"
                         className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
                         onClick={() => setMenuOpen(false)}
                       >
@@ -903,7 +903,7 @@ export function Header() {
                           </svg>
                         </span>
                         <span>Contact us</span>
-                      </a>
+                      </Link>
                       <button
                         type="button"
                         className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
