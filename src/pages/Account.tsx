@@ -54,7 +54,8 @@ export function Account() {
   const lang = i18n.language === 'fr' ? 'FR' : 'EN'
 
   const returnToParam = new URLSearchParams(location.search).get('returnTo')
-  const returnToPath = returnToParam === '/account/company' ? returnToParam : null
+  const returnToPath =
+    returnToParam === '/account/company' || returnToParam === '/contact' ? returnToParam : null
 
   useEffect(() => {
     document.title = 'Account | Fireball Canada'

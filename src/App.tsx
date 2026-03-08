@@ -15,6 +15,7 @@ import { BusinessPage } from '@/pages/BusinessPage'
 import { ManagePartners } from '@/pages/ManagePartners'
 import { PartnerCompany } from '@/pages/PartnerCompany'
 import { CarClub } from '@/pages/CarClub'
+import { Contact } from '@/pages/Contact'
 import { PartnerOnboarding } from '@/pages/partner/PartnerOnboarding'
 import { PartnerDashboardLayout } from '@/pages/partner/PartnerDashboardLayout'
 import { PartnerOverview } from '@/pages/partner/PartnerOverview'
@@ -36,6 +37,7 @@ function App() {
             <Route path="produit/:slug" element={<Product />} />
             <Route path="panier" element={<Cart />} />
             <Route path="car-club" element={<CarClub />} />
+            <Route path="contact" element={<Contact />} />
             <Route path="join-fireball" element={<PartnerCompany />} />
             <Route path="account" element={<Account />} />
             <Route path="account/register" element={<AccountRegister />} />
