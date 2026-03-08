@@ -353,6 +353,22 @@ export function AccountRegister() {
                 </p>
               </div>
 
+              {/* Bouton Se connecter (même style que Créer un compte sur la page login) */}
+              <div className="mb-6">
+                <Link
+                  to={returnToPath ? `/account?returnTo=${encodeURIComponent(returnToPath)}` : '/account'}
+                  className="w-full rounded-lg px-4 py-3 text-sm font-medium text-white bg-[#121212] border border-[#1a1a1a] hover:bg-[#1a1a1a] focus:outline-none transition-all flex items-center justify-center gap-2 no-underline"
+                >
+                  {t('auth.logIn')}
+                </Link>
+              </div>
+
+              <div className="flex items-center gap-3 mb-6">
+                <span className="flex-1 h-px bg-white/20" aria-hidden />
+                <span className="text-xs text-white/50">OR</span>
+                <span className="flex-1 h-px bg-white/20" aria-hidden />
+              </div>
+
               <form className="space-y-5" onSubmit={handleRegisterSubmit}>
                 {/* Name row */}
                 <div className="flex flex-col sm:flex-row gap-3">

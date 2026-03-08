@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { updateShopifyCustomer } from '@/utils/shopifySync'
+import { updateShopifyCustomer, sendShopifyCustomerInvite } from '@/utils/shopifySync'
 import { getCurrentUserProfile } from '@/utils/supabaseAuth'
 
 interface SettingsSheetProps {
@@ -49,6 +49,14 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [editingField, setEditingField] = useState<'firstName' | 'lastName' | 'email' | 'phone' | null>(null)
 
+  const [shopifyCustomerId, setShopifyCustomerId] = useState<string | null>(null)
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordLoading, setPasswordLoading] = useState(false)
+
   useEffect(() => {
     if (!isOpen) return
 
@@ -78,6 +86,7 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
         setMemberId((profile as any).external_member_id ?? null)
         setMemberSince(profile.created_at || user.created_at || null)
         setSubscriptionTier(profile.subscription_tier ?? null)
+        setShopifyCustomerId(profile.shopify_customer_id ?? null)
       } else {
         // Fallback sur les métadonnées Auth si le profil n'existe pas
         const metadata = (user.user_metadata || {}) as Record<string, unknown>
@@ -663,13 +672,111 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
                 <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
                   Security
                 </p>
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between py-2 text-sm text-white/85 hover:text-white hover:bg-white/[0.04] rounded-2xl px-3 transition-colors"
-                >
-                  <span>Change password</span>
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">Email flow</span>
-                </button>
+                {/* Set / Change password (Supabase + Shopify invite for Google-only users) */}
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3 space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordForm((v) => !v)
+                      setPasswordMessage(null)
+                      setPasswordError(null)
+                      setNewPassword('')
+                      setConfirmPassword('')
+                    }}
+                    className="flex w-full items-center justify-between py-2 text-sm text-white/85 hover:text-white hover:bg-white/[0.04] rounded-xl px-3 transition-colors"
+                  >
+                    <span>{showPasswordForm ? 'Cancel' : 'Set password / Change password'}</span>
+                    <span className="text-[10px] uppercase tracking-[0.16em] text-white/45">
+                      {showPasswordForm ? '' : 'Fireball + Shop'}
+                    </span>
+                  </button>
+                  {showPasswordForm && (
+                    <form
+                      className="space-y-3 pt-1"
+                      onSubmit={async (e) => {
+                        e.preventDefault()
+                        setPasswordMessage(null)
+                        setPasswordError(null)
+                        const pwd = newPassword.trim()
+                        const conf = confirmPassword.trim()
+                        if (pwd.length < 6) {
+                          setPasswordError('Password must be at least 6 characters.')
+                          return
+                        }
+                        if (pwd !== conf) {
+                          setPasswordError('Passwords do not match.')
+                          return
+                        }
+                        setPasswordLoading(true)
+                        try {
+                          const { error } = await supabase.auth.updateUser({ password: pwd })
+                          if (error) {
+                            setPasswordError(error.message || 'Failed to update password.')
+                            return
+                          }
+                          if (shopifyCustomerId) {
+                            const invite = await sendShopifyCustomerInvite(shopifyCustomerId)
+                            if (invite.success) {
+                              setPasswordMessage(
+                                'Password updated. Check your email to set the same password for the Fireball shop.',
+                              )
+                            } else {
+                              setPasswordMessage(
+                                'Password updated. You could not receive the shop login email; use "Forgot password" on the store if needed.',
+                              )
+                            }
+                          } else {
+                            setPasswordMessage('Password updated.')
+                          }
+                          setNewPassword('')
+                          setConfirmPassword('')
+                        } catch (err) {
+                          setPasswordError(err instanceof Error ? err.message : 'Something went wrong.')
+                        } finally {
+                          setPasswordLoading(false)
+                        }
+                      }}
+                    >
+                      <div>
+                        <label className="block text-[11px] font-medium text-white/60 mb-1">New password</label>
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="w-full rounded-lg px-3 py-2 text-sm text-white bg-[#121212] border border-white/10 focus:border-white/30 focus:outline-none"
+                          placeholder="Min. 6 characters"
+                          minLength={6}
+                          disabled={passwordLoading}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-medium text-white/60 mb-1">Confirm password</label>
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full rounded-lg px-3 py-2 text-sm text-white bg-[#121212] border border-white/10 focus:border-white/30 focus:outline-none"
+                          placeholder="Same as above"
+                          minLength={6}
+                          disabled={passwordLoading}
+                        />
+                      </div>
+                      {passwordError && (
+                        <p className="text-xs text-red-400">{passwordError}</p>
+                      )}
+                      {passwordMessage && (
+                        <p className="text-xs text-green-400">{passwordMessage}</p>
+                      )}
+                      <button
+                        type="submit"
+                        disabled={passwordLoading}
+                        className="w-full py-2 rounded-lg text-sm font-medium bg-white text-black hover:bg-white/90 disabled:opacity-50"
+                      >
+                        {passwordLoading ? 'Updating…' : 'Update password'}
+                      </button>
+                    </form>
+                  )}
+                </div>
                 <button
                   type="button"
                   className="flex w-full items-center justify-between py-2 text-sm text-white/85 hover:text-white hover:bg-white/[0.04] rounded-2xl px-3 transition-colors"

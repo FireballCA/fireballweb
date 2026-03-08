@@ -64,6 +64,68 @@ export async function createShopifyCustomer(data: {
 }
 
 /**
+ * Génère un mot de passe aléatoire (pour création client Shopify sans mot de passe utilisateur, ex. OAuth).
+ */
+function generateRandomPassword(): string {
+  const arr = new Uint8Array(32)
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(arr)
+  } else {
+    for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 256)
+  }
+  return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * Crée un client Shopify pour un utilisateur qui n'en a pas (ex. connexion OAuth).
+ * Utilise un mot de passe aléatoire (non stocké). À appeler après chargement du profil.
+ */
+export async function ensureShopifyCustomerForProfile(profile: {
+  id: string
+  email: string
+  first_name?: string | null
+  last_name?: string | null
+}): Promise<{ success: boolean; error?: string; shopifyCustomerId?: string }> {
+  if (!profile?.email?.trim()) {
+    return { success: false, error: 'Email required' }
+  }
+  const result = await createShopifyCustomer({
+    email: profile.email.trim(),
+    password: generateRandomPassword(),
+    first_name: (profile.first_name ?? '').trim() || 'Member',
+    last_name: (profile.last_name ?? '').trim() || '',
+  })
+  return result
+}
+
+/**
+ * Envoie l’email d’invitation Shopify pour que le client puisse définir son mot de passe boutique.
+ * À appeler après avoir défini le mot de passe Supabase (ex. utilisateur Google qui set un mdp).
+ */
+export async function sendShopifyCustomerInvite(shopifyCustomerId: string): Promise<{
+  success: boolean
+  error?: string
+}> {
+  try {
+    const response = await fetch('/api/send-shopify-customer-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shopifyCustomerId }),
+    })
+    if (!response.ok) {
+      const err = (await response.json().catch(() => ({}))) as { error?: string }
+      return { success: false, error: err.error || `HTTP ${response.status}` }
+    }
+    return { success: true }
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : 'Unknown error',
+    }
+  }
+}
+
+/**
  * Met à jour un client Shopify existant (nom, etc.) à partir des paramètres du compte.
  */
 export async function updateShopifyCustomer(data: {

@@ -235,8 +235,8 @@ export function Account() {
                 </p>
               </div>
 
-              {/* OAuth: Google */}
-              <div className="mb-6">
+              {/* OAuth: Google + Create account */}
+              <div className="space-y-3 mb-6">
                 <button
                   type="button"
                   onClick={() => handleOAuthSignIn('google')}
@@ -269,6 +269,12 @@ export function Account() {
                     </>
                   )}
                 </button>
+                <Link
+                  to={returnToPath ? `/account/register?returnTo=${encodeURIComponent(returnToPath)}` : '/account/register'}
+                  className="w-full rounded-lg px-4 py-3 text-sm font-medium text-white bg-[#121212] border border-[#1a1a1a] hover:bg-[#1a1a1a] focus:outline-none transition-all flex items-center justify-center gap-2 no-underline"
+                >
+                  {t('auth.createAccount')}
+                </Link>
               </div>
 
               <div className="flex items-center gap-3 mb-6">

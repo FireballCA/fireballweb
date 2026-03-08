@@ -15,6 +15,7 @@ import {
   updateGarageVehicle,
   deleteGarageVehicle,
 } from '@/utils/supabaseGarage'
+import { ensureShopifyCustomerForProfile } from '@/utils/shopifySync'
 import { supabase } from '@/lib/supabase'
 
 interface Vehicle {
@@ -655,6 +656,25 @@ export function AccountDashboard() {
       }
 
       setFullName(customerFullName)
+
+      // Créer un client Shopify si absent (ex. utilisateur connecté via Google OAuth)
+      if (profile?.email && !profile.shopify_customer_id) {
+        ensureShopifyCustomerForProfile({
+          id: profile.id,
+          email: profile.email,
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+        }).then(async (res) => {
+          if (res.success && res.shopifyCustomerId) {
+            await supabase
+              .from('profiles')
+              .update({ shopify_customer_id: res.shopifyCustomerId })
+              .eq('id', profile.id)
+          }
+        }).catch((err) => {
+          console.warn('Ensure Shopify customer failed:', err)
+        })
+      }
 
       // Charger la dernière notification destinée à cet utilisateur
       try {
