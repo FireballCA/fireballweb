@@ -10,8 +10,9 @@ export function Layout() {
     location.pathname === '/account/register'
   const isOverlayHeaderPage = location.pathname === '/account/company' || location.pathname === '/join-fireball'
   const isAnyAccountPage = location.pathname === '/compte' || location.pathname.startsWith('/account')
+  const isContactPage = location.pathname === '/contact'
   const showHeader = !isAccountAuthPage
-  const showFooter = !isAnyAccountPage
+  const showFooter = !isAnyAccountPage && !isContactPage
   const mainClassName = showHeader && !isOverlayHeaderPage ? 'flex-1 pt-20' : 'flex-1'
 
   return (
