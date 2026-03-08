@@ -346,6 +346,90 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
         }
       })
 
+      server.middlewares.use('/api/send-shopify-customer-invite', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Method not allowed' }))
+          return
+        }
+
+        if (!shopifyStoreUrl || !shopifyAdminApiToken) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              error: 'Missing SHOPIFY_STORE_URL or SHOPIFY_ADMIN_API_TOKEN in server env.',
+            }),
+          )
+          return
+        }
+
+        try {
+          const body = (await readJsonBody(req)) as { shopifyCustomerId?: string }
+          const shopifyCustomerId = typeof body.shopifyCustomerId === 'string' ? body.shopifyCustomerId.trim() : ''
+          if (!shopifyCustomerId || !shopifyCustomerId.startsWith('gid://shopify/Customer/')) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: 'Missing or invalid shopifyCustomerId' }))
+            return
+          }
+
+          const normalizedStoreUrl = shopifyStoreUrl.startsWith('http')
+            ? shopifyStoreUrl
+            : `https://${shopifyStoreUrl}`
+          const endpoint = `${normalizedStoreUrl}/admin/api/${shopifyApiVersion}/graphql.json`
+
+          const mutation = `
+            mutation customerSendAccountInviteEmail($customerId: ID!) {
+              customerSendAccountInviteEmail(customerId: $customerId) {
+                customer { id }
+                userErrors { field message }
+              }
+            }
+          `
+          const inviteResponse = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Shopify-Access-Token': shopifyAdminApiToken,
+            },
+            body: JSON.stringify({
+              query: mutation,
+              variables: { customerId: shopifyCustomerId },
+            }),
+          })
+          const inviteResult = (await inviteResponse.json()) as any
+          const userErrors = inviteResult?.data?.customerSendAccountInviteEmail?.userErrors || []
+          const errors = inviteResult?.errors || []
+
+          if (!inviteResponse.ok || errors.length || userErrors.length) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(
+              JSON.stringify({
+                error: 'Failed to send Shopify account invite email',
+                details: errors.length ? errors : userErrors,
+              }),
+            )
+            return
+          }
+
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ success: true, message: 'Invite email sent' }))
+        } catch (error) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              error: 'Internal server error',
+              details: error instanceof Error ? error.message : 'Unknown error',
+            }),
+          )
+        }
+      })
+
       server.middlewares.use('/api/shopify-order-preview', async (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405

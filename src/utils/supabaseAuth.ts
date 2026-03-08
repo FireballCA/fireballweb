@@ -13,6 +13,7 @@ export interface UserProfile {
   xp?: number | null
   external_member_id?: string | null
   barcode_value?: string | null
+  shopify_customer_id?: string | null
 }
 
 /**
