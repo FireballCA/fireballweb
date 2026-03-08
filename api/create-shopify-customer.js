@@ -91,9 +91,12 @@ export default async function handler(req, res) {
       })
     }
 
+    const customer = data?.data?.customerCreate?.customer || null
+    const shopifyCustomerId = customer?.id || null
     return res.status(200).json({
       success: true,
-      customer: data?.data?.customerCreate?.customer || null,
+      customer,
+      shopifyCustomerId,
     })
   } catch (error) {
     return res.status(500).json({

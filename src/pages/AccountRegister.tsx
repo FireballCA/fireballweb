@@ -178,6 +178,13 @@ export function AccountRegister() {
         // On ne bloque pas l'inscription Supabase, mais on trace l'erreur pour diagnostic.
         console.error('Shopify customer sync failed:', shopifySyncError)
       }
+      // Sauvegarder l'ID client Shopify dans le profil (utile pour les commandes, etc.)
+      if (shopifySync.success && shopifySync.shopifyCustomerId) {
+        await supabase
+          .from('profiles')
+          .update({ shopify_customer_id: shopifySync.shopifyCustomerId })
+          .eq('id', authData.user.id)
+      }
 
       if (returnToPath) {
         navigate(returnToPath, { replace: true })
