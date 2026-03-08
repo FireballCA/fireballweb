@@ -235,8 +235,8 @@ export function Account() {
                 </p>
               </div>
 
-              {/* OAuth: Google + Create account */}
-              <div className="space-y-3 mb-6">
+              {/* OAuth: Google uniquement — libellé explicite pour éviter la confusion avec "Sign in" */}
+              <div className="mb-6">
                 <button
                   type="button"
                   onClick={() => handleOAuthSignIn('google')}
@@ -244,7 +244,7 @@ export function Account() {
                   className="w-full rounded-lg px-4 py-3 text-sm font-medium text-white bg-[#121212] border border-[#1a1a1a] hover:bg-[#1a1a1a] focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {oauthLoading === 'google' ? (
-                    <span className="text-white/70">Signing in…</span>
+                    <span className="text-white/70">{t('auth.signingIn')}</span>
                   ) : (
                     <>
                       <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -265,16 +265,10 @@ export function Account() {
                           d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                         />
                       </svg>
-                      Continue with Google
+                      {t('auth.continueWithGoogle')}
                     </>
                   )}
                 </button>
-                <Link
-                  to={returnToPath ? `/account/register?returnTo=${encodeURIComponent(returnToPath)}` : '/account/register'}
-                  className="w-full rounded-lg px-4 py-3 text-sm font-medium text-white bg-[#121212] border border-[#1a1a1a] hover:bg-[#1a1a1a] focus:outline-none transition-all flex items-center justify-center gap-2 no-underline"
-                >
-                  {t('auth.createAccount')}
-                </Link>
               </div>
 
               <div className="flex items-center gap-3 mb-6">
