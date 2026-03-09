@@ -36,7 +36,7 @@ const COMPANY_SECTIONS: Array<{
       { label: 'Open FIREBALL Center', to: '/join-fireball' },
       { label: 'Merch', to: '/boutique' },
       { label: 'Awards', href: '#' },
-      { label: 'About us', href: '#' },
+      { label: 'About us', to: '/about' },
     ],
   },
   {

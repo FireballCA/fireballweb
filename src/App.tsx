@@ -6,6 +6,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { PartnerRoute } from '@/components/PartnerRoute'
 import { Home } from '@/pages/Home'
 import { Shop } from '@/pages/Shop'
+import { About } from '@/pages/About'
 import { Product } from '@/pages/Product'
 import { Cart } from '@/pages/Cart'
 import { Account } from '@/pages/Account'
@@ -35,6 +36,7 @@ function App() {
             <Route path="boutique" element={<Shop />} />
             <Route path="boutique/:categoryId" element={<Shop />} />
             <Route path="produit/:slug" element={<Product />} />
+            <Route path="about" element={<About />} />
             <Route path="panier" element={<Cart />} />
             <Route path="car-club" element={<CarClub />} />
             <Route path="contact" element={<Contact />} />

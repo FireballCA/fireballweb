@@ -110,6 +110,147 @@
   }
 }
 
+/* Design système About page (global vars + helpers) */
+:root {
+  --black: #000000;
+  --white: #ffffff;
+  --off-white: #f5f5f7;
+  --mid: #6e6e73;
+  --border: #d2d2d7;
+  --red: #d42b2b;
+}
+
+.container        { max-width: 1080px; margin: 0 auto; }
+.container-narrow { max-width: 720px;  margin: 0 auto; }
+.container-wide   { max-width: 1280px; margin: 0 auto; }
+.section-label    { font-size: 11px; font-weight: 500; letter-spacing: 3px; text-transform: uppercase; color: var(--red); margin-bottom: 20px; }
+.divider          { height: 1px; background: var(--border); }
+
+.reveal           { opacity: 0; transform: translateY(40px); transition: opacity .8s ease, transform .8s ease; }
+.reveal.visible   { opacity: 1; transform: none; }
+.reveal-delay-1   { transition-delay: .1s; }
+.reveal-delay-2   { transition-delay: .2s; }
+.reveal-delay-3   { transition-delay: .3s; }
+
+/* SECTION 1 — OUR BELIEF */
+.manifesto { background: var(--white); padding: 120px 40px; }
+.manifesto-label { font-size: 11px; font-weight: 500; letter-spacing: 3px; text-transform: uppercase; color: var(--red); margin-bottom: 40px; }
+.manifesto-text {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 300;
+  line-height: 1.3;
+  color: var(--black);
+  letter-spacing: -.3px;
+}
+.manifesto-text strong { font-weight: 500; }
+.manifesto-text em { font-style: italic; color: var(--red); }
+
+/* SECTION 2 — CINEMATIC STATS SCROLL */
+.stats-scroll { position: relative; height: 600vh; background: var(--black); }
+.stats-sticky-container { position: sticky; top: 0; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--black); }
+.stats-sticky-container::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 60% at 50% 50%, var(--glow-color, transparent), transparent 70%); opacity: 0; transition: opacity .6s ease, background .6s ease; pointer-events: none; }
+.stats-sticky-container.glow-active::before { opacity: 1; }
+.stat-scene { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+.stat-big-num {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  color: var(--white);
+  line-height: .85;
+  letter-spacing: -2px;
+  will-change: transform, opacity;
+  font-size: 4vw;
+}
+.stat-big-num span { color: var(--red); }
+.stat-line { width: 0px; height: 1px; background: var(--red); margin-top: 20px; transition: width .6s ease; }
+.stat-scene.label-visible .stat-line { width: 60px; }
+.stat-big-label { font-size: 11px; font-weight: 500; letter-spacing: 5px; text-transform: uppercase; color: rgba(255,255,255,.45); margin-top: 28px; opacity: 0; transform: translateY(16px); transition: opacity .5s ease, transform .5s ease; }
+.stat-big-sub {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 300;
+  font-style: italic;
+  font-size: clamp(14px, 1.5vw, 18px);
+  color: rgba(255,255,255,.2);
+  margin-top: 10px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .5s ease .15s, transform .5s ease .15s;
+}
+.stat-scene.label-visible .stat-big-label, .stat-scene.label-visible .stat-big-sub { opacity: 1; transform: translateY(0); }
+.stats-progress { position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: rgba(255,255,255,.08); }
+.stats-progress-fill { height: 100%; width: 0%; background: var(--red); }
+.stats-dots { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+.stats-dot { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,.2); transition: background .3s, transform .3s; }
+.stats-dot.active { background: var(--red); transform: scale(1.4); }
+
+/* SECTION 3 — OUR STORY */
+.story { background: var(--off-white); padding: 120px 40px; }
+.story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: start; }
+.story-sticky { position: sticky; top: 100px; }
+.story-title {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 700;
+  font-size: clamp(36px, 4vw, 54px);
+  line-height: 1.1;
+  color: var(--black);
+}
+.story-body { display: flex; flex-direction: column; gap: 28px; padding-top: 8px; }
+.story-body p {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  font-weight: 300;
+  line-height: 1.75;
+  color: #1d1d1f;
+}
+.story-body p strong { font-weight: 500; }
+@media (max-width: 768px) {
+  .story-grid { grid-template-columns: 1fr; gap: 40px; }
+  .story-sticky { position: static; }
+}
+
+/* SECTION 4 — OUR VISION */
+.vision { background: var(--white); padding: 120px 40px; }
+.vision-quote { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-style: italic; font-size: clamp(28px, 4vw, 52px); line-height: 1.25; color: var(--black); border-left: 2px solid var(--red); padding-left: 48px; max-width: 800px; }
+.vision-attribution { margin-top: 32px; padding-left: 48px; font-size: 14px; color: var(--mid); letter-spacing: .5px; }
+
+/* SECTION 5 — GET STARTED CTA */
+.cta-section { background: var(--off-white); text-align: center; padding: 120px 40px; }
+.cta-title {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 700;
+  font-size: clamp(40px, 6vw, 72px);
+  margin-bottom: 24px;
+  color: var(--black);
+}
+.cta-sub { font-size: 18px; font-weight: 300; color: var(--mid); max-width: 560px; margin: 0 auto 48px; line-height: 1.6; }
+.cta-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.btn-dark { padding: 14px 32px; background: var(--black); color: var(--white); font-size: 15px; font-weight: 400; border-radius: 30px; text-decoration: none; letter-spacing: .2px; transition: background .2s; }
+.btn-dark:hover { background: var(--red); }
+.btn-outline { padding: 14px 32px; background: transparent; color: var(--black); font-size: 15px; font-weight: 400; border-radius: 30px; text-decoration: none; letter-spacing: .2px; border: 1.5px solid rgba(0,0,0,.2); transition: border-color .2s, color .2s; }
+.btn-outline:hover { border-color: var(--red); color: var(--red); }
+
+/* Section 5a — Always moving forward (image background) */
+.forward-section {
+  position: relative;
+  padding: 140px 40px 200px;
+  color: var(--black);
+  background: url("/Assets/Factory Background.png") center/cover no-repeat;
+}
+.forward-title {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 700;
+  font-size: clamp(32px, 4vw, 52px);
+  margin-bottom: 18px;
+}
+.forward-sub {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--black);
+  max-width: 560px;
+}
+
 /* Mobile burger menu (Uiverse / Cevorob, adapté en blanc) */
 .fb-burger {
   position: relative;
