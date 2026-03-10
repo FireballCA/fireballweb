@@ -1,22 +1,23 @@
 export function Legal() {
   return (
-    <div className="max-w-4xl mx-auto px-6 py-16 md:py-24">
-      {/* Header */}
-      <div className="mb-12">
-        <h1 className="font-display text-4xl md:text-5xl lg:text-6xl text-pearl tracking-tight mb-3">
-          Legal
-        </h1>
-        <p className="text-silver/60 text-sm">
-          Last updated: March 2026
-        </p>
-      </div>
+    <div className="bg-white min-h-screen">
+      <div className="max-w-4xl mx-auto px-6 py-16 md:py-24">
+        {/* Header */}
+        <div className="mb-12">
+          <h1 className="font-sans text-4xl md:text-5xl lg:text-6xl font-bold text-carbon-900 tracking-tight mb-3">
+            Legal
+          </h1>
+          <p className="text-carbon-600 text-sm">
+            Last updated: March 2026
+          </p>
+        </div>
 
-      {/* Content */}
-      <div className="prose prose-invert max-w-none space-y-12">
-        {/* Introduction */}
-        <section>
-          <h2 className="font-display text-2xl md:text-3xl text-pearl mb-4">Introduction</h2>
-          <div className="text-silver/80 space-y-4 text-base leading-relaxed">
+        {/* Content */}
+        <div className="max-w-none space-y-12">
+          {/* Introduction */}
+          <section>
+            <h2 className="font-sans text-2xl md:text-3xl font-bold text-carbon-900 mb-4">Introduction</h2>
+            <div className="text-carbon-600 space-y-4 text-base leading-relaxed font-sans">
             <p>
               Welcome to Fireball Canada.
             </p>
@@ -29,10 +30,10 @@ export function Legal() {
           </div>
         </section>
 
-        {/* Terms of Use */}
-        <section>
-          <h2 className="font-display text-2xl md:text-3xl text-pearl mb-4">Terms of Use</h2>
-          <div className="text-silver/80 space-y-4 text-base leading-relaxed">
+          {/* Terms of Use */}
+          <section>
+            <h2 className="font-sans text-2xl md:text-3xl font-bold text-carbon-900 mb-4">Terms of Use</h2>
+            <div className="text-carbon-600 space-y-4 text-base leading-relaxed font-sans">
             <p>
               By using this website, you agree to use it only for lawful purposes.
             </p>
@@ -48,10 +49,10 @@ export function Legal() {
           </div>
         </section>
 
-        {/* Products and Services */}
-        <section>
-          <h2 className="font-display text-2xl md:text-3xl text-pearl mb-4">Products and Services</h2>
-          <div className="text-silver/80 space-y-4 text-base leading-relaxed">
+          {/* Products and Services */}
+          <section>
+            <h2 className="font-sans text-2xl md:text-3xl font-bold text-carbon-900 mb-4">Products and Services</h2>
+            <div className="text-carbon-600 space-y-4 text-base leading-relaxed font-sans">
             <p>
               Fireball Canada provides automotive protection products and related services.
             </p>
@@ -67,10 +68,10 @@ export function Legal() {
           </div>
         </section>
 
-        {/* Orders and Payments */}
-        <section>
-          <h2 className="font-display text-2xl md:text-3xl text-pearl mb-4">Orders and Payments</h2>
-          <div className="text-silver/80 space-y-4 text-base leading-relaxed">
+          {/* Orders and Payments */}
+          <section>
+            <h2 className="font-sans text-2xl md:text-3xl font-bold text-carbon-900 mb-4">Orders and Payments</h2>
+            <div className="text-carbon-600 space-y-4 text-base leading-relaxed font-sans">
             <p>
               All purchases made through our platform are subject to product availability and order acceptance.
             </p>
@@ -88,10 +89,10 @@ export function Legal() {
           </div>
         </section>
 
-        {/* Intellectual Property */}
-        <section>
-          <h2 className="font-display text-2xl md:text-3xl text-pearl mb-4">Intellectual Property</h2>
-          <div className="text-silver/80 space-y-4 text-base leading-relaxed">
+          {/* Intellectual Property */}
+          <section>
+            <h2 className="font-sans text-2xl md:text-3xl font-bold text-carbon-900 mb-4">Intellectual Property</h2>
+            <div className="text-carbon-600 space-y-4 text-base leading-relaxed font-sans">
             <p>
               All content on this website is the property of Fireball Canada or its partners.
             </p>
@@ -110,10 +111,10 @@ export function Legal() {
           </div>
         </section>
 
-        {/* Limitation of Liability */}
-        <section>
-          <h2 className="font-display text-2xl md:text-3xl text-pearl mb-4">Limitation of Liability</h2>
-          <div className="text-silver/80 space-y-4 text-base leading-relaxed">
+          {/* Limitation of Liability */}
+          <section>
+            <h2 className="font-sans text-2xl md:text-3xl font-bold text-carbon-900 mb-4">Limitation of Liability</h2>
+            <div className="text-carbon-600 space-y-4 text-base leading-relaxed font-sans">
             <p>
               Fireball Canada shall not be held liable for any damages resulting from the use of our products or services, including but not limited to indirect, incidental, or consequential damages.
             </p>
@@ -123,10 +124,10 @@ export function Legal() {
           </div>
         </section>
 
-        {/* Privacy */}
-        <section>
-          <h2 className="font-display text-2xl md:text-3xl text-pearl mb-4">Privacy</h2>
-          <div className="text-silver/80 space-y-4 text-base leading-relaxed">
+          {/* Privacy */}
+          <section>
+            <h2 className="font-sans text-2xl md:text-3xl font-bold text-carbon-900 mb-4">Privacy</h2>
+            <div className="text-carbon-600 space-y-4 text-base leading-relaxed font-sans">
             <p>
               Fireball Canada respects your privacy and is committed to protecting your personal information.
             </p>
@@ -147,10 +148,10 @@ export function Legal() {
           </div>
         </section>
 
-        {/* Third-Party Services */}
-        <section>
-          <h2 className="font-display text-2xl md:text-3xl text-pearl mb-4">Third-Party Services</h2>
-          <div className="text-silver/80 space-y-4 text-base leading-relaxed">
+          {/* Third-Party Services */}
+          <section>
+            <h2 className="font-sans text-2xl md:text-3xl font-bold text-carbon-900 mb-4">Third-Party Services</h2>
+            <div className="text-carbon-600 space-y-4 text-base leading-relaxed font-sans">
             <p>
               Our website may integrate services from third parties such as payment processors or analytics tools.
             </p>
@@ -163,10 +164,10 @@ export function Legal() {
           </div>
         </section>
 
-        {/* Modifications */}
-        <section>
-          <h2 className="font-display text-2xl md:text-3xl text-pearl mb-4">Modifications</h2>
-          <div className="text-silver/80 space-y-4 text-base leading-relaxed">
+          {/* Modifications */}
+          <section>
+            <h2 className="font-sans text-2xl md:text-3xl font-bold text-carbon-900 mb-4">Modifications</h2>
+            <div className="text-carbon-600 space-y-4 text-base leading-relaxed font-sans">
             <p>
               Fireball Canada reserves the right to update or modify these legal terms at any time.
             </p>
@@ -179,26 +180,27 @@ export function Legal() {
           </div>
         </section>
 
-        {/* Contact */}
-        <section>
-          <h2 className="font-display text-2xl md:text-3xl text-pearl mb-4">Contact</h2>
-          <div className="text-silver/80 space-y-4 text-base leading-relaxed">
-            <p>
-              For legal inquiries or questions regarding these terms, please contact:
-            </p>
-            <div className="mt-4 space-y-2">
-              <p className="font-semibold text-pearl">Fireball Canada</p>
+          {/* Contact */}
+          <section>
+            <h2 className="font-sans text-2xl md:text-3xl font-bold text-carbon-900 mb-4">Contact</h2>
+            <div className="text-carbon-600 space-y-4 text-base leading-relaxed font-sans">
               <p>
-                <a 
-                  href="mailto:fireballcanada@gmail.com" 
-                  className="text-chrome hover:text-chrome/80 transition-colors underline"
-                >
-                  fireballcanada@gmail.com
-                </a>
+                For legal inquiries or questions regarding these terms, please contact:
               </p>
+              <div className="mt-4 space-y-2">
+                <p className="font-semibold text-carbon-900">Fireball Canada</p>
+                <p>
+                  <a 
+                    href="mailto:fireballcanada@gmail.com" 
+                    className="text-[#B61B1B] hover:text-[#B61B1B]/80 transition-colors underline"
+                  >
+                    fireballcanada@gmail.com
+                  </a>
+                </p>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     </div>
   )

@@ -16,11 +16,8 @@ import { BusinessPage } from '@/pages/BusinessPage'
 import { ManagePartners } from '@/pages/ManagePartners'
 import { PartnerCompany } from '@/pages/PartnerCompany'
 import { CarClub } from '@/pages/CarClub'
-<<<<<<< Updated upstream
 import { Contact } from '@/pages/Contact'
-=======
 import { Legal } from '@/pages/Legal'
->>>>>>> Stashed changes
 import { PartnerOnboarding } from '@/pages/partner/PartnerOnboarding'
 import { PartnerDashboardLayout } from '@/pages/partner/PartnerDashboardLayout'
 import { PartnerOverview } from '@/pages/partner/PartnerOverview'
@@ -43,11 +40,8 @@ function App() {
             <Route path="about" element={<About />} />
             <Route path="panier" element={<Cart />} />
             <Route path="car-club" element={<CarClub />} />
-<<<<<<< Updated upstream
             <Route path="contact" element={<Contact />} />
-=======
             <Route path="legal" element={<Legal />} />
->>>>>>> Stashed changes
             <Route path="join-fireball" element={<PartnerCompany />} />
             <Route path="account" element={<Account />} />
             <Route path="account/register" element={<AccountRegister />} />
