@@ -18,6 +18,7 @@ import { PartnerCompany } from '@/pages/PartnerCompany'
 import { CarClub } from '@/pages/CarClub'
 import { Contact } from '@/pages/Contact'
 import { Legal } from '@/pages/Legal'
+import { Academy } from '@/pages/Academy'
 import { PartnerOnboarding } from '@/pages/partner/PartnerOnboarding'
 import { PartnerDashboardLayout } from '@/pages/partner/PartnerDashboardLayout'
 import { PartnerOverview } from '@/pages/partner/PartnerOverview'
@@ -42,6 +43,7 @@ function App() {
             <Route path="car-club" element={<CarClub />} />
             <Route path="contact" element={<Contact />} />
             <Route path="legal" element={<Legal />} />
+            <Route path="academy" element={<Academy />} />
             <Route path="join-fireball" element={<PartnerCompany />} />
             <Route path="account" element={<Account />} />
             <Route path="account/register" element={<AccountRegister />} />

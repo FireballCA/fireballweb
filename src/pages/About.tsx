@@ -34,10 +34,10 @@ export function About() {
     }
 
     const glows = ['rgba(212,43,43,0.12)', 'rgba(255,255,255,0.04)', 'rgba(212,43,43,0.10)']
-    const SIZE_ENTER = 6
-    const SIZE_PEAK = 18
-    const SIZE_HOLD = 14
-    const SIZE_EXIT = 28
+    const SIZE_ENTER = 4.5
+    const SIZE_PEAK = 14
+    const SIZE_HOLD = 11
+    const SIZE_EXIT = 22
 
     const easeOut = (t: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3)
     const easeIn = (t: number) => Math.pow(Math.max(0, Math.min(1, t)), 2)
