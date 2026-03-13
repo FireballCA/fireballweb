@@ -107,6 +107,7 @@ export function Header() {
   const searchMenuRef = useRef<HTMLDivElement | null>(null)
   const { totalItems } = useCart()
   const isDashboardPage = location.pathname === '/account/dashboard' || location.pathname === '/dashboard'
+  const isProductPage = location.pathname.startsWith('/produit')
 
   useEffect(() => {
     const onScroll = () => {
@@ -185,7 +186,7 @@ export function Header() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50"
+      className={`${isProductPage ? 'sticky' : 'fixed'} top-0 left-0 right-0 z-50`}
       style={
         menuOpen
           ? {
