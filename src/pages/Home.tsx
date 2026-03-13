@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { CATEGORIES } from '@/data/products'
 import { getFeaturedProducts } from '@/data/products'
 import { SurfaceTechnology } from '@/components/SurfaceTechnology'
+import { ScrollReveal, ParallaxSection } from '@/components'
 
 export function Home() {
   const { t } = useTranslation()
@@ -52,38 +53,43 @@ export function Home() {
       {/* Surface Technology */}
       <SurfaceTechnology />
 
-      {/* Categories */}
-      <section className="py-24 border-t border-carbon-800">
-        <div className="max-w-7xl mx-auto px-6">
-          <p className="text-chrome text-sm uppercase mb-2">Gammes</p>
-          <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight mb-16">
-            {t('home.categoriesTitle')}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {CATEGORIES.map((cat, i) => (
-              <Link
-                key={cat.id}
-                to={`/boutique/${cat.id}`}
-                className="group block border border-carbon-700 hover:border-chrome/50 transition-all duration-300 overflow-hidden"
-              >
-                <div className="aspect-[4/3] bg-carbon-800 relative overflow-hidden">
-                  <div
-                    className="absolute inset-0 bg-cover bg-center opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-all duration-500"
-                    style={{
-                      backgroundImage: `url(https://images.unsplash.com/photo-${i === 0 ? '1607860108855-64acf2078ed9' : i === 1 ? '1487754180451-c456f719a1fc' : '1492144534655-ae79c964c9d7'}?w=800)`,
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-carbon-950/40 group-hover:bg-carbon-950/20 transition-colors" />
-                  <div className="absolute inset-0 flex flex-col justify-end p-8">
-                    <span className="font-display text-3xl text-pearl">{cat.name}</span>
-                    <span className="text-silver/80 text-sm mt-1">{cat.description}</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
+      {/* Categories avec effet parallaxe et reveal */}
+      <ParallaxSection intensity={0.2} direction="up">
+        <section className="py-24 border-t border-carbon-800">
+          <div className="max-w-7xl mx-auto px-6">
+            <ScrollReveal direction="up" delay={0}>
+              <p className="text-chrome text-sm uppercase mb-2">Gammes</p>
+              <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight mb-16">
+                {t('home.categoriesTitle')}
+              </h2>
+            </ScrollReveal>
+            <div className="grid md:grid-cols-3 gap-8">
+              {CATEGORIES.map((cat, i) => (
+                <ScrollReveal key={cat.id} direction="up" delay={i * 100} distance={30}>
+                  <Link
+                    to={`/boutique/${cat.id}`}
+                    className="group block border border-carbon-700 hover:border-chrome/50 transition-all duration-300 overflow-hidden"
+                  >
+                    <div className="aspect-[4/3] bg-carbon-800 relative overflow-hidden">
+                      <div
+                        className="absolute inset-0 bg-cover bg-center opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-all duration-500"
+                        style={{
+                          backgroundImage: `url(https://images.unsplash.com/photo-${i === 0 ? '1607860108855-64acf2078ed9' : i === 1 ? '1487754180451-c456f719a1fc' : '1492144534655-ae79c964c9d7'}?w=800)`,
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-carbon-950/40 group-hover:bg-carbon-950/20 transition-colors" />
+                      <div className="absolute inset-0 flex flex-col justify-end p-8">
+                        <span className="font-display text-3xl text-pearl">{cat.name}</span>
+                        <span className="text-silver/80 text-sm mt-1">{cat.description}</span>
+                      </div>
+                    </div>
+                  </Link>
+                </ScrollReveal>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </ParallaxSection>
 
       {/* Featured products */}
       <section id="featured" className="py-24 bg-carbon-900/50 border-t border-carbon-800">
