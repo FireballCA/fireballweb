@@ -22,6 +22,7 @@ export function Product() {
   const [loading, setLoading] = useState(true)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [relatedProducts, setRelatedProducts] = useState<LocalProduct[]>([])
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false)
   const galleryRef = useRef<HTMLDivElement>(null)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
@@ -227,8 +228,8 @@ export function Product() {
       {/* Main Product Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-16">
-          {/* Left: Image Gallery */}
-          <div className="space-y-4">
+          {/* Left: Image Gallery - Sticky */}
+          <div className="lg:sticky lg:top-20 lg:self-start space-y-4">
             {/* Main Image */}
             <div
               ref={galleryRef}
@@ -301,7 +302,7 @@ export function Product() {
               </div>
             </div>
 
-            {/* Thumbnails */}
+            {/* Thumbnails - Carrés arrondis basiques */}
             {allImages.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {allImages.map((img, index) => (
@@ -309,10 +310,10 @@ export function Product() {
                     key={index}
                     type="button"
                     onClick={() => setSelectedImageIndex(index)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                    className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-all ${
                       selectedImageIndex === index
-                        ? 'border-chrome ring-2 ring-chrome/20'
-                        : 'border-carbon-200 hover:border-carbon-300'
+                        ? 'border-carbon-900 ring-2 ring-carbon-900/20'
+                        : 'border-carbon-200 hover:border-carbon-400'
                     }`}
                   >
                     <img
@@ -326,13 +327,13 @@ export function Product() {
                   <button
                     type="button"
                     onClick={() => setSelectedImageIndex(0)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all flex items-center justify-center ${
+                    className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-all flex items-center justify-center bg-carbon-50 ${
                       selectedImageIndex === 0 && product.video
-                        ? 'border-chrome ring-2 ring-chrome/20'
-                        : 'border-carbon-200 hover:border-carbon-300'
+                        ? 'border-carbon-900 ring-2 ring-carbon-900/20'
+                        : 'border-carbon-200 hover:border-carbon-400'
                     }`}
                   >
-                    <svg className="w-8 h-8 text-carbon-600" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-carbon-600" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   </button>
@@ -376,9 +377,34 @@ export function Product() {
               <span className="text-sm text-carbon-500">(289 {t('product.reviewsBased')})</span>
             </div>
 
-            {/* Description */}
-            <div className="prose prose-sm max-w-none">
-              <p className="text-carbon-700 leading-relaxed">{product.description}</p>
+            {/* Description - Collapsible */}
+            <div className="border-t border-carbon-200 pt-6">
+              <button
+                type="button"
+                onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+                className="w-full flex items-center justify-between text-left group"
+              >
+                <span className="text-sm font-semibold text-carbon-900 flex items-center gap-2">
+                  <svg
+                    className={`w-4 h-4 text-carbon-600 transition-transform ${descriptionExpanded ? 'rotate-90' : ''}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  Description
+                </span>
+              </button>
+              <div
+                className={`overflow-hidden transition-all duration-300 ${
+                  descriptionExpanded ? 'max-h-[1000px] opacity-100 mt-4' : 'max-h-0 opacity-0'
+                }`}
+              >
+                <div className="prose prose-sm max-w-none">
+                  <p className="text-carbon-700 leading-relaxed whitespace-pre-line">{product.description}</p>
+                </div>
+              </div>
             </div>
 
             {/* Color Selection */}
