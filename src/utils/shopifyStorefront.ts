@@ -1,4 +1,4 @@
-import { PRODUCTS, type Product, type CategoryId, getProductBySlug } from '@/data/products'
+import { PRODUCTS, type Product, type ProductVariant, type CategoryId, getProductBySlug } from '@/data/products'
 
 const SHOPIFY_STORE_URL =
   (import.meta.env.VITE_SHOPIFY_STORE_URL as string | undefined) || 'fireball-canada.myshopify.com'
@@ -58,13 +58,50 @@ function mapShopifyProductToLocal(node: {
   description: string
   tags: string[]
   featuredImage?: { url: string; altText?: string | null } | null
+  images?: { edges: { node: { url: string; altText?: string | null } }[] }
   priceRange: { minVariantPrice: { amount: string; currencyCode: string } }
-  variants?: { edges: { node: { id: string } }[] }
+  variants?: {
+    edges: {
+      node: {
+        id: string
+        title: string
+        price: { amount: string; currencyCode: string }
+        availableForSale: boolean
+        selectedOptions: { name: string; value: string }[]
+        image?: { url: string } | null
+      }
+    }[]
+  }
+  options?: { name: string; values: string[] }[]
+  media?: {
+    edges: {
+      node: {
+        mediaContentType: string
+        sources?: { url: string; mimeType: string }[]
+      }
+    }[]
+  }
 }): Product {
   const category = resolveCategoryFromTags(node.tags)
-  const image =
+  const featuredImageUrl =
     node.featuredImage?.url ||
     'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800&auto=format&fit=crop'
+
+  // Récupérer toutes les images
+  const allImages: string[] = []
+  if (node.featuredImage?.url) {
+    allImages.push(node.featuredImage.url)
+  }
+  if (node.images?.edges) {
+    node.images.edges.forEach((edge) => {
+      if (edge.node.url && !allImages.includes(edge.node.url)) {
+        allImages.push(edge.node.url)
+      }
+    })
+  }
+  if (allImages.length === 0) {
+    allImages.push(featuredImageUrl)
+  }
 
   const rawDescription = node.description || ''
   const shortDesc =
@@ -74,6 +111,28 @@ function mapShopifyProductToLocal(node: {
   const price = Number.parseFloat(node.priceRange.minVariantPrice.amount)
   const firstVariantId = node.variants?.edges?.[0]?.node?.id
 
+  // Mapper les variantes
+  const variants: ProductVariant[] =
+    node.variants?.edges.map((edge) => ({
+      id: edge.node.id,
+      title: edge.node.title,
+      price: Number.parseFloat(edge.node.price.amount),
+      availableForSale: edge.node.availableForSale,
+      selectedOptions: edge.node.selectedOptions || [],
+      image: edge.node.image?.url,
+    })) || []
+
+  // Récupérer la vidéo si disponible
+  let videoUrl: string | undefined
+  if (node.media?.edges) {
+    const videoMedia = node.media.edges.find(
+      (edge) => edge.node.mediaContentType === 'VIDEO'
+    )
+    if (videoMedia?.node.sources?.[0]?.url) {
+      videoUrl = videoMedia.node.sources[0].url
+    }
+  }
+
   return {
     id: node.id,
     name: node.title,
@@ -82,9 +141,13 @@ function mapShopifyProductToLocal(node: {
     shortDesc,
     description: rawDescription || shortDesc,
     price: Number.isFinite(price) ? price : 0,
-    image,
+    image: allImages[0],
+    images: allImages.length > 1 ? allImages : undefined,
     shopifyProductId: node.id,
     shopifyVariantId: firstVariantId,
+    variants: variants.length > 0 ? variants : undefined,
+    options: node.options?.filter((opt) => opt.values.length > 1),
+    video: videoUrl,
   }
 }
 
@@ -165,16 +228,54 @@ export async function fetchProductFromShopifyBySlug(slug: string): Promise<Produ
             url
             altText
           }
+          images(first: 10) {
+            edges {
+              node {
+                url
+                altText
+              }
+            }
+          }
           priceRange {
             minVariantPrice {
               amount
               currencyCode
             }
           }
-          variants(first: 1) {
+          options {
+            name
+            values
+          }
+          variants(first: 50) {
             edges {
               node {
                 id
+                title
+                price {
+                  amount
+                  currencyCode
+                }
+                availableForSale
+                selectedOptions {
+                  name
+                  value
+                }
+                image {
+                  url
+                }
+              }
+            }
+          }
+          media(first: 5) {
+            edges {
+              node {
+                mediaContentType
+                ... on Video {
+                  sources {
+                    url
+                    mimeType
+                  }
+                }
               }
             }
           }

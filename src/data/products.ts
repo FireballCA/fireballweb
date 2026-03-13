@@ -1,5 +1,14 @@
 export type CategoryId = 'classique' | 'pro' | 'revetements'
 
+export interface ProductVariant {
+  id: string
+  title: string
+  price: number
+  availableForSale: boolean
+  selectedOptions: { name: string; value: string }[]
+  image?: string
+}
+
 export interface Product {
   id: string
   name: string
@@ -16,6 +25,12 @@ export interface Product {
   shopifyProductId?: string
   /** Identifiant de variante Shopify (gid) pour le checkout */
   shopifyVariantId?: string
+  /** Toutes les variantes disponibles */
+  variants?: ProductVariant[]
+  /** Options de variantes (ex: Taille, Couleur) */
+  options?: { name: string; values: string[] }[]
+  /** Vidéo produit optionnelle */
+  video?: string
 }
 
 export const CATEGORIES: { id: CategoryId; name: string; description: string }[] = [
