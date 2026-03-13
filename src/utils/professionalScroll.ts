@@ -15,6 +15,7 @@ const PARALLAX_ELEMENTS: Array<{ element: HTMLElement; intensity: number; direct
 
 /**
  * Initialise le système de scroll professionnel
+ * Compatible avec les éléments fixed/sticky comme la navbar
  */
 export function initProfessionalScroll() {
   if (isInitialized) return
@@ -29,17 +30,24 @@ export function initProfessionalScroll() {
   let isUserScrolling = false
 
   const handleWheel = (e: WheelEvent) => {
-    // Ne pas intercepter si l'utilisateur scroll dans un élément spécifique (input, textarea, etc.)
     const target = e.target as HTMLElement
+    
+    // Ne JAMAIS intercepter si on est dans le header ou un élément fixed/sticky
+    const header = document.querySelector('header')
+    const isInHeader = header && (header.contains(target) || target.closest('header'))
+    
+    // Ne pas intercepter si l'utilisateur scroll dans un élément spécifique
     if (
       target.tagName === 'INPUT' ||
       target.tagName === 'TEXTAREA' ||
       target.closest('[data-no-smooth-scroll]') ||
-      target.closest('header') ||
+      isInHeader ||
       target.closest('[role="dialog"]') ||
-      target.closest('[data-modal]')
+      target.closest('[data-modal]') ||
+      target.closest('[style*="position: fixed"]') ||
+      target.closest('[style*="position: sticky"]')
     ) {
-      return
+      return // Laisser le scroll natif fonctionner
     }
 
     // Ne pas intercepter si on est déjà en haut ou en bas
@@ -47,6 +55,11 @@ export function initProfessionalScroll() {
     const maxScroll = document.documentElement.scrollHeight - window.innerHeight
     
     if ((currentPos <= 0 && e.deltaY < 0) || (currentPos >= maxScroll && e.deltaY > 0)) {
+      return
+    }
+
+    // Ne pas intercepter si on scroll très près du header (premiers 100px)
+    if (currentPos < 100) {
       return
     }
 
@@ -110,15 +123,27 @@ export function initProfessionalScroll() {
   // Mettre à jour la position de scroll actuelle lors du scroll natif
   const handleScroll = () => {
     // Ne synchroniser que si le scroll n'est pas initié par notre système
+    // Et seulement si on n'est pas dans le header
+    const scrollY = window.pageYOffset || document.documentElement.scrollTop
+    
+    // Si on scroll dans les premiers 100px (zone du header), laisser le scroll natif
+    if (scrollY < 100) {
+      currentScroll = scrollY
+      targetScroll = scrollY
+      isScrolling = false
+      isUserScrolling = false
+      return
+    }
+    
     if (!isScrolling && !isUserScrolling) {
-      currentScroll = window.pageYOffset || document.documentElement.scrollTop
-      targetScroll = currentScroll
+      currentScroll = scrollY
+      targetScroll = scrollY
     }
     isUserScrolling = false
   }
 
-  // Ajouter les event listeners
-  window.addEventListener('wheel', handleWheel, { passive: false })
+  // Ajouter les event listeners avec capture pour détecter les événements dans le header
+  window.addEventListener('wheel', handleWheel, { passive: false, capture: true })
   window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('touchmove', handleScroll, { passive: true })
 

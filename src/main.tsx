@@ -11,7 +11,7 @@ import { initProfessionalScroll } from './utils/professionalScroll'
 // Initialiser le smooth scroll
 initSmoothScroll()
 
-// Initialiser le scroll professionnel avec effet lent
+// Initialiser le scroll professionnel (compatible avec navbar)
 initProfessionalScroll()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

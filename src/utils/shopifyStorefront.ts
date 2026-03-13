@@ -59,15 +59,15 @@ function mapShopifyProductToLocal(node: {
   tags: string[]
   featuredImage?: { url: string; altText?: string | null } | null
   images?: { edges: { node: { url: string; altText?: string | null } }[] }
-  priceRange: { minVariantPrice: { amount: string; currencyCode: string } }
+  priceRange?: { minVariantPrice?: { amount?: string; currencyCode?: string } }
   variants?: {
     edges: {
       node: {
         id: string
         title: string
-        price: { amount: string; currencyCode: string }
-        availableForSale: boolean
-        selectedOptions: { name: string; value: string }[]
+        price?: { amount?: string; currencyCode?: string }
+        availableForSale?: boolean
+        selectedOptions?: { name: string; value: string }[]
         image?: { url: string } | null
       }
     }[]
@@ -108,19 +108,33 @@ function mapShopifyProductToLocal(node: {
     rawDescription.split('\n').find((line) => line.trim().length > 0)?.trim() ||
     'Premium detailing product by Fireball Canada.'
 
-  const price = Number.parseFloat(node.priceRange.minVariantPrice.amount)
+  // Vérifier que priceRange existe avant d'accéder à amount
+  const minPriceAmount = node.priceRange?.minVariantPrice?.amount || '0'
+  const price = Number.parseFloat(minPriceAmount)
   const firstVariantId = node.variants?.edges?.[0]?.node?.id
 
   // Mapper les variantes
   const variants: ProductVariant[] =
-    node.variants?.edges.map((edge) => ({
-      id: edge.node.id,
-      title: edge.node.title,
-      price: Number.parseFloat(edge.node.price.amount),
-      availableForSale: edge.node.availableForSale,
-      selectedOptions: edge.node.selectedOptions || [],
-      image: edge.node.image?.url,
-    })) || []
+    node.variants?.edges
+      .map((edge) => {
+        // Vérifier que price existe avant d'accéder à amount
+        const variantPriceAmount = edge.node.price?.amount
+        const fallbackPriceAmount = node.priceRange?.minVariantPrice?.amount || minPriceAmount
+        
+        const variantPrice = variantPriceAmount 
+          ? Number.parseFloat(variantPriceAmount)
+          : Number.parseFloat(fallbackPriceAmount)
+        
+        return {
+          id: edge.node.id,
+          title: edge.node.title,
+          price: Number.isFinite(variantPrice) ? variantPrice : price,
+          availableForSale: edge.node.availableForSale ?? true,
+          selectedOptions: edge.node.selectedOptions || [],
+          image: edge.node.image?.url,
+        }
+      })
+      .filter((v) => v.price > 0) || []
 
   // Récupérer la vidéo si disponible
   let videoUrl: string | undefined
