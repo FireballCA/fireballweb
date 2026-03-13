@@ -360,13 +360,13 @@ export function Product() {
 
             {/* Availability */}
             {currentVariant && !currentVariant.availableForSale && (
-              <p className="text-amber-300 text-sm">Ce produit n'est actuellement pas disponible</p>
+              <p className="text-amber-300 text-sm">{t('product.unavailable')}</p>
             )}
 
             {/* Quantity Selector */}
             <div className="flex items-center gap-4 pt-4">
               <label className="text-sm font-medium text-silver/90 uppercase tracking-wide">
-                Quantité
+                {t('product.quantity')}
               </label>
               <div className="flex border border-carbon-700">
                 <button
@@ -403,7 +403,7 @@ export function Product() {
                       : 'bg-chrome text-carbon-950 hover:bg-chrome/90 active:scale-[0.98]'
                 }`}
               >
-                {added ? '✓ Ajouté au panier' : 'Ajouter au panier'}
+                {added ? `✓ ${t('product.addedToCart')}` : t('product.addToCart')}
               </button>
 
               <button
@@ -424,15 +424,15 @@ export function Product() {
             <div className="pt-6 space-y-2 text-sm text-silver/70">
               <div className="flex items-center gap-2">
                 <span className="text-chrome">✓</span>
-                <span>Livraison rapide</span>
+                <span>{t('product.trustFastShipping')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-chrome">✓</span>
-                <span>Qualité professionnelle</span>
+                <span>{t('product.trustProfessional')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-chrome">✓</span>
-                <span>Recommandé par les détaillants</span>
+                <span>{t('product.trustTrusted')}</span>
               </div>
             </div>
           </div>
@@ -449,8 +449,8 @@ export function Product() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </div>
-              <h3 className="font-medium text-pearl">Technologie céramique professionnelle</h3>
-              <p className="text-sm text-silver/70">Formule avancée pour une protection durable</p>
+              <h3 className="font-medium text-pearl">{t('product.highlight1Title')}</h3>
+              <p className="text-sm text-silver/70">{t('product.highlight1Desc')}</p>
             </div>
 
             <div className="text-center space-y-3">
@@ -459,8 +459,8 @@ export function Product() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="font-medium text-pearl">Protection longue durée</h3>
-              <p className="text-sm text-silver/70">Résistance exceptionnelle dans le temps</p>
+              <h3 className="font-medium text-pearl">{t('product.highlight2Title')}</h3>
+              <p className="text-sm text-silver/70">{t('product.highlight2Desc')}</p>
             </div>
 
             <div className="text-center space-y-3">
@@ -470,8 +470,8 @@ export function Product() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="font-medium text-pearl">Application facile</h3>
-              <p className="text-sm text-silver/70">Processus simple et efficace</p>
+              <h3 className="font-medium text-pearl">{t('product.highlight3Title')}</h3>
+              <p className="text-sm text-silver/70">{t('product.highlight3Desc')}</p>
             </div>
 
             <div className="text-center space-y-3">
@@ -480,8 +480,8 @@ export function Product() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
-              <h3 className="font-medium text-pearl">Pour professionnels</h3>
-              <p className="text-sm text-silver/70">Conçu pour les détaillants experts</p>
+              <h3 className="font-medium text-pearl">{t('product.highlight4Title')}</h3>
+              <p className="text-sm text-silver/70">{t('product.highlight4Desc')}</p>
             </div>
           </div>
         </div>
@@ -500,16 +500,13 @@ export function Product() {
             </div>
             <div className="space-y-6">
               <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight">
-                L'excellence dans chaque détail
+                {t('product.storyTitle')}
               </h2>
               <p className="text-lg text-silver/80 leading-relaxed">
                 {product.description}
               </p>
               <p className="text-silver/70 leading-relaxed">
-                Chaque produit Fireball est conçu avec une attention méticuleuse aux détails, 
-                combinant une technologie de pointe avec une expertise artisanale. 
-                Notre engagement envers la qualité professionnelle garantit des résultats 
-                exceptionnels pour les passionnés de detailing automobile.
+                {t('product.storyText')}
               </p>
             </div>
           </div>
@@ -520,16 +517,16 @@ export function Product() {
       <section className="border-t border-carbon-800 py-20 bg-carbon-900/30">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight text-center mb-16">
-            Comment utiliser
+            {t('product.howToTitle')}
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center space-y-4">
               <div className="w-20 h-20 mx-auto bg-chrome/10 rounded-full flex items-center justify-center border-2 border-chrome/30">
                 <span className="text-3xl font-display text-chrome">1</span>
               </div>
-              <h3 className="font-medium text-pearl text-lg">Préparer la surface</h3>
+              <h3 className="font-medium text-pearl text-lg">{t('product.step1Title')}</h3>
               <p className="text-sm text-silver/70">
-                Nettoyez et dégraissez soigneusement la surface pour une adhérence optimale.
+                {t('product.step1Desc')}
               </p>
             </div>
 
@@ -537,9 +534,9 @@ export function Product() {
               <div className="w-20 h-20 mx-auto bg-chrome/10 rounded-full flex items-center justify-center border-2 border-chrome/30">
                 <span className="text-3xl font-display text-chrome">2</span>
               </div>
-              <h3 className="font-medium text-pearl text-lg">Appliquer le revêtement</h3>
+              <h3 className="font-medium text-pearl text-lg">{t('product.step2Title')}</h3>
               <p className="text-sm text-silver/70">
-                Appliquez uniformément avec un applicateur microfibre en couches fines.
+                {t('product.step2Desc')}
               </p>
             </div>
 
@@ -547,9 +544,9 @@ export function Product() {
               <div className="w-20 h-20 mx-auto bg-chrome/10 rounded-full flex items-center justify-center border-2 border-chrome/30">
                 <span className="text-3xl font-display text-chrome">3</span>
               </div>
-              <h3 className="font-medium text-pearl text-lg">Polir et finir</h3>
+              <h3 className="font-medium text-pearl text-lg">{t('product.step3Title')}</h3>
               <p className="text-sm text-silver/70">
-                Lissez délicatement pour éliminer les excès et obtenir une finition parfaite.
+                {t('product.step3Desc')}
               </p>
             </div>
 
@@ -557,9 +554,9 @@ export function Product() {
               <div className="w-20 h-20 mx-auto bg-chrome/10 rounded-full flex items-center justify-center border-2 border-chrome/30">
                 <span className="text-3xl font-display text-chrome">4</span>
               </div>
-              <h3 className="font-medium text-pearl text-lg">Profiter de la protection</h3>
+              <h3 className="font-medium text-pearl text-lg">{t('product.step4Title')}</h3>
               <p className="text-sm text-silver/70">
-                Profitez d'une protection durable et d'une brillance exceptionnelle.
+                {t('product.step4Desc')}
               </p>
             </div>
           </div>
@@ -570,25 +567,25 @@ export function Product() {
       <section className="border-t border-carbon-800 py-20">
         <div className="max-w-4xl mx-auto px-6">
           <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight text-center mb-12">
-            Détails techniques
+            {t('product.technicalTitle')}
           </h2>
           <div className="space-y-2">
             {[
-              { title: 'Spécifications', content: 'Dureté 9H, résistance UV, protection hydrophobe avancée' },
-              { title: 'Compatibilité', content: 'Compatible avec toutes les surfaces peintes et revêtements existants' },
-              { title: 'Conditions d\'application', content: 'Température ambiante entre 15°C et 30°C, surface sèche et propre' },
-              { title: 'Contenu de la boîte', content: 'Flacon de revêtement, applicateur microfibre, gants, instructions' },
+              { titleKey: 'product.specsTitle', contentKey: 'product.specsContent' },
+              { titleKey: 'product.compatibilityTitle', contentKey: 'product.compatibilityContent' },
+              { titleKey: 'product.conditionsTitle', contentKey: 'product.conditionsContent' },
+              { titleKey: 'product.includesTitle', contentKey: 'product.includesContent' },
             ].map((item) => (
-              <div key={item.title} className="border-b border-carbon-800">
+              <div key={item.titleKey} className="border-b border-carbon-800">
                 <button
                   type="button"
-                  onClick={() => setExpandedAccordion(expandedAccordion === item.title ? null : item.title)}
+                  onClick={() => setExpandedAccordion(expandedAccordion === item.titleKey ? null : item.titleKey)}
                   className="w-full py-5 flex items-center justify-between text-left hover:text-chrome transition-colors"
                 >
-                  <span className="font-medium text-pearl text-lg">{item.title}</span>
+                  <span className="font-medium text-pearl text-lg">{t(item.titleKey)}</span>
                   <svg
                     className={`w-5 h-5 text-silver transition-transform ${
-                      expandedAccordion === item.title ? 'rotate-180' : ''
+                      expandedAccordion === item.titleKey ? 'rotate-180' : ''
                     }`}
                     fill="none"
                     viewBox="0 0 24 24"
@@ -597,9 +594,9 @@ export function Product() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                {expandedAccordion === item.title && (
+                {expandedAccordion === item.titleKey && (
                   <div className="pb-5 text-silver/80">
-                    {item.content}
+                    {t(item.contentKey)}
                   </div>
                 )}
               </div>
@@ -612,7 +609,7 @@ export function Product() {
       <section className="border-t border-carbon-800 py-20 bg-carbon-900/30">
         <div className="max-w-4xl mx-auto px-6">
           <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight text-center mb-12">
-            Avis clients
+            {t('product.reviewsTitle')}
           </h2>
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-2">
@@ -625,7 +622,7 @@ export function Product() {
               </div>
               <span className="text-2xl font-light text-pearl ml-2">4.8</span>
             </div>
-            <p className="text-silver/70 text-sm">Basé sur 127 avis vérifiés</p>
+            <p className="text-silver/70 text-sm">{t('product.reviewsBased')}</p>
           </div>
 
           <div className="space-y-6">
@@ -634,19 +631,19 @@ export function Product() {
                 name: 'Marc D.',
                 verified: true,
                 rating: 5,
-                text: 'Produit exceptionnel ! Application facile et résultat impeccable. La protection dure vraiment dans le temps.',
+                text: 'Exceptional product! Easy application and impeccable results. The protection really lasts over time.',
               },
               {
                 name: 'Sophie L.',
                 verified: true,
                 rating: 5,
-                text: 'Qualité professionnelle au rendez-vous. Je recommande vivement pour tous les passionnés de detailing.',
+                text: 'Professional quality delivered. I highly recommend for all detailing enthusiasts.',
               },
               {
                 name: 'Thomas R.',
                 verified: true,
                 rating: 5,
-                text: 'Le meilleur revêtement que j\'ai utilisé. Brillance incroyable et protection durable.',
+                text: 'The best coating I\'ve used. Incredible shine and durable protection.',
               },
             ].map((review, i) => (
               <div key={i} className="bg-carbon-900/50 p-6 rounded-lg border border-carbon-800">
@@ -656,7 +653,7 @@ export function Product() {
                       <span className="font-medium text-pearl">{review.name}</span>
                       {review.verified && (
                         <span className="text-xs bg-chrome/20 text-chrome px-2 py-0.5 rounded">
-                          ✓ Achat vérifié
+                          ✓ {t('product.reviewVerified')}
                         </span>
                       )}
                     </div>
@@ -681,9 +678,9 @@ export function Product() {
         <section className="border-t border-carbon-800 py-20">
           <div className="max-w-7xl mx-auto px-6">
             <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight mb-4">
-              Complétez votre installation
+              {t('product.relatedTitle')}
             </h2>
-            <p className="text-silver/70 mb-12">Produits recommandés pour une finition complète</p>
+            <p className="text-silver/70 mb-12">{t('product.relatedDesc')}</p>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedProducts.map((relatedProduct) => (
                 <Link
@@ -723,10 +720,10 @@ export function Product() {
           <div className="text-center space-y-8">
             <div>
               <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight mb-4">
-                Fireball Professional Grade
+                {t('product.trustTitle')}
               </h2>
               <p className="text-xl text-silver/80 max-w-2xl mx-auto">
-                Fiable par les professionnels du detailing dans le monde entier
+                {t('product.trustSubtitle')}
               </p>
             </div>
 
@@ -737,8 +734,8 @@ export function Product() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="font-medium text-pearl">Formule professionnelle</h3>
-                <p className="text-sm text-silver/70">Technologie de pointe testée en conditions réelles</p>
+                <h3 className="font-medium text-pearl">{t('product.trust1Title')}</h3>
+                <p className="text-sm text-silver/70">{t('product.trust1Desc')}</p>
               </div>
 
               <div className="space-y-3">
@@ -747,8 +744,8 @@ export function Product() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
                 </div>
-                <h3 className="font-medium text-pearl">Technologie coréenne premium</h3>
-                <p className="text-sm text-silver/70">Innovation et qualité au service de l'excellence</p>
+                <h3 className="font-medium text-pearl">{t('product.trust2Title')}</h3>
+                <p className="text-sm text-silver/70">{t('product.trust2Desc')}</p>
               </div>
 
               <div className="space-y-3">
@@ -757,8 +754,8 @@ export function Product() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                 </div>
-                <h3 className="font-medium text-pearl">Utilisé par des installateurs certifiés</h3>
-                <p className="text-sm text-silver/70">Reconnu et approuvé par les experts du secteur</p>
+                <h3 className="font-medium text-pearl">{t('product.trust3Title')}</h3>
+                <p className="text-sm text-silver/70">{t('product.trust3Desc')}</p>
               </div>
             </div>
           </div>
@@ -769,7 +766,7 @@ export function Product() {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-carbon-900 border-t border-carbon-800 p-4 z-50">
         <div className="max-w-7xl mx-auto flex gap-3">
           <div className="flex-1">
-            <p className="text-xs text-silver/60 mb-1">Total</p>
+            <p className="text-xs text-silver/60 mb-1">{t('cart.total')}</p>
             <p className="text-xl font-medium text-chrome">{(displayPrice * quantity).toFixed(2)} €</p>
           </div>
           <button
@@ -782,7 +779,7 @@ export function Product() {
                 : 'bg-chrome text-carbon-950 hover:bg-chrome/90 active:scale-[0.98]'
             }`}
           >
-            Ajouter
+            {t('product.addToCart')}
           </button>
         </div>
       </div>
