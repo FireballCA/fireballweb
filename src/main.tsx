@@ -6,13 +6,13 @@ import App from './App'
 import './index.css'
 import './styles/business.css'
 import { initSmoothScroll } from './utils/smoothScroll'
-import { initProfessionalScroll } from './utils/professionalScroll'
 
-// Initialiser le smooth scroll
+// Initialiser le smooth scroll (scroll-behavior: smooth CSS uniquement)
 initSmoothScroll()
 
-// Initialiser le scroll professionnel (compatible avec navbar)
-initProfessionalScroll()
+// Scroll professionnel désactivé - cause des problèmes avec la navbar
+// import { initProfessionalScroll } from './utils/professionalScroll'
+// initProfessionalScroll()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
