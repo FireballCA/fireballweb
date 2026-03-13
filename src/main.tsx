@@ -6,9 +6,13 @@ import App from './App'
 import './index.css'
 import './styles/business.css'
 import { initSmoothScroll } from './utils/smoothScroll'
+import { initProfessionalScroll } from './utils/professionalScroll'
 
 // Initialiser le smooth scroll
 initSmoothScroll()
+
+// Initialiser le scroll professionnel avec effet lent
+initProfessionalScroll()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -15,10 +15,31 @@
   html {
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
+    /* Optimisation pour le scroll fluide */
+    overflow-x: hidden;
+    overflow-y: auto;
   }
   body {
     @apply bg-carbon-950 text-pearl font-sans antialiased;
     scroll-behavior: smooth;
+    /* Améliorer les performances de scroll */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Réduire le lag de scroll */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+  
+  /* Optimisation pour les éléments avec parallaxe */
+  [data-parallax] {
+    will-change: transform;
+    transform: translateZ(0);
+  }
+  
+  /* Optimisation pour les animations au scroll */
+  [data-scroll-reveal] {
+    will-change: transform, opacity;
   }
 
   /* Remove default bright focus outline on all form fields */
