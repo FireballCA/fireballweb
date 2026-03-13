@@ -14,9 +14,11 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
   body {
     @apply bg-carbon-950 text-pearl font-sans antialiased;
+    scroll-behavior: smooth;
   }
 
   /* Remove default bright focus outline on all form fields */
