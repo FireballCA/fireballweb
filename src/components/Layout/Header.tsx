@@ -109,7 +109,7 @@ export function Header() {
   const isDashboardPage = location.pathname === '/account/dashboard' || location.pathname === '/dashboard'
   const isProductPage = location.pathname.startsWith('/produit')
   const [isHeaderVisible, setIsHeaderVisible] = useState(true)
-  const [lastScrollY, setLastScrollY] = useState(0)
+  const lastScrollYRef = useRef(0)
 
   useEffect(() => {
     const onScroll = () => {
@@ -120,6 +120,7 @@ export function Header() {
 
       // Sur la page produit, cacher/afficher la navbar selon la direction du scroll
       if (isProductPage) {
+        const lastScrollY = lastScrollYRef.current
         if (scrollY < 100) {
           // Toujours visible en haut de page
           setIsHeaderVisible(true)
@@ -131,7 +132,7 @@ export function Header() {
             setIsHeaderVisible(true)
           }
         }
-        setLastScrollY(scrollY)
+        lastScrollYRef.current = scrollY
       } else {
         setIsHeaderVisible(true)
       }
@@ -139,7 +140,7 @@ export function Header() {
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [isProductPage, lastScrollY])
+  }, [isProductPage])
 
   useEffect(() => {
     const onClickOutside = (event: MouseEvent) => {
