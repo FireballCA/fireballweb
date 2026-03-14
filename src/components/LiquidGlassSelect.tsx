@@ -55,18 +55,18 @@ export function LiquidGlassSelect({
 
   return (
     <div className="relative" ref={selectRef}>
-      <label className="block text-white/80 text-sm mb-2 font-medium">{label}</label>
+      {label && <label className="block text-white/80 text-sm mb-2 font-medium">{label}</label>}
       <div className="relative">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full rounded-xl px-4 py-3 text-left text-white focus:outline-none transition-all flex items-center justify-between bg-white/[0.06] border border-white/15 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22)]"
+          className="w-full rounded-2xl px-4 py-2.5 text-left text-white focus:outline-none transition-colors flex items-center justify-between bg-white/[0.06] border border-white/15 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] h-[42px]"
         >
           <span className={selectedOption?.bold ? 'font-bold' : ''}>
             {selectedOption ? selectedOption.label : placeholder}
           </span>
           <svg
-            className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 ml-3 transition-transform ${isOpen ? 'rotate-180' : ''}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

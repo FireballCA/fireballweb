@@ -23,8 +23,10 @@ export function Product() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [relatedProducts, setRelatedProducts] = useState<LocalProduct[]>([])
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
+  const [showDescriptionModal, setShowDescriptionModal] = useState(false)
   const [showStickyBar, setShowStickyBar] = useState(false)
   const [navbarWidth, setNavbarWidth] = useState(0)
+  const [shippingProgressAnimated, setShippingProgressAnimated] = useState(false)
   const galleryRef = useRef<HTMLDivElement>(null)
   const ctaButtonsRef = useRef<HTMLDivElement>(null)
   const navbarRef = useRef<HTMLDivElement>(null)
@@ -90,6 +92,19 @@ export function Product() {
     }
   }, [slug])
 
+  // Animation de la barre de progression au chargement
+  useEffect(() => {
+    if (product) {
+      setShippingProgressAnimated(false)
+      // Réinitialiser puis animer après un court délai
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          setShippingProgressAnimated(true)
+        }, 150)
+      })
+    }
+  }, [product])
+
   // Mesurer la largeur de la navbar (du logo au panier)
   useEffect(() => {
     const measureNavbar = () => {
@@ -132,7 +147,22 @@ export function Product() {
       }
       
       const ctaRect = ctaButtonsRef.current.getBoundingClientRect()
-      const shouldShow = ctaRect.bottom < 0
+      const shouldShowFromCTA = ctaRect.bottom < 0
+      
+      // Vérifier si on est dans le footer
+      const footer = document.querySelector('footer')
+      let shouldShow = shouldShowFromCTA
+      
+      if (footer && shouldShowFromCTA) {
+        const footerRect = footer.getBoundingClientRect()
+        const viewportHeight = window.innerHeight
+        const menuBottom = viewportHeight - 24 - 64 // bottom-6 (24px) + hauteur du menu (64px environ)
+        
+        // Si le footer commence avant la position du menu flottant, cacher le menu
+        if (footerRect.top < menuBottom) {
+          shouldShow = false
+        }
+      }
       
       // Utiliser un timeout pour éviter le flash de décentrage
       if (timeoutId) {
@@ -163,12 +193,14 @@ export function Product() {
   })
 
   const displayPrice = currentVariant?.price ?? product?.price ?? 0
-  const displayImage = currentVariant?.image || product?.images?.[selectedImageIndex] || product?.image
+  // Construire la liste de toutes les images disponibles
   const allImages = product?.images && product.images.length > 0 
     ? product.images 
     : product?.image 
       ? [product.image] 
       : []
+  // Toujours utiliser l'image sélectionnée par l'utilisateur via selectedImageIndex
+  const displayImage = allImages[selectedImageIndex] || allImages[0] || product?.image
 
   // Extraire les options de couleur et taille
   const colorOptions = product?.options?.find(opt => 
@@ -212,7 +244,7 @@ export function Product() {
     }
     addToCart(productToAdd, quantity)
     setAdded(true)
-    setTimeout(() => setAdded(false), 2000)
+    setTimeout(() => setAdded(false), 3000)
   }
 
   const handleBuyNow = () => {
@@ -244,9 +276,12 @@ export function Product() {
     
     if (matchingVariant) {
       setSelectedVariant(matchingVariant.id)
-      if (matchingVariant.image && product.images) {
+      // Ne changer l'image que si l'utilisateur n'a pas sélectionné manuellement une image
+      // et que la variante a une image différente
+      if (matchingVariant.image && product.images && product.images.length > 0) {
         const imageIndex = product.images.findIndex((img) => img === matchingVariant.image)
-        if (imageIndex >= 0) {
+        if (imageIndex >= 0 && imageIndex !== selectedImageIndex) {
+          // Seulement changer si c'est une image différente
           setSelectedImageIndex(imageIndex)
         }
       }
@@ -300,10 +335,10 @@ export function Product() {
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-16">
           {/* Left: Image Gallery - Sticky */}
           <div className="lg:sticky lg:top-20 lg:self-start space-y-4">
-            {/* Main Image */}
+            {/* Main Image - Légèrement réduite */}
             <div
               ref={galleryRef}
-              className="relative aspect-square bg-carbon-50 rounded-lg overflow-hidden group"
+              className="relative aspect-square bg-carbon-50 rounded-lg overflow-hidden group max-w-[90%] mx-auto"
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
@@ -319,9 +354,10 @@ export function Product() {
                 />
               ) : (
                 <img
+                  key={selectedImageIndex}
                   src={displayImage}
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-opacity duration-300"
                 />
               )}
               
@@ -416,63 +452,90 @@ export function Product() {
           <div className="space-y-6">
             {/* Product Title */}
             {product.badge && (
-              <span className="inline-block text-xs font-semibold text-chrome uppercase tracking-wide">
+              <span className="inline-block text-xs font-semibold text-chrome uppercase tracking-wide mb-2">
                 {product.badge}
               </span>
             )}
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-carbon-900 mb-2">
+            <div className="mb-3">
+              <h1 className="text-3xl md:text-4xl font-bold text-carbon-900 mb-3">
                 {product.name}
               </h1>
-              <p className="text-lg text-carbon-600">{product.shortDesc}</p>
+              
+              {/* Reviews - Style comme les cards produits */}
+              {(product.rating !== undefined || product.reviewCount !== undefined) && (
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-0.5">
+                    {[...Array(5)].map((_, i) => {
+                      const rating = product.rating || 0
+                      return (
+                        <svg 
+                          key={i} 
+                          className={`w-4 h-4 ${
+                            i < Math.floor(rating)
+                              ? 'text-yellow-400'
+                              : i < rating
+                              ? 'text-yellow-400/50'
+                              : 'text-carbon-600'
+                          }`}
+                          fill="currentColor" 
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      )
+                    })}
+                  </div>
+                  {product.reviewCount !== undefined && (
+                    <span className="text-xs font-bold text-carbon-900 underline">
+                      {product.reviewCount} {product.reviewCount === 1 ? 'Review' : 'Reviews'}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Price */}
-            <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-bold text-carbon-900">
-                {displayPrice.toFixed(2)} €
+            <div className="flex flex-col gap-2 mb-6">
+              <span className="text-base font-bold text-carbon-900">
+                {displayPrice.toFixed(2)} $CA
               </span>
-            </div>
-
-            {/* Reviews */}
-            <div className="flex items-center gap-2">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <svg key={i} className="w-5 h-5 text-chrome" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-              </div>
-              <span className="text-sm text-carbon-600">4.8</span>
-              <span className="text-sm text-carbon-500">(289 {t('product.reviewsBased')})</span>
-            </div>
-
-            {/* Description - Collapsible */}
-            <div className="border-t border-carbon-200 pt-6">
-              <button
-                type="button"
-                onClick={() => setDescriptionExpanded(!descriptionExpanded)}
-                className="w-full flex items-center justify-between text-left group"
-              >
-                <span className="text-sm font-semibold text-carbon-900 flex items-center gap-2">
-                  <svg
-                    className={`w-4 h-4 text-carbon-600 transition-transform ${descriptionExpanded ? 'rotate-90' : ''}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+              
+              {/* Free Shipping Progress */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-carbon-600">
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="20" 
+                    height="20" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    className="text-[#B61B1B]"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
+                    <path d="M15 18H9"/>
+                    <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/>
+                    <circle cx="17" cy="18" r="2"/>
+                    <circle cx="7" cy="18" r="2"/>
                   </svg>
-                  Description
-                </span>
-              </button>
-              <div
-                className={`overflow-hidden transition-all duration-300 ${
-                  descriptionExpanded ? 'max-h-[1000px] opacity-100 mt-4' : 'max-h-0 opacity-0'
-                }`}
-              >
-                <div className="prose prose-sm max-w-none">
-                  <p className="text-carbon-700 leading-relaxed whitespace-pre-line">{product.description}</p>
+                  <span>
+                    {displayPrice >= 50 
+                      ? "You're eligible for free shipping!" 
+                      : `Add ${(50 - displayPrice).toFixed(2)} $CA for free shipping`}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-white border border-carbon-200 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full bg-[#B61B1B] rounded-full transition-all duration-1000 ease-out ${
+                      shippingProgressAnimated ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    style={{
+                      width: shippingProgressAnimated ? `${Math.min((displayPrice / 50) * 100, 100)}%` : '0%'
+                    }}
+                  />
                 </div>
               </div>
             </div>
@@ -518,7 +581,7 @@ export function Product() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium text-carbon-900">
-                    {t('product.quantity')}: {selectedSize || sizeOptions[0]}
+                    Size: {selectedSize || sizeOptions[0]}
                   </label>
                   <button type="button" className="text-sm text-carbon-600 hover:text-carbon-900 underline">
                     View Size Chart
@@ -542,12 +605,12 @@ export function Product() {
                           size
                         )}
                         disabled={!isAvailable}
-                        className={`px-4 py-2 text-sm font-medium border-2 rounded transition-all ${
+                        className={`px-4 py-2 text-sm font-medium border-2 rounded-full transition-all ${
                           isSelected
                             ? 'border-carbon-900 bg-carbon-900 text-white'
                             : isAvailable
                               ? 'border-carbon-300 text-carbon-900 hover:border-carbon-400'
-                              : 'border-carbon-200 text-carbon-400 cursor-not-allowed'
+                              : 'border-carbon-200 text-carbon-900 opacity-50 cursor-not-allowed'
                         }`}
                       >
                         {size}
@@ -564,11 +627,11 @@ export function Product() {
                 {t('product.quantity')}
               </label>
               <div className="flex items-center gap-3">
-                <div className="flex border border-carbon-300 rounded-lg">
+                <div className="flex border border-carbon-300 rounded-full">
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="w-10 h-10 flex items-center justify-center text-carbon-600 hover:text-carbon-900 hover:bg-carbon-50 transition-colors"
+                    className="w-10 h-10 flex items-center justify-center text-carbon-600 hover:text-carbon-900 hover:bg-carbon-50 transition-colors rounded-l-full"
                   >
                     −
                   </button>
@@ -578,7 +641,7 @@ export function Product() {
                   <button
                     type="button"
                     onClick={() => setQuantity((q) => q + 1)}
-                    className="w-10 h-10 flex items-center justify-center text-carbon-600 hover:text-carbon-900 hover:bg-carbon-50 transition-colors"
+                    className="w-10 h-10 flex items-center justify-center text-carbon-600 hover:text-carbon-900 hover:bg-carbon-50 transition-colors rounded-r-full"
                   >
                     +
                   </button>
@@ -591,35 +654,65 @@ export function Product() {
               <p className="text-sm text-amber-600">{t('product.unavailable')}</p>
             )}
 
-            {/* CTAs */}
-            <div ref={ctaButtonsRef} className="flex gap-3 pt-4">
+            {/* CTAs - Empilés verticalement */}
+            <div ref={ctaButtonsRef} className="flex flex-col gap-3 pt-4 mb-6">
+              {/* Add to Cart - Rouge */}
               <button
                 type="button"
                 onClick={handleAddToCart}
                 disabled={currentVariant && !currentVariant.availableForSale}
-                className={`flex-1 py-4 px-6 rounded-lg font-medium text-white transition-all ${
-                  added
-                    ? 'bg-carbon-600'
-                    : currentVariant && !currentVariant.availableForSale
-                      ? 'bg-carbon-300 cursor-not-allowed'
-                      : 'bg-carbon-900 hover:bg-carbon-800 active:scale-[0.98]'
-                }`}
+                className="w-full py-4 px-6 rounded-full font-medium text-white transition-all duration-300 overflow-hidden relative"
+                style={{
+                  backgroundColor: currentVariant && !currentVariant.availableForSale
+                    ? undefined
+                    : '#B61B1B'
+                }}
               >
-                {added ? `✓ ${t('product.addedToCart')}` : t('product.addToCart')}
+                <span className={`block transition-all duration-300 ${
+                  added 
+                    ? '-translate-y-full opacity-0' 
+                    : 'translate-y-0 opacity-100'
+                }`}>
+                  {t('product.addToCart')}
+                </span>
+                <span className={`block absolute inset-0 flex items-center justify-center transition-all duration-300 ${
+                  added 
+                    ? 'translate-y-0 opacity-100' 
+                    : 'translate-y-full opacity-0'
+                }`}>
+                  {t('product.addedToCart')}
+                </span>
               </button>
+              {/* Buy Now - Fond noir */}
               <button
                 type="button"
                 onClick={handleBuyNow}
                 disabled={currentVariant && !currentVariant.availableForSale}
-                className={`px-6 py-4 border-2 rounded-lg font-medium transition-all ${
+                className={`w-full py-4 px-6 rounded-full font-medium text-white transition-all ${
                   currentVariant && !currentVariant.availableForSale
-                    ? 'border-carbon-200 text-carbon-400 cursor-not-allowed'
-                    : 'border-carbon-900 text-carbon-900 hover:bg-carbon-50 active:scale-[0.98]'
+                    ? 'bg-carbon-300 cursor-not-allowed text-carbon-500'
+                    : 'bg-carbon-900 hover:bg-carbon-800 active:scale-[0.98]'
                 }`}
               >
                 {t('product.buyNow')}
               </button>
             </div>
+
+            {/* Description - Sous les boutons */}
+            {product.description && (
+              <div className="border-t border-carbon-200 pt-6">
+                <p className="text-sm text-carbon-600 line-clamp-3 mb-3">
+                  {product.description}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowDescriptionModal(true)}
+                  className="text-sm text-carbon-600 hover:text-carbon-900 underline"
+                >
+                  View description
+                </button>
+              </div>
+            )}
 
             {/* Trust Signals */}
             <div className="pt-6 border-t border-carbon-200 space-y-3">
@@ -722,27 +815,59 @@ export function Product() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl font-bold text-carbon-900 mb-4">{t('product.relatedTitle')}</h2>
             <p className="text-carbon-600 mb-8">{t('product.relatedDesc')}</p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedProducts.map((relatedProduct) => (
-                <Link
-                  key={relatedProduct.id}
-                  to={`/produit/${relatedProduct.slug}`}
-                  className="group"
-                >
-                  <div className="aspect-square bg-carbon-50 rounded-lg overflow-hidden mb-3">
-                    <img
-                      src={relatedProduct.image}
-                      alt={relatedProduct.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                  <h3 className="font-medium text-carbon-900 mb-1 group-hover:text-chrome transition-colors">
-                    {relatedProduct.name}
-                  </h3>
-                  <p className="text-sm text-carbon-600 mb-2">{relatedProduct.shortDesc}</p>
-                  <p className="text-chrome font-semibold">{relatedProduct.price.toFixed(2)} €</p>
-                </Link>
-              ))}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {relatedProducts.map((relatedProduct) => {
+                // Utiliser le rating réel du produit ou 0 par défaut
+                const rating = relatedProduct.rating || 0
+                return (
+                  <Link
+                    key={relatedProduct.id}
+                    to={`/produit/${relatedProduct.slug}`}
+                    className="group"
+                  >
+                    {/* Image réduite avec coins arrondis */}
+                    <div className="aspect-square bg-carbon-800 overflow-hidden rounded-lg mb-3">
+                      <img
+                        src={relatedProduct.image}
+                        alt={relatedProduct.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                    
+                    {/* Informations produit */}
+                    <div className="flex flex-col gap-1">
+                      <h3 className="text-carbon-900 text-sm font-bold truncate">
+                        {relatedProduct.name}
+                      </h3>
+                      
+                      {/* Étoiles */}
+                      <div className="flex items-center gap-0.5">
+                        {[...Array(5)].map((_, i) => (
+                          <svg
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < Math.floor(rating)
+                                ? 'text-yellow-400'
+                                : i < rating
+                                ? 'text-yellow-400/50'
+                                : 'text-carbon-600'
+                            }`}
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        ))}
+                      </div>
+                      
+                      {/* Prix */}
+                      <p className="text-carbon-900 text-sm font-bold">
+                        {relatedProduct.price.toFixed(2)} $CA
+                      </p>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
           </div>
         </section>
@@ -771,19 +896,57 @@ export function Product() {
               type="button"
               onClick={handleAddToCart}
               disabled={currentVariant && !currentVariant.availableForSale}
-              className={`px-6 py-2.5 rounded-full text-sm font-medium text-white transition-all whitespace-nowrap ${
+              className={`px-6 py-2.5 rounded-full text-sm font-medium text-white transition-all whitespace-nowrap hover:opacity-90 active:scale-[0.98] ${
                 added
                   ? 'bg-carbon-600'
                   : currentVariant && !currentVariant.availableForSale
                     ? 'bg-carbon-800 cursor-not-allowed text-carbon-500'
-                    : 'hover:opacity-90 active:scale-[0.98]'
+                    : ''
               }`}
               style={{ 
-                backgroundColor: currentVariant && currentVariant.availableForSale && !added ? '#B61B1B' : undefined
+                backgroundColor: added 
+                  ? undefined 
+                  : (currentVariant && !currentVariant.availableForSale 
+                    ? undefined 
+                    : '#B61B1B')
               }}
             >
               {added ? `✓ ${t('product.addedToCart')}` : t('product.purchase')}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Description Modal */}
+      {showDescriptionModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-end bg-black/50"
+          onClick={() => setShowDescriptionModal(false)}
+        >
+          <div 
+            className="bg-white h-full w-full max-w-md rounded-l-2xl shadow-xl overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header avec bouton X */}
+            <div className="flex items-center justify-between p-6 border-b border-carbon-200">
+              <h2 className="text-xl font-bold text-carbon-900">Description</h2>
+              <button
+                type="button"
+                onClick={() => setShowDescriptionModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-carbon-100 transition-colors"
+              >
+                <svg className="w-5 h-5 text-carbon-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Description content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <p className="text-sm text-carbon-700 leading-relaxed whitespace-pre-line">
+                {product.description}
+              </p>
+            </div>
           </div>
         </div>
       )}

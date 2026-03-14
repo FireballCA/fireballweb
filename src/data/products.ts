@@ -1,4 +1,15 @@
-export type CategoryId = 'classique' | 'pro' | 'revetements'
+export type CategoryId = 
+  | 'coatings' 
+  | 'sealants' 
+  | 'waxes' 
+  | 'dressings'
+  | 'washing'
+  | 'cleaners'
+  | 'towels'
+  | 'accessories'
+  | 'classique' 
+  | 'pro' 
+  | 'revetements'
 
 export interface ProductVariant {
   id: string
@@ -31,9 +42,24 @@ export interface Product {
   options?: { name: string; values: string[] }[]
   /** Vidéo produit optionnelle */
   video?: string
+  /** Note moyenne du produit (0-5) */
+  rating?: number
+  /** Nombre total d'avis */
+  reviewCount?: number
 }
 
 export const CATEGORIES: { id: CategoryId; name: string; description: string }[] = [
+  // Protection Systems
+  { id: 'coatings', name: 'Coatings', description: 'Ceramic coatings and high-performance protection systems' },
+  { id: 'sealants', name: 'Sealants', description: 'Advanced sealants for long-lasting protection' },
+  { id: 'waxes', name: 'Waxes', description: 'Premium waxes for deep shine and protection' },
+  { id: 'dressings', name: 'Dressings', description: 'Tire and trim dressings for complete finish' },
+  // Maintenance & Preparation
+  { id: 'washing', name: 'Washing', description: 'Professional washing products and solutions' },
+  { id: 'cleaners', name: 'Cleaners', description: 'Specialized cleaners for all surfaces' },
+  { id: 'towels', name: 'Towels', description: 'Premium microfiber towels and accessories' },
+  { id: 'accessories', name: 'Accessories', description: 'Tools and accessories for professional detailing' },
+  // Legacy categories (for backward compatibility)
   { id: 'classique', name: 'Classique', description: 'Soins et finitions pour l\'entretien quotidien' },
   { id: 'pro', name: 'Pro', description: 'Gammes professionnelles pour les experts' },
   { id: 'revetements', name: 'Revêtements', description: 'Protections céramiques et coatings haute performance' },

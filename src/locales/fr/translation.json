@@ -58,8 +58,10 @@
     "allProducts": "Tous les produits",
     "all": "Tous",
     "loading": "Chargement des produits en temps réel…",
-    "loadError": "Impossible de charger les produits en temps réel. Affichage des produits statiques.",
-    "addToCart": "Ajouter au panier"
+    "loadError": "Impossible de charger les produits en temps réel.",
+    "noProducts": "Aucun produit trouvé dans cette catégorie.",
+    "addToCart": "Ajouter au panier",
+    "selectCategory": "Veuillez sélectionner une catégorie dans le menu."
   },
   "product": {
     "loading": "Chargement du produit…",

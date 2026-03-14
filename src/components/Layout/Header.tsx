@@ -274,7 +274,7 @@ export function Header() {
                           <ul className="space-y-1.5">
                             <li>
                               <Link
-                                to="/boutique/revetements"
+                                to="/coatings"
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
@@ -284,7 +284,7 @@ export function Header() {
                             </li>
                             <li>
                               <Link
-                                to="/boutique"
+                                to="/sealants"
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
@@ -294,7 +294,7 @@ export function Header() {
                             </li>
                             <li>
                               <Link
-                                to="/boutique"
+                                to="/waxes"
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
@@ -304,7 +304,7 @@ export function Header() {
                             </li>
                             <li>
                               <Link
-                                to="/boutique"
+                                to="/dressings"
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
@@ -326,7 +326,7 @@ export function Header() {
                           <ul className="space-y-1.5">
                             <li>
                               <Link
-                                to="/boutique"
+                                to="/washing"
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
@@ -336,7 +336,7 @@ export function Header() {
                             </li>
                             <li>
                               <Link
-                                to="/boutique"
+                                to="/cleaners"
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
@@ -346,7 +346,7 @@ export function Header() {
                             </li>
                             <li>
                               <Link
-                                to="/boutique"
+                                to="/towels"
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
@@ -356,7 +356,7 @@ export function Header() {
                             </li>
                             <li>
                               <Link
-                                to="/boutique"
+                                to="/accessories"
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >

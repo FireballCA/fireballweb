@@ -38,6 +38,8 @@ function App() {
             <Route path="boutique" element={<Shop />} />
             <Route path="boutique/:categoryId" element={<Shop />} />
             <Route path="produit/:slug" element={<Product />} />
+            {/* Routes directes pour les catégories (doivent être après les routes spécifiques) */}
+            <Route path=":categoryId" element={<Shop />} />
             <Route path="about" element={<About />} />
             <Route path="panier" element={<Cart />} />
             <Route path="car-club" element={<CarClub />} />
