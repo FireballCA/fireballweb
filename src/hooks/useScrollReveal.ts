@@ -31,7 +31,11 @@ export function useScrollReveal(options: ScrollRevealOptions = {}) {
 
   useEffect(() => {
     const element = elementRef.current
-    if (!element || hasAnimated) return
+    if (!element || hasAnimated) {
+      return () => {
+        // Cleanup toujours retourné pour éviter l'erreur React #310
+      }
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {

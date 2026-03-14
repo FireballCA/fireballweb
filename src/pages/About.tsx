@@ -3,7 +3,11 @@ import { Link } from 'react-router-dom'
 
 export function About() {
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined') {
+      return () => {
+        // Cleanup toujours retourné pour éviter l'erreur React #310
+      }
+    }
 
     // Scroll reveal
     const reveals = document.querySelectorAll<HTMLElement>('.reveal')
