@@ -58,8 +58,10 @@
     "allProducts": "All products",
     "all": "All",
     "loading": "Loading products in real time…",
-    "loadError": "Unable to load products in real time. Showing static products.",
-    "addToCart": "Add to cart"
+    "loadError": "Unable to load products in real time.",
+    "noProducts": "No products found in this category.",
+    "addToCart": "Add to cart",
+    "selectCategory": "Please select a category from the menu."
   },
   "product": {
     "loading": "Loading product…",

@@ -41,6 +41,43 @@
     @apply outline-none focus:outline-none;
   }
 
+  /* Price slider styles - From Uiverse.io by Galahhad */
+  .level-price {
+    --slider-height: 6px;
+    --slider-bg: rgb(37, 37, 37);
+    --slider-border-radius: 999px;
+    --level-color: #fff;
+    --level-transition-duration: 0.1s;
+    
+    appearance: none;
+    -moz-appearance: none;
+    width: 100%;
+    height: var(--slider-height);
+    background: var(--slider-bg);
+    overflow: hidden;
+    border-radius: var(--slider-border-radius);
+    transition: height var(--level-transition-duration);
+    cursor: pointer;
+  }
+
+  .level-price::-webkit-slider-thumb {
+    appearance: none;
+    width: 0;
+    height: 0;
+    box-shadow: -200px 0 0 200px var(--level-color);
+  }
+
+  .level-price::-moz-range-thumb {
+    width: 0;
+    height: 0;
+    border: none;
+    box-shadow: -200px 0 0 200px var(--level-color);
+  }
+
+  .level-price:hover {
+    height: calc(var(--slider-height) * 2);
+  }
+
   /* Neutraliser le fond jaune/gris du remplissage automatique navigateur et garder les champs transparents */
   input:-webkit-autofill,
   textarea:-webkit-autofill,
