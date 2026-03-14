@@ -188,10 +188,19 @@ export function Product() {
 
   // Détecter quand on passe en dessous des boutons CTA pour afficher la barre sticky
   useEffect(() => {
-    if (!product) return
+    if (!product) {
+      setShowStickyBar(false)
+      return
+    }
+    
+    let timeoutId: NodeJS.Timeout | null = null
+    let scrollHandler: (() => void) | null = null
     
     const handleScroll = () => {
-      if (!ctaButtonsRef.current) return
+      if (!ctaButtonsRef.current) {
+        setShowStickyBar(false)
+        return
+      }
       
       const ctaRect = ctaButtonsRef.current.getBoundingClientRect()
       
@@ -203,10 +212,24 @@ export function Product() {
       }
     }
 
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll() // Vérifier au chargement
+    scrollHandler = handleScroll
+
+    // Attendre que le DOM soit prêt
+    timeoutId = setTimeout(() => {
+      if (ctaButtonsRef.current && scrollHandler) {
+        window.addEventListener('scroll', scrollHandler, { passive: true })
+        scrollHandler() // Vérifier au chargement
+      }
+    }, 100)
     
-    return () => window.removeEventListener('scroll', handleScroll)
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+      if (scrollHandler) {
+        window.removeEventListener('scroll', scrollHandler)
+      }
+    }
   }, [product])
 
   // Swipe handlers pour mobile
