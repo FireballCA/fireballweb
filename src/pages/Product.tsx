@@ -190,12 +190,12 @@ export function Product() {
   useEffect(() => {
     if (!product) {
       setShowStickyBar(false)
-      return
+      return () => {
+        // Cleanup toujours retourné pour éviter l'erreur React #310
+      }
     }
     
     let timeoutId: NodeJS.Timeout | null = null
-    let scrollHandler: (() => void) | null = null
-    
     const handleScroll = () => {
       if (!ctaButtonsRef.current) {
         setShowStickyBar(false)
@@ -205,30 +205,22 @@ export function Product() {
       const ctaRect = ctaButtonsRef.current.getBoundingClientRect()
       
       // Afficher la barre sticky quand on passe en dessous des boutons CTA
-      if (ctaRect.bottom < 0) {
-        setShowStickyBar(true)
-      } else {
-        setShowStickyBar(false)
-      }
+      setShowStickyBar(ctaRect.bottom < 0)
     }
-
-    scrollHandler = handleScroll
 
     // Attendre que le DOM soit prêt
     timeoutId = setTimeout(() => {
-      if (ctaButtonsRef.current && scrollHandler) {
-        window.addEventListener('scroll', scrollHandler, { passive: true })
-        scrollHandler() // Vérifier au chargement
+      if (ctaButtonsRef.current) {
+        window.addEventListener('scroll', handleScroll, { passive: true })
+        handleScroll() // Vérifier au chargement
       }
-    }, 100)
+    }, 150)
     
     return () => {
       if (timeoutId) {
         clearTimeout(timeoutId)
       }
-      if (scrollHandler) {
-        window.removeEventListener('scroll', scrollHandler)
-      }
+      window.removeEventListener('scroll', handleScroll)
     }
   }, [product])
 
