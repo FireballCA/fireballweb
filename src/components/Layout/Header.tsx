@@ -164,7 +164,11 @@ export function Header() {
 
   // Bloquer le scroll de la page quand le menu mobile est ouvert
   useEffect(() => {
-    if (!menuOpen) return
+    if (!menuOpen) {
+      return () => {
+        // Cleanup toujours retourné pour éviter l'erreur React #310
+      }
+    }
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
