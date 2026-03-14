@@ -704,7 +704,7 @@ export function Product() {
       )}
 
       {/* Sticky Navigation Bar - Desktop */}
-      {showStickyBar && (
+      {showStickyBar && product && (
         <div 
           className="hidden lg:flex fixed bottom-0 left-0 right-0 bg-carbon-950 border-t border-carbon-800 z-50 h-20 items-center"
           style={{
