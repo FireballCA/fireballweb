@@ -27,6 +27,7 @@ import { PartnerVehicles } from '@/pages/partner/PartnerVehicles'
 import { PartnerWarranties } from '@/pages/partner/PartnerWarranties'
 import { PartnerCertification } from '@/pages/partner/PartnerCertification'
 import { PartnerSettings } from '@/pages/partner/PartnerSettings'
+import { Typhon } from '@/pages/coating/Typhon'
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
             <Route path="contact" element={<Contact />} />
             <Route path="legal" element={<Legal />} />
             <Route path="academy" element={<Academy />} />
+            <Route path="coating/typhon" element={<Typhon />} />
             <Route path="join-fireball" element={<PartnerCompany />} />
             <Route path="account" element={<Account />} />
             <Route path="account/register" element={<AccountRegister />} />

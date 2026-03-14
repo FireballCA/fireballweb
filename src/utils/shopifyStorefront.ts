@@ -43,11 +43,26 @@ async function shopifyFetch<T>(query: string, variables?: Record<string, unknown
 }
 
 function resolveCategoryFromTags(tags: string[]): CategoryId {
-  const lower = tags.map((t) => t.toLowerCase())
-  if (lower.includes('pro')) return 'pro'
-  if (lower.includes('revetements') || lower.includes('revêtements') || lower.includes('coating')) {
-    return 'revetements'
-  }
+  const lower = tags.map((t) => t.toLowerCase().trim())
+  
+  // Protection Systems
+  if (lower.some(t => t.includes('coating') || t.includes('coatings'))) return 'coatings'
+  if (lower.some(t => t.includes('sealant') || t.includes('sealants'))) return 'sealants'
+  if (lower.some(t => t.includes('wax') || t.includes('waxes'))) return 'waxes'
+  if (lower.some(t => t.includes('dressing') || t.includes('dressings'))) return 'dressings'
+  
+  // Maintenance & Preparation
+  if (lower.some(t => t.includes('washing') || t.includes('wash'))) return 'washing'
+  if (lower.some(t => t.includes('cleaner') || t.includes('cleaners'))) return 'cleaners'
+  if (lower.some(t => t.includes('towel') || t.includes('towels'))) return 'towels'
+  if (lower.some(t => t.includes('accessory') || t.includes('accessories'))) return 'accessories'
+  
+  // Legacy categories (for backward compatibility)
+  if (lower.some(t => t.includes('pro'))) return 'pro'
+  if (lower.some(t => t.includes('revetements') || t.includes('revêtements'))) return 'revetements'
+  if (lower.some(t => t.includes('classique'))) return 'classique'
+  
+  // Default fallback
   return 'classique'
 }
 
@@ -108,6 +123,14 @@ function mapShopifyProductToLocal(node: {
     rawDescription.split('\n').find((line) => line.trim().length > 0)?.trim() ||
     'Premium detailing product by Fireball Canada.'
 
+  // Récupérer les tags Shopify
+  const tags = Array.isArray(node.tags) ? node.tags : []
+  // Vérifier si le produit est réservé aux partenaires (tag: "partner-only", "installer-only", "installer", "partner")
+  const partnerOnlyTags = ['partner-only', 'installer-only', 'installer', 'partner']
+  const partnerOnly = tags.some(tag => 
+    partnerOnlyTags.includes(tag.toLowerCase().trim())
+  )
+
   // Vérifier que priceRange existe avant d'accéder à amount
   const minPriceAmount = node.priceRange?.minVariantPrice?.amount || '0'
   const price = Number.parseFloat(minPriceAmount)
@@ -162,6 +185,8 @@ function mapShopifyProductToLocal(node: {
     variants: variants.length > 0 ? variants : undefined,
     options: node.options?.filter((opt) => opt.values.length > 1),
     video: videoUrl,
+    tags: tags.length > 0 ? tags : undefined,
+    partnerOnly: partnerOnly || undefined,
   }
 }
 
@@ -173,8 +198,12 @@ export async function fetchProductsFromShopify(): Promise<Product[]> {
 
   try {
     const query = `
-      query FireballProducts($first: Int!) {
-        products(first: $first) {
+      query FireballProducts($first: Int!, $after: String) {
+        products(first: $first, after: $after) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
           edges {
             node {
               id
@@ -205,16 +234,56 @@ export async function fetchProductsFromShopify(): Promise<Product[]> {
       }
     `
 
-    const data = await shopifyFetch<{
-      products: { edges: { node: any }[] }
-    }>(query, { first: 60 })
+    const allProducts: Product[] = []
+    let hasNextPage = true
+    let cursor: string | null = null
+    const pageSize = 250 // Maximum par page dans Shopify
 
-    const edges = data.products?.edges || []
-    if (!edges.length) {
-      return PRODUCTS
+    while (hasNextPage) {
+      try {
+        const data = await shopifyFetch<{
+          products: {
+            pageInfo: { hasNextPage: boolean; endCursor: string | null }
+            edges: { node: any }[]
+          }
+        }>(query, { first: pageSize, after: cursor })
+
+        // Vérifier que data.products existe
+        if (!data || !data.products) {
+          console.error('[Shopify] Invalid response structure')
+          break
+        }
+
+        const edges = data.products?.edges || []
+        if (edges.length > 0) {
+          const mappedProducts = edges.map((edge) => {
+            try {
+              return mapShopifyProductToLocal(edge.node)
+            } catch (err) {
+              console.error('[Shopify] Error mapping product:', err, edge.node)
+              return null
+            }
+          }).filter((p): p is Product => p !== null)
+          
+          allProducts.push(...mappedProducts)
+        }
+
+        hasNextPage = data.products?.pageInfo?.hasNextPage || false
+        cursor = data.products?.pageInfo?.endCursor || null
+      } catch (pageError) {
+        console.error('[Shopify] Error loading page:', pageError)
+        // Si on a déjà des produits, retourner ce qu'on a
+        if (allProducts.length > 0) {
+          console.warn(`[Shopify] Returning ${allProducts.length} products loaded before error`)
+          return allProducts
+        }
+        // Sinon, propager l'erreur
+        throw pageError
+      }
     }
 
-    return edges.map((edge) => mapShopifyProductToLocal(edge.node))
+    console.log(`[Shopify] Loaded ${allProducts.length} products total`)
+    return allProducts
   } catch (error) {
     console.error('[Shopify] Failed to load products, falling back to static data:', error)
     return PRODUCTS
