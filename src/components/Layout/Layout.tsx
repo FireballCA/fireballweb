@@ -8,20 +8,14 @@ export function Layout() {
     location.pathname === '/compte' ||
     location.pathname === '/account' ||
     location.pathname === '/account/register'
-  const isOverlayHeaderPage = location.pathname === '/account/company' || location.pathname === '/join-fireball'
   const isAnyAccountPage = location.pathname === '/compte' || location.pathname.startsWith('/account')
-  const isContactPage = location.pathname === '/contact'
-  const isProductPage = location.pathname.startsWith('/produit')
   const showHeader = !isAccountAuthPage
-  const showFooter = !isAnyAccountPage && !isContactPage
-  // Sur la page produit, le header est sticky donc pas besoin de padding-top
-  // Sur les autres pages, le header est fixed donc besoin de padding-top
-  const mainClassName = showHeader && !isOverlayHeaderPage && !isProductPage ? 'flex-1 pt-20' : 'flex-1'
+  const showFooter = !isAnyAccountPage
 
   return (
     <div className="min-h-screen flex flex-col">
       {showHeader && <Header />}
-      <main className={mainClassName}>
+      <main className={showHeader ? 'flex-1 pt-20' : 'flex-1'}>
         <Outlet />
       </main>
       {showFooter && <Footer />}
