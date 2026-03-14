@@ -704,37 +704,32 @@ export function Product() {
       {/* Sticky Navigation Bar - Desktop */}
       {showStickyBar && product && (
         <div 
-          className="hidden lg:flex fixed bottom-0 left-0 right-0 bg-carbon-950 border-t border-carbon-800 z-50 h-20 items-center"
+          className="hidden lg:flex fixed bottom-6 left-1/2 -translate-x-1/2 z-50 items-center"
           style={{
             animation: 'slideUpFromBottom 0.3s ease-out',
           }}
         >
-          <div className="max-w-7xl mx-auto w-full px-6 flex items-center justify-between">
-            {/* Titre du produit à gauche */}
-            <h2 className="text-lg font-semibold text-pearl line-clamp-1">
+          <div className="flex items-center gap-4 px-6 py-4 rounded-full bg-carbon-950/80 backdrop-blur-md border border-carbon-800/50 shadow-xl">
+            {/* Titre du produit */}
+            <h2 className="text-base font-semibold text-pearl line-clamp-1 max-w-md">
               {product.name}
             </h2>
             
-            {/* Bouton d'achat à droite */}
-            <div className="flex items-center gap-3">
-              <span className="text-xl font-bold text-chrome">
-                {displayPrice.toFixed(2)} €
-              </span>
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                disabled={currentVariant && !currentVariant.availableForSale}
-                className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
-                  added
-                    ? 'bg-carbon-600 text-white'
-                    : currentVariant && !currentVariant.availableForSale
-                      ? 'bg-carbon-800 cursor-not-allowed text-carbon-500'
-                      : 'bg-chrome text-carbon-950 hover:bg-chrome/90 active:scale-[0.98]'
-                }`}
-              >
-                {added ? `✓ ${t('product.addedToCart')}` : t('product.addToCart')}
-              </button>
-            </div>
+            {/* Bouton Purchase */}
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={currentVariant && !currentVariant.availableForSale}
+              className={`px-6 py-2.5 rounded-full text-sm font-medium text-white transition-all whitespace-nowrap ${
+                added
+                  ? 'bg-carbon-600'
+                  : currentVariant && !currentVariant.availableForSale
+                    ? 'bg-carbon-800 cursor-not-allowed text-carbon-500'
+                    : 'bg-chrome hover:bg-chrome/90 active:scale-[0.98]'
+              }`}
+            >
+              {added ? `✓ ${t('product.addedToCart')}` : t('product.purchase')}
+            </button>
           </div>
         </div>
       )}
