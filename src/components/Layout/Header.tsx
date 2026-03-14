@@ -108,6 +108,7 @@ export function Header() {
   const { totalItems } = useCart()
   const isDashboardPage = location.pathname === '/account/dashboard' || location.pathname === '/dashboard'
   const isProductPage = location.pathname.startsWith('/produit')
+  const isCoatingPage = location.pathname.startsWith('/coating')
   const [isHeaderVisible, setIsHeaderVisible] = useState(true)
   const lastScrollYRef = useRef(0)
 
@@ -118,8 +119,8 @@ export function Header() {
       const progress = Math.min(scrollY / maxScroll, 1)
       setScrollProgress(progress)
 
-      // Sur la page produit, cacher/afficher la navbar selon la direction du scroll
-      if (isProductPage) {
+      // Sur les pages produit et coating, cacher/afficher la navbar selon la direction du scroll
+      if (isProductPage || isCoatingPage) {
         const lastScrollY = lastScrollYRef.current
         if (scrollY < 100) {
           // Toujours visible en haut de page
@@ -211,8 +212,8 @@ export function Header() {
 
   return (
     <header
-      className={`${isProductPage ? 'sticky' : 'fixed'} top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
-        isProductPage && !isHeaderVisible ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
+      className={`${isProductPage || isCoatingPage ? 'sticky' : 'fixed'} top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
+        (isProductPage || isCoatingPage) && !isHeaderVisible ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
       }`}
       style={
         menuOpen

@@ -168,19 +168,26 @@ export function Shop() {
 
   const category = detectedCategoryId ? CATEGORIES.find((c) => c.id === detectedCategoryId) : null
 
-  // Filtrer et trier les produits
-  let filteredProducts = detectedCategoryId
+  // Séparer les produits normaux et les produits bloqués (partner-only)
+  const allCategoryProducts = detectedCategoryId
     ? allProducts.filter((p) => p.category === (detectedCategoryId as CategoryId))
+    : allProducts
+
+  const availableProducts = allCategoryProducts.filter((p) => !p.partnerOnly || isPartner)
+  const blockedProducts = detectedCategoryId && !isPartner
+    ? allCategoryProducts.filter((p) => p.partnerOnly)
     : []
 
-  // Filtrer les produits réservés aux partenaires si l'utilisateur n'est pas Partner
-  filteredProducts = filteredProducts.filter((p) => {
-    // Si le produit est réservé aux partenaires et que l'utilisateur n'est pas Partner, le cacher
-    if (p.partnerOnly && !isPartner) {
-      return false
-    }
-    return true
-  })
+  // Filtrer et trier les produits disponibles
+  let filteredProducts = availableProducts
+
+  // Debug: Afficher le nombre de produits avant et après filtrage
+  console.log('[Shop] Total products:', allProducts.length)
+  console.log('[Shop] After partner filter:', allProducts.filter(p => !p.partnerOnly || isPartner).length)
+  console.log('[Shop] Filtered products:', filteredProducts.length)
+  console.log('[Shop] Is Partner:', isPartner)
+  console.log('[Shop] Partner-only products:', allProducts.filter(p => p.partnerOnly).length)
+  console.log('[Shop] Category:', detectedCategoryId)
 
   // Filtre: Recherche
   if (searchQuery.trim()) {
@@ -494,8 +501,32 @@ export function Shop() {
           )}
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {products.map((product) => {
+        <>
+          {/* Message pour les produits bloqués si l'utilisateur n'est pas Partner */}
+          {blockedProducts.length > 0 && (
+            <div className="mb-12 p-6 rounded-2xl bg-[#B61B1B]/10 border border-[#B61B1B]/30">
+              <p className="text-white text-lg mb-4">
+                Some products in this category are restricted to certified installers only.
+              </p>
+              <Link
+                to="/join-fireball"
+                className="group inline-flex items-center gap-2 text-sm font-medium text-carbon-600 hover:text-white transition-colors duration-200"
+              >
+                <span>Become a certified installer</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 640 640"
+                  className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
+                >
+                  <path fill="currentColor" d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z" />
+                </svg>
+              </Link>
+            </div>
+          )}
+
+          {/* Produits disponibles */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {products.map((product) => {
             // Utiliser le rating réel du produit ou 0 par défaut
             const rating = product.rating || 0
             
@@ -548,8 +579,110 @@ export function Shop() {
               </Link>
             )
           })}
-        </div>
-        )}
+          </div>
+
+          {/* Produits bloqués (flous) */}
+          {blockedProducts.length > 0 && (
+            <>
+              <div className="mt-16 mb-8">
+                <h3 className="text-white text-xl font-semibold mb-2">Certified Installer Products</h3>
+                <p className="text-carbon-600 text-sm">
+                  These products are available exclusively to certified Fireball installers.
+                </p>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                {blockedProducts.map((product) => {
+                  const rating = product.rating || 0
+                  
+                  return (
+                    <div
+                      key={product.id}
+                      className="group relative select-none"
+                    >
+                      {/* Overlay avec icône de cadenas centrée */}
+                      <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+                        <div className="text-center px-4">
+                          <svg
+                            className="w-12 h-12 mx-auto mb-3 text-white/50"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                            />
+                          </svg>
+                          <p className="text-white text-sm font-medium mb-2 blur-sm">Certified Installer Only</p>
+                          <Link
+                            to="/join-fireball"
+                            className="inline-block text-xs font-medium underline transition-colors pointer-events-auto"
+                            style={{ color: '#B61B1B' }}
+                          >
+                            Become certified
+                          </Link>
+                        </div>
+                      </div>
+
+                      {/* Image réduite avec coins arrondis - floutée individuellement */}
+                      <div className="aspect-square mb-3 rounded-lg overflow-hidden">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover blur-sm"
+                        />
+                      </div>
+                      
+                      {/* Nom du produit - flouté individuellement avec espacement */}
+                      <div className="mb-1 select-none">
+                        <h3 className="text-white text-sm font-bold truncate blur-sm">
+                          {product.name}
+                        </h3>
+                      </div>
+                      
+                      {/* Étoiles et avis - floutés individuellement avec espacement */}
+                      <div className="flex items-center gap-2 mb-1 select-none">
+                        <div className="flex items-center gap-0.5 blur-sm">
+                          {[...Array(5)].map((_, i) => (
+                            <svg
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < Math.floor(rating)
+                                  ? 'text-yellow-400'
+                                  : i < rating
+                                    ? 'text-yellow-400/50'
+                                    : 'text-carbon-600'
+                              }`}
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ))}
+                        </div>
+                        {product.reviewCount !== undefined && (
+                          <span className="text-xs font-bold text-white underline blur-sm">
+                            {product.reviewCount} Reviews
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Prix - flouté individuellement avec espacement */}
+                      <div className="select-none">
+                        <p className="text-white text-sm font-bold blur-sm">
+                          {product.price.toFixed(2)} $CA
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
+        </>
+      )}
       </div>
     </div>
   )
