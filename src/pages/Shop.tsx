@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { CATEGORIES, type CategoryId, type Product } from '@/data/products'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { LiquidGlassSelect } from '@/components/LiquidGlassSelect'
+import { getCurrentUserProfile } from '@/utils/supabaseAuth'
 
 export function Shop() {
   const { t } = useTranslation()
@@ -20,6 +21,7 @@ export function Shop() {
   const [searchExpanded, setSearchExpanded] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const [isPartner, setIsPartner] = useState(false)
 
   // Détecter la catégorie depuis l'URL (support /boutique/category et /category)
   // Liste des routes qui ne sont pas des catégories
@@ -108,6 +110,34 @@ export function Shop() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [searchExpanded, searchQuery])
 
+  // Vérifier le rôle utilisateur (Partner)
+  useEffect(() => {
+    let cancelled = false
+    const checkPartner = async () => {
+      try {
+        const profile = await getCurrentUserProfile()
+        if (!cancelled) {
+          if (profile) {
+            const role = (profile.role || '').toLowerCase()
+            const partnerStatus = (profile.partner_status || '').toLowerCase()
+            setIsPartner(role === 'partner' || partnerStatus === 'partner')
+          } else {
+            setIsPartner(false)
+          }
+        }
+      } catch (err) {
+        console.error('Error checking partner status:', err)
+        if (!cancelled) {
+          setIsPartner(false)
+        }
+      }
+    }
+    checkPartner()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   useEffect(() => {
     let cancelled = false
     const run = async () => {
@@ -142,6 +172,15 @@ export function Shop() {
   let filteredProducts = detectedCategoryId
     ? allProducts.filter((p) => p.category === (detectedCategoryId as CategoryId))
     : []
+
+  // Filtrer les produits réservés aux partenaires si l'utilisateur n'est pas Partner
+  filteredProducts = filteredProducts.filter((p) => {
+    // Si le produit est réservé aux partenaires et que l'utilisateur n'est pas Partner, le cacher
+    if (p.partnerOnly && !isPartner) {
+      return false
+    }
+    return true
+  })
 
   // Filtre: Recherche
   if (searchQuery.trim()) {

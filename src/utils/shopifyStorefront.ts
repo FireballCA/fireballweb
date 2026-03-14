@@ -35,30 +35,8 @@ async function shopifyFetch<T>(query: string, variables?: Record<string, unknown
 
   const data = (await response.json()) as { data?: unknown; errors?: unknown }
 
-  if (!response.ok) {
-    console.error('[Shopify] HTTP error:', response.status, response.statusText)
-    throw new Error(`Shopify Storefront HTTP error: ${response.status}`)
-  }
-
-  if (Array.isArray(data.errors) && data.errors.length) {
-    // Filtrer les erreurs liées aux metafields (non critiques)
-    const criticalErrors = data.errors.filter((err: any) => {
-      const message = err.message || ''
-      return !message.toLowerCase().includes('metafield') && 
-             !message.toLowerCase().includes('field "metafields"')
-    })
-    
-    if (criticalErrors.length > 0) {
-      console.error('[Shopify] GraphQL errors:', criticalErrors)
-      throw new Error('Shopify Storefront request failed')
-    }
-    // Si seulement des erreurs de metafields, continuer sans les metafields
-    console.warn('[Shopify] Metafields not available, continuing without them')
-  }
-
-  // S'assurer que data.data existe avant de le retourner
-  if (!data.data) {
-    throw new Error('Shopify Storefront returned no data')
+  if (!response.ok || (Array.isArray(data.errors) && data.errors.length)) {
+    throw new Error('Shopify Storefront request failed')
   }
 
   return data.data as T
@@ -66,25 +44,10 @@ async function shopifyFetch<T>(query: string, variables?: Record<string, unknown
 
 function resolveCategoryFromTags(tags: string[]): CategoryId {
   const lower = tags.map((t) => t.toLowerCase())
-  
-  // Protection Systems
-  if (lower.some(t => t.includes('coating') || t.includes('coatings'))) return 'coatings'
-  if (lower.some(t => t.includes('sealant') || t.includes('sealants'))) return 'sealants'
-  if (lower.some(t => t.includes('wax') || t.includes('waxes'))) return 'waxes'
-  if (lower.some(t => t.includes('dressing') || t.includes('dressings'))) return 'dressings'
-  
-  // Maintenance & Preparation
-  if (lower.some(t => t.includes('wash') || t.includes('washing') || t.includes('shampoo'))) return 'washing'
-  if (lower.some(t => t.includes('cleaner') || t.includes('cleaners') || t.includes('clean'))) return 'cleaners'
-  if (lower.some(t => t.includes('towel') || t.includes('towels') || t.includes('microfiber'))) return 'towels'
-  if (lower.some(t => t.includes('accessory') || t.includes('accessories') || t.includes('tool'))) return 'accessories'
-  
-  // Legacy categories
   if (lower.includes('pro')) return 'pro'
-  if (lower.some(t => t.includes('revetements') || t.includes('revêtements'))) {
+  if (lower.includes('revetements') || lower.includes('revêtements') || lower.includes('coating')) {
     return 'revetements'
   }
-  
   return 'classique'
 }
 
@@ -115,15 +78,6 @@ function mapShopifyProductToLocal(node: {
       node: {
         mediaContentType: string
         sources?: { url: string; mimeType: string }[]
-      }
-    }[]
-  }
-  metafields?: {
-    edges?: {
-      node?: {
-        namespace?: string
-        key?: string
-        value?: string
       }
     }[]
   }
@@ -193,17 +147,6 @@ function mapShopifyProductToLocal(node: {
     }
   }
 
-  // Récupérer rating et reviewCount depuis les metafields
-  const ratingMetafield = (node as any).metafields?.edges?.find(
-    (e: any) => e.node?.namespace === 'custom' && e.node?.key === 'rating'
-  )?.node?.value
-  const reviewCountMetafield = (node as any).metafields?.edges?.find(
-    (e: any) => e.node?.namespace === 'custom' && e.node?.key === 'review_count'
-  )?.node?.value
-
-  const rating = ratingMetafield ? Number.parseFloat(ratingMetafield) : undefined
-  const reviewCount = reviewCountMetafield ? Number.parseInt(reviewCountMetafield, 10) : undefined
-
   return {
     id: node.id,
     name: node.title,
@@ -219,25 +162,19 @@ function mapShopifyProductToLocal(node: {
     variants: variants.length > 0 ? variants : undefined,
     options: node.options?.filter((opt) => opt.values.length > 1),
     video: videoUrl,
-    rating: Number.isFinite(rating) ? rating : undefined,
-    reviewCount: Number.isFinite(reviewCount) ? reviewCount : undefined,
   }
 }
 
 export async function fetchProductsFromShopify(): Promise<Product[]> {
   if (!hasShopifyConfig()) {
-    console.warn('[Shopify] Storefront config missing.')
-    return []
+    console.warn('[Shopify] Storefront config missing, using static PRODUCTS.')
+    return PRODUCTS
   }
 
   try {
     const query = `
-      query FireballProducts($first: Int!, $after: String) {
-        products(first: $first, after: $after) {
-          pageInfo {
-            hasNextPage
-            endCursor
-          }
+      query FireballProducts($first: Int!) {
+        products(first: $first) {
           edges {
             node {
               id
@@ -268,30 +205,19 @@ export async function fetchProductsFromShopify(): Promise<Product[]> {
       }
     `
 
-    const allProducts: Product[] = []
-    let hasNextPage = true
-    let cursor: string | null = null
-    const pageSize = 250 // Maximum par page dans Shopify
+    const data = await shopifyFetch<{
+      products: { edges: { node: any }[] }
+    }>(query, { first: 60 })
 
-    while (hasNextPage) {
-      const data = await shopifyFetch<{
-        products: {
-          pageInfo: { hasNextPage: boolean; endCursor: string | null }
-          edges: { node: any }[]
-        }
-      }>(query, { first: pageSize, after: cursor })
-
-      const edges = data.products?.edges || []
-      allProducts.push(...edges.map((edge) => mapShopifyProductToLocal(edge.node)))
-
-      hasNextPage = data.products?.pageInfo?.hasNextPage || false
-      cursor = data.products?.pageInfo?.endCursor || null
+    const edges = data.products?.edges || []
+    if (!edges.length) {
+      return PRODUCTS
     }
 
-    return allProducts
+    return edges.map((edge) => mapShopifyProductToLocal(edge.node))
   } catch (error) {
-    console.error('[Shopify] Failed to load products:', error)
-    return []
+    console.error('[Shopify] Failed to load products, falling back to static data:', error)
+    return PRODUCTS
   }
 }
 
@@ -367,15 +293,6 @@ export async function fetchProductFromShopifyBySlug(slug: string): Promise<Produ
               }
             }
           }
-          metafields(first: 10) {
-            edges {
-              node {
-                namespace
-                key
-                value
-              }
-            }
-          }
         }
       }
     `
@@ -384,7 +301,7 @@ export async function fetchProductFromShopifyBySlug(slug: string): Promise<Produ
       product: any | null
     }>(query, { handle: slug })
 
-    if (!data || !data.product) {
+    if (!data.product) {
       const fallback = getProductBySlug(slug)
       return fallback ?? null
     }
