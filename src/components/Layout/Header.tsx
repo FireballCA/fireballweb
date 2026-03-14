@@ -211,8 +211,8 @@ export function Header() {
 
   return (
     <header
-      className={`${isProductPage ? 'sticky' : 'fixed'} top-0 left-0 right-0 z-50 transition-transform duration-300 ${
-        isProductPage && !isHeaderVisible ? '-translate-y-full' : ''
+      className={`${isProductPage ? 'sticky' : 'fixed'} top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
+        isProductPage && !isHeaderVisible ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
       }`}
       style={
         menuOpen
