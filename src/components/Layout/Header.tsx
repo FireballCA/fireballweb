@@ -108,6 +108,8 @@ export function Header() {
   const { totalItems } = useCart()
   const isDashboardPage = location.pathname === '/account/dashboard' || location.pathname === '/dashboard'
   const isProductPage = location.pathname.startsWith('/produit')
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true)
+  const lastScrollYRef = useRef(0)
 
   useEffect(() => {
     const onScroll = () => {
@@ -115,11 +117,30 @@ export function Header() {
       const maxScroll = 200
       const progress = Math.min(scrollY / maxScroll, 1)
       setScrollProgress(progress)
+
+      // Sur la page produit, cacher/afficher la navbar selon la direction du scroll
+      if (isProductPage) {
+        const lastScrollY = lastScrollYRef.current
+        if (scrollY < 100) {
+          // Toujours visible en haut de page
+          setIsHeaderVisible(true)
+        } else {
+          // Cacher quand on scroll vers le bas, afficher quand on scroll vers le haut
+          if (scrollY > lastScrollY && scrollY > 100) {
+            setIsHeaderVisible(false)
+          } else if (scrollY < lastScrollY) {
+            setIsHeaderVisible(true)
+          }
+        }
+        lastScrollYRef.current = scrollY
+      } else {
+        setIsHeaderVisible(true)
+      }
     }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  }, [isProductPage])
 
   useEffect(() => {
     const onClickOutside = (event: MouseEvent) => {
@@ -190,7 +211,9 @@ export function Header() {
 
   return (
     <header
-      className={`${isProductPage ? 'sticky' : 'fixed'} top-0 left-0 right-0 z-50`}
+      className={`${isProductPage ? 'sticky' : 'fixed'} top-0 left-0 right-0 z-50 transition-transform duration-300 ${
+        isProductPage && !isHeaderVisible ? '-translate-y-full' : ''
+      }`}
       style={
         menuOpen
           ? {
