@@ -443,3 +443,15 @@
 }
 .rm-tag.highlight { color: #1266F0; }
 .rm-empty { min-height: 1px; }
+
+/* Animation pour la barre sticky produit */
+@keyframes slideUpFromBottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
