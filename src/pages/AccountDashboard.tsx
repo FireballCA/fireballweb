@@ -589,7 +589,11 @@ export function AccountDashboard() {
   const notificationsMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (!notificationsMenuOpen) return
+    if (!notificationsMenuOpen) {
+      return () => {
+        // Cleanup toujours retourné pour éviter l'erreur React #310
+      }
+    }
     const handleClickOutside = (event: MouseEvent) => {
       if (notificationsMenuRef.current && !notificationsMenuRef.current.contains(event.target as Node)) {
         setNotificationsMenuOpen(false)

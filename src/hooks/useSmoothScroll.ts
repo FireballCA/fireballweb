@@ -27,7 +27,11 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
 
   useEffect(() => {
     const container = scrollContainerRef.current
-    if (!container) return
+    if (!container) {
+      return () => {
+        // Cleanup toujours retourné pour éviter l'erreur React #310
+      }
+    }
 
     let isScrolling = false
 
