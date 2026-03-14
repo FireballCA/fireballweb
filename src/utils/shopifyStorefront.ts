@@ -384,7 +384,7 @@ export async function fetchProductFromShopifyBySlug(slug: string): Promise<Produ
       product: any | null
     }>(query, { handle: slug })
 
-    if (!data.product) {
+    if (!data || !data.product) {
       const fallback = getProductBySlug(slug)
       return fallback ?? null
     }
