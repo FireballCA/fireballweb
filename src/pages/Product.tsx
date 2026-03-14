@@ -23,7 +23,9 @@ export function Product() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [relatedProducts, setRelatedProducts] = useState<LocalProduct[]>([])
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
+  const [showStickyBar, setShowStickyBar] = useState(false)
   const galleryRef = useRef<HTMLDivElement>(null)
+  const ctaButtonsRef = useRef<HTMLDivElement>(null)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
 
@@ -85,6 +87,26 @@ export function Product() {
       cancelled = true
     }
   }, [slug])
+
+  // Détecter quand on passe en dessous des boutons CTA pour afficher la barre sticky
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!ctaButtonsRef.current) {
+        setShowStickyBar(false)
+        return
+      }
+      
+      const ctaRect = ctaButtonsRef.current.getBoundingClientRect()
+      setShowStickyBar(ctaRect.bottom < 0)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll() // Vérifier au chargement
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
 
   // Trouver la variante correspondant aux options sélectionnées
   const currentVariant = product?.variants?.find((v) => {
@@ -523,7 +545,7 @@ export function Product() {
             )}
 
             {/* CTAs */}
-            <div className="flex gap-3 pt-4">
+            <div ref={ctaButtonsRef} className="flex gap-3 pt-4">
               <button
                 type="button"
                 onClick={handleAddToCart}
@@ -677,6 +699,44 @@ export function Product() {
             </div>
           </div>
         </section>
+      )}
+
+      {/* Sticky Navigation Bar - Desktop */}
+      {showStickyBar && product && (
+        <div 
+          className="hidden lg:flex fixed bottom-0 left-0 right-0 bg-carbon-950 border-t border-carbon-800 z-50 h-20 items-center"
+          style={{
+            animation: 'slideUpFromBottom 0.3s ease-out',
+          }}
+        >
+          <div className="max-w-7xl mx-auto w-full px-6 flex items-center justify-between">
+            {/* Titre du produit à gauche */}
+            <h2 className="text-lg font-semibold text-pearl line-clamp-1">
+              {product.name}
+            </h2>
+            
+            {/* Bouton d'achat à droite */}
+            <div className="flex items-center gap-3">
+              <span className="text-xl font-bold text-chrome">
+                {displayPrice.toFixed(2)} €
+              </span>
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={currentVariant && !currentVariant.availableForSale}
+                className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
+                  added
+                    ? 'bg-carbon-600 text-white'
+                    : currentVariant && !currentVariant.availableForSale
+                      ? 'bg-carbon-800 cursor-not-allowed text-carbon-500'
+                      : 'bg-chrome text-carbon-950 hover:bg-chrome/90 active:scale-[0.98]'
+                }`}
+              >
+                {added ? `✓ ${t('product.addedToCart')}` : t('product.addToCart')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Sticky Add to Cart Mobile */}
