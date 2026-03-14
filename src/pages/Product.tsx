@@ -24,8 +24,10 @@ export function Product() {
   const [relatedProducts, setRelatedProducts] = useState<LocalProduct[]>([])
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
   const [showStickyBar, setShowStickyBar] = useState(false)
+  const [navbarWidth, setNavbarWidth] = useState(0)
   const galleryRef = useRef<HTMLDivElement>(null)
   const ctaButtonsRef = useRef<HTMLDivElement>(null)
+  const navbarRef = useRef<HTMLDivElement>(null)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
 
@@ -87,6 +89,37 @@ export function Product() {
       cancelled = true
     }
   }, [slug])
+
+  // Mesurer la largeur de la navbar (du logo au panier)
+  useEffect(() => {
+    const measureNavbar = () => {
+      const header = document.querySelector('header')
+      if (!header) return
+      
+      const headerContent = header.querySelector('.max-w-7xl')
+      if (!headerContent) return
+      
+      const logo = headerContent.querySelector('a[href="/"]')
+      const cartLink = headerContent.querySelector('a[href="/panier"]')
+      
+      if (logo && cartLink) {
+        const logoRect = logo.getBoundingClientRect()
+        const cartRect = cartLink.getBoundingClientRect()
+        const width = cartRect.right - logoRect.left
+        setNavbarWidth(width)
+      }
+    }
+    
+    measureNavbar()
+    window.addEventListener('resize', measureNavbar)
+    // Attendre que le DOM soit prêt
+    setTimeout(measureNavbar, 100)
+    setTimeout(measureNavbar, 500) // Double vérification
+    
+    return () => {
+      window.removeEventListener('resize', measureNavbar)
+    }
+  }, [product])
 
   // Détecter quand on passe en dessous des boutons CTA pour afficher la barre sticky
   useEffect(() => {
@@ -716,10 +749,20 @@ export function Product() {
       )}
 
       {/* Sticky Navigation Bar - Desktop */}
-      {showStickyBar && product && (
-        <div className="hidden lg:block fixed bottom-6 left-0 right-0 z-50">
+      {product && (
+        <div 
+          className={`hidden lg:block fixed bottom-6 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
+            showStickyBar ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+          }`}
+        >
           <div className="max-w-7xl mx-auto px-6">
-            <div className="flex items-center gap-4 px-6 py-4 rounded-full bg-carbon-950/80 backdrop-blur-md border border-carbon-800/50 shadow-xl" style={{ width: '85%' }}>
+            <div 
+              className="flex items-center gap-4 px-6 py-4 rounded-full bg-carbon-950/80 backdrop-blur-md border border-carbon-800/50 shadow-xl"
+              style={{ 
+                width: navbarWidth > 0 ? `${navbarWidth * 0.8}px` : 'auto',
+                marginLeft: '0'
+              }}
+            >
               {/* Titre du produit */}
               <h2 className="text-base font-semibold text-pearl line-clamp-1 flex-1 min-w-0">
                 {product.name}
@@ -735,8 +778,11 @@ export function Product() {
                     ? 'bg-carbon-600'
                     : currentVariant && !currentVariant.availableForSale
                       ? 'bg-carbon-800 cursor-not-allowed text-carbon-500'
-                      : 'bg-apex hover:bg-apex/90 active:scale-[0.98]'
+                      : 'hover:opacity-90 active:scale-[0.98]'
                 }`}
+                style={{ 
+                  backgroundColor: currentVariant && currentVariant.availableForSale && !added ? '#B61B1B' : undefined
+                }}
               >
                 {added ? `✓ ${t('product.addedToCart')}` : t('product.purchase')}
               </button>
