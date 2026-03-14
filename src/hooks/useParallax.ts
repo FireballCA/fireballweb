@@ -23,7 +23,11 @@ export function useParallax(options: ParallaxOptions = {}) {
 
   useEffect(() => {
     const element = elementRef.current
-    if (!element) return
+    if (!element) {
+      return () => {
+        // Cleanup toujours retourné pour éviter l'erreur React #310
+      }
+    }
 
     let rafId: number | null = null
     let lastScrollY = window.scrollY

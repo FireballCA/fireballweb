@@ -23,7 +23,11 @@ export function ParallaxSection({
 
   useEffect(() => {
     const element = ref.current
-    if (!element) return
+    if (!element) {
+      return () => {
+        // Cleanup toujours retourné pour éviter l'erreur React #310
+      }
+    }
 
     addParallaxElement(element, intensity, direction)
 
