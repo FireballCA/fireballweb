@@ -90,6 +90,8 @@ export function Product() {
 
   // Détecter quand on passe en dessous des boutons CTA pour afficher la barre sticky
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null
+    
     const handleScroll = () => {
       if (!ctaButtonsRef.current) {
         setShowStickyBar(false)
@@ -97,13 +99,25 @@ export function Product() {
       }
       
       const ctaRect = ctaButtonsRef.current.getBoundingClientRect()
-      setShowStickyBar(ctaRect.bottom < 0)
+      const shouldShow = ctaRect.bottom < 0
+      
+      // Utiliser un timeout pour éviter le flash de décentrage
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+      
+      timeoutId = setTimeout(() => {
+        setShowStickyBar(shouldShow)
+      }, 10)
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
     handleScroll() // Vérifier au chargement
     
     return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
       window.removeEventListener('scroll', handleScroll)
     }
   }, [])
@@ -703,33 +717,30 @@ export function Product() {
 
       {/* Sticky Navigation Bar - Desktop */}
       {showStickyBar && product && (
-        <div 
-          className="hidden lg:flex fixed bottom-6 left-1/2 -translate-x-1/2 z-50 items-center"
-          style={{
-            animation: 'slideUpFromBottom 0.3s ease-out',
-          }}
-        >
-          <div className="flex items-center gap-4 px-6 py-4 rounded-full bg-carbon-950/80 backdrop-blur-md border border-carbon-800/50 shadow-xl">
-            {/* Titre du produit */}
-            <h2 className="text-base font-semibold text-pearl line-clamp-1 max-w-md">
-              {product.name}
-            </h2>
-            
-            {/* Bouton Purchase */}
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              disabled={currentVariant && !currentVariant.availableForSale}
-              className={`px-6 py-2.5 rounded-full text-sm font-medium text-white transition-all whitespace-nowrap ${
-                added
-                  ? 'bg-carbon-600'
-                  : currentVariant && !currentVariant.availableForSale
-                    ? 'bg-carbon-800 cursor-not-allowed text-carbon-500'
-                    : 'bg-chrome hover:bg-chrome/90 active:scale-[0.98]'
-              }`}
-            >
-              {added ? `✓ ${t('product.addedToCart')}` : t('product.purchase')}
-            </button>
+        <div className="hidden lg:block fixed bottom-6 left-0 right-0 z-50">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex items-center gap-4 px-6 py-4 rounded-full bg-carbon-950/80 backdrop-blur-md border border-carbon-800/50 shadow-xl" style={{ width: '85%' }}>
+              {/* Titre du produit */}
+              <h2 className="text-base font-semibold text-pearl line-clamp-1 flex-1 min-w-0">
+                {product.name}
+              </h2>
+              
+              {/* Bouton Purchase */}
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={currentVariant && !currentVariant.availableForSale}
+                className={`px-6 py-2.5 rounded-full text-sm font-medium text-white transition-all whitespace-nowrap ${
+                  added
+                    ? 'bg-carbon-600'
+                    : currentVariant && !currentVariant.availableForSale
+                      ? 'bg-carbon-800 cursor-not-allowed text-carbon-500'
+                      : 'bg-apex hover:bg-apex/90 active:scale-[0.98]'
+                }`}
+              >
+                {added ? `✓ ${t('product.addedToCart')}` : t('product.purchase')}
+              </button>
+            </div>
           </div>
         </div>
       )}
