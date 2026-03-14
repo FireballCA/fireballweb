@@ -751,42 +751,39 @@ export function Product() {
       {/* Sticky Navigation Bar - Desktop */}
       {product && (
         <div 
-          className={`hidden lg:block fixed bottom-6 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
+          className={`hidden lg:flex fixed bottom-6 left-0 right-0 z-50 justify-center transition-all duration-300 ease-in-out ${
             showStickyBar ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
           }`}
         >
-          <div className="max-w-7xl mx-auto px-6">
-            <div 
-              className="flex items-center gap-4 px-6 py-4 rounded-full bg-carbon-950/80 backdrop-blur-md border border-carbon-800/50 shadow-xl"
+          <div 
+            className="flex items-center gap-4 px-6 py-4 rounded-full bg-carbon-950/80 backdrop-blur-md border border-carbon-800/50 shadow-xl"
+            style={{ 
+              width: navbarWidth > 0 ? `${navbarWidth * 0.8}px` : 'auto'
+            }}
+          >
+            {/* Titre du produit */}
+            <h2 className="text-base font-semibold text-pearl line-clamp-1 flex-1 min-w-0">
+              {product.name}
+            </h2>
+            
+            {/* Bouton Purchase */}
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={currentVariant && !currentVariant.availableForSale}
+              className={`px-6 py-2.5 rounded-full text-sm font-medium text-white transition-all whitespace-nowrap ${
+                added
+                  ? 'bg-carbon-600'
+                  : currentVariant && !currentVariant.availableForSale
+                    ? 'bg-carbon-800 cursor-not-allowed text-carbon-500'
+                    : 'hover:opacity-90 active:scale-[0.98]'
+              }`}
               style={{ 
-                width: navbarWidth > 0 ? `${navbarWidth * 0.8}px` : 'auto',
-                marginLeft: '0'
+                backgroundColor: currentVariant && currentVariant.availableForSale && !added ? '#B61B1B' : undefined
               }}
             >
-              {/* Titre du produit */}
-              <h2 className="text-base font-semibold text-pearl line-clamp-1 flex-1 min-w-0">
-                {product.name}
-              </h2>
-              
-              {/* Bouton Purchase */}
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                disabled={currentVariant && !currentVariant.availableForSale}
-                className={`px-6 py-2.5 rounded-full text-sm font-medium text-white transition-all whitespace-nowrap ${
-                  added
-                    ? 'bg-carbon-600'
-                    : currentVariant && !currentVariant.availableForSale
-                      ? 'bg-carbon-800 cursor-not-allowed text-carbon-500'
-                      : 'hover:opacity-90 active:scale-[0.98]'
-                }`}
-                style={{ 
-                  backgroundColor: currentVariant && currentVariant.availableForSale && !added ? '#B61B1B' : undefined
-                }}
-              >
-                {added ? `✓ ${t('product.addedToCart')}` : t('product.purchase')}
-              </button>
-            </div>
+              {added ? `✓ ${t('product.addedToCart')}` : t('product.purchase')}
+            </button>
           </div>
         </div>
       )}
