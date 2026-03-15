@@ -828,16 +828,37 @@ function AdminAnnouncementsSection() {
         featured_collection_image: featuredImage.trim() || null,
       }
 
-      const { error: upsertError } = await supabase
+      // First, check if the record exists
+      const { data: existingData } = await supabase
         .from('site_settings')
-        .upsert({
-          key: 'announcements',
-          value: settings,
-          updated_at: new Date().toISOString(),
-        })
+        .select('id')
+        .eq('key', 'announcements')
+        .maybeSingle()
 
-      if (upsertError) {
-        setError(upsertError.message || 'Failed to save settings.')
+      let result
+      if (existingData) {
+        // Update existing record
+        result = await supabase
+          .from('site_settings')
+          .update({
+            value: settings,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('key', 'announcements')
+      } else {
+        // Insert new record
+        result = await supabase
+          .from('site_settings')
+          .insert({
+            key: 'announcements',
+            value: settings,
+            updated_at: new Date().toISOString(),
+          })
+      }
+
+      if (result.error) {
+        console.error('Error saving settings:', result.error)
+        setError(result.error.message || 'Failed to save settings.')
         return
       }
 
@@ -991,4 +1012,3 @@ function AdminAnnouncementsSection() {
     </section>
   )
 }
-
