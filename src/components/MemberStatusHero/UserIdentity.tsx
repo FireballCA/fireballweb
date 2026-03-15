@@ -54,15 +54,14 @@ export function UserIdentity({
           <span>Become certified</span>
           <ArrowIcon />
         </Link>
-        <button
-          type="button"
-          onClick={onSettingsClick}
+        <Link
+          to="/account/settings"
           className={buttonClass}
           style={{ background: 'rgba(44, 44, 46, 0.7)', fontWeight: 400 }}
         >
           <span>Settings</span>
           <ArrowIcon />
-        </button>
+        </Link>
       </div>
     </div>
   )
