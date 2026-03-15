@@ -1,29 +1,257 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState, useRef } from 'react'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
-import { getCurrentUserProfile } from '@/utils/supabaseAuth'
+import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { updateShopifyCustomer } from '@/utils/shopifySync'
+
+interface SearchSuggestion {
+  section: string
+  subsection: string
+  description: string
+}
+
+interface UnsavedChanges {
+  section: string
+  field: string
+  oldValue: string
+  newValue: string
+}
+
+const SEARCH_SUGGESTIONS: SearchSuggestion[] = [
+  { section: 'Profile', subsection: 'Name', description: 'Update your first and last name' },
+  { section: 'Security', subsection: 'Email', description: 'Change your email address' },
+  { section: 'Security', subsection: 'Password', description: 'Update your account password' },
+  { section: 'Notifications', subsection: 'Order updates', description: 'Emails about your purchases and orders' },
+  { section: 'Notifications', subsection: 'News & drops', description: 'Product launches and promotions' },
+  { section: 'Notifications', subsection: 'Push notifications', description: 'Browser notifications for updates' },
+  { section: 'Connected Accounts', subsection: 'Google', description: 'Manage Google account connection' },
+  { section: 'Connected Accounts', subsection: 'Email', description: 'Manage email account connection' },
+  { section: 'Installer Status', subsection: 'Status', description: 'View your installer certification status' },
+  { section: 'Installer Status', subsection: 'Company', description: 'View your company information' },
+  { section: 'Danger Zone', subsection: 'Delete Account', description: 'Permanently delete your account' },
+]
 
 export function AccountSettings() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false)
+  const [unsavedChanges, setUnsavedChanges] = useState<UnsavedChanges | null>(null)
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const suggestionsRef = useRef<HTMLDivElement>(null)
 
+  // Original values for comparison
+  const [originalFirstName, setOriginalFirstName] = useState('')
+  const [originalLastName, setOriginalLastName] = useState('')
+  const [originalEmail, setOriginalEmail] = useState('')
+  const [originalOrderEmails, setOriginalOrderEmails] = useState(true)
+  const [originalMarketingEmails, setOriginalMarketingEmails] = useState(true)
+  const [originalPushNotifications, setOriginalPushNotifications] = useState(false)
+  const [originalGoogleConnected, setOriginalGoogleConnected] = useState(false)
+  const [originalEmailConnected, setOriginalEmailConnected] = useState(true)
+
+  // Profile state
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null)
+
+  // Security state
   const [email, setEmail] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [savingSecurity, setSavingSecurity] = useState(false)
+  const [securityError, setSecurityError] = useState<string | null>(null)
+  const [securitySuccess, setSecuritySuccess] = useState<string | null>(null)
+
+  // Notifications state
   const [orderEmails, setOrderEmails] = useState(true)
   const [marketingEmails, setMarketingEmails] = useState(true)
+  const [pushNotifications, setPushNotifications] = useState(false)
+  const [savingNotifications, setSavingNotifications] = useState(false)
+  const [notificationsError, setNotificationsError] = useState<string | null>(null)
+  const [notificationsSuccess, setNotificationsSuccess] = useState<string | null>(null)
+
+  // Connected Accounts state
+  const [googleConnected, setGoogleConnected] = useState(false)
+  const [emailConnected, setEmailConnected] = useState(true)
+  const [hasPassword, setHasPassword] = useState(true)
+  const [settingPassword, setSettingPassword] = useState(false)
+  const [passwordForGoogleAccount, setPasswordForGoogleAccount] = useState('')
+  const [confirmPasswordForGoogleAccount, setConfirmPasswordForGoogleAccount] = useState('')
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null)
+
+  // Installer Status state
+  const [isInstaller, setIsInstaller] = useState(false)
+  const [installerStatus, setInstallerStatus] = useState<string | null>(null)
+  const [companyName, setCompanyName] = useState<string | null>(null)
+
+  // Check for unsaved changes
+  const hasProfileChanges = firstName !== originalFirstName || lastName !== originalLastName
+  const hasSecurityChanges = email !== originalEmail || (newPassword !== '' && newPassword.length >= 6 && newPassword === confirmPassword)
+  const hasNotificationsChanges = orderEmails !== originalOrderEmails || marketingEmails !== originalMarketingEmails || pushNotifications !== originalPushNotifications
+
+  // Search functionality
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const filtered = SEARCH_SUGGESTIONS.filter(
+        (suggestion) =>
+          suggestion.section.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          suggestion.subsection.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          suggestion.description.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      setSearchSuggestions(filtered)
+      setShowSuggestions(filtered.length > 0)
+    } else {
+      setSearchSuggestions([])
+      setShowSuggestions(false)
+    }
+  }, [searchQuery])
+
+  // Block navigation if there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasProfileChanges || hasSecurityChanges || hasNotificationsChanges) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasProfileChanges, hasSecurityChanges, hasNotificationsChanges])
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  const handleSuggestionClick = (suggestion: SearchSuggestion) => {
+    setSearchQuery(suggestion.subsection)
+    setShowSuggestions(false)
+    
+    // Scroll to the section
+    const sectionMap: Record<string, string> = {
+      'Profile': 'profile-section',
+      'Security': 'security-section',
+      'Notifications': 'notifications-section',
+      'Connected Accounts': 'connected-accounts-section',
+      'Installer Status': 'installer-status-section',
+      'Danger Zone': 'danger-zone-section',
+    }
+    
+    const sectionId = sectionMap[suggestion.section]
+    if (sectionId) {
+      const element = document.getElementById(sectionId)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }
+  }
+
+  const checkUnsavedChanges = (targetPath: string) => {
+    if (hasProfileChanges) {
+      const changes: UnsavedChanges = {
+        section: 'Profile',
+        field: firstName !== originalFirstName ? 'First name' : 'Last name',
+        oldValue: firstName !== originalFirstName ? originalFirstName : originalLastName,
+        newValue: firstName !== originalFirstName ? firstName : lastName,
+      }
+      setUnsavedChanges(changes)
+      setPendingNavigation(targetPath)
+      setShowUnsavedModal(true)
+      return false
+    }
+    if (hasSecurityChanges) {
+      const changes: UnsavedChanges = {
+        section: 'Security',
+        field: email !== originalEmail ? 'Email' : 'Password',
+        oldValue: email !== originalEmail ? originalEmail : '••••••••',
+        newValue: email !== originalEmail ? email : '••••••••',
+      }
+      setUnsavedChanges(changes)
+      setPendingNavigation(targetPath)
+      setShowUnsavedModal(true)
+      return false
+    }
+    if (hasNotificationsChanges) {
+      const changes: UnsavedChanges = {
+        section: 'Notifications',
+        field: orderEmails !== originalOrderEmails ? 'Order updates' : marketingEmails !== originalMarketingEmails ? 'News & drops' : 'Push notifications',
+        oldValue: orderEmails !== originalOrderEmails ? String(originalOrderEmails) : marketingEmails !== originalMarketingEmails ? String(originalMarketingEmails) : String(originalPushNotifications),
+        newValue: orderEmails !== originalOrderEmails ? String(orderEmails) : marketingEmails !== originalMarketingEmails ? String(marketingEmails) : String(pushNotifications),
+      }
+      setUnsavedChanges(changes)
+      setPendingNavigation(targetPath)
+      setShowUnsavedModal(true)
+      return false
+    }
+    return true
+  }
+
+  const handleDiscardChanges = () => {
+    // Reset to original values
+    setFirstName(originalFirstName)
+    setLastName(originalLastName)
+    setEmail(originalEmail)
+    setOrderEmails(originalOrderEmails)
+    setMarketingEmails(originalMarketingEmails)
+    setPushNotifications(originalPushNotifications)
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+    
+    setShowUnsavedModal(false)
+    setUnsavedChanges(null)
+    if (pendingNavigation) {
+      navigate(pendingNavigation)
+      setPendingNavigation(null)
+    }
+  }
+
+
+  const handleCancelNavigation = () => {
+    setShowUnsavedModal(false)
+    setUnsavedChanges(null)
+    setPendingNavigation(null)
+  }
 
   useEffect(() => {
-    document.title = 'Account settings | Fireball Canada'
+    document.title = 'Account Settings | Fireball Canada'
 
     let cancelled = false
 
     const load = async () => {
       try {
+        const auth = await isAuthenticated()
+        if (!auth) {
+          if (!cancelled) {
+            navigate('/account', { replace: true })
+          }
+          return
+        }
+
         const profile = await getCurrentUserProfile()
         if (!profile) {
           if (!cancelled) {
@@ -34,9 +262,20 @@ export function AccountSettings() {
 
         if (cancelled) return
 
-        setFirstName(profile.first_name || '')
-        setLastName(profile.last_name || '')
-        setEmail(profile.email || '')
+        const first = profile.first_name || ''
+        const last = profile.last_name || ''
+        const emailValue = profile.email || ''
+        
+        setFirstName(first)
+        setLastName(last)
+        setEmail(emailValue)
+        setOriginalFirstName(first)
+        setOriginalLastName(last)
+        setOriginalEmail(emailValue)
+        
+        setIsInstaller(profile.role === 'partner' || profile.partner_status === 'partner')
+        setInstallerStatus(profile.partner_status || null)
+        setCompanyName(profile.company_name || null)
 
         const {
           data: { user },
@@ -46,13 +285,30 @@ export function AccountSettings() {
           const metadata = (user.user_metadata || {}) as Record<string, unknown>
           const orderPref = (metadata.order_emails as boolean | undefined)
           const marketingPref = (metadata.marketing_emails as boolean | undefined)
+          const pushPref = (metadata.push_notifications as boolean | undefined)
+          
           setOrderEmails(orderPref !== false)
           setMarketingEmails(marketingPref !== false)
+          setPushNotifications(pushPref === true)
+          setOriginalOrderEmails(orderPref !== false)
+          setOriginalMarketingEmails(marketingPref !== false)
+          setOriginalPushNotifications(pushPref === true)
+
+          // Check connected accounts
+          const identities = user.identities || []
+          const isGoogleConnected = identities.some((identity: any) => identity.provider === 'google')
+          const hasEmailProvider = identities.some((identity: any) => identity.provider === 'email')
+          
+          setGoogleConnected(isGoogleConnected)
+          setEmailConnected(hasEmailProvider || !isGoogleConnected) // Email is always connected if not Google-only
+          
+          // Check if user has password (if connected only with Google, they might not have a password)
+          setHasPassword(hasEmailProvider || !isGoogleConnected)
         }
       } catch (e) {
         console.error('Error loading settings:', e)
         if (!cancelled) {
-          setError("Impossible de charger tes paramètres pour l'instant.")
+          setProfileError("Unable to load your settings at this time.")
         }
       } finally {
         if (!cancelled) {
@@ -68,13 +324,13 @@ export function AccountSettings() {
     }
   }, [navigate])
 
-  const handleSave = async (event: React.FormEvent) => {
+  const handleSaveProfile = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (saving) return
+    if (savingProfile) return
 
-    setSaving(true)
-    setError(null)
-    setSuccess(null)
+    setSavingProfile(true)
+    setProfileError(null)
+    setProfileSuccess(null)
 
     try {
       const {
@@ -83,7 +339,7 @@ export function AccountSettings() {
       } = await supabase.auth.getUser()
 
       if (userError || !user) {
-        throw new Error('Utilisateur non authentifié')
+        throw new Error('User not authenticated')
       }
 
       const cleanFirst = firstName.trim()
@@ -100,7 +356,7 @@ export function AccountSettings() {
 
       if (profileError) {
         console.error('Error updating profile:', profileError)
-        throw new Error('Erreur lors de la mise à jour du profil.')
+        throw new Error('Error updating profile.')
       }
 
       const { error: authError } = await supabase.auth.updateUser({
@@ -108,212 +364,841 @@ export function AccountSettings() {
           full_name: fullName,
           first_name: cleanFirst,
           last_name: cleanLast,
-          order_emails: orderEmails,
-          marketing_emails: marketingEmails,
         },
       })
 
       if (authError) {
         console.error('Error updating auth metadata:', authError)
-        throw new Error("Erreur lors de la mise à jour de ton compte.")
+        throw new Error("Error updating your account.")
       }
 
       try {
-        if (email) {
+        const profile = await getCurrentUserProfile()
+        if (profile?.email) {
           await updateShopifyCustomer({
-            email,
+            email: profile.email,
             first_name: cleanFirst,
             last_name: cleanLast,
           })
         }
       } catch (shopifyError) {
         console.error('Shopify customer update failed:', shopifyError)
-        // Ne bloque pas l'enregistrement si Shopify échoue
       }
 
-      setSuccess('Tes paramètres ont été mis à jour.')
+      setOriginalFirstName(cleanFirst)
+      setOriginalLastName(cleanLast)
+      setProfileSuccess('Your settings have been updated.')
     } catch (e) {
-      console.error('Error saving settings:', e)
-      setError('Impossible de sauvegarder tes paramètres. Réessaie dans quelques instants.')
+      console.error('Error saving profile:', e)
+      setProfileError('Unable to save your settings. Please try again in a few moments.')
     } finally {
-      setSaving(false)
+      setSavingProfile(false)
     }
+  }
+
+  const handleSaveSecurity = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (savingSecurity) return
+
+    if (newPassword && newPassword.length < 6) {
+      setSecurityError('Password must be at least 6 characters long.')
+      return
+    }
+
+    if (newPassword && newPassword !== confirmPassword) {
+      setSecurityError('Passwords do not match.')
+      return
+    }
+
+    setSavingSecurity(true)
+    setSecurityError(null)
+    setSecuritySuccess(null)
+
+    try {
+      if (email && email !== originalEmail) {
+        const { error: emailError } = await supabase.auth.updateUser({ email })
+        if (emailError) {
+          throw new Error(emailError.message || 'Error updating email.')
+        }
+        setOriginalEmail(email)
+      }
+
+      if (newPassword) {
+        const { error } = await supabase.auth.updateUser({ password: newPassword })
+        if (error) {
+          throw new Error(error.message || 'Error updating password.')
+        }
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+      }
+
+      setSecuritySuccess('Your security settings have been updated.')
+    } catch (e) {
+      console.error('Error saving security:', e)
+      setSecurityError(e instanceof Error ? e.message : 'Unable to save your security settings. Please try again in a few moments.')
+    } finally {
+      setSavingSecurity(false)
+    }
+  }
+
+  const handleSaveNotifications = async () => {
+    if (savingNotifications) return
+
+    setSavingNotifications(true)
+    setNotificationsError(null)
+    setNotificationsSuccess(null)
+
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+
+      if (userError || !user) {
+        throw new Error('User not authenticated')
+      }
+
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          order_emails: orderEmails,
+          marketing_emails: marketingEmails,
+          push_notifications: pushNotifications,
+        },
+      })
+
+      if (authError) {
+        throw new Error("Error updating your preferences.")
+      }
+
+      setOriginalOrderEmails(orderEmails)
+      setOriginalMarketingEmails(marketingEmails)
+      setOriginalPushNotifications(pushNotifications)
+      setNotificationsSuccess('Your preferences have been updated.')
+    } catch (e) {
+      console.error('Error saving notifications:', e)
+      setNotificationsError('Unable to save your preferences. Please try again in a few moments.')
+    } finally {
+      setSavingNotifications(false)
+    }
+  }
+
+  const handleGoogleConnect = async () => {
+    if (googleConnected) {
+      // Cannot disconnect Google account easily - would need to link email/password first
+      setPasswordError('Please set a password before disconnecting Google account.')
+      return
+    }
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/account/settings`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      })
+      if (error) {
+        setPasswordError(error.message || 'Failed to connect Google account')
+      }
+      // If no error, Supabase will redirect the user to Google
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : 'Failed to connect Google account')
+    }
+  }
+
+  const handleSetPasswordForGoogleAccount = async () => {
+    if (!passwordForGoogleAccount || passwordForGoogleAccount.length < 6) {
+      setPasswordError('Password must be at least 6 characters long.')
+      return
+    }
+
+    if (passwordForGoogleAccount !== confirmPasswordForGoogleAccount) {
+      setPasswordError('Passwords do not match.')
+      return
+    }
+
+    setSettingPassword(true)
+    setPasswordError(null)
+    setPasswordSuccess(null)
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordForGoogleAccount,
+      })
+
+      if (error) {
+        throw new Error(error.message || 'Error setting password.')
+      }
+
+      setHasPassword(true)
+      setPasswordForGoogleAccount('')
+      setConfirmPasswordForGoogleAccount('')
+      setPasswordSuccess('Password has been set successfully.')
+    } catch (e) {
+      console.error('Error setting password:', e)
+      setPasswordError(e instanceof Error ? e.message : 'Unable to set password. Please try again.')
+    } finally {
+      setSettingPassword(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!confirm('Are you sure you want to delete your account? This action is irreversible.')) {
+      return
+    }
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        throw new Error('User not authenticated')
+      }
+
+      alert('Account deletion must be done through support. Contact us at contact@fireball.fr')
+    } catch (e) {
+      console.error('Error deleting account:', e)
+      alert('Error deleting account.')
+    }
+  }
+
+  if (loading) {
+    return (
+      <section className="relative min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
+        <div className="text-white/60">Loading…</div>
+      </section>
+    )
   }
 
   return (
     <section className="relative min-h-screen bg-[#0a0a0a] text-white">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-red-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 max-w-[1200px] mx-auto px-6 md:px-10 lg:px-16 py-16">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-sm text-white/70 hover:text-white mb-10"
-        >
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/5">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-          <span className="uppercase tracking-[0.18em] text-[11px] font-nav">Back to dashboard</span>
-        </button>
-
-        <div className="mb-10 flex flex-col gap-4">
-          <p className="text-[11px] font-nav font-bold uppercase tracking-[0.18em] text-white/50">
-            Account
-          </p>
-          <h1 className="text-3xl md:text-4xl lg:text-[40px] font-semibold tracking-[-0.03em] text-white">
-            Settings
-          </h1>
-          <p className="max-w-xl text-sm text-white/65">
-            Gère ton identité, la façon dont on te contacte et les informations synchronisées avec Shopify
-            pour tes commandes.
-          </p>
+      {/* Unsaved Changes Modal */}
+      {showUnsavedModal && unsavedChanges && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1a1a1a] border border-white/20 rounded-2xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-semibold text-white mb-4">Unsaved Changes</h3>
+            <p className="text-sm text-white/70 mb-4">
+              You have unsaved changes in <strong>{unsavedChanges.section}</strong>.
+            </p>
+            <div className="bg-black/40 rounded-lg p-4 mb-4 space-y-2">
+              <div>
+                <p className="text-xs text-white/50 mb-1">Field: {unsavedChanges.field}</p>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <p className="text-xs text-white/50 mb-1">Before:</p>
+                    <p className="text-sm text-white/90">{unsavedChanges.oldValue || '(empty)'}</p>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-white/50 mb-1">After:</p>
+                    <p className="text-sm text-white/90">{unsavedChanges.newValue || '(empty)'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={handleCancelNavigation}
+                className="px-4 py-2 rounded-lg border border-white/20 text-white/70 hover:text-white hover:border-white/40 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDiscardChanges}
+                className="px-4 py-2 rounded-lg bg-red-500/20 border border-red-500/50 text-red-300 hover:bg-red-500/30 transition-colors"
+              >
+                Discard Changes
+              </button>
+            </div>
+          </div>
         </div>
+      )}
 
-        <div className="w-full max-w-[720px] mx-auto">
-          <form
-            onSubmit={handleSave}
-            className="rounded-3xl border border-white/15 bg-white/[0.04] px-5 md:px-7 py-6 md:py-7 shadow-[0_22px_55px_rgba(0,0,0,0.6)]"
+      <div className="relative z-10 max-w-[1000px] mx-auto px-6 md:px-10 lg:px-16 py-12">
+        {/* Fixed Header Section */}
+        <div className="mb-12 text-center">
+          {/* Title */}
+          <div className="mb-6">
+            <h1 className="text-3xl md:text-4xl lg:text-[40px] font-semibold tracking-[-0.03em]" style={{ color: '#FDFDFD' }}>
+              Account Settings
+            </h1>
+          </div>
+
+          {/* Description and Search */}
+          <div className="flex flex-col items-center gap-4 mb-8">
+            <p className="text-sm text-white/65 max-w-xl">
+              Settings and preference for your application.
+            </p>
+            <div className="relative w-full max-w-md">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => searchQuery && setShowSuggestions(true)}
+                placeholder="Search settings..."
+                className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+              />
+              <svg
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              {showSuggestions && searchSuggestions.length > 0 && (
+                <div
+                  ref={suggestionsRef}
+                  className="absolute top-full left-0 right-0 mt-2 rounded-lg border border-white/10 bg-black/90 backdrop-blur-xl shadow-xl z-50 max-h-64 overflow-y-auto"
+                >
+                  {searchSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                      className="w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-b-0"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="text-sm text-white/90 font-medium">{suggestion.subsection}</p>
+                          <p className="text-xs text-white/55 mt-0.5">{suggestion.description}</p>
+                        </div>
+                        <span className="text-xs text-white/40">{suggestion.section}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Business Management Block (Fixed) */}
+          <div
+            className="rounded-3xl border border-white/15 bg-white/[0.04] px-5 md:px-7 py-6 mb-8 shadow-[0_22px_55px_rgba(0,0,0,0.6)] mx-auto max-w-2xl"
             style={{
               backdropFilter: 'blur(24px)',
               WebkitBackdropFilter: 'blur(24px)',
             }}
           >
-            {loading ? (
-              <div className="py-10 text-sm text-white/60">Chargement de tes paramètres…</div>
-            ) : (
-              <>
-                {error && (
-                  <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[13px] text-red-100">
-                    {error}
-                  </div>
-                )}
-                {success && (
-                  <div className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-100">
-                    {success}
-                  </div>
-                )}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-white/90 mb-1">
+                  To manage your business
+                </p>
+                <p className="text-[11px] text-white/55">
+                  Business management is done on another page.
+                </p>
+              </div>
+              <Link
+                to="/account/business"
+                onClick={(e) => {
+                  if (!checkUnsavedChanges('/account/business')) {
+                    e.preventDefault()
+                  }
+                }}
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-5 py-2.5 text-[12px] font-nav font-bold uppercase tracking-[0.18em] text-white hover:bg-white/20 transition-colors"
+              >
+                Manage Business
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </div>
 
-                <div className="space-y-6">
-                  {/* Profile */}
-                  <div className="space-y-4">
-                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/60">
-                      Profile
+        {/* All Settings in One Block - Centered */}
+        <div className="max-w-3xl mx-auto space-y-12">
+          {/* Profile Section */}
+          <div id="profile-section">
+            <h2 className="text-xl font-semibold text-white mb-6 text-left">Profile</h2>
+            <form onSubmit={handleSaveProfile} className="space-y-6">
+              {profileError && (
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[13px] text-red-100">
+                  {profileError}
+                </div>
+              )}
+              {profileSuccess && (
+                <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-100">
+                  {profileSuccess}
+                </div>
+              )}
+              
+              <div className="space-y-6">
+                {/* Name */}
+                <div className="flex items-start gap-8">
+                  <div className="w-48 text-left">
+                    <label className="text-sm text-white/90 font-medium">Name</label>
+                    <p className="text-[11px] text-white/55 mt-1">
+                      Update your first and last name
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/60 mb-2">
-                          First name
-                        </label>
-                        <input
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                          className="w-full rounded-2xl border border-white/18 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/70"
-                          placeholder="First name"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/60 mb-2">
-                          Last name
-                        </label>
-                        <input
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                          className="w-full rounded-2xl border border-white/18 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/70"
-                          placeholder="Last name"
-                        />
-                      </div>
-                    </div>
+                  </div>
+                  <div className="flex-1 space-y-4">
+                    <input
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                      placeholder="First name"
+                    />
+                    <input
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                      placeholder="Last name"
+                    />
+                  </div>
+                </div>
+              </div>
 
-                    <div>
-                      <label className="block text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/60 mb-2">
-                        Email (Shopify & Fireball)
-                      </label>
-                      <input
-                        value={email}
-                        disabled
-                        className="w-full rounded-2xl border border-white/18 bg-black/40 px-3.5 py-2.5 text-sm text-white/70 cursor-not-allowed"
-                      />
-                      <p className="mt-1.5 text-[11px] text-white/45">
-                        Utilisée pour te connecter, suivre tes points et lier tes commandes Shopify.
+              <div className="flex justify-end pt-4 h-8">
+                <button
+                  type="submit"
+                  disabled={savingProfile || !hasProfileChanges}
+                  className={`group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#FF6363] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                    !hasProfileChanges ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                  }`}
+                >
+                  Save changes
+                  <svg className="w-4 h-4 transform -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Security Section */}
+          <div id="security-section">
+            <h2 className="text-xl font-semibold text-white mb-6 text-left">Security</h2>
+            <form onSubmit={handleSaveSecurity} className="space-y-6">
+              {securityError && (
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[13px] text-red-100">
+                  {securityError}
+                </div>
+              )}
+              {securitySuccess && (
+                <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-100">
+                  {securitySuccess}
+                </div>
+              )}
+              
+              <div className="space-y-6">
+                {/* Email */}
+                <div className="flex items-center gap-8">
+                  <div className="w-48 text-left">
+                    <label className="text-sm text-white/90 font-medium">Email</label>
+                    <p className="text-[11px] text-white/55 mt-1">
+                      Change your email address
+                    </p>
+                  </div>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                    placeholder="Email address"
+                  />
+                </div>
+
+                {/* Divider */}
+                <div className="h-px bg-white/10" />
+
+                {/* Password */}
+                <div className="flex items-start gap-8">
+                  <div className="w-48 text-left">
+                    <label className="text-sm text-white/90 font-medium">Password</label>
+                    <p className="text-[11px] text-white/55 mt-1">
+                      Update your account password
+                    </p>
+                  </div>
+                  <div className="flex-1 space-y-4">
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                      placeholder="Current password"
+                    />
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                      placeholder="New password (min. 6 characters)"
+                    />
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                      placeholder="Confirm new password"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4 h-8">
+                <button
+                  type="submit"
+                  disabled={savingSecurity || !hasSecurityChanges}
+                  className={`group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#FF6363] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                    !hasSecurityChanges ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                  }`}
+                >
+                  Update security
+                  <svg className="w-4 h-4 transform -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Notifications Section */}
+          <div id="notifications-section">
+            <h2 className="text-xl font-semibold text-white mb-6 text-left">Notifications</h2>
+            <div className="space-y-6">
+              {notificationsError && (
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[13px] text-red-100">
+                  {notificationsError}
+                </div>
+              )}
+              {notificationsSuccess && (
+                <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-100">
+                  {notificationsSuccess}
+                </div>
+              )}
+              
+              <div className="space-y-6">
+                {/* Order Emails */}
+                <div className="flex items-center gap-8">
+                  <div className="w-48 text-left">
+                    <p className="text-sm text-white/90 font-medium">Order updates</p>
+                    <p className="text-[11px] text-white/55 mt-1">
+                      Emails about your purchases and orders
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setOrderEmails((v) => !v)}
+                    className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
+                      orderEmails ? 'bg-emerald-500' : 'bg-white/[0.25]'
+                    }`}
+                  >
+                    <span
+                      className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${
+                        orderEmails ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div className="h-px bg-white/10" />
+
+                {/* Marketing Emails */}
+                <div className="flex items-center gap-8">
+                  <div className="w-48 text-left">
+                    <p className="text-sm text-white/90 font-medium">News & drops</p>
+                    <p className="text-[11px] text-white/55 mt-1">
+                      Product launches and promotions
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMarketingEmails((v) => !v)}
+                    className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
+                      marketingEmails ? 'bg-emerald-500' : 'bg-white/[0.25]'
+                    }`}
+                  >
+                    <span
+                      className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${
+                        marketingEmails ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div className="h-px bg-white/10" />
+
+                {/* Push Notifications */}
+                <div className="flex items-center gap-8">
+                  <div className="w-48 text-left">
+                    <p className="text-sm text-white/90 font-medium">Push notifications</p>
+                    <p className="text-[11px] text-white/55 mt-1">
+                      Browser notifications for updates
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPushNotifications((v) => !v)}
+                    className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
+                      pushNotifications ? 'bg-emerald-500' : 'bg-white/[0.25]'
+                    }`}
+                  >
+                    <span
+                      className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${
+                        pushNotifications ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4 h-8">
+                <button
+                  type="button"
+                  onClick={handleSaveNotifications}
+                  disabled={savingNotifications || !hasNotificationsChanges}
+                  className={`group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#FF6363] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                    !hasNotificationsChanges ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                  }`}
+                >
+                  Save preferences
+                  <svg className="w-4 h-4 transform -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Connected Accounts Section */}
+          <div id="connected-accounts-section">
+            <h2 className="text-xl font-semibold text-white mb-6 text-left">Connected Accounts</h2>
+            <div className="space-y-6">
+              {passwordError && (
+                <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[13px] text-red-100">
+                  {passwordError}
+                </div>
+              )}
+              {passwordSuccess && (
+                <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-100">
+                  {passwordSuccess}
+                </div>
+              )}
+              
+              <div className="space-y-6">
+                {/* Google */}
+                <div className="flex items-center gap-8">
+                  <div className="w-48 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24">
+                        <path
+                          fill="#4285F4"
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm text-white/90 font-medium">Google</p>
+                      <p className="text-[11px] text-white/55 mt-0.5">
+                        Manage Google account connection
                       </p>
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleGoogleConnect}
+                    className={`relative inline-flex items-center w-11 h-6 rounded-full transition-colors ${
+                      googleConnected ? 'bg-emerald-500' : 'bg-white/[0.25]'
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-[2px] left-[2px] w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ${
+                        googleConnected ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
 
-                  {/* Notifications */}
-                  <div className="pt-5 space-y-3 border-t border-white/10">
-                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/60">
-                      Email preferences
+                {/* Divider */}
+                <div className="h-px bg-white/10" />
+
+                {/* Email */}
+                <div className="flex items-start gap-8">
+                  <div className="w-48 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm text-white/90 font-medium">Email</p>
+                      <p className="text-[11px] text-white/55 mt-0.5">
+                        {hasPassword ? 'Email account is connected' : 'Set a password for your account'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex-1 space-y-4">
+                    {!hasPassword && googleConnected && (
+                      <>
+                        {passwordError && (
+                          <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[13px] text-red-100">
+                            {passwordError}
+                          </div>
+                        )}
+                        {passwordSuccess && (
+                          <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-100">
+                            {passwordSuccess}
+                          </div>
+                        )}
+                        <input
+                          type="password"
+                          value={passwordForGoogleAccount}
+                          onChange={(e) => setPasswordForGoogleAccount(e.target.value)}
+                          className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                          placeholder="Set password (min. 6 characters)"
+                        />
+                        <input
+                          type="password"
+                          value={confirmPasswordForGoogleAccount}
+                          onChange={(e) => setConfirmPasswordForGoogleAccount(e.target.value)}
+                          className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                          placeholder="Confirm password"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSetPasswordForGoogleAccount}
+                          disabled={settingPassword || !passwordForGoogleAccount || passwordForGoogleAccount.length < 6}
+                          className="group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#FF6363] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          Set password
+                          <svg className="w-4 h-4 transform -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                    {hasPassword && (
+                      <div className="flex items-center">
+                        <span className="text-[11px] font-medium text-emerald-400">Connected</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Installer Status Section */}
+          {isInstaller && (
+            <div id="installer-status-section">
+              <h2 className="text-xl font-semibold text-white mb-6 text-left">Installer Status</h2>
+              <div className="space-y-6">
+                <div className="flex items-center gap-8">
+                  <div className="w-48 text-left">
+                    <p className="text-sm text-white/90 font-medium">Status</p>
+                    <p className="text-[11px] text-white/55 mt-1">
+                      View your installer certification status
                     </p>
-                    <label className="flex items-center justify-between gap-3 cursor-pointer">
-                      <div>
-                        <p className="text-sm text-white/90">Order updates & receipts</p>
-                        <p className="text-[11px] text-white/55">
-                          Emails liés à tes achats, commandes Shopify et factures.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setOrderEmails((v) => !v)}
-                        className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
-                          orderEmails ? 'bg-emerald-500' : 'bg-white/[0.25]'
-                        }`}
-                      >
-                        <span
-                          className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${
-                            orderEmails ? 'translate-x-4' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </label>
-
-                    <label className="flex items-center justify-between gap-3 cursor-pointer">
-                      <div>
-                        <p className="text-sm text-white/90">News & drops</p>
-                        <p className="text-[11px] text-white/55">
-                          Lancements de produits, promos et contenu exclusif Fireball.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setMarketingEmails((v) => !v)}
-                        className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
-                          marketingEmails ? 'bg-emerald-500' : 'bg-white/[0.25]'
-                        }`}
-                      >
-                        <span
-                          className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${
-                            marketingEmails ? 'translate-x-4' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </label>
+                  </div>
+                  <div className="flex-1">
+                    <span className={`text-[11px] font-medium px-2 py-1 rounded-full ${
+                      installerStatus === 'partner' 
+                        ? 'bg-emerald-500/20 text-emerald-400' 
+                        : 'bg-yellow-500/20 text-yellow-400'
+                    }`}>
+                      {installerStatus === 'partner' ? 'Active' : 'Pending'}
+                    </span>
                   </div>
                 </div>
 
-                <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <p className="text-[11px] text-white/45 max-w-xs">
-                    Certaines modifications peuvent prendre quelques minutes avant d’être visibles
-                    sur Shopify et dans tes emails.
-                  </p>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="inline-flex items-center justify-center rounded-2xl bg-white text-black px-5 py-2.5 text-[12px] font-nav font-bold uppercase tracking-[0.18em] hover:bg-white/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {saving ? 'Saving…' : 'Save changes'}
-                  </button>
+                {companyName && (
+                  <>
+                    <div className="h-px bg-white/10" />
+                    <div className="flex items-center gap-8">
+                      <div className="w-48 text-left">
+                        <p className="text-sm text-white/90 font-medium">Company</p>
+                        <p className="text-[11px] text-white/55 mt-1">
+                          View your company information
+                        </p>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-white/70">{companyName}</p>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="h-px bg-white/10" />
+                <div className="flex items-center gap-8">
+                  <div className="w-48 text-left">
+                    <p className="text-sm text-white/90 font-medium">Manage business</p>
+                    <p className="text-[11px] text-white/55 mt-1">
+                      To manage your installer business, go to the partner management page.
+                    </p>
+                  </div>
+                  <div className="flex-1">
+                    <Link
+                      to="/account/business"
+                      onClick={(e) => {
+                        if (!checkUnsavedChanges('/account/business')) {
+                          e.preventDefault()
+                        }
+                      }}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-4 py-2.5 text-[12px] font-nav font-bold uppercase tracking-[0.18em] text-white hover:bg-white/20 transition-colors"
+                    >
+                      Manage Business
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  </div>
                 </div>
-              </>
-            )}
-          </form>
+              </div>
+            </div>
+          )}
+
+          {/* Danger Zone Section */}
+          <div id="danger-zone-section">
+            <h2 className="text-xl font-semibold text-white mb-6 text-left">Danger Zone</h2>
+            <div className="space-y-6">
+              <div className="flex items-center gap-8">
+                <div className="w-48 text-left">
+                  <p className="text-sm text-white/90 font-medium">Delete Account</p>
+                  <p className="text-[11px] text-white/55 mt-1">
+                    Permanently delete your account
+                  </p>
+                </div>
+                  <div className="flex-1">
+                    <button
+                      type="button"
+                      onClick={handleDeleteAccount}
+                      className="inline-flex items-center justify-center rounded-xl border border-red-500/50 bg-red-500/20 px-4 py-2.5 text-[12px] font-nav font-bold uppercase tracking-[0.18em] text-red-300 hover:bg-red-500/30 transition-colors"
+                    >
+                      Delete Account
+                    </button>
+                  </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
   )
 }
-
