@@ -485,12 +485,46 @@ export function AccountSettings() {
 
   const handleGoogleConnect = async () => {
     if (googleConnected) {
-      // Cannot disconnect Google account easily - would need to link email/password first
-      setPasswordError('Please set a password before disconnecting Google account.')
+      // Disconnect Google account
+      if (!hasPassword) {
+        setPasswordError('Please set a password before disconnecting Google account.')
+        return
+      }
+
+      try {
+        setPasswordError(null)
+        setPasswordSuccess(null)
+
+        // Unlink the Google identity
+        const { error } = await supabase.auth.unlinkIdentity({ provider: 'google' })
+
+        if (error) {
+          setPasswordError(error.message || 'Failed to disconnect Google account.')
+          return
+        }
+
+        setPasswordSuccess('Google account disconnected successfully.')
+        
+        // Reload user identities to reflect changes
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const identities = user.identities || []
+          const isGoogleConnected = identities.some((identity: any) => identity.provider === 'google')
+          const hasEmailProvider = identities.some((identity: any) => identity.provider === 'email')
+          
+          setGoogleConnected(isGoogleConnected)
+          setEmailConnected(hasEmailProvider || !isGoogleConnected)
+          setHasPassword(hasEmailProvider || !isGoogleConnected)
+        }
+      } catch (err) {
+        setPasswordError(err instanceof Error ? err.message : 'Failed to disconnect Google account.')
+      }
       return
     }
 
+    // Connect Google account
     try {
+      setPasswordError(null)
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
