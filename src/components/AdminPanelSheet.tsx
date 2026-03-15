@@ -2,12 +2,21 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 
+interface AnnouncementSettings {
+  navbar_banner_text: string | null
+  navbar_banner_link: string | null
+  navbar_banner_enabled: boolean
+  featured_collection_name: string | null
+  featured_collection_description: string | null
+  featured_collection_image: string | null
+}
+
 interface AdminPanelSheetProps {
   isOpen: boolean
   onClose: () => void
 }
 
-export type AdminSection = 'stats' | 'partners' | 'notifications'
+export type AdminSection = 'stats' | 'partners' | 'notifications' | 'announcements'
 
 /** Contenu du panneau admin (stats, partners, notifications) réutilisable en page pleine. */
 export function AdminPanelContent({ section }: { section?: AdminSection }) {
@@ -61,6 +70,18 @@ export function AdminPanelContent({ section }: { section?: AdminSection }) {
                   <span>Notifications</span>
                   <span className="text-[9px] uppercase tracking-[0.18em] text-white/50">Broadcast</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSection('announcements')}
+                  className={`flex-1 inline-flex items-center justify-between rounded-2xl px-3 py-2 text-xs font-medium transition-colors ${
+                    activeSection === 'announcements'
+                      ? 'bg-white/15 text-white border border-white/50'
+                      : 'bg-white/[0.02] text-white/70 border border-white/[0.08] hover:bg-white/[0.08] hover:text-white'
+                  }`}
+                >
+                  <span>Announcements</span>
+                  <span className="text-[9px] uppercase tracking-[0.18em] text-white/50">Banner & Featured</span>
+                </button>
               </div>
             </div>
           </aside>
@@ -69,6 +90,7 @@ export function AdminPanelContent({ section }: { section?: AdminSection }) {
           {effectiveSection === 'stats' && <AdminStatsSection />}
           {effectiveSection === 'partners' && <AdminPartnersSection />}
           {effectiveSection === 'notifications' && <AdminNotificationsSection />}
+          {effectiveSection === 'announcements' && <AdminAnnouncementsSection />}
         </main>
       </div>
     </div>
@@ -736,6 +758,236 @@ function AdminNotificationsSection() {
           </button>
         </div>
       </form>
+    </section>
+  )
+}
+
+function AdminAnnouncementsSection() {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  
+  // Navbar Banner
+  const [bannerText, setBannerText] = useState('')
+  const [bannerLink, setBannerLink] = useState('')
+  const [bannerEnabled, setBannerEnabled] = useState(false)
+  
+  // Featured Collection
+  const [featuredName, setFeaturedName] = useState('')
+  const [featuredDescription, setFeaturedDescription] = useState('')
+  const [featuredImage, setFeaturedImage] = useState('')
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('site_settings')
+          .select('*')
+          .eq('key', 'announcements')
+          .single()
+
+        if (fetchError && fetchError.code !== 'PGRST116') {
+          console.error('Error loading settings:', fetchError)
+          setError('Failed to load settings.')
+          return
+        }
+
+        if (data?.value) {
+          const settings = data.value as AnnouncementSettings
+          setBannerText(settings.navbar_banner_text || '')
+          setBannerLink(settings.navbar_banner_link || '')
+          setBannerEnabled(settings.navbar_banner_enabled || false)
+          setFeaturedName(settings.featured_collection_name || '')
+          setFeaturedDescription(settings.featured_collection_description || '')
+          setFeaturedImage(settings.featured_collection_image || '')
+        }
+      } catch (err) {
+        console.error('Error loading settings:', err)
+        setError('Failed to load settings.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadSettings()
+  }, [])
+
+  const handleSave = async () => {
+    setError('')
+    setSuccess('')
+    setSaving(true)
+
+    try {
+      const settings: AnnouncementSettings = {
+        navbar_banner_text: bannerText.trim() || null,
+        navbar_banner_link: bannerLink.trim() || null,
+        navbar_banner_enabled: bannerEnabled,
+        featured_collection_name: featuredName.trim() || null,
+        featured_collection_description: featuredDescription.trim() || null,
+        featured_collection_image: featuredImage.trim() || null,
+      }
+
+      const { error: upsertError } = await supabase
+        .from('site_settings')
+        .upsert({
+          key: 'announcements',
+          value: settings,
+          updated_at: new Date().toISOString(),
+        })
+
+      if (upsertError) {
+        setError(upsertError.message || 'Failed to save settings.')
+        return
+      }
+
+      setSuccess('Settings saved successfully.')
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save settings.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <section className="rounded-3xl border border-white/[0.09] bg-white/[0.02] px-5 py-5 shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
+        <p className="text-white/60">Loading...</p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="rounded-3xl border border-white/[0.09] bg-white/[0.02] px-5 py-5 shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
+      <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55 mb-3">
+        Announcements
+      </p>
+      <p className="text-[12px] text-white/60 mb-6">
+        Manage the navbar banner and featured collection displayed in the shop menu.
+      </p>
+
+      {error && (
+        <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[12px] text-red-200">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-100">
+          {success}
+        </div>
+      )}
+
+      <div className="space-y-8">
+        {/* Navbar Banner */}
+        <div>
+          <h3 className="text-sm font-semibold text-white mb-4">Navbar Banner</h3>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="banner-enabled"
+                checked={bannerEnabled}
+                onChange={(e) => setBannerEnabled(e.target.checked)}
+                className="w-4 h-4 rounded border-white/30 bg-black/40 text-white focus:ring-white/50"
+              />
+              <label htmlFor="banner-enabled" className="text-sm text-white/80">
+                Enable banner
+              </label>
+            </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                Banner Text
+              </label>
+              <input
+                type="text"
+                value={bannerText}
+                onChange={(e) => setBannerText(e.target.value)}
+                className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
+                placeholder="e.g. New collection available now!"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                Banner Link (URL)
+              </label>
+              <input
+                type="url"
+                value={bannerLink}
+                onChange={(e) => setBannerLink(e.target.value)}
+                className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
+                placeholder="https://example.com"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Featured Collection */}
+        <div>
+          <h3 className="text-sm font-semibold text-white mb-4">Featured Collection</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                Collection Name
+              </label>
+              <input
+                type="text"
+                value={featuredName}
+                onChange={(e) => setFeaturedName(e.target.value)}
+                className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
+                placeholder="Featured Collection"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                Description
+              </label>
+              <textarea
+                value={featuredDescription}
+                onChange={(e) => setFeaturedDescription(e.target.value)}
+                rows={3}
+                className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60 resize-none"
+                placeholder="Découvrez notre sélection premium de produits haut de gamme"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                Image URL
+              </label>
+              <input
+                type="url"
+                value={featuredImage}
+                onChange={(e) => setFeaturedImage(e.target.value)}
+                className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
+                placeholder="https://example.com/image.jpg"
+              />
+              {featuredImage && (
+                <div className="mt-2">
+                  <img
+                    src={featuredImage}
+                    alt="Featured collection preview"
+                    className="w-20 h-24 object-cover rounded border border-white/20"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-4">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-full bg-white text-black px-4 py-2 text-[11px] font-nav uppercase tracking-[0.16em] hover:bg-silver disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Saving…' : 'Save Settings'}
+          </button>
+        </div>
+      </div>
     </section>
   )
 }

@@ -31,7 +31,7 @@ export function BusinessPage() {
   const [stats, setStats] = useState({ clients: 0, vehicles: 0, warranties: 0 })
   const isAdminPath = location.pathname.includes('/account/business/admin')
   const isClientsPath = location.pathname.includes('/account/business/clients')
-  const adminSection = location.pathname.includes('/admin/partners') ? 'partners' : location.pathname.includes('/admin/notifications') ? 'notifications' : 'stats'
+  const adminSection = location.pathname.includes('/admin/partners') ? 'partners' : location.pathname.includes('/admin/notifications') ? 'notifications' : location.pathname.includes('/admin/announcements') ? 'announcements' : 'stats'
 
   const [companyNameInput, setCompanyNameInput] = useState('')
   const [companyLogo, setCompanyLogo] = useState('')
@@ -278,6 +278,7 @@ export function BusinessPage() {
         { label: 'Stats', href: '/account/business/admin/stats', icon: <IconChartBar className="h-4 w-4 shrink-0 text-red-400" /> },
         { label: 'Partners', href: '/account/business/admin/partners', icon: <IconUsers className="h-4 w-4 shrink-0 text-red-400" /> },
         { label: 'Notifications', href: '/account/business/admin/notifications', icon: <IconBell className="h-4 w-4 shrink-0 text-red-400" /> },
+        { label: 'Announcements', href: '/account/business/admin/announcements', icon: <IconBell className="h-4 w-4 shrink-0 text-red-400" /> },
       ]
     : []
   const backLink = {

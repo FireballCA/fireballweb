@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useCart } from '@/context/CartContext'
 import { CATEGORIES } from '@/data/products'
 import { isAuthenticated } from '@/utils/supabaseAuth'
+import { supabase } from '@/lib/supabase'
 
 const CERAMIC_SECTIONS = [
   {
@@ -111,6 +112,77 @@ export function Header() {
   const isCoatingPage = location.pathname.startsWith('/coating')
   const [isHeaderVisible, setIsHeaderVisible] = useState(true)
   const lastScrollYRef = useRef(0)
+  
+  // Announcement settings
+  const [bannerText, setBannerText] = useState<string | null>(null)
+  const [bannerLink, setBannerLink] = useState<string | null>(null)
+  const [bannerEnabled, setBannerEnabled] = useState(false)
+  const [featuredName, setFeaturedName] = useState('Featured Collection')
+  const [featuredDescription, setFeaturedDescription] = useState('Découvrez notre sélection premium de produits haut de gamme')
+  const [featuredImage, setFeaturedImage] = useState<string | null>(null)
+
+  // Load announcement settings
+  useEffect(() => {
+    const loadAnnouncements = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'announcements')
+          .maybeSingle()
+
+        if (error) {
+          console.error('Error loading announcements:', error)
+          return
+        }
+
+        if (data?.value) {
+          const settings = data.value as any
+          console.log('Loaded announcement settings:', settings)
+          setBannerText(settings.navbar_banner_text || null)
+          setBannerLink(settings.navbar_banner_link || null)
+          setBannerEnabled(settings.navbar_banner_enabled || false)
+          
+          // Use the saved values, or fallback to defaults only if they are null/undefined
+          if (settings.featured_collection_name !== null && settings.featured_collection_name !== undefined) {
+            console.log('Setting featured name from DB:', settings.featured_collection_name)
+            setFeaturedName(settings.featured_collection_name)
+          } else {
+            console.log('Using default featured name')
+            setFeaturedName('Featured Collection')
+          }
+          
+          if (settings.featured_collection_description !== null && settings.featured_collection_description !== undefined) {
+            console.log('Setting featured description from DB:', settings.featured_collection_description)
+            setFeaturedDescription(settings.featured_collection_description)
+          } else {
+            console.log('Using default featured description')
+            setFeaturedDescription('Découvrez notre sélection premium de produits haut de gamme')
+          }
+          
+          setFeaturedImage(settings.featured_collection_image || null)
+        } else {
+          console.log('No announcement settings found in database, using defaults')
+        }
+      } catch (err) {
+        console.error('Error loading announcements:', err)
+      }
+    }
+
+    loadAnnouncements()
+    
+    // Subscribe to changes
+    const channel = supabase
+      .channel('announcements-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings', filter: 'key=eq.announcements' }, () => {
+        loadAnnouncements()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   useEffect(() => {
     const onScroll = () => {
@@ -211,24 +283,42 @@ export function Header() {
   }
 
   return (
-    <header
-      className={`${isProductPage || isCoatingPage ? 'sticky' : 'fixed'} top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
-        (isProductPage || isCoatingPage) && !isHeaderVisible ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
-      }`}
-      style={
-        menuOpen
-          ? {
-              ...(navBgStyle || {}),
-              backgroundColor: solidNavColor,
-              backdropFilter: 'none',
-            }
-          : navBgStyle
-      }
-    >
-      {anyMenuOpen && !menuOpen && (
-        <div className="fixed inset-0 z-40 bg-black/15 pointer-events-none" aria-hidden />
+    <>
+      {/* Navbar Banner */}
+      {bannerEnabled && bannerText && (
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-carbon-900 border-b border-carbon-800">
+          <div className="max-w-7xl mx-auto px-6 py-2">
+            {bannerLink ? (
+              <Link
+                to={bannerLink}
+                className="block text-center text-sm text-white/90 hover:text-white transition-colors"
+              >
+                {bannerText}
+              </Link>
+            ) : (
+              <p className="text-center text-sm text-white/90">{bannerText}</p>
+            )}
+          </div>
+        </div>
       )}
-      <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-20">
+      <header
+        className={`${isProductPage || isCoatingPage ? 'sticky' : 'fixed'} top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
+          (isProductPage || isCoatingPage) && !isHeaderVisible ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
+        } ${bannerEnabled && bannerText ? 'mt-[42px]' : ''}`}
+        style={
+          menuOpen
+            ? {
+                ...(navBgStyle || {}),
+                backgroundColor: solidNavColor,
+                backdropFilter: 'none',
+              }
+            : navBgStyle
+        }
+      >
+        {anyMenuOpen && !menuOpen && (
+          <div className="fixed inset-0 z-40 bg-black/15 pointer-events-none" aria-hidden />
+        )}
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-20">
         {/* Left: Logo + links */}
         <div className="flex items-center gap-10 h-full">
           <Link to="/" className="flex items-center h-12 w-auto select-none">
@@ -371,17 +461,28 @@ export function Header() {
                         {/* Section Image */}
                         <div className="min-w-[160px]">
                           <div className="h-24 w-20 bg-carbon-200 rounded mb-2.5 overflow-hidden">
-                            <div className="w-full h-full flex items-center justify-center text-carbon-400">
+                            {featuredImage ? (
+                              <img
+                                src={featuredImage}
+                                alt={featuredName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none'
+                                  e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                                }}
+                              />
+                            ) : null}
+                            <div className={`w-full h-full flex items-center justify-center text-carbon-400 ${featuredImage ? 'hidden' : ''}`}>
                               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
                             </div>
                           </div>
                           <h4 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">
-                            Featured Collection
+                            {featuredName}
                           </h4>
                           <p className="text-sm text-carbon-600 mb-2.5">
-                            Découvrez notre sélection premium de produits haut de gamme
+                            {featuredDescription}
                           </p>
                           <Link
                             to="/boutique"
@@ -1102,5 +1203,6 @@ export function Header() {
         </div>
       )}
     </header>
+    </>
   )
 }
