@@ -1,4 +1,24 @@
+import { useState } from 'react'
+
 export function PressKit() {
+  const [copiedHex, setCopiedHex] = useState<string | null>(null)
+
+  const handleCopyHex = (hex: string) => {
+    if (navigator && navigator.clipboard) {
+      navigator.clipboard
+        .writeText(hex)
+        .then(() => {
+          setCopiedHex(hex)
+          window.setTimeout(() => {
+            setCopiedHex((current) => (current === hex ? null : current))
+          }, 2000)
+        })
+        .catch((err) => {
+          console.error('Failed to copy colour hex', err)
+        })
+    }
+  }
+
   return (
     <div className="bg-white text-carbon-900 min-h-screen">
       {/* Hero / intro */}
@@ -44,11 +64,11 @@ export function PressKit() {
               </div>
               <div className="grid md:grid-cols-3 border border-carbon-900/10">
                 <div className="flex flex-col border-b md:border-b-0 md:border-r border-carbon-900/10">
-                  <div className="flex-1 flex items-center justify-center bg-white min-h-[160px] px-8">
+                <div className="flex-1 flex items-center justify-center bg-white min-h-[160px] px-8 select-none">
                     <img
                       src="/Assets/BrandKIT/Full Logo/Full Logo/Black/RBG (For Digital)/Logo_Black.svg"
                       alt="Fireball Logo – black on white"
-                      className="max-h-20 w-auto"
+                    className="max-h-20 w-auto pointer-events-none"
                     />
                   </div>
                   <div className="flex items-center justify-between px-4 py-3 border-t border-carbon-900/10 text-[11px]">
@@ -58,11 +78,11 @@ export function PressKit() {
                 </div>
 
                 <div className="flex flex-col border-b md:border-b-0 md:border-r border-carbon-900/10">
-                  <div className="flex-1 flex items-center justify-center bg-black min-h-[160px] px-8">
+                <div className="flex-1 flex items-center justify-center bg-black min-h-[160px] px-8 select-none">
                     <img
                       src="/Assets/BrandKIT/Full Logo/Full Logo/White/RBG (For Digital)/Logo_White.svg"
                       alt="Fireball Logo – white on black"
-                      className="max-h-20 w-auto"
+                    className="max-h-20 w-auto pointer-events-none"
                     />
                   </div>
                   <div className="flex items-center justify-between px-4 py-3 border-t border-carbon-900/10 text-[11px] bg-black">
@@ -72,11 +92,11 @@ export function PressKit() {
                 </div>
 
                 <div className="flex flex-col">
-                  <div className="flex-1 flex items-center justify-center bg-carbon-100 min-h-[160px] px-8">
+                  <div className="flex-1 flex items-center justify-center bg-carbon-100 min-h-[160px] px-8 select-none">
                     <img
                       src="/Assets/BrandKIT/Full Logo/Full Logo/White/RBG (For Digital)/Logo_Reverse.svg"
                       alt="Fireball Logo – reverse for imagery"
-                      className="max-h-20 w-auto"
+                      className="max-h-20 w-auto pointer-events-none"
                     />
                   </div>
                   <div className="flex items-center justify-between px-4 py-3 border-t border-carbon-900/10 text-[11px]">
@@ -95,11 +115,11 @@ export function PressKit() {
               </div>
               <div className="grid md:grid-cols-3 border border-carbon-900/10">
                 <div className="flex flex-col border-b md:border-b-0 md:border-r border-carbon-900/10">
-                  <div className="flex-1 flex items-center justify-center bg-white min-h-[140px]">
+                  <div className="flex-1 flex items-center justify-center bg-white min-h-[140px] select-none">
                     <img
                       src="/Assets/BrandKIT/Logo-Croped/Digitial (RGB)/Cropped Mark_Black.svg"
                       alt="Fireball Icon – black"
-                      className="max-h-14 w-auto"
+                      className="max-h-14 w-auto pointer-events-none"
                     />
                   </div>
                   <div className="flex items-center justify-between px-4 py-3 border-t border-carbon-900/10 text-[11px]">
@@ -108,11 +128,11 @@ export function PressKit() {
                   </div>
                 </div>
                 <div className="flex flex-col border-b md:border-b-0 md:border-r border-carbon-900/10">
-                  <div className="flex-1 flex items-center justify-center bg-black min-h-[140px]">
+                  <div className="flex-1 flex items-center justify-center bg-black min-h-[140px] select-none">
                     <img
                       src="/Assets/BrandKIT/Logo-Croped/Digitial (RGB)/Cropped Mark_White.svg"
                       alt="Fireball Icon – white"
-                      className="max-h-14 w-auto"
+                      className="max-h-14 w-auto pointer-events-none"
                     />
                   </div>
                   <div className="flex items-center justify-between px-4 py-3 border-t border-carbon-900/10 text-[11px] bg-black">
@@ -121,11 +141,11 @@ export function PressKit() {
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  <div className="flex-1 flex items-center justify-center bg-white min-h-[140px]">
+                  <div className="flex-1 flex items-center justify-center bg-white min-h-[140px] select-none">
                     <img
                       src="/Assets/BrandKIT/Logo-Croped/Digitial (RGB)/Cropped Mark_Red.svg"
                       alt="Fireball Icon – red"
-                      className="max-h-14 w-auto"
+                      className="max-h-14 w-auto pointer-events-none"
                     />
                   </div>
                   <div className="flex items-center justify-between px-4 py-3 border-t border-carbon-900/10 text-[11px]">
@@ -175,13 +195,50 @@ export function PressKit() {
                 role: 'Dark backgrounds and overlays.',
               },
             ].map((c) => (
-              <div key={c.name} className="border-r last:border-r-0 border-carbon-900/10">
-                <div className="h-28" style={{ background: c.hex }} />
+              <div key={c.name} className="border-r last:border-r-0 border-carbon-900/10 presskit-colour-card">
+                <div className="h-28 cursor-pointer" style={{ background: c.hex }} onClick={() => handleCopyHex(c.hex)} />
                 <div className="px-5 py-4 border-t border-carbon-900/10">
                   <div className="text-sm font-medium text-carbon-900 mb-1">{c.name}</div>
                   <div className="flex items-center gap-2 text-[11px] font-mono tracking-[0.18em] text-carbon-500">
                     <span className="w-2 h-2 rounded-full" style={{ background: c.hex }} />
                     {c.hex}
+                    <button
+                      type="button"
+                      className="colour-copy-btn flex items-center justify-center w-6 h-6 rounded border border-carbon-300/70 text-carbon-600 bg-white/80 hover:bg-white"
+                      onClick={() => handleCopyHex(c.hex)}
+                      aria-label={copiedHex === c.hex ? 'Copied' : 'Copy colour'}
+                    >
+                      {copiedHex === c.hex ? (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                      ) : (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
                   <div className="mt-2 text-[11px] text-carbon-500">{c.role}</div>
                 </div>
@@ -312,14 +369,14 @@ export function PressKit() {
             {[
               { bg: 'bg-black', label: 'Primary academy logo' },
               { bg: 'bg-[#24356E]', label: 'On Dark Nappa' },
-              { bg: 'bg-[#1266F0]', label: 'On Nappa Blue' },
+              { bg: 'bg-transparent', label: 'Transparent' },
             ].map((item) => (
-              <div key={item.label} className="border-b md:border-b-0 md:border-r last:border-r-0 border-white/10 flex flex-col">
+              <div key={item.label} className="border-b md:border-b-0 md:border-r last:border-r-0 border-white/10 flex flex-col select-none">
                 <div className={`flex-1 flex items-center justify-center px-8 py-12 min-h-[160px] ${item.bg}`}>
                   <img
                     src="/Assets/BrandKIT/Academy/Fireball Academy.png"
                     alt="Fireball Academy"
-                    className="max-h-20 w-auto"
+                    className="max-h-20 w-auto pointer-events-none"
                   />
                 </div>
                 <div className="flex items-center justify-between px-4 py-3 border-t border-white/10 text-[11px] bg-black">
@@ -337,13 +394,50 @@ export function PressKit() {
               { name: 'Fireball Red', hex: '#9C1B30' },
               { name: 'Black', hex: '#000000' },
             ].map((c) => (
-              <div key={c.name} className="border-b md:border-b-0 md:border-r last:border-r-0 border-white/10">
-                <div className="h-24" style={{ background: c.hex }} />
+              <div key={c.name} className="border-b md:border-b-0 md:border-r last:border-r-0 border-white/10 presskit-colour-card">
+                <div className="h-24 cursor-pointer" style={{ background: c.hex }} onClick={() => handleCopyHex(c.hex)} />
                 <div className="px-4 py-4 border-t border-white/10">
                   <div className="text-sm font-medium text-white/80 mb-1">{c.name}</div>
                   <div className="flex items-center gap-2 text-[11px] font-mono tracking-[0.18em] text-white/40">
                     <span className="w-2 h-2 rounded-full" style={{ background: c.hex }} />
                     {c.hex}
+                    <button
+                      type="button"
+                      className="colour-copy-btn flex items-center justify-center w-6 h-6 rounded border border-white/30 text-white/70 bg-white/5 hover:bg-white/10"
+                      onClick={() => handleCopyHex(c.hex)}
+                      aria-label={copiedHex === c.hex ? 'Copied' : 'Copy colour'}
+                    >
+                      {copiedHex === c.hex ? (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                      ) : (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
                   <div className="mt-2 text-[11px] text-white/30">
                     Academy palette colour.
@@ -372,12 +466,6 @@ export function PressKit() {
               className="inline-flex items-center gap-2 px-6 py-3 rounded-md bg-carbon-900 text-white text-xs font-semibold uppercase tracking-[0.18em] hover:bg-red-700 transition-colors"
             >
               Download ZIP
-            </a>
-            <a
-              href="#"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-md border border-carbon-300 text-xs font-semibold uppercase tracking-[0.18em] text-carbon-900 hover:border-carbon-900 transition-colors"
-            >
-              View brand guidelines
             </a>
           </div>
         </div>

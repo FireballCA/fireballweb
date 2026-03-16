@@ -36,7 +36,6 @@ const COMPANY_SECTIONS: Array<{
     links: [
       { label: 'Open FIREBALL Center', to: '/join-fireball' },
       { label: 'Merch', to: '/boutique' },
-      { label: 'Press kit', to: '/press-kit' },
       { label: 'Awards', href: '#' },
       { label: 'About us', to: '/about' },
     ],
@@ -46,6 +45,7 @@ const COMPANY_SECTIONS: Array<{
     description: 'Media & direct contact',
     links: [
       { label: 'Contact us', to: '/contact' },
+      { label: 'Press kit', to: '/press-kit' },
       { label: 'Legal', to: '/legal' },
     ],
   },
@@ -459,7 +459,7 @@ export function Header() {
                         </div>
 
                         {/* Section Image */}
-                        <div className="min-w-[160px]">
+                        <div className="min-w-[160px] max-w-[220px]">
                           <div className="h-24 w-20 bg-carbon-200 rounded mb-2.5 overflow-hidden">
                             {featuredImage ? (
                               <img
@@ -481,7 +481,7 @@ export function Header() {
                           <h4 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">
                             {featuredName}
                           </h4>
-                          <p className="text-sm text-carbon-600 mb-2.5">
+                          <p className="text-sm text-carbon-600 mb-2.5 featured-description">
                             {featuredDescription}
                           </p>
                           <Link

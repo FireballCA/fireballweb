@@ -11,7 +11,6 @@ import {
   IconChevronRight,
   IconBell,
 } from '@tabler/icons-react'
-import { Sidebar, SidebarBody, SidebarLink, useSidebar } from '@/components/ui/sidebar'
 import { AdminPanelContent } from '@/components/AdminPanelSheet'
 import { BusinessClientsPage } from '@/pages/business/BusinessClientsPage'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
@@ -24,7 +23,6 @@ type View = 'loading' | 'denied' | 'form' | 'dashboard'
 export function BusinessPage() {
   const location = useLocation()
   const [view, setView] = useState<View>('loading')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [userDisplayName, setUserDisplayName] = useState('')
   const [companyName, setCompanyName] = useState('')
@@ -258,7 +256,7 @@ export function BusinessPage() {
     )
   }
 
-  const iconClass = 'h-5 w-5 shrink-0 text-white/80'
+  const iconClass = 'h-5 w-5 shrink-0'
   const mainLinks = [
     { label: 'Statistics', href: '/account/business', icon: <IconChartBar className={iconClass} /> },
     { label: 'Clients', href: '/account/business/clients', icon: <IconUsers className={iconClass} /> },
@@ -291,32 +289,90 @@ export function BusinessPage() {
   return (
     <div
       className={cn(
-        'business-layout flex w-full flex-1 flex-col overflow-hidden md:flex-row',
-        'h-[calc(100vh-5rem)] min-h-[calc(100vh-5rem)] bg-[#0f0f0f]'
+        'business-layout flex w-full flex-1 overflow-hidden',
+        'h-[calc(100vh-5rem)] min-h-[calc(100vh-5rem)] bg-[#F6F8FD]'
       )}
     >
-      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen}>
-        <SidebarBody className="h-full justify-between gap-10 bg-[#0f0f0f] dark:bg-[#0f0f0f] px-4">
-          <BusinessSidebarContent
-            mainLinks={mainLinks}
-            adminSubLinks={adminSubLinks}
-            backLink={backLink}
-            userDisplayName={userDisplayName}
-            initialLetter={initialLetter}
+      {/* Purity-like sidebar */}
+      <aside className="hidden md:flex flex-col w-64 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.08)]">
+        <div className="flex items-center px-6 pt-6 pb-4 border-b border-slate-100">
+          <img
+            src="/Assets/FireballBuisness B.png"
+            alt="Fireball Business"
+            className="h-8 w-auto object-contain max-w-[180px]"
           />
-        </SidebarBody>
-      </Sidebar>
-      <div className="flex flex-1 min-h-0 bg-[#0f0f0f]">
-        <div className="flex h-full min-h-full w-full flex-1 flex-col gap-6 rounded-tl-2xl border border-white/10 bg-[#0f0f0f] p-6 md:p-10 overflow-auto">
+        </div>
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          <p className="px-3 mb-2 text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
+            Main
+          </p>
+          <div className="space-y-1">
+            {mainLinks.map((link) => (
+              <Link
+                key={link.href}
+                to={link.href}
+                className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+              >
+                {link.icon}
+                <span>{link.label}</span>
+              </Link>
+            ))}
+          </div>
+          {adminSubLinks.length > 0 && (
+            <>
+              <p className="px-3 mt-6 mb-2 text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
+                Admin
+              </p>
+              <div className="space-y-1">
+                {adminSubLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                  >
+                    {link.icon}
+                    <span>{link.label}</span>
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+        </nav>
+        <div className="border-t border-slate-100 px-4 py-4">
+          <Link
+            to={backLink.href}
+            className="flex items-center justify-between rounded-xl bg-slate-900 px-3 py-3 text-sm font-medium text-white hover:bg-black transition-colors"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#4318FF] text-sm font-semibold text-white">
+                {initialLetter}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-sm">{userDisplayName || 'Account'}</p>
+                <p className="truncate text-[11px] text-slate-300">Back to main dashboard</p>
+              </div>
+            </div>
+            <IconChevronRight className="h-4 w-4 shrink-0 text-slate-200" />
+          </Link>
+        </div>
+      </aside>
+
+      {/* Main content area */}
+      <div className="flex flex-1 min-h-0 bg-[#F6F8FD]">
+        <div className="flex h-full min-h-full w-full flex-1 flex-col gap-6 rounded-tl-3xl border border-slate-100 bg-white p-6 md:p-10 overflow-auto shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
           {isAdminPath ? (
             <>
               {!isAdmin ? (
                 <Navigate to="/account/business" replace />
               ) : (
                 <>
-                  <div>
-                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-red-400/90">Admin</p>
-                    <h1 className="text-2xl font-semibold text-white">Admin panel</h1>
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-[#4318FF]">
+                        Admin
+                      </p>
+                      <h1 className="text-2xl font-semibold text-slate-900 mt-1">Admin panel</h1>
+                    </div>
                   </div>
                   <AdminPanelContent section={adminSection} />
                 </>
@@ -326,22 +382,208 @@ export function BusinessPage() {
             <BusinessClientsPage />
           ) : (
             <>
-              <div>
-                <h1 className="text-2xl font-semibold text-white">Welcome back, {companyName || 'Partner'}</h1>
-                <p className="text-sm text-white/55 mt-1">Here’s your business overview.</p>
+              {/* Header */}
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                <div>
+                  <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-slate-400">
+                    Overview
+                  </p>
+                  <h1 className="mt-1 text-2xl md:text-3xl font-semibold text-slate-900">
+                    {companyName || 'Your business dashboard'}
+                  </h1>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Track your clients, vehicles and warranties in one place.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Link
+                    to="/account/business/clients"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <IconUsers className="h-4 w-4" />
+                    View clients
+                  </Link>
+                  <Link
+                    to="/account/business/settings"
+                    className="inline-flex items-center gap-2 rounded-full bg-[#4318FF] text-white px-4 py-2 text-sm font-semibold hover:bg-[#3312C8] transition-colors"
+                  >
+                    <IconSettings className="h-4 w-4" />
+                    Business settings
+                  </Link>
+                </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm px-5 py-4 shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
-                  <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-white/50 mb-1">Total clients</p>
-                  <p className="text-2xl font-semibold text-white">{stats.clients}</p>
+
+              {/* Top stats cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+                  <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                    Total clients
+                  </p>
+                  <p className="text-3xl font-semibold text-slate-900">{stats.clients}</p>
+                  <p className="mt-1 text-xs text-slate-500">All customers linked to your installer account.</p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm px-5 py-4 shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
-                  <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-white/50 mb-1">Vehicles registered</p>
-                  <p className="text-2xl font-semibold text-white">{stats.vehicles}</p>
+                <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+                  <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                    Vehicles registered
+                  </p>
+                  <p className="text-3xl font-semibold text-slate-900">{stats.vehicles}</p>
+                  <p className="mt-1 text-xs text-slate-500">Vehicles with a Fireball protection attached.</p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm px-5 py-4 shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
-                  <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-white/50 mb-1">Active warranties</p>
-                  <p className="text-2xl font-semibold text-white">{stats.warranties}</p>
+                <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+                  <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                    Active warranties
+                  </p>
+                  <p className="text-3xl font-semibold text-slate-900">{stats.warranties}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Protection programs currently active for your clients.
+                  </p>
+                </div>
+              </div>
+
+              {/* Mid row - charts & secondary cards (Purity-style layout) */}
+              <div className="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-6">
+                {/* Sales / performance chart */}
+                <div className="xl:col-span-2 rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
+                        Business performance
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-slate-800">
+                        Estimated jobs completed over the last months
+                      </p>
+                    </div>
+                    <select className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 focus:outline-none">
+                      <option>Last 6 months</option>
+                      <option>Last 12 months</option>
+                    </select>
+                  </div>
+                  {/* Simple SVG line chart placeholder to mimic Purity layout */}
+                  <div className="mt-2 h-56 w-full rounded-xl bg-slate-50 flex items-center justify-center text-xs text-slate-400">
+                    Business chart coming soon
+                  </div>
+                </div>
+
+                {/* Right mini cards column */}
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-2">
+                      Conversion
+                    </p>
+                    <p className="text-3xl font-semibold text-slate-900">–</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Percentage of business leads that become active Fireball clients.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-2">
+                      Activity score
+                    </p>
+                    <p className="text-3xl font-semibold text-slate-900">–</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      We’ll surface a simple score once more data is connected.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Main content grid */}
+              <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left column: activity / clients */}
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
+                          Recent activity
+                        </p>
+                        <p className="mt-1 text-sm text-slate-600">
+                          Latest movements across your clients, vehicles and warranties.
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-[#4318FF]/10 px-3 py-1 text-xs font-medium text-[#4318FF]">
+                        Live sync
+                      </span>
+                    </div>
+                    <div className="mt-3 space-y-2 text-sm text-slate-600">
+                      <p className="text-slate-400 text-xs">
+                        Real activity feed will appear here as we connect more business data.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
+                        Client overview
+                      </p>
+                      <Link
+                        to="/account/business/clients"
+                        className="text-xs font-medium text-[#4318FF] hover:text-[#3312C8] transition-colors"
+                      >
+                        Open clients
+                      </Link>
+                    </div>
+                    <p className="text-sm text-slate-600">
+                      Use the Clients section to search, edit and manage all your Fireball customers.
+                    </p>
+                  </div>
+
+                  {/* Projects / jobs table placeholder */}
+                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
+                        Recent jobs
+                      </p>
+                      <span className="text-xs font-medium text-slate-500">Coming soon</span>
+                    </div>
+                    <div className="border border-dashed border-slate-200 rounded-xl px-4 py-6 text-center text-sm text-slate-500">
+                      When Fireball job data is connected, you’ll see your latest coatings, inspections and
+                      warranty activations here.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right column: quick links / resources */}
+                <div className="space-y-6">
+                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-2">
+                      Quick actions
+                    </p>
+                    <div className="space-y-2 text-sm">
+                      <Link
+                        to="/account/business/clients"
+                        className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-slate-700 hover:bg-slate-100 transition-colors"
+                      >
+                        <span>Add / manage clients</span>
+                        <IconChevronRight className="h-4 w-4 text-slate-400" />
+                      </Link>
+                      <Link
+                        to="/account/business/settings"
+                        className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-slate-700 hover:bg-slate-100 transition-colors"
+                      >
+                        <span>Update business profile</span>
+                        <IconChevronRight className="h-4 w-4 text-slate-400" />
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-100 bg-[#1B2559] px-5 py-4 shadow-md">
+                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-white/70 mb-2">
+                      Fireball resources
+                    </p>
+                    <p className="text-sm text-white/80 mb-3">
+                      Access technical documents, application guides and marketing assets from the Fireball
+                      network.
+                    </p>
+                    <Link
+                      to="/join-fireball"
+                      className="inline-flex items-center gap-1.5 text-xs font-nav font-bold uppercase text-white/90 hover:text-white transition-colors"
+                    >
+                      Open network portal
+                      <IconChevronRight className="h-3 w-3" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             </>
@@ -351,69 +593,3 @@ export function BusinessPage() {
     </div>
   )
 }
-
-interface BusinessSidebarContentProps {
-  mainLinks: Array<{ label: string; href: string; icon: React.ReactNode }>
-  adminSubLinks: Array<{ label: string; href: string; icon: React.ReactNode }>
-  backLink: { label: string; href: string; icon: React.ReactNode }
-  userDisplayName: string
-  initialLetter: string
-}
-
-function BusinessSidebarContent({
-  mainLinks,
-  adminSubLinks,
-  backLink,
-  userDisplayName,
-  initialLetter,
-}: BusinessSidebarContentProps) {
-  const { open } = useSidebar()
-  return (
-    <>
-      <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
-        <Link to="/" className="flex items-center py-1 shrink-0">
-          <img
-            src="/Assets/Logo-FireballBuisness.png"
-            alt="Fireball Business"
-            className="h-8 w-auto object-contain max-w-[180px]"
-          />
-        </Link>
-        <div className="mt-8 flex flex-col gap-2">
-          {mainLinks.map((link, idx) => (
-            <SidebarLink key={idx} link={link} />
-          ))}
-          {open && adminSubLinks.length > 0 && (
-            <div className="ml-2 mt-1 flex flex-col gap-1 border-l border-red-400/30 pl-3">
-              {adminSubLinks.map((link, idx) => (
-                <SidebarLink key={`admin-${idx}`} link={link} />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        {open && (
-          <Link
-            to="/account/dashboard"
-            className="flex flex-row items-center gap-[13px] rounded-[14px] bg-white px-4 py-0 text-black min-h-[77px] w-[268px] min-w-[268px] shrink-0"
-          >
-            <div className="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-full bg-[#0A84FF] text-xl font-medium text-white">
-              {initialLetter}
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-0.5 py-2">
-              <span className="truncate font-['SF_Pro_Display',sans-serif] text-[22px] leading-7 tracking-[0.35px] text-black">
-                {userDisplayName || 'Account'}
-              </span>
-              <span className="truncate font-['SF_Pro_Text',sans-serif] text-[13px] leading-[18px] tracking-[-0.078px] text-black/80">
-                Account, Business & Purchases
-              </span>
-            </div>
-            <IconChevronRight className="h-4 w-4 shrink-0 text-black/40" />
-          </Link>
-        )}
-        <SidebarLink link={backLink} />
-      </div>
-    </>
-  )
-}
-
