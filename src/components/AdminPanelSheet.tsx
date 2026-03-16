@@ -281,34 +281,88 @@ function AdminStatsSection() {
     }
   }, [])
 
+  const totalForRatio = Math.max(counts.total, 1)
+  const pendingPct = Math.round((counts.pending / totalForRatio) * 100)
+  const approvedPct = Math.round((counts.partner / totalForRatio) * 100)
+  const declinedPct = Math.round((counts.declined / totalForRatio) * 100)
+
   return (
-    <section className="rounded-3xl border border-white/[0.09] bg-white/[0.02] px-5 py-5 shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
-      <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55 mb-3">
-        Stats
-      </p>
+    <section className="rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-slate-500">
+            Partner applications
+          </p>
+          <p className="text-sm text-slate-600 mt-1">
+            Overview of installer applications by status.
+          </p>
+        </div>
+      </div>
+
       {error && (
-        <div className="mb-3 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[12px] text-red-200">
+        <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700">
           {error}
         </div>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="rounded-2xl border border-white/[0.12] bg-white/[0.04] px-4 py-3">
-          <p className="text-[11px] uppercase tracking-[0.16em] text-white/50 mb-1">Total applications</p>
-          <p className="text-2xl font-semibold text-white">{loading ? '—' : counts.total}</p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500 mb-1">Total applications</p>
+          <p className="text-2xl font-semibold text-slate-900">{loading ? '—' : counts.total}</p>
         </div>
-        <div className="rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-3">
-          <p className="text-[11px] uppercase tracking-[0.16em] text-amber-200/80 mb-1">Pending</p>
-          <p className="text-2xl font-semibold text-amber-100">{loading ? '—' : counts.pending}</p>
+        <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
+          <p className="text-[11px] uppercase tracking-[0.16em] text-amber-600 mb-1">Pending</p>
+          <p className="text-2xl font-semibold text-amber-900">{loading ? '—' : counts.pending}</p>
         </div>
-        <div className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-4 py-3">
-          <p className="text-[11px] uppercase tracking-[0.16em] text-emerald-200/80 mb-1">Approved</p>
-          <p className="text-2xl font-semibold text-emerald-100">{loading ? '—' : counts.partner}</p>
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+          <p className="text-[11px] uppercase tracking-[0.16em] text-emerald-600 mb-1">Approved</p>
+          <p className="text-2xl font-semibold text-emerald-900">{loading ? '—' : counts.partner}</p>
         </div>
-        <div className="rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3">
-          <p className="text-[11px] uppercase tracking-[0.16em] text-red-200/80 mb-1">Declined</p>
-          <p className="text-2xl font-semibold text-red-100">{loading ? '—' : counts.declined}</p>
+        <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+          <p className="text-[11px] uppercase tracking-[0.16em] text-red-600 mb-1">Declined</p>
+          <p className="text-2xl font-semibold text-red-900">{loading ? '—' : counts.declined}</p>
         </div>
       </div>
+
+      {/* Simple ratio bar chart */}
+      {!loading && counts.total > 0 && (
+        <div className="space-y-2">
+          <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
+            Distribution
+          </p>
+          <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden flex">
+            <div
+              className="h-full bg-amber-400"
+              style={{ width: `${pendingPct}%` }}
+              aria-label="Pending"
+            />
+            <div
+              className="h-full bg-emerald-500"
+              style={{ width: `${approvedPct}%` }}
+              aria-label="Approved"
+            />
+            <div
+              className="h-full bg-red-500"
+              style={{ width: `${declinedPct}%` }}
+              aria-label="Declined"
+            />
+          </div>
+          <div className="flex flex-wrap gap-4 text-[11px] text-slate-600 mt-1">
+            <span>
+              <span className="inline-block w-2 h-2 rounded-full bg-amber-400 mr-1" />
+              Pending {pendingPct}%
+            </span>
+            <span>
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1" />
+              Approved {approvedPct}%
+            </span>
+            <span>
+              <span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1" />
+              Declined {declinedPct}%
+            </span>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
@@ -973,21 +1027,77 @@ function AdminAnnouncementsSection() {
             </div>
             <div>
               <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
-                Image URL
+                Image
               </label>
               <input
                 type="url"
                 value={featuredImage}
                 onChange={(e) => setFeaturedImage(e.target.value)}
-                className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
-                placeholder="https://example.com/image.jpg"
+                className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60 mb-3"
+                placeholder="https://example.com/image.jpg (optional if you upload below)"
               />
+              <div className="flex items-center gap-3">
+                <label className="inline-flex items-center gap-2 rounded-xl border border-white/[0.25] bg-black/40 px-3 py-2 text-[12px] text-white/80 cursor-pointer hover:bg-black/60 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+
+                      setError('')
+                      setSuccess('')
+                      try {
+                        const {
+                          data: { user },
+                          error: userError,
+                        } = await supabase.auth.getUser()
+
+                        if (userError || !user) {
+                          throw new Error('Session expired. Please sign in again.')
+                        }
+
+                        const fileExt = file.name.split('.').pop()
+                        const fileName = `featured-${user.id}-${Date.now()}.${fileExt}`
+                        const filePath = `featured-collections/${fileName}`
+
+                        const { error: uploadError } = await supabase.storage
+                          .from('assets')
+                          .upload(filePath, file, { upsert: true })
+
+                        if (uploadError) throw uploadError
+
+                        const { data } = supabase.storage.from('assets').getPublicUrl(filePath)
+                        if (!data?.publicUrl) throw new Error('Unable to get public URL for image.')
+
+                        setFeaturedImage(data.publicUrl)
+                        setSuccess('Image uploaded successfully. Don’t forget to save settings.')
+                      } catch (err) {
+                        console.error('Error uploading featured image:', err)
+                        setError(
+                          err instanceof Error
+                            ? err.message
+                            : 'Unable to upload image. Please try again.',
+                        )
+                      } finally {
+                        // allow re-selecting same file
+                        e.target.value = ''
+                      }
+                    }}
+                  />
+                  <span>Upload image from your computer</span>
+                </label>
+                {featuredImage && (
+                  <span className="text-[11px] text-white/60 truncate max-w-[140px]">Image selected</span>
+                )}
+              </div>
               {featuredImage && (
                 <div className="mt-2">
                   <img
                     src={featuredImage}
                     alt="Featured collection preview"
-                    className="w-20 h-24 object-cover rounded border border-white/20"
+                    className="w-32 h-auto object-cover rounded border border-white/20"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none'
                     }}

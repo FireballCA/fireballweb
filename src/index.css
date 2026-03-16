@@ -102,7 +102,7 @@
   @apply bg-blue-500/35 text-white;
 }
 
-/* Subtle scrollbar */
+/* Subtle scrollbar (global, dark pages) */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -114,6 +114,50 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-carbon-500;
+}
+
+/* Business dashboard scroll area – pale, inset scrollbar */
+.business-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #D4D7E2 transparent;
+}
+
+.business-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.business-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.business-scroll::-webkit-scrollbar-thumb {
+  background-color: #D4D7E2;
+  border-radius: 9999px;
+  border: 2px solid transparent; /* create small inset so scrollbar is a few px smaller than container */
+  background-clip: padding-box;
+}
+
+.business-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #C5C9DA;
+}
+
+/* Hide native window scrollbar inside business layout, keep only inner custom one */
+.business-layout {
+  scrollbar-width: none;
+}
+
+.business-layout::-webkit-scrollbar {
+  display: none;
+}
+
+/* Remove up/down buttons on custom scrollbar (where present) */
+.business-scroll::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Sidebar nav scroll (business) – remove arrows */
+.business-sidebar-scroll::-webkit-scrollbar-button {
+  display: none;
 }
 
 .loader-logo-light-pass {
