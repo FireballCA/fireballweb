@@ -303,6 +303,25 @@
   max-width: 560px;
 }
 
+/* Clamp long featured description in shop mega menu */
+.featured-description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+/* Press kit colour copy button */
+.presskit-colour-card .colour-copy-btn {
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity .2s ease, transform .2s ease;
+}
+.presskit-colour-card:hover .colour-copy-btn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* Mobile burger menu (Uiverse / Cevorob, adapté en blanc) */
 .fb-burger {
   position: relative;

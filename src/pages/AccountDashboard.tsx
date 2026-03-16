@@ -564,6 +564,7 @@ export function AccountDashboard() {
   const [enterButtonVisible, setEnterButtonVisible] = useState(false)
   const [showDashboard, setShowDashboard] = useState(false)
   const [isEnteringDashboard, setIsEnteringDashboard] = useState(false)
+  const [dashboardDataLoaded, setDashboardDataLoaded] = useState(false)
   const [carModalOpen, setCarModalOpen] = useState(false)
   const [productsPurchasedOpen, setProductsPurchasedOpen] = useState(false)
   const [adminPanelOpen, setAdminPanelOpen] = useState(false)
@@ -815,6 +816,8 @@ export function AccountDashboard() {
         }
       }
 
+      setDashboardDataLoaded(true)
+
       const shouldShowWelcome = state?.fromRegister === true && Boolean(state.welcomeName)
       if (!shouldShowWelcome) {
         setShowDashboard(true)
@@ -1033,7 +1036,7 @@ export function AccountDashboard() {
 
   return (
     <section className="relative min-h-screen bg-[#0a0a0a] text-pearl">
-      {isEnteringDashboard && (
+      {(!dashboardDataLoaded || isEnteringDashboard) && (
         <div className="fixed inset-0 z-[135]">
           <FireballLoading />
         </div>

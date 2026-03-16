@@ -611,9 +611,6 @@ export function AccountSettings() {
 
   return (
     <section className="relative min-h-screen bg-[#0a0a0a] text-white">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
-      </div>
 
       {/* Unsaved Changes Modal */}
       {showUnsavedModal && unsavedChanges && (
@@ -660,7 +657,7 @@ export function AccountSettings() {
 
       <div className="relative z-10 max-w-[1000px] mx-auto px-6 md:px-10 lg:px-16 py-12">
         {/* Fixed Header Section */}
-        <div className="mb-12 text-center">
+        <div className="mb-12 text-left">
           {/* Title */}
           <div className="mb-6">
             <h1 className="text-3xl md:text-4xl lg:text-[40px] font-semibold tracking-[-0.03em]" style={{ color: '#FDFDFD' }}>
@@ -669,7 +666,7 @@ export function AccountSettings() {
           </div>
 
           {/* Description and Search */}
-          <div className="flex flex-col items-center gap-4 mb-8">
+          <div className="flex flex-col items-start gap-4 mb-8">
             <p className="text-sm text-white/65 max-w-xl">
               Settings and preference for your application.
             </p>
@@ -718,32 +715,27 @@ export function AccountSettings() {
           </div>
 
           {/* Business Management Block (Fixed) */}
-          <div
-            className="rounded-3xl border border-white/15 bg-white/[0.04] px-5 md:px-7 py-6 mb-8 shadow-[0_22px_55px_rgba(0,0,0,0.6)] mx-auto max-w-2xl"
-            style={{
-              backdropFilter: 'blur(24px)',
-              WebkitBackdropFilter: 'blur(24px)',
-            }}
-          >
+          <div className="rounded-2xl border border-white/5 px-5 md:px-7 py-6 mb-8 mx-auto max-w-2xl bg-transparent">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-white/90 mb-1">
-                  To manage your business
+                  Are you a business owner?
                 </p>
                 <p className="text-[11px] text-white/55">
-                  Business management is done on another page.
+                  Submit your application and start scaling your business
                 </p>
               </div>
               <Link
-                to="/account/business"
+                to="/account/company"
                 onClick={(e) => {
-                  if (!checkUnsavedChanges('/account/business')) {
+                  if (!checkUnsavedChanges('/account/company')) {
                     e.preventDefault()
                   }
                 }}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-5 py-2.5 text-[12px] font-nav font-bold uppercase tracking-[0.18em] text-white hover:bg-white/20 transition-colors"
+                className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-medium text-white whitespace-nowrap hover:opacity-90 active:scale-[0.98] transition-all"
+                style={{ backgroundColor: '#9C1B30' }}
               >
-                Manage Business
+                Manage my business
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
@@ -799,7 +791,7 @@ export function AccountSettings() {
                 <button
                   type="submit"
                   disabled={savingProfile || !hasProfileChanges}
-                  className={`group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#FF6363] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                  className={`group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#9C1B30] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                     !hasProfileChanges ? 'opacity-0 pointer-events-none' : 'opacity-100'
                   }`}
                 >
@@ -886,7 +878,7 @@ export function AccountSettings() {
                 <button
                   type="submit"
                   disabled={savingSecurity || !hasSecurityChanges}
-                  className={`group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#FF6363] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                  className={`group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#9C1B30] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                     !hasSecurityChanges ? 'opacity-0 pointer-events-none' : 'opacity-100'
                   }`}
                 >
@@ -996,7 +988,7 @@ export function AccountSettings() {
                   type="button"
                   onClick={handleSaveNotifications}
                   disabled={savingNotifications || !hasNotificationsChanges}
-                  className={`group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#FF6363] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                  className={`group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#9C1B30] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                     !hasNotificationsChanges ? 'opacity-0 pointer-events-none' : 'opacity-100'
                   }`}
                 >
@@ -1119,7 +1111,7 @@ export function AccountSettings() {
                           type="button"
                           onClick={handleSetPasswordForGoogleAccount}
                           disabled={settingPassword || !passwordForGoogleAccount || passwordForGoogleAccount.length < 6}
-                          className="group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#FF6363] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                          className="group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#9C1B30] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           Set password
                           <svg className="w-4 h-4 transform -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1180,30 +1172,6 @@ export function AccountSettings() {
                 )}
 
                 <div className="h-px bg-white/10" />
-                <div className="flex items-center gap-8">
-                  <div className="w-48 text-left">
-                    <p className="text-sm text-white/90 font-medium">Manage business</p>
-                    <p className="text-[11px] text-white/55 mt-1">
-                      To manage your installer business, go to the partner management page.
-                    </p>
-                  </div>
-                  <div className="flex-1">
-                    <Link
-                      to="/account/business"
-                      onClick={(e) => {
-                        if (!checkUnsavedChanges('/account/business')) {
-                          e.preventDefault()
-                        }
-                      }}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-4 py-2.5 text-[12px] font-nav font-bold uppercase tracking-[0.18em] text-white hover:bg-white/20 transition-colors"
-                    >
-                      Manage Business
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </Link>
-                  </div>
-                </div>
               </div>
             </div>
           )}
