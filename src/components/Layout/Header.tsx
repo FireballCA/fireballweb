@@ -36,6 +36,7 @@ const COMPANY_SECTIONS: Array<{
     links: [
       { label: 'Open FIREBALL Center', to: '/join-fireball' },
       { label: 'Merch', to: '/boutique' },
+      { label: 'Press kit', to: '/press-kit' },
       { label: 'Awards', href: '#' },
       { label: 'About us', to: '/about' },
     ],
@@ -45,7 +46,6 @@ const COMPANY_SECTIONS: Array<{
     description: 'Media & direct contact',
     links: [
       { label: 'Contact us', to: '/contact' },
-      { label: 'Press kit', href: '#' },
       { label: 'Legal', to: '/legal' },
     ],
   },

@@ -7,6 +7,7 @@ import { PartnerRoute } from '@/components/PartnerRoute'
 import { Home } from '@/pages/Home'
 import { Shop } from '@/pages/Shop'
 import { About } from '@/pages/About'
+import { PressKit } from '@/pages/PressKit'
 import { Product } from '@/pages/Product'
 import { Cart } from '@/pages/Cart'
 import { Account } from '@/pages/Account'
@@ -43,6 +44,7 @@ function App() {
             {/* Routes directes pour les catégories (doivent être après les routes spécifiques) */}
             <Route path=":categoryId" element={<Shop />} />
             <Route path="about" element={<About />} />
+            <Route path="press-kit" element={<PressKit />} />
             <Route path="panier" element={<Cart />} />
             <Route path="car-club" element={<CarClub />} />
             <Route path="contact" element={<Contact />} />
