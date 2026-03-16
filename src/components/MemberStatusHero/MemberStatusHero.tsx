@@ -100,7 +100,7 @@ export function MemberStatusHero({
 
       {/* Manage Business — desktop only */}
       <Link
-        to={normalizedPartnerStatus === 'partner' ? '/account/business' : '/account/company'}
+        to={normalizedPartnerStatus === 'partner' ? '/business' : '/account/company'}
         className="hidden lg:flex items-center justify-between absolute z-20 text-white text-[13px] leading-[16px] px-3 h-[34px] rounded-[6px] w-[240px] transition-colors hover:brightness-125"
         style={{
           background: '#96182c',
@@ -156,7 +156,7 @@ export function MemberStatusHero({
         </div>
 
         <Link
-          to={normalizedPartnerStatus === 'partner' ? '/account/business' : '/account/company'}
+          to={normalizedPartnerStatus === 'partner' ? '/business' : '/account/company'}
           className="flex items-center justify-between text-white text-[13px] leading-[16px] px-3 h-[34px] rounded-[6px] w-[240px] transition-colors hover:brightness-125"
           style={{ background: '#96182c', fontWeight: 400 }}
         >

@@ -9,6 +9,7 @@ const navItems = [
   { to: '/partner/dashboard/clients', end: false, label: 'Clients' },
   { to: '/partner/dashboard/vehicles', end: false, label: 'Vehicles' },
   { to: '/partner/dashboard/warranties', end: false, label: 'Warranty Registrations' },
+  { to: '/partner/dashboard/stats', end: false, label: 'Statistics' },
   { to: '/partner/dashboard/certification', end: false, label: 'Certification' },
   { to: '/partner/dashboard/settings', end: false, label: 'Settings' },
 ]

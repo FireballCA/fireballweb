@@ -8,7 +8,10 @@ export function Layout() {
     location.pathname === '/compte' ||
     location.pathname === '/account' ||
     location.pathname === '/account/register'
-  const isAnyAccountPage = location.pathname === '/compte' || location.pathname.startsWith('/account')
+  const isAnyAccountPage =
+    location.pathname === '/compte' ||
+    location.pathname.startsWith('/account') ||
+    location.pathname.startsWith('/business')
   const showHeader = !isAccountAuthPage
   const showFooter = !isAnyAccountPage
 

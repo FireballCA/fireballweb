@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import {
   IconArrowLeft,
@@ -20,15 +20,394 @@ import { cn } from '@/lib/utils'
 
 type View = 'loading' | 'denied' | 'form' | 'dashboard'
 
+type TimeRange = '30d' | '90d' | '12m' | 'all'
+
+interface ClientRow {
+  id: string
+  full_name: string
+  email: string
+  created_at: string
+}
+
+interface VehicleRow {
+  id: string
+  client_id: string
+  brand: string
+  model: string
+  year: number
+  created_at: string
+}
+
+interface WarrantyRow {
+  id: string
+  client_id: string
+  vehicle_id: string
+  product_used: string
+  installation_date: string
+  created_at: string
+}
+
+interface ActivityEvent {
+  id: string
+  type: 'client' | 'vehicle' | 'installation'
+  label: string
+  date: Date
+  meta?: string
+}
+
+function parseDate(value: string | null | undefined): Date | null {
+  if (!value) return null
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+function isSameMonth(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()
+}
+
+function monthKey(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth() + 1}`
+}
+
+function formatMonthLabel(d: Date): string {
+  return d.toLocaleDateString('fr-CA', { month: 'short', year: 'numeric' })
+}
+
+function formatShortDate(d: Date | null): string {
+  if (!d) return '-'
+  return d.toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function getTimeRangeStart(range: TimeRange): Date | null {
+  const now = new Date()
+  if (range === 'all') return null
+  const d = new Date(now)
+  if (range === '30d') {
+    d.setDate(d.getDate() - 30)
+  } else if (range === '90d') {
+    d.setDate(d.getDate() - 90)
+  } else if (range === '12m') {
+    d.setMonth(d.getMonth() - 11)
+    d.setDate(1)
+  }
+  return d
+}
+
+function buildMonthlySeries(
+  dates: Date[],
+  range: TimeRange,
+): { label: string; key: string; count: number }[] {
+  if (!dates.length) return []
+  const now = new Date()
+  const start = getTimeRangeStart(range)
+  const buckets = new Map<string, { label: string; count: number }>()
+
+  const sourceDates =
+    range === '12m'
+      ? (() => {
+          const arr: Date[] = []
+          const cursor = start ? new Date(start) : new Date(now.getFullYear(), now.getMonth() - 11, 1)
+          for (let i = 0; i < 12; i += 1) {
+            arr.push(new Date(cursor.getFullYear(), cursor.getMonth() + i, 1))
+          }
+          return arr
+        })()
+      : dates
+
+  sourceDates.forEach((d) => {
+    if (start && d < start) return
+    if (d > now) return
+    const key = monthKey(d)
+    if (!buckets.has(key)) {
+      buckets.set(key, { label: formatMonthLabel(d), count: 0 })
+    }
+  })
+
+  dates.forEach((d) => {
+    if (start && d < start) return
+    if (d > now) return
+    const key = monthKey(d)
+    const existing = buckets.get(key)
+    if (existing) existing.count += 1
+  })
+
+  return Array.from(buckets.entries())
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([key, value]) => ({ key, label: value.label, count: value.count }))
+}
+
+function buildBrandDistribution(vehicles: VehicleRow[]): { label: string; count: number }[] {
+  const map = new Map<string, number>()
+  vehicles.forEach((v) => {
+    const brand = (v.brand || 'Autre').trim() || 'Autre'
+    map.set(brand, (map.get(brand) ?? 0) + 1)
+  })
+  return Array.from(map.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+}
+
+function buildYearDistribution(vehicles: VehicleRow[]): { label: string; count: number }[] {
+  const map = new Map<number, number>()
+  vehicles.forEach((v) => {
+    if (!v.year) return
+    map.set(v.year, (map.get(v.year) ?? 0) + 1)
+  })
+  return Array.from(map.entries())
+    .map(([year, count]) => ({ label: String(year), count }))
+    .sort((a, b) => Number(a.label) - Number(b.label))
+}
+
+function buildProductStats(warranties: WarrantyRow[]) {
+  const map = new Map<
+    string,
+    {
+      product: string
+      installations: number
+      vehicleIds: Set<string>
+    }
+  >()
+  warranties.forEach((w) => {
+    const name = (w.product_used || 'Autre produit').trim() || 'Autre produit'
+    const key = name.toLowerCase()
+    const entry = map.get(key) ?? { product: name, installations: 0, vehicleIds: new Set<string>() }
+    entry.installations += 1
+    if (w.vehicle_id) entry.vehicleIds.add(w.vehicle_id)
+    map.set(key, entry)
+  })
+  const list = Array.from(map.values()).map((p) => ({
+    product: p.product,
+    installations: p.installations,
+    vehiclesProtected: p.vehicleIds.size,
+  }))
+  const totalInstallations = list.reduce((sum, p) => sum + p.installations, 0) || 1
+  return {
+    list: list
+      .map((p) => ({
+        ...p,
+        percentage: (p.installations / totalInstallations) * 100,
+      }))
+      .sort((a, b) => b.installations - a.installations),
+    totalInstallations,
+  }
+}
+
+function buildClientInstallationStats(
+  clients: ClientRow[],
+  vehicles: VehicleRow[],
+  warranties: WarrantyRow[],
+) {
+  const vehiclesByClient = new Map<string, VehicleRow[]>()
+  vehicles.forEach((v) => {
+    if (!v.client_id) return
+    const arr = vehiclesByClient.get(v.client_id) ?? []
+    arr.push(v)
+    vehiclesByClient.set(v.client_id, arr)
+  })
+
+  const warrantiesByClient = new Map<string, WarrantyRow[]>()
+  warranties.forEach((w) => {
+    if (!w.client_id) return
+    const arr = warrantiesByClient.get(w.client_id) ?? []
+    arr.push(w)
+    warrantiesByClient.set(w.client_id, arr)
+  })
+
+  const rows = clients.map((c) => {
+    const clientVehicles = vehiclesByClient.get(c.id) ?? []
+    const clientInstalls = warrantiesByClient.get(c.id) ?? []
+    const lastService = clientInstalls
+      .map((w) => parseDate(w.installation_date))
+      .filter((d): d is Date => !!d)
+      .sort((a, b) => b.getTime() - a.getTime())[0] ?? null
+    return {
+      client: c,
+      vehicles: clientVehicles,
+      installations: clientInstalls,
+      lastService,
+    }
+  })
+
+  return {
+    rows,
+    topClients: [...rows]
+      .filter((r) => r.installations.length > 0)
+      .sort((a, b) => b.installations.length - a.installations.length)
+      .slice(0, 8),
+  }
+}
+
+function buildActivityFeed(
+  clients: ClientRow[],
+  vehicles: VehicleRow[],
+  warranties: WarrantyRow[],
+  clientById: Map<string, ClientRow>,
+  vehicleById: Map<string, VehicleRow>,
+): ActivityEvent[] {
+  const events: ActivityEvent[] = []
+  clients.forEach((c) => {
+    const d = parseDate(c.created_at)
+    if (!d) return
+    events.push({
+      id: `client-${c.id}`,
+      type: 'client',
+      label: `Nouveau client ajouté · ${c.full_name}`,
+      date: d,
+    })
+  })
+  vehicles.forEach((v) => {
+    const d = parseDate(v.created_at)
+    if (!d) return
+    const client = clientById.get(v.client_id)
+    events.push({
+      id: `vehicle-${v.id}`,
+      type: 'vehicle',
+      label: `Véhicule ajouté · ${v.brand} ${v.model}`,
+      date: d,
+      meta: client ? client.full_name : undefined,
+    })
+  })
+  warranties.forEach((w) => {
+    const d = parseDate(w.installation_date) ?? parseDate(w.created_at)
+    if (!d) return
+    const vehicle = vehicleById.get(w.vehicle_id)
+    const client = w.client_id ? clientById.get(w.client_id) : undefined
+    const vehicleLabel = vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Véhicule'
+    const product = w.product_used || 'Produit Fireball'
+    events.push({
+      id: `installation-${w.id}`,
+      type: 'installation',
+      label: `${product} installé sur ${vehicleLabel}`,
+      date: d,
+      meta: client?.full_name,
+    })
+  })
+  return events.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 30)
+}
+
+function SimpleBarChart({ data }: { data: { label: string; count: number }[] }) {
+  const max = data.reduce((m, d) => (d.count > m ? d.count : m), 0) || 1
+  return (
+    <div className="space-y-2">
+      {data.length === 0 && <p className="text-xs text-slate-400">Pas encore de données.</p>}
+      {data.map((d) => (
+        <div key={d.label} className="flex items-center gap-3">
+          <div className="w-28 text-[11px] text-slate-500 truncate">{d.label}</div>
+          <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[#0A84FF] to-[#FF375F]"
+              style={{ width: `${(d.count / max) * 100}%` }}
+            />
+          </div>
+          <div className="w-10 text-right text-[11px] text-slate-600">{d.count}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SimpleAreaChart({ data }: { data: { label: string; count: number }[] }) {
+  const max = data.reduce((m, d) => (d.count > m ? d.count : m), 0) || 1
+  return (
+    <div className="h-44 relative">
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-slate-50 via-white to-white pointer-events-none" />
+      <div className="absolute inset-3 flex items-end gap-2">
+        {data.map((d) => (
+          <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
+            <div
+              className="w-full rounded-full bg-gradient-to-t from-[#0A84FF] to-[#FF375F]"
+              style={{ height: `${(d.count / max) * 100 || 4}%` }}
+            />
+            <span className="mt-1 text-[10px] text-slate-400 truncate">{d.label}</span>
+          </div>
+        ))}
+      </div>
+      {data.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <p className="text-xs text-slate-400">Pas encore de données.</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SimpleDonutChart({ data }: { data: { label: string; value: number }[] }) {
+  const total = data.reduce((sum, d) => sum + d.value, 0) || 1
+  let cumulative = 0
+  const segments = data.map((d, index) => {
+    const start = cumulative / total
+    const length = d.value / total
+    cumulative += d.value
+    const strokeDasharray = `${length * 100} ${100 - length * 100}`
+    const strokeDashoffset = -start * 100
+    const colors = ['#0A84FF', '#FF375F', '#32D74B', '#FF9F0A', '#BF5AF2', '#64D2FF']
+    const color = colors[index % colors.length]
+    return { label: d.label, value: d.value, strokeDasharray, strokeDashoffset, color }
+  })
+
+  return (
+    <div className="flex items-center gap-6">
+      <svg viewBox="0 0 36 36" className="w-28 h-28 -rotate-90">
+        <circle
+          cx="18"
+          cy="18"
+          r="14"
+          fill="transparent"
+          stroke="rgba(148,163,184,0.3)"
+          strokeWidth="4"
+        />
+        {segments.map((s) => (
+          <circle
+            key={s.label}
+            cx="18"
+            cy="18"
+            r="14"
+            fill="transparent"
+            stroke={s.color}
+            strokeWidth="4"
+            strokeDasharray={s.strokeDasharray}
+            strokeDashoffset={s.strokeDashoffset}
+            strokeLinecap="round"
+          />
+        ))}
+      </svg>
+      <div className="flex-1 space-y-1.5">
+        {data.length === 0 && <p className="text-xs text-slate-400">Pas encore de données.</p>}
+        {segments.map((s) => {
+          const percent = (s.value / total) * 100
+          return (
+            <div key={s.label} className="flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block h-2 w-2 rounded-full"
+                  style={{ backgroundColor: s.color }}
+                />
+                <span className="text-slate-700">{s.label}</span>
+              </div>
+              <span className="text-slate-500">{percent.toFixed(1)}%</span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export function BusinessPage() {
   const location = useLocation()
   const [view, setView] = useState<View>('loading')
+  const [timeRange, setTimeRange] = useState<TimeRange>('12m')
   const [isAdmin, setIsAdmin] = useState(false)
   const [userDisplayName, setUserDisplayName] = useState('')
   const [companyName, setCompanyName] = useState('')
   const [stats, setStats] = useState({ clients: 0, vehicles: 0, warranties: 0 })
-  const isAdminPath = location.pathname.includes('/account/business/admin')
-  const isClientsPath = location.pathname.includes('/account/business/clients')
+  const [clients, setClients] = useState<ClientRow[]>([])
+  const [vehicles, setVehicles] = useState<VehicleRow[]>([])
+  const [warranties, setWarranties] = useState<WarrantyRow[]>([])
+  const isAdminPath =
+    location.pathname.includes('/business/admin') || location.pathname.includes('/account/business/admin')
+  const isClientsPath =
+    location.pathname.includes('/business/clients') || location.pathname.includes('/account/business/clients')
   const adminSection = location.pathname.includes('/admin/partners') ? 'partners' : location.pathname.includes('/admin/notifications') ? 'notifications' : location.pathname.includes('/admin/announcements') ? 'announcements' : 'stats'
 
   const [companyNameInput, setCompanyNameInput] = useState('')
@@ -39,6 +418,8 @@ export function BusinessPage() {
   const [description, setDescription] = useState('')
   const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState('')
+  const [showQuickActions, setShowQuickActions] = useState(true)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -98,10 +479,13 @@ export function BusinessPage() {
         setPhone(row.phone || '')
         setWebsite(row.website || '')
         setDescription(row.description || '')
-        const [cRes, vRes, wRes] = await Promise.all([
+        const [cRes, vRes, wRes, clientsRes, vehiclesRes, warrantiesRes] = await Promise.all([
           supabase.from('partner_clients').select('id', { count: 'exact', head: true }).eq('partner_id', row.id),
           supabase.from('partner_vehicles').select('id', { count: 'exact', head: true }).eq('partner_id', row.id),
           supabase.from('partner_warranties').select('id', { count: 'exact', head: true }).eq('partner_id', row.id),
+          supabase.from('partner_clients').select('id,full_name,email,created_at').eq('partner_id', row.id),
+          supabase.from('partner_vehicles').select('id,client_id,brand,model,year,created_at').eq('partner_id', row.id),
+          supabase.from('partner_warranties').select('id,client_id,vehicle_id,product_used,installation_date,created_at').eq('partner_id', row.id),
         ])
         if (mounted) {
           setStats({
@@ -109,6 +493,9 @@ export function BusinessPage() {
             vehicles: vRes.count ?? 0,
             warranties: wRes.count ?? 0,
           })
+          setClients((clientsRes.data ?? []) as ClientRow[])
+          setVehicles((vehiclesRes.data ?? []) as VehicleRow[])
+          setWarranties((warrantiesRes.data ?? []) as WarrantyRow[])
         }
         setView('dashboard')
       } else {
@@ -123,6 +510,274 @@ export function BusinessPage() {
     load()
     return () => { mounted = false }
   }, [])
+  const clientById = useMemo(
+    () => new Map(clients.map((c) => [c.id, c] as const)),
+    [clients],
+  )
+  const vehicleById = useMemo(
+    () => new Map(vehicles.map((v) => [v.id, v] as const)),
+    [vehicles],
+  )
+
+  const installationDates = useMemo(
+    () =>
+      warranties
+        .map((w) => parseDate(w.installation_date))
+        .filter((d): d is Date => !!d),
+    [warranties],
+  )
+  const clientCreatedDates = useMemo(
+    () =>
+      clients
+        .map((c) => parseDate(c.created_at))
+        .filter((d): d is Date => !!d),
+    [clients],
+  )
+  const vehicleCreatedDates = useMemo(
+    () =>
+      vehicles
+        .map((v) => parseDate(v.created_at))
+        .filter((d): d is Date => !!d),
+    [vehicles],
+  )
+
+  const now = new Date()
+  const thisMonthInstallations = installationDates.filter((d) => isSameMonth(d, now)).length
+  const thisYearInstallations = installationDates.filter(
+    (d) => d.getFullYear() === now.getFullYear(),
+  ).length
+  const thisMonthClients = clientCreatedDates.filter((d) => isSameMonth(d, now)).length
+  const thisMonthVehicles = vehicleCreatedDates.filter((d) => isSameMonth(d, now)).length
+
+  const vehicleIdsWithInstall = useMemo(() => {
+    const s = new Set<string>()
+    warranties.forEach((w) => {
+      if (w.vehicle_id) s.add(w.vehicle_id)
+    })
+    return s
+  }, [warranties])
+
+  const warrantiesByClient = useMemo(() => {
+    const map = new Map<string, WarrantyRow[]>()
+    warranties.forEach((w) => {
+      if (!w.client_id) return
+      const arr = map.get(w.client_id) ?? []
+      arr.push(w)
+      map.set(w.client_id, arr)
+    })
+    return map
+  }, [warranties])
+
+  const vehiclesByClient = useMemo(() => {
+    const map = new Map<string, VehicleRow[]>()
+    vehicles.forEach((v) => {
+      if (!v.client_id) return
+      const arr = map.get(v.client_id) ?? []
+      arr.push(v)
+      map.set(v.client_id, arr)
+    })
+    return map
+  }, [vehicles])
+
+  const totalClients = clients.length
+  const totalVehicles = vehicles.length
+  const totalInstallations = warranties.length
+  const protectedVehiclesCount = vehicles.filter((v) => vehicleIdsWithInstall.has(v.id)).length
+
+  const avgInstallsPerClient = totalClients ? totalInstallations / totalClients : 0
+  const avgVehiclesPerClient = totalClients ? totalVehicles / totalClients : 0
+
+  const clientsWithInstalls = Array.from(warrantiesByClient.values()).filter(
+    (arr) => arr.length > 0,
+  )
+  const returningClientsCount = clientsWithInstalls.filter((arr) => arr.length >= 2).length
+  const returningClientsRate =
+    clientsWithInstalls.length === 0
+      ? 0
+      : (returningClientsCount / clientsWithInstalls.length) * 100
+
+  const installsPerClient = clients.map((c) => warrantiesByClient.get(c.id)?.length ?? 0)
+  const installsPerClientWithMultiple = installsPerClient.filter((n) => n >= 2)
+
+  let avgTimeBetweenServicesDays = 0
+  if (clientsWithInstalls.length > 0) {
+    const diffs: number[] = []
+    warrantiesByClient.forEach((list) => {
+      const dates = list
+        .map((w) => parseDate(w.installation_date))
+        .filter((d): d is Date => !!d)
+        .sort((a, b) => a.getTime() - b.getTime())
+      for (let i = 1; i < dates.length; i += 1) {
+        const diffDays = (dates[i].getTime() - dates[i - 1].getTime()) / (1000 * 60 * 60 * 24)
+        if (diffDays > 0) diffs.push(diffDays)
+      }
+    })
+    if (diffs.length > 0) {
+      avgTimeBetweenServicesDays = diffs.reduce((sum, d) => sum + d, 0) / diffs.length
+    }
+  }
+
+  const monthlyInstallationsSeries = useMemo(
+    () => buildMonthlySeries(installationDates, timeRange),
+    [installationDates, timeRange],
+  )
+  const monthlyClientsSeries = useMemo(
+    () => buildMonthlySeries(clientCreatedDates, timeRange),
+    [clientCreatedDates, timeRange],
+  )
+  const monthlyVehiclesSeries = useMemo(
+    () => buildMonthlySeries(vehicleCreatedDates, timeRange),
+    [vehicleCreatedDates, timeRange],
+  )
+
+  const weeklyInstallationsSeries = useMemo(() => {
+    const map = new Map<string, number>()
+    warranties.forEach((w) => {
+      const d = parseDate(w.installation_date)
+      if (!d) return
+      const start = getTimeRangeStart('90d')
+      if (start && d < start) return
+      const weekStart = new Date(d)
+      const day = weekStart.getDay()
+      const diff = (day + 6) % 7
+      weekStart.setDate(weekStart.getDate() - diff)
+      const key = weekStart.toISOString().slice(0, 10)
+      map.set(key, (map.get(key) ?? 0) + 1)
+    })
+    const entries = Array.from(map.entries())
+      .map(([key, count]) => ({
+        key,
+        date: new Date(key),
+        count,
+      }))
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+    return entries.map((e) => ({
+      label: e.date.toLocaleDateString('fr-CA', { month: 'short', day: 'numeric' }),
+      count: e.count,
+    }))
+  }, [warranties])
+
+  const monthsSpan =
+    installationDates.length === 0
+      ? 0
+      : (() => {
+          const sorted = [...installationDates].sort(
+            (a, b) => a.getTime() - b.getTime(),
+          )
+          const first = sorted[0]
+          const last = sorted[sorted.length - 1]
+          return (
+            (last.getFullYear() - first.getFullYear()) * 12 +
+            (last.getMonth() - first.getMonth()) +
+            1
+          )
+        })()
+  const avgInstallationsPerMonth = monthsSpan ? totalInstallations / monthsSpan : 0
+
+  const productStats = useMemo(() => buildProductStats(warranties), [warranties])
+
+  const brandDistributionAll = useMemo(
+    () => buildBrandDistribution(vehicles),
+    [vehicles],
+  )
+  const brandDistributionProtected = useMemo(
+    () => buildBrandDistribution(vehicles.filter((v) => vehicleIdsWithInstall.has(v.id))),
+    [vehicles, vehicleIdsWithInstall],
+  )
+  const yearDistribution = useMemo(
+    () => buildYearDistribution(vehicles),
+    [vehicles],
+  )
+
+  const { rows: clientRows, topClients } = useMemo(
+    () => buildClientInstallationStats(clients, vehicles, warranties),
+    [clients, vehicles, warranties],
+  )
+
+  const recentClients = [...clients]
+    .sort((a, b) => {
+      const da = parseDate(a.created_at)?.getTime() ?? 0
+      const db = parseDate(b.created_at)?.getTime() ?? 0
+      return db - da
+    })
+    .slice(0, 8)
+
+  const recentInstallations = [...warranties]
+    .sort((a, b) => {
+      const da = parseDate(a.installation_date)?.getTime() ?? 0
+      const db = parseDate(b.installation_date)?.getTime() ?? 0
+      return db - da
+    })
+    .slice(0, 10)
+
+  const activityFeed = useMemo(
+    () => buildActivityFeed(clients, vehicles, warranties, clientById, vehicleById),
+    [clients, vehicles, warranties, clientById, vehicleById],
+  )
+
+  const mostActiveClient = topClients[0] ?? null
+
+  const installsByVehicle = useMemo(() => {
+    const m = new Map<string, number>()
+    warranties.forEach((w) => {
+      if (!w.vehicle_id) return
+      m.set(w.vehicle_id, (m.get(w.vehicle_id) ?? 0) + 1)
+    })
+    return m
+  }, [warranties])
+
+  const mostServicedVehicle = (() => {
+    let bestId: string | null = null
+    let bestCount = 0
+    installsByVehicle.forEach((count, vid) => {
+      if (count > bestCount) {
+        bestCount = count
+        bestId = vid
+      }
+    })
+    return bestId ? { vehicle: vehicleById.get(bestId) ?? null, count: bestCount } : null
+  })()
+
+  const mostInstalledProduct = productStats.list[0] ?? null
+  const leastInstalledProduct =
+    productStats.list.length > 0 ? productStats.list[productStats.list.length - 1] : null
+
+  const installsByMonth = monthlyInstallationsSeries
+  const mostActiveMonth =
+    installsByMonth.length > 0
+      ? installsByMonth.reduce(
+          (best, cur) => (cur.count > best.count ? cur : best),
+          installsByMonth[0],
+        )
+      : null
+
+  const protectionCoverageRate =
+    totalVehicles === 0 ? 0 : (protectedVehiclesCount / totalVehicles) * 100
+
+  const productUsageForPie = useMemo(() => {
+    const groups = ['Typhoon', "Devil's Blood", 'Butterfly', 'Dok Do'] as const
+    const map = new Map<string, number>()
+    warranties.forEach((w) => {
+      const name = (w.product_used || '').toLowerCase()
+      let key = 'Autres produits'
+      if (name.includes('typhoon')) key = 'Typhoon'
+      else if (name.includes('devil')) key = "Devil's Blood"
+      else if (name.includes('butterfly')) key = 'Butterfly'
+      else if (name.includes('dok do') || name.includes('dokdo')) key = 'Dok Do'
+      map.set(key, (map.get(key) ?? 0) + 1)
+    })
+    const data: { label: string; value: number }[] = []
+    groups.forEach((g) => {
+      const v = map.get(g)
+      if (v) data.push({ label: g, value: v })
+    })
+    const other = map.get('Autres produits')
+    if (other) data.push({ label: 'Autres produits Fireball', value: other })
+    return data
+  }, [warranties])
+
+  const formatNumber = (n: number) =>
+    Number.isFinite(n) ? n.toLocaleString('fr-CA', { maximumFractionDigits: 1 }) : '0'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -162,8 +817,75 @@ export function BusinessPage() {
     setFormLoading(false)
   }
 
+  // Cacher la barre quick actions seulement tout en bas de la section
+  useEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+
+    const onScroll = () => {
+      const { scrollTop, clientHeight, scrollHeight } = el
+      const nearBottomThreshold = 4
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - nearBottomThreshold
+      setShowQuickActions(!isAtBottom)
+    }
+
+    onScroll()
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      el.removeEventListener('scroll', onScroll)
+    }
+  }, [])
+
   if (view === 'loading') return <FireballLoading />
   if (view === 'denied') return <Navigate to="/account/dashboard" replace />
+
+  const handleHeaderImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setFormError('')
+    setFormLoading(true)
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+
+      if (userError || !user) {
+        throw new Error('Session expired. Please sign in again.')
+      }
+
+      const fileExt = file.name.split('.').pop()
+      const fileName = `header-${user.id}-${Date.now()}.${fileExt}`
+      const filePath = `${user.id}/${fileName}`
+
+      const { error: uploadError } = await supabase.storage.from('business-assets').upload(filePath, file, {
+        upsert: true,
+      })
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      const { data } = supabase.storage.from('business-assets').getPublicUrl(filePath)
+      if (!data?.publicUrl) {
+        throw new Error('Unable to get public URL for image.')
+      }
+
+      setCompanyLogo(data.publicUrl)
+    } catch (err) {
+      console.error('Error uploading header image:', err)
+      setFormError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to upload image. Please try again or contact support.',
+      )
+    } finally {
+      setFormLoading(false)
+      // reset file input so same file can be selected again if needed
+      e.target.value = ''
+    }
+  }
 
   if (view === 'form') {
     return (
@@ -192,7 +914,9 @@ export function BusinessPage() {
                 />
               </div>
               <div>
-                <label className="block text-white/70 text-xs mb-2 font-medium">Logo URL (optional)</label>
+                <label className="block text-white/70 text-xs mb-2 font-medium">
+                  Header image URL (16:9, optional)
+                </label>
                 <input
                   type="url"
                   value={companyLogo}
@@ -200,6 +924,22 @@ export function BusinessPage() {
                   className="w-full rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none transition-all bg-[#121212] border border-[#1a1a1a] focus:bg-[#1a1a1a] focus:border-[#444]"
                   placeholder="https://..."
                 />
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <label className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-[#121212] px-3 py-2 text-xs text-white/80 cursor-pointer hover:bg-[#1a1a1a] transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleHeaderImageUpload}
+                    />
+                    <span>Upload header image</span>
+                  </label>
+                  {companyLogo && (
+                    <span className="text-[11px] text-white/50 truncate max-w-[180px]">
+                      Image set
+                    </span>
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-white/70 text-xs mb-2 font-medium">Address</label>
@@ -258,25 +998,25 @@ export function BusinessPage() {
 
   const iconClass = 'h-5 w-5 shrink-0'
   const mainLinks = [
-    { label: 'Statistics', href: '/account/business', icon: <IconChartBar className={iconClass} /> },
-    { label: 'Clients', href: '/account/business/clients', icon: <IconUsers className={iconClass} /> },
-    { label: 'Technical Library', href: '/account/business/library', icon: <IconBook className={iconClass} /> },
-    { label: 'Pro Shop', href: '/account/business/shop', icon: <IconShoppingBag className={iconClass} /> },
-    { label: 'Business Settings', href: '/account/business/settings', icon: <IconSettings className={iconClass} /> },
+    { label: 'Statistics', href: '/business', icon: <IconChartBar className={iconClass} /> },
+    { label: 'Clients', href: '/business/clients', icon: <IconUsers className={iconClass} /> },
+    { label: 'Technical Library', href: '/business/library', icon: <IconBook className={iconClass} /> },
+    { label: 'Pro Shop', href: '/business/shop', icon: <IconShoppingBag className={iconClass} /> },
+    { label: 'Business Settings', href: '/business/settings', icon: <IconSettings className={iconClass} /> },
   ]
   if (isAdmin) {
     mainLinks.push({
       label: 'Admin',
-      href: '/account/business/admin',
+      href: '/business/admin',
       icon: <IconShieldLock className="h-5 w-5 shrink-0 text-red-400" />,
     })
   }
   const adminSubLinks = isAdmin
     ? [
-        { label: 'Stats', href: '/account/business/admin/stats', icon: <IconChartBar className="h-4 w-4 shrink-0 text-red-400" /> },
-        { label: 'Partners', href: '/account/business/admin/partners', icon: <IconUsers className="h-4 w-4 shrink-0 text-red-400" /> },
-        { label: 'Notifications', href: '/account/business/admin/notifications', icon: <IconBell className="h-4 w-4 shrink-0 text-red-400" /> },
-        { label: 'Announcements', href: '/account/business/admin/announcements', icon: <IconBell className="h-4 w-4 shrink-0 text-red-400" /> },
+        { label: 'Stats', href: '/business/admin/stats', icon: <IconChartBar className="h-4 w-4 shrink-0 text-red-400" /> },
+        { label: 'Partners', href: '/business/admin/partners', icon: <IconUsers className="h-4 w-4 shrink-0 text-red-400" /> },
+        { label: 'Notifications', href: '/business/admin/notifications', icon: <IconBell className="h-4 w-4 shrink-0 text-red-400" /> },
+        { label: 'Announcements', href: '/business/admin/announcements', icon: <IconBell className="h-4 w-4 shrink-0 text-red-400" /> },
       ]
     : []
   const backLink = {
@@ -290,7 +1030,7 @@ export function BusinessPage() {
     <div
       className={cn(
         'business-layout flex w-full flex-1 overflow-hidden',
-        'h-[calc(100vh-5rem)] min-h-[calc(100vh-5rem)] bg-[#F6F8FD]'
+        'h-[calc(100vh-5rem)] min-h-[calc(100vh-5rem)] bg-white'
       )}
     >
       {/* Purity-like sidebar */}
@@ -302,7 +1042,7 @@ export function BusinessPage() {
             className="h-8 w-auto object-contain max-w-[180px]"
           />
         </div>
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className="business-sidebar-scroll flex-1 overflow-y-auto px-3 py-4">
           <p className="px-3 mb-2 text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
             Main
           </p>
@@ -358,15 +1098,18 @@ export function BusinessPage() {
       </aside>
 
       {/* Main content area */}
-      <div className="flex flex-1 min-h-0 bg-[#F6F8FD]">
-        <div className="flex h-full min-h-full w-full flex-1 flex-col gap-6 rounded-tl-3xl border border-slate-100 bg-white p-6 md:p-10 overflow-auto shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
-          {isAdminPath ? (
-            <>
-              {!isAdmin ? (
-                <Navigate to="/account/business" replace />
+      <div className="flex flex-1 min-h-0 bg-white">
+        <div className="flex h-full min-h-full w-full flex-1 p-4 md:p-6">
+          <div
+            ref={scrollContainerRef}
+            className="business-scroll relative z-10 flex flex-1 flex-col gap-6 rounded-3xl border border-slate-100 bg-white p-6 pb-6 md:p-10 md:pb-10 overflow-auto shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
+          >
+            {isAdminPath ? (
+              !isAdmin ? (
+                <Navigate to="/business" replace />
               ) : (
-                <>
-                  <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col gap-6">
+                  <div className="flex items-center justify-between mb-2">
                     <div>
                       <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-[#4318FF]">
                         Admin
@@ -375,219 +1118,668 @@ export function BusinessPage() {
                     </div>
                   </div>
                   <AdminPanelContent section={adminSection} />
-                </>
-              )}
-            </>
-          ) : isClientsPath ? (
-            <BusinessClientsPage />
-          ) : (
-            <>
-              {/* Header */}
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-                <div>
-                  <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-slate-400">
-                    Overview
-                  </p>
-                  <h1 className="mt-1 text-2xl md:text-3xl font-semibold text-slate-900">
-                    {companyName || 'Your business dashboard'}
-                  </h1>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Track your clients, vehicles and warranties in one place.
-                  </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Link
-                    to="/account/business/clients"
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                  >
-                    <IconUsers className="h-4 w-4" />
-                    View clients
-                  </Link>
-                  <Link
-                    to="/account/business/settings"
-                    className="inline-flex items-center gap-2 rounded-full bg-[#4318FF] text-white px-4 py-2 text-sm font-semibold hover:bg-[#3312C8] transition-colors"
-                  >
-                    <IconSettings className="h-4 w-4" />
-                    Business settings
-                  </Link>
-                </div>
-              </div>
-
-              {/* Top stats cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
-                  <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
-                    Total clients
-                  </p>
-                  <p className="text-3xl font-semibold text-slate-900">{stats.clients}</p>
-                  <p className="mt-1 text-xs text-slate-500">All customers linked to your installer account.</p>
-                </div>
-                <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
-                  <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
-                    Vehicles registered
-                  </p>
-                  <p className="text-3xl font-semibold text-slate-900">{stats.vehicles}</p>
-                  <p className="mt-1 text-xs text-slate-500">Vehicles with a Fireball protection attached.</p>
-                </div>
-                <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
-                  <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
-                    Active warranties
-                  </p>
-                  <p className="text-3xl font-semibold text-slate-900">{stats.warranties}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Protection programs currently active for your clients.
-                  </p>
-                </div>
-              </div>
-
-              {/* Mid row - charts & secondary cards (Purity-style layout) */}
-              <div className="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-6">
-                {/* Sales / performance chart */}
-                <div className="xl:col-span-2 rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
-                        Business performance
+              )
+            ) : isClientsPath ? (
+              <BusinessClientsPage />
+            ) : (
+              <div className="flex flex-col gap-6">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                      <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-slate-400">
+                        Statistics
                       </p>
-                      <p className="mt-1 text-sm font-medium text-slate-800">
-                        Estimated jobs completed over the last months
-                      </p>
-                    </div>
-                    <select className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 focus:outline-none">
-                      <option>Last 6 months</option>
-                      <option>Last 12 months</option>
-                    </select>
-                  </div>
-                  {/* Simple SVG line chart placeholder to mimic Purity layout */}
-                  <div className="mt-2 h-56 w-full rounded-xl bg-slate-50 flex items-center justify-center text-xs text-slate-400">
-                    Business chart coming soon
-                  </div>
-                </div>
-
-                {/* Right mini cards column */}
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
-                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-2">
-                      Conversion
-                    </p>
-                    <p className="text-3xl font-semibold text-slate-900">–</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Percentage of business leads that become active Fireball clients.
+                    <h1 className="mt-1 text-2xl md:text-3xl font-semibold text-slate-900">
+                      {companyName || 'Your installer statistics'}
+                    </h1>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Vue unifiée de vos clients, véhicules, installations et produits Fireball.
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
-                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-2">
-                      Activity score
-                    </p>
-                    <p className="text-3xl font-semibold text-slate-900">–</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      We’ll surface a simple score once more data is connected.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Main content grid */}
-              <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left column: activity / clients */}
-                <div className="lg:col-span-2 space-y-6">
-                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
-                          Recent activity
-                        </p>
-                        <p className="mt-1 text-sm text-slate-600">
-                          Latest movements across your clients, vehicles and warranties.
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-[#4318FF]/10 px-3 py-1 text-xs font-medium text-[#4318FF]">
-                        Live sync
-                      </span>
-                    </div>
-                    <div className="mt-3 space-y-2 text-sm text-slate-600">
-                      <p className="text-slate-400 text-xs">
-                        Real activity feed will appear here as we connect more business data.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
-                        Client overview
-                      </p>
-                      <Link
-                        to="/account/business/clients"
-                        className="text-xs font-medium text-[#4318FF] hover:text-[#3312C8] transition-colors"
-                      >
-                        Open clients
-                      </Link>
-                    </div>
-                    <p className="text-sm text-slate-600">
-                      Use the Clients section to search, edit and manage all your Fireball customers.
-                    </p>
-                  </div>
-
-                  {/* Projects / jobs table placeholder */}
-                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
-                        Recent jobs
-                      </p>
-                      <span className="text-xs font-medium text-slate-500">Coming soon</span>
-                    </div>
-                    <div className="border border-dashed border-slate-200 rounded-xl px-4 py-6 text-center text-sm text-slate-500">
-                      When Fireball job data is connected, you’ll see your latest coatings, inspections and
-                      warranty activations here.
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right column: quick links / resources */}
-                <div className="space-y-6">
-                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
-                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-2">
-                      Quick actions
-                    </p>
-                    <div className="space-y-2 text-sm">
-                      <Link
-                        to="/account/business/clients"
-                        className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-slate-700 hover:bg-slate-100 transition-colors"
-                      >
-                        <span>Add / manage clients</span>
-                        <IconChevronRight className="h-4 w-4 text-slate-400" />
-                      </Link>
-                      <Link
-                        to="/account/business/settings"
-                        className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-slate-700 hover:bg-slate-100 transition-colors"
-                      >
-                        <span>Update business profile</span>
-                        <IconChevronRight className="h-4 w-4 text-slate-400" />
-                      </Link>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-slate-100 bg-[#1B2559] px-5 py-4 shadow-md">
-                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-white/70 mb-2">
-                      Fireball resources
-                    </p>
-                    <p className="text-sm text-white/80 mb-3">
-                      Access technical documents, application guides and marketing assets from the Fireball
-                      network.
-                    </p>
+                  <div className="flex items-center gap-3">
                     <Link
-                      to="/join-fireball"
-                      className="inline-flex items-center gap-1.5 text-xs font-nav font-bold uppercase text-white/90 hover:text-white transition-colors"
+                      to="/business/clients"
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
                     >
-                      Open network portal
-                      <IconChevronRight className="h-3 w-3" />
+                      <IconUsers className="h-4 w-4" />
+                      Ouvrir les clients
+                    </Link>
+                    <Link
+                      to="/business/settings"
+                      className="inline-flex items-center gap-2 rounded-full bg-[#4318FF] text-white px-4 py-2 text-sm font-semibold hover:bg-[#3312C8] transition-colors"
+                    >
+                      <IconSettings className="h-4 w-4" />
+                      Paramètres business
                     </Link>
                   </div>
                 </div>
+
+                {/* KPI overview */}
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+                  <div className="rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+                    <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                      Total clients
+                    </p>
+                    <p className="text-2xl font-semibold text-slate-900">
+                      {formatNumber(totalClients)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+                    <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                      Total véhicules
+                    </p>
+                    <p className="text-2xl font-semibold text-slate-900">
+                      {formatNumber(totalVehicles)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+                    <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                      Véhicules protégés
+                    </p>
+                    <p className="text-2xl font-semibold text-slate-900">
+                      {formatNumber(protectedVehiclesCount)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+                    <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                      Installations
+                    </p>
+                    <p className="text-2xl font-semibold text-slate-900">
+                      {formatNumber(totalInstallations)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+                    <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                      Installs ce mois-ci
+                    </p>
+                    <p className="text-2xl font-semibold text-slate-900">
+                      {formatNumber(thisMonthInstallations)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+                    <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                      Nouveaux clients (mois)
+                    </p>
+                    <p className="text-2xl font-semibold text-slate-900">
+                      {formatNumber(thisMonthClients)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+                    <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                      Véhicules ajoutés (mois)
+                    </p>
+                    <p className="text-2xl font-semibold text-slate-900">
+                      {formatNumber(thisMonthVehicles)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+                    <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                      Moy. installs / client
+                    </p>
+                    <p className="text-2xl font-semibold text-slate-900">
+                      {formatNumber(avgInstallsPerClient)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+                    <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                      Moy. véhicules / client
+                    </p>
+                    <p className="text-2xl font-semibold text-slate-900">
+                      {formatNumber(avgVehiclesPerClient)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-4 py-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+                    <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                      Clients récurrents
+                    </p>
+                    <p className="text-2xl font-semibold text-slate-900">
+                      {`${formatNumber(returningClientsRate)} %`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Installations over time */}
+                <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
+                        Installations dans le temps
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-slate-800">
+                        Chaque point représente des installations réelles.
+                      </p>
+                    </div>
+                    <div className="inline-flex items-center gap-1 rounded-full bg-slate-50 border border-slate-200 p-1">
+                      {['30d', '90d', '12m', 'all'].map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setTimeRange(v as TimeRange)}
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-medium ${
+                            timeRange === v
+                              ? 'bg-slate-900 text-white'
+                              : 'text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          {v === '30d' && '30j'}
+                          {v === '90d' && '90j'}
+                          {v === '12m' && '12m'}
+                          {v === 'all' && 'Tout'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <SimpleAreaChart
+                    data={monthlyInstallationsSeries.map((p) => ({ label: p.label, count: p.count }))}
+                  />
+                </div>
+
+                {/* Client & vehicle growth */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
+                        Croissance clients
+                      </p>
+                    </div>
+                    <SimpleAreaChart
+                      data={monthlyClientsSeries.map((p) => ({ label: p.label, count: p.count }))}
+                    />
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
+                        Croissance véhicules
+                      </p>
+                    </div>
+                    <SimpleAreaChart
+                      data={monthlyVehiclesSeries.map((p) => ({ label: p.label, count: p.count }))}
+                    />
+                  </div>
+                </div>
+
+                {/* Product usage pie */}
+                <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
+                        Répartition produits Fireball
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Basé uniquement sur les produits utilisés dans vos installations.
+                      </p>
+                    </div>
+                    <div className="text-right text-xs text-slate-500">
+                      Installs&nbsp;:{' '}
+                      <span className="text-slate-800 font-medium">
+                        {formatNumber(productStats.totalInstallations)}
+                      </span>
+                    </div>
+                  </div>
+                  <SimpleDonutChart data={productUsageForPie} />
+                </div>
+
+                {/* Top products */}
+                <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                  <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-3">
+                    Top produits installés
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="text-xs text-slate-400 border-b border-slate-100">
+                          <th className="py-2 text-left font-medium">Produit</th>
+                          <th className="py-2 text-right font-medium">Installations</th>
+                          <th className="py-2 text-right font-medium">Véhicules protégés</th>
+                          <th className="py-2 text-right font-medium">% du total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {productStats.list.length === 0 && (
+                          <tr>
+                            <td className="py-4 text-xs text-slate-500" colSpan={4}>
+                              Aucune installation enregistrée pour le moment.
+                            </td>
+                          </tr>
+                        )}
+                        {productStats.list.slice(0, 10).map((p) => (
+                          <tr key={p.product} className="border-b border-slate-100 last:border-0">
+                            <td className="py-2 pr-4 text-slate-800">{p.product}</td>
+                            <td className="py-2 text-right text-slate-700">
+                              {formatNumber(p.installations)}
+                            </td>
+                            <td className="py-2 text-right text-slate-700">
+                              {formatNumber(p.vehiclesProtected)}
+                            </td>
+                            <td className="py-2 text-right text-slate-600">
+                              {p.percentage.toFixed(1)} %
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Top clients & brand distribution */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-3">
+                      Top clients (installations)
+                    </p>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr className="text-xs text-slate-400 border-b border-slate-100">
+                            <th className="py-2 text-left font-medium">Client</th>
+                            <th className="py-2 text-right font-medium">Véhicules</th>
+                            <th className="py-2 text-right font-medium">Installations</th>
+                            <th className="py-2 text-right font-medium">Dernier service</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {topClients.length === 0 && (
+                            <tr>
+                              <td className="py-4 text-xs text-slate-500" colSpan={4}>
+                                Aucun client avec installations pour le moment.
+                              </td>
+                            </tr>
+                          )}
+                          {topClients.map((row) => (
+                            <tr
+                              key={row.client.id}
+                              className="border-b border-slate-100 last:border-0"
+                            >
+                              <td className="py-2 pr-4 text-slate-800">{row.client.full_name}</td>
+                              <td className="py-2 text-right text-slate-700">
+                                {row.vehicles.length}
+                              </td>
+                              <td className="py-2 text-right text-slate-700">
+                                {row.installations.length}
+                              </td>
+                              <td className="py-2 text-right text-slate-600">
+                                {formatShortDate(row.lastService)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-3">
+                      Répartition marques véhicules
+                    </p>
+                    <SimpleBarChart
+                      data={brandDistributionAll.slice(0, 10).map((b) => ({
+                        label: b.label,
+                        count: b.count,
+                      }))}
+                    />
+                  </div>
+                </div>
+
+                {/* Recent installs & activity feed */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-3">
+                      Installations récentes
+                    </p>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr className="text-xs text-slate-400 border-b border-slate-100">
+                            <th className="py-2 text-left font-medium">Véhicule</th>
+                            <th className="py-2 text-left font-medium">Client</th>
+                            <th className="py-2 text-left font-medium">Produit</th>
+                            <th className="py-2 text-right font-medium">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {recentInstallations.length === 0 && (
+                            <tr>
+                              <td className="py-4 text-xs text-slate-500" colSpan={4}>
+                                Aucune installation enregistrée pour le moment.
+                              </td>
+                            </tr>
+                          )}
+                          {recentInstallations.map((w) => {
+                            const v = w.vehicle_id ? vehicleById.get(w.vehicle_id) : null
+                            const c = w.client_id ? clientById.get(w.client_id) : null
+                            const d = parseDate(w.installation_date)
+                            return (
+                              <tr key={w.id} className="border-b border-slate-100 last:border-0">
+                                <td className="py-2 pr-3 text-slate-800">
+                                  {v ? `${v.brand} ${v.model} (${v.year})` : 'Véhicule'}
+                                </td>
+                                <td className="py-2 pr-3 text-slate-700">
+                                  {c ? c.full_name : 'Client'}
+                                </td>
+                                <td className="py-2 pr-3 text-slate-700">
+                                  {w.product_used || 'Produit Fireball'}
+                                </td>
+                                <td className="py-2 text-right text-slate-600">
+                                  {formatShortDate(d)}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-3">
+                      Flux d&apos;activité
+                    </p>
+                    <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                      {activityFeed.length === 0 && (
+                        <p className="text-xs text-slate-500">
+                          Aucune activité enregistrée pour le moment.
+                        </p>
+                      )}
+                      {activityFeed.map((e) => (
+                        <div
+                          key={e.id}
+                          className="flex items-start gap-3 text-xs text-slate-800"
+                        >
+                          <span
+                            className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px]"
+                            style={{
+                              background:
+                                e.type === 'installation'
+                                  ? 'rgba(10,132,255,0.08)'
+                                  : e.type === 'vehicle'
+                                    ? 'rgba(52,199,89,0.08)'
+                                    : 'rgba(255,149,0,0.08)',
+                              color:
+                                e.type === 'installation'
+                                  ? '#0A84FF'
+                                  : e.type === 'vehicle'
+                                    ? '#34C759'
+                                    : '#FF9F0A',
+                            }}
+                          >
+                            {e.type === 'installation' && 'I'}
+                            {e.type === 'vehicle' && 'V'}
+                            {e.type === 'client' && 'C'}
+                          </span>
+                          <div className="flex-1">
+                            <p className="text-[11px] text-slate-900">{e.label}</p>
+                            {e.meta && (
+                              <p className="text-[10px] text-slate-500 mt-0.5">{e.meta}</p>
+                            )}
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              {e.date.toLocaleString('fr-CA', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Retention & protection */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm space-y-4">
+                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
+                      Rétention & services
+                    </p>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex flex-col gap-1">
+                        <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-500">
+                          Installs cette année
+                        </p>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {formatNumber(thisYearInstallations)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex flex-col gap-1">
+                        <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-500">
+                          Moy. installs / mois
+                        </p>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {formatNumber(avgInstallationsPerMonth)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex flex-col gap-1">
+                        <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-500">
+                          Clients avec &gt;1 install
+                        </p>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {formatNumber(installsPerClientWithMultiple.length)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex flex-col gap-1">
+                        <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-500">
+                          Délai moyen entre services (j)
+                        </p>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {formatNumber(avgTimeBetweenServicesDays)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm space-y-4">
+                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
+                      Couverture de protection
+                    </p>
+                    <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                      <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex flex-col gap-1">
+                        <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-500">
+                          Véhicules protégés
+                        </p>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {formatNumber(protectedVehiclesCount)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex flex-col gap-1">
+                        <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-500">
+                          Taux de couverture
+                        </p>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {`${formatNumber(protectionCoverageRate)} %`}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-2">
+                      Véhicules protégés par marque
+                    </p>
+                    <SimpleBarChart
+                      data={brandDistributionProtected.slice(0, 10).map((b) => ({
+                        label: b.label,
+                        count: b.count,
+                      }))}
+                    />
+                  </div>
+                </div>
+
+                {/* Smart business insights */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                  <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
+                    <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                      Client le plus actif
+                    </p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {mostActiveClient ? mostActiveClient.client.full_name : '—'}
+                    </p>
+                    {mostActiveClient && (
+                      <p className="text-[11px] text-slate-500">
+                        {mostActiveClient.installations.length} installations
+                      </p>
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
+                    <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                      Véhicule le plus servi
+                    </p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {mostServicedVehicle?.vehicle
+                        ? `${mostServicedVehicle.vehicle.brand} ${mostServicedVehicle.vehicle.model}`
+                        : '—'}
+                    </p>
+                    {mostServicedVehicle && (
+                      <p className="text-[11px] text-slate-500">
+                        {mostServicedVehicle.count} installations
+                      </p>
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
+                    <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                      Produit le plus installé
+                    </p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {mostInstalledProduct ? mostInstalledProduct.product : '—'}
+                    </p>
+                    {mostInstalledProduct && (
+                      <p className="text-[11px] text-slate-500">
+                        {mostInstalledProduct.installations} installations
+                      </p>
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
+                    <p className="text-[10px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                      Mois le plus actif
+                    </p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {mostActiveMonth ? mostActiveMonth.label : '—'}
+                    </p>
+                    {mostActiveMonth && (
+                      <p className="text-[11px] text-slate-500">
+                        {mostActiveMonth.count} installations
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Recent clients */}
+                <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400">
+                      Clients récents
+                    </p>
+                    <Link
+                      to="/business/clients"
+                      className="text-xs font-medium text-[#4318FF] hover:text-[#3312C8] transition-colors"
+                    >
+                      Ouvrir les clients
+                    </Link>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="text-xs text-slate-400 border-b border-slate-100">
+                          <th className="py-2 text-left font-medium">Client</th>
+                          <th className="py-2 text-right font-medium">Véhicules</th>
+                          <th className="py-2 text-right font-medium">Installations</th>
+                          <th className="py-2 text-right font-medium">Créé le</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentClients.length === 0 && (
+                          <tr>
+                            <td className="py-4 text-xs text-slate-500" colSpan={4}>
+                              Aucun client pour l&apos;instant.
+                            </td>
+                          </tr>
+                        )}
+                        {recentClients.map((c) => {
+                          const vc = vehiclesByClient.get(c.id)?.length ?? 0
+                          const ic = warrantiesByClient.get(c.id)?.length ?? 0
+                          const created = parseDate(c.created_at)
+                          return (
+                            <tr key={c.id} className="border-b border-slate-100 last:border-0">
+                              <td className="py-2 pr-3 text-slate-800">{c.full_name}</td>
+                              <td className="py-2 text-right text-slate-700">{vc}</td>
+                              <td className="py-2 text-right text-slate-700">{ic}</td>
+                              <td className="py-2 text-right text-slate-600">
+                                {formatShortDate(created)}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-            </>
-          )}
+            )}
+
+            {/* Barre Quick actions – flottante, style Liquid Glass du site */}
+            <div className="hidden md:flex fixed inset-x-0 bottom-6 z-30 justify-center pointer-events-none px-4">
+              <div
+                className={`pointer-events-auto relative flex items-center gap-4 px-6 py-4 max-w-3xl w-full transition-opacity duration-300 ease-in-out
+                  rounded-[18px] bg-[rgba(10,10,10,0.65)] border border-[rgba(255,255,255,0.18)]
+                  shadow-[0_18px_45px_rgba(0,0,0,0.65)] backdrop-blur-[22px]
+                  before:content-[''] before:absolute before:inset-px before:rounded-[16px]
+                  before:bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.32),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.42),transparent_60%)] before:opacity-80 before:pointer-events-none
+                  after:content-[''] after:absolute after:inset-0 after:rounded-[18px]
+                  after:bg-[linear-gradient(145deg,rgba(255,255,255,0.55),rgba(255,255,255,0.06))] after:mix-blend-soft-light after:opacity-70 after:pointer-events-none
+                  ${
+                  showQuickActions ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+              >
+                {/* Titre + sous-texte */}
+                <div className="min-w-0">
+                  <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-white/80 mb-0.5">
+                    Quick actions
+                  </p>
+                  <p className="text-xs text-white/70 truncate">
+                    Search across clients and vehicles, then jump into key tools.
+                  </p>
+                </div>
+
+                {/* Barre de recherche */}
+                <div className="flex-1 max-w-md">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search clients, vehicles…"
+                      className="w-full rounded-full border border-white/18 bg-white/5 px-3 pl-9 py-1.5 text-xs text-white placeholder:text-white/60 focus:outline-none focus:border-white/70 focus:bg-white/10"
+                    />
+                    <svg
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/80"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Boutons rapides */}
+                <div className="flex items-center gap-2">
+                  <Link
+                    to="/business/clients"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/12 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/22 hover:border-white/60 transition-colors"
+                  >
+                    <IconUsers className="h-3.5 w-3.5" />
+                    Clients
+                  </Link>
+                  <Link
+                    to="/business/admin"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[#FF375F] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#ff2350] transition-colors shadow-[0_0_0_1px_rgba(255,255,255,0.2)]"
+                  >
+                    <IconShieldLock className="h-3.5 w-3.5" />
+                    Admin
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

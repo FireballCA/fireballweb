@@ -29,6 +29,7 @@ import { PartnerVehicles } from '@/pages/partner/PartnerVehicles'
 import { PartnerWarranties } from '@/pages/partner/PartnerWarranties'
 import { PartnerCertification } from '@/pages/partner/PartnerCertification'
 import { PartnerSettings } from '@/pages/partner/PartnerSettings'
+import { PartnerStatistics } from '@/pages/partner/PartnerStatistics'
 import { Typhon } from '@/pages/coating/Typhon'
 
 function App() {
@@ -78,8 +79,25 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {/* New clean business routes (aliases) */}
+            <Route
+              path="business"
+              element={
+                <ProtectedRoute>
+                  <BusinessPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="account/business/clients"
+              element={
+                <ProtectedRoute>
+                  <BusinessPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="business/clients"
               element={
                 <ProtectedRoute>
                   <BusinessPage />
@@ -95,7 +113,23 @@ function App() {
               }
             />
             <Route
+              path="business/admin"
+              element={
+                <ProtectedRoute>
+                  <BusinessPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="account/business/admin/stats"
+              element={
+                <ProtectedRoute>
+                  <BusinessPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="business/admin/stats"
               element={
                 <ProtectedRoute>
                   <BusinessPage />
@@ -111,6 +145,14 @@ function App() {
               }
             />
             <Route
+              path="business/admin/partners"
+              element={
+                <ProtectedRoute>
+                  <BusinessPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="account/business/admin/notifications"
               element={
                 <ProtectedRoute>
@@ -119,7 +161,23 @@ function App() {
               }
             />
             <Route
+              path="business/admin/notifications"
+              element={
+                <ProtectedRoute>
+                  <BusinessPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="account/business/admin/announcements"
+              element={
+                <ProtectedRoute>
+                  <BusinessPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="business/admin/announcements"
               element={
                 <ProtectedRoute>
                   <BusinessPage />
@@ -147,6 +205,7 @@ function App() {
             <Route path="clients" element={<PartnerClients />} />
             <Route path="vehicles" element={<PartnerVehicles />} />
             <Route path="warranties" element={<PartnerWarranties />} />
+            <Route path="stats" element={<PartnerStatistics />} />
             <Route path="certification" element={<PartnerCertification />} />
             <Route path="settings" element={<PartnerSettings />} />
           </Route>
