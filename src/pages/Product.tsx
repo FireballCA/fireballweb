@@ -1,16 +1,16 @@
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CATEGORIES, PRODUCTS, type Product as LocalProduct } from '@/data/products'
 import { useCart } from '@/context/CartContext'
 import { fetchProductFromShopifyBySlug, fetchProductsFromShopify } from '@/utils/shopifyStorefront'
+import { XP_PER_DOLLAR } from '@/utils/supabaseXp'
 
 type ProductType = LocalProduct
 
 export function Product() {
   const { t } = useTranslation()
   const { slug } = useParams<{ slug: string }>()
-  const navigate = useNavigate()
   const { addToCart } = useCart()
   const [product, setProduct] = useState<ProductType | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null)
@@ -193,6 +193,13 @@ export function Product() {
   })
 
   const displayPrice = currentVariant?.price ?? product?.price ?? 0
+  const xpGainedForLine = Math.max(0, Math.round(displayPrice * quantity * XP_PER_DOLLAR))
+
+  // Reviews: on n'affiche que ce qui est "réel" côté produit.
+  // Actuellement, l'app ne récupère pas la liste détaillée des avis (nom/texte/date),
+  // donc on ne rend pas de contenus mockés.
+  const reviewCount = typeof product?.reviewCount === 'number' ? product.reviewCount : 0
+  const reviewsAverage = typeof product?.rating === 'number' ? product.rating : 0
   // Construire la liste de toutes les images disponibles
   const allImages = product?.images && product.images.length > 0 
     ? product.images 
@@ -245,16 +252,6 @@ export function Product() {
     addToCart(productToAdd, quantity)
     setAdded(true)
     setTimeout(() => setAdded(false), 3000)
-  }
-
-  const handleBuyNow = () => {
-    const productToAdd: ProductType = {
-      ...product,
-      shopifyVariantId: currentVariant?.id || product.shopifyVariantId,
-      price: displayPrice,
-    }
-    addToCart(productToAdd, quantity)
-    navigate('/panier')
   }
 
   const handleOptionChange = (optionName: string, value: string) => {
@@ -495,11 +492,13 @@ export function Product() {
             </div>
 
             {/* Price */}
-            <div className="flex flex-col gap-2 mb-6">
-              <span className="text-base font-bold text-carbon-900">
-                {displayPrice.toFixed(2)} $CA
-              </span>
-              
+            <div className="flex flex-col gap-3 mb-6">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-base font-bold text-carbon-900">
+                  {displayPrice.toFixed(2)} $CA
+                </span>
+              </div>
+
               {/* Free Shipping Progress */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-carbon-600">
@@ -621,6 +620,19 @@ export function Product() {
               </div>
             )}
 
+            {/* XP gagné (avant Quantity) */}
+            <div className="w-full py-4 px-6 rounded-none border border-carbon-200 bg-[#F6F6F6] flex flex-col items-start justify-center gap-1">
+              <span className="text-sm font-bold text-carbon-900">
+                Earn {xpGainedForLine.toLocaleString()}XP
+              </span>
+              <span className="text-xs text-carbon-600">
+                Purchasing this product earns{' '}
+                <span className="font-bold text-carbon-900">
+                  {xpGainedForLine.toLocaleString()} XP
+                </span>
+              </span>
+            </div>
+
             {/* Quantity */}
             <div>
               <label className="block text-sm font-medium text-carbon-900 mb-2">
@@ -656,7 +668,7 @@ export function Product() {
 
             {/* CTAs - Empilés verticalement */}
             <div ref={ctaButtonsRef} className="flex flex-col gap-3 pt-4 mb-6">
-              {/* Add to Cart - Rouge */}
+              {/* Add to Cart - Noir */}
               <button
                 type="button"
                 onClick={handleAddToCart}
@@ -665,7 +677,7 @@ export function Product() {
                 style={{
                   backgroundColor: currentVariant && !currentVariant.availableForSale
                     ? undefined
-                    : '#B61B1B'
+                    : '#000'
                 }}
               >
                 <span className={`block transition-all duration-300 ${
@@ -682,19 +694,6 @@ export function Product() {
                 }`}>
                   {t('product.addedToCart')}
                 </span>
-              </button>
-              {/* Buy Now - Fond noir */}
-              <button
-                type="button"
-                onClick={handleBuyNow}
-                disabled={currentVariant && !currentVariant.availableForSale}
-                className={`w-full py-4 px-6 rounded-full font-medium text-white transition-all ${
-                  currentVariant && !currentVariant.availableForSale
-                    ? 'bg-carbon-300 cursor-not-allowed text-carbon-500'
-                    : 'bg-carbon-900 hover:bg-carbon-800 active:scale-[0.98]'
-                }`}
-              >
-                {t('product.buyNow')}
               </button>
             </div>
 
@@ -759,52 +758,65 @@ export function Product() {
 
       {/* Reviews Section */}
       <section className="bg-carbon-50 border-t border-carbon-200 py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-carbon-900 mb-8">{t('product.reviewsTitle')}</h2>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="space-y-6">
-            {[
-              {
-                name: 'Marc D.',
-                verified: true,
-                rating: 5,
-                text: 'Exceptional product! Easy application and impeccable results. The protection really lasts over time.',
-              },
-              {
-                name: 'Sophie L.',
-                verified: true,
-                rating: 5,
-                text: 'Professional quality delivered. I highly recommend for all detailing enthusiasts.',
-              },
-              {
-                name: 'Thomas R.',
-                verified: true,
-                rating: 5,
-                text: 'The best coating I\'ve used. Incredible shine and durable protection.',
-              },
-            ].map((review, i) => (
-              <div key={i} className="bg-white p-6 rounded-lg border border-carbon-200">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-carbon-900">{review.name}</span>
-                      {review.verified && (
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
-                          ✓ {t('product.reviewVerified')}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex gap-0.5">
-                      {[...Array(review.rating)].map((_, j) => (
-                        <svg key={j} className="w-4 h-4 text-chrome" fill="currentColor" viewBox="0 0 20 20">
+            {/* En-tête (gros titre à gauche, étoiles juste en dessous) */}
+            <div className="flex flex-col items-start gap-4">
+              <h2 className="text-4xl md:text-5xl font-bold text-carbon-900">
+                Customer Reviews
+              </h2>
+
+              {/* Note moyenne + compteur (avec remplissage progressif) */}
+              <div className="flex items-center gap-4">
+                <div className="flex gap-1">
+                  {[...Array(5)].map((_, i) => {
+                    // i=0 => étoile #1 ; pour 4.7, les 4 premières sont 100% et la 5e à 70%
+                    const fill = Math.max(0, Math.min(1, reviewsAverage - i))
+                    const fillWidth = `${fill * 100}%`
+                    return (
+                      <div key={i} className="relative w-7 h-7">
+                        <svg
+                          className="absolute inset-0 w-7 h-7 text-yellow-400/20"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
-                      ))}
-                    </div>
-                  </div>
+                        <div
+                          className="absolute left-0 top-0 h-full overflow-hidden"
+                          style={{ width: fillWidth }}
+                        >
+                          <svg
+                            className="absolute inset-0 w-7 h-7 text-yellow-400"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-                <p className="text-carbon-700 leading-relaxed">{review.text}</p>
+
+                <span className="text-lg font-semibold text-carbon-900">
+                  {reviewsAverage.toFixed(1)} / 5
+                </span>
               </div>
-            ))}
+
+              <span className="text-sm text-carbon-600">Based on {reviewCount} verified reviews</span>
+            </div>
+
+            {/* Only show "no reviews" when the product has none */}
+            {reviewCount <= 0 ? (
+              <p className="text-sm text-carbon-600 bg-white border border-carbon-200 rounded-lg p-4">
+                This product has no reviews.
+              </p>
+            ) : (
+              <p className="text-sm text-carbon-600 bg-white border border-carbon-200 rounded-lg p-4">
+                No written reviews are available at the moment.
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -891,7 +903,7 @@ export function Product() {
               {product.name}
             </h2>
             
-            {/* Bouton Purchase */}
+              {/* Bouton Add to cart */}
             <button
               type="button"
               onClick={handleAddToCart}
@@ -908,10 +920,10 @@ export function Product() {
                   ? undefined 
                   : (currentVariant && !currentVariant.availableForSale 
                     ? undefined 
-                    : '#B61B1B')
+                      : '#000')
               }}
             >
-              {added ? `✓ ${t('product.addedToCart')}` : t('product.purchase')}
+              {added ? `✓ ${t('product.addedToCart')}` : 'purchase'}
             </button>
           </div>
         </div>
@@ -968,7 +980,7 @@ export function Product() {
                 : 'bg-carbon-900 hover:bg-carbon-800 active:scale-[0.98]'
             }`}
           >
-            {t('product.addToCart')}
+            {'purchase'}
           </button>
         </div>
       </div>

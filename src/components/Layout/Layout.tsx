@@ -12,8 +12,9 @@ export function Layout() {
     location.pathname === '/compte' ||
     location.pathname.startsWith('/account') ||
     location.pathname.startsWith('/business')
+  const isCartPage = location.pathname === '/panier'
   const showHeader = !isAccountAuthPage
-  const showFooter = !isAnyAccountPage
+  const showFooter = !isAnyAccountPage && !isCartPage
 
   return (
     <div className="min-h-screen flex flex-col">
