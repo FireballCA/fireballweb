@@ -387,6 +387,24 @@ export function Header() {
   }, [menuOpen])
 
   useEffect(() => {
+    setMenuOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!menuOpen) return
+
+    const closeMenuOnDesktop = () => {
+      if (window.innerWidth >= 1024) {
+        setMenuOpen(false)
+      }
+    }
+
+    closeMenuOnDesktop()
+    window.addEventListener('resize', closeMenuOnDesktop)
+    return () => window.removeEventListener('resize', closeMenuOnDesktop)
+  }, [menuOpen])
+
+  useEffect(() => {
     setSearchQuery('')
   }, [location.pathname])
 
