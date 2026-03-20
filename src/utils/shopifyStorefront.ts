@@ -241,7 +241,7 @@ export async function fetchProductsFromShopify(): Promise<Product[]> {
 
     while (hasNextPage) {
       try {
-        const data = await shopifyFetch<{
+    const data = await shopifyFetch<{
           products: {
             pageInfo: { hasNextPage: boolean; endCursor: string | null }
             edges: { node: any }[]
@@ -254,7 +254,7 @@ export async function fetchProductsFromShopify(): Promise<Product[]> {
           break
         }
 
-        const edges = data.products?.edges || []
+    const edges = data.products?.edges || []
         if (edges.length > 0) {
           const mappedProducts = edges.map((edge) => {
             try {

@@ -57,8 +57,8 @@ export function Contact() {
 
   return (
     <div
-      className="min-h-0 overflow-hidden bg-white font-sans text-carbon-900 flex flex-col"
-      style={{ height: 'calc(100vh - 5rem)' }}
+      className="w-full max-w-none min-w-0 flex-1 min-h-0 flex flex-col overflow-y-auto bg-white font-sans text-carbon-900"
+      style={{ minHeight: 'calc(100dvh - 5rem)' }}
     >
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
         {/* Left: Let's Talk + text + Sign in + social icons bottom */}
