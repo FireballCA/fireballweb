@@ -14,6 +14,7 @@ export function Layout() {
     location.pathname.startsWith('/account') ||
     location.pathname.startsWith('/business')
   const isContactPage = location.pathname === '/contact'
+  const isEventDriven26Page = location.pathname === '/event/driven26'
   const isShopPage = isShopPathname(location.pathname)
 
   /** Même logique que Header : navbar sticky dans le flux — pas de pt sur main (évite double bande noire). */
@@ -23,24 +24,34 @@ export function Layout() {
     location.pathname.startsWith('/coating')
 
   const showHeader = !isAccountAuthPage
-  const showFooter = !isAnyAccountPage && !isContactPage
+  const showFooter = !isAnyAccountPage && !isContactPage && !isEventDriven26Page
 
-  const mainHeaderPadding = !showHeader
-    ? ''
-    : isStickyNavPage
+  const mainHeaderPadding =
+    isEventDriven26Page || !showHeader
       ? ''
-      : isShopPage
-        ? 'pt-16'
-        : 'pt-20'
+      : isStickyNavPage
+        ? ''
+        : isShopPage
+          ? 'pt-16'
+          : 'pt-20'
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div
+      className={
+        isEventDriven26Page
+          ? 'flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden'
+          : 'flex min-h-screen flex-col'
+      }
+    >
       {showHeader && <Header />}
       <main
         className={[
-          'flex-1',
+          isEventDriven26Page ? '' : 'flex-1',
           mainHeaderPadding,
-          isContactPage ? 'flex flex-col min-h-0 w-full' : '',
+          isContactPage ? 'flex min-h-0 w-full flex-col' : '',
+          isEventDriven26Page
+            ? 'mt-20 flex h-[calc(100dvh-5rem)] min-h-0 flex-shrink-0 flex-col overflow-hidden'
+            : '',
         ]
           .filter(Boolean)
           .join(' ')}
