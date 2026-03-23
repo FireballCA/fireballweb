@@ -19,6 +19,7 @@ import { ManagePartners } from '@/pages/ManagePartners'
 import { PartnerCompany } from '@/pages/PartnerCompany'
 import { CarClub } from '@/pages/CarClub'
 import { Event } from '@/pages/Event'
+import { EventDriven26 } from '@/pages/EventDriven26'
 import { Contact } from '@/pages/Contact'
 import { Legal } from '@/pages/Legal'
 import { Academy } from '@/pages/Academy'
@@ -56,6 +57,7 @@ function App() {
             <Route path="cart" element={<Cart />} />
             <Route path="panier" element={<Navigate to="/cart" replace />} />
             <Route path="car-club" element={<CarClub />} />
+            <Route path="event/driven26" element={<EventDriven26 />} />
             <Route path="event" element={<Event />} />
             <Route path="contact" element={<Contact />} />
             <Route path="legal" element={<Legal />} />
