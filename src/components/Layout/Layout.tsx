@@ -33,22 +33,29 @@ export function Layout() {
         ? ''
         : isShopPage
           ? 'pt-16'
-          : 'pt-20'
+          : isContactPage
+            ? 'lg:pt-20'
+            : 'pt-20'
 
   return (
     <div
-      className={
+      className={[
         isEventDriven26Page
           ? 'flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden'
-          : 'flex min-h-screen flex-col'
-      }
+          : 'flex min-h-screen flex-col',
+        isContactPage ? 'max-lg:h-[100dvh] max-lg:max-h-[100dvh] max-lg:overflow-hidden' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
     >
       {showHeader && <Header />}
       <main
         className={[
           isEventDriven26Page ? '' : 'flex-1',
           mainHeaderPadding,
-          isContactPage ? 'flex min-h-0 w-full flex-col' : '',
+          isContactPage
+            ? 'flex min-h-0 w-full flex-col max-lg:mt-20 max-lg:h-[calc(100dvh-5rem)] max-lg:max-h-[calc(100dvh-5rem)] max-lg:overflow-hidden max-lg:flex-shrink-0'
+            : '',
           isEventDriven26Page
             ? 'mt-20 flex h-[calc(100dvh-5rem)] min-h-0 flex-shrink-0 flex-col overflow-hidden'
             : '',
