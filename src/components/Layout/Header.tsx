@@ -1,10 +1,13 @@
-import { useId, useState, useEffect, useRef } from 'react'
+import { useId, useState, useEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCart } from '@/context/CartContext'
-import { CATEGORIES } from '@/data/products'
+import { CATEGORIES, PRODUCTS } from '@/data/products'
 import { isAuthenticated } from '@/utils/supabaseAuth'
 import { supabase } from '@/lib/supabase'
+import { isShopPathname } from '@/utils/shopRoutes'
+import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 
 const CERAMIC_SECTIONS = [
   {
@@ -51,6 +54,19 @@ const COMPANY_SECTIONS: Array<{
   },
 ]
 
+type SearchEntry = {
+  id: string
+  label: string
+  to: string
+  kind: 'Page' | 'Category' | 'Product'
+  subtitle?: string
+  keywords?: string[]
+}
+
+type RankedSearchEntry = SearchEntry & {
+  score: number
+}
+
 function FlagEN() {
   const clipId = useId()
   return (
@@ -90,7 +106,7 @@ function FlagFR() {
 }
 
 export function Header() {
-  const { t, i18n } = useTranslation()
+  const { i18n } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -99,6 +115,10 @@ export function Header() {
   const [companyOpen, setCompanyOpen] = useState(false)
   const [mobileShopOpen, setMobileShopOpen] = useState(false)
   const [mobileCompanyOpen, setMobileCompanyOpen] = useState(false)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+  const [isMobileMenuMounted, setIsMobileMenuMounted] = useState(false)
+  const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const [scrollProgress, setScrollProgress] = useState(0)
   const lang = i18n.language === 'fr' ? 'FR' : 'EN'
   const [langOpen, setLangOpen] = useState(false)
@@ -108,11 +128,26 @@ export function Header() {
   const searchMenuRef = useRef<HTMLDivElement | null>(null)
   const { totalItems } = useCart()
   const isDashboardPage = location.pathname === '/account/dashboard' || location.pathname === '/dashboard'
+  const isContactPage = location.pathname === '/contact'
+  const isShopPage = isShopPathname(location.pathname)
   const isProductPage =
-    location.pathname.startsWith('/product/') || location.pathname.startsWith('/produit/')
+    location.pathname.startsWith('/product/') ||
+    location.pathname.startsWith('/produit/')
   const isCoatingPage = location.pathname.startsWith('/coating')
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true)
+  /** Fond noir plein (pas de transparence au scroll) — pages produit / coating incluses */
+  const useSolidNav =
+    isDashboardPage || isContactPage || isProductPage || isCoatingPage
+  /** 0 = navbar visible, 1 = entièrement masquée (pages produit / coating uniquement, piloté par le scroll) */
+  const [headerHideProgress, setHeaderHideProgress] = useState(0)
+  const headerHideProgressRef = useRef(0)
   const lastScrollYRef = useRef(0)
+  const headerHideRafRef = useRef<number | null>(null)
+  const mobileMenuCloseTimerRef = useRef<number | null>(null)
+
+  const HEADER_HIDE_SCROLL_SCALE = 1 / 320
+  const HEADER_SHOW_TOP_PX = 96
+  const SCROLL_DELTA_IGNORE = 0.75
+  const MOBILE_MENU_ANIMATION_MS = 280
   
   // Announcement settings
   const [bannerText, setBannerText] = useState<string | null>(null)
@@ -121,6 +156,7 @@ export function Header() {
   const [featuredName, setFeaturedName] = useState('Featured Collection')
   const [featuredDescription, setFeaturedDescription] = useState('Découvrez notre sélection premium de produits haut de gamme')
   const [featuredImage, setFeaturedImage] = useState<string | null>(null)
+  const [searchableProducts, setSearchableProducts] = useState(PRODUCTS)
 
   // Load announcement settings
   useEffect(() => {
@@ -186,35 +222,116 @@ export function Header() {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+
+    const loadSearchProducts = async () => {
+      try {
+        const shopProducts = await fetchProductsFromShopify()
+        if (!cancelled && Array.isArray(shopProducts) && shopProducts.length > 0) {
+          setSearchableProducts(shopProducts)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSearchableProducts(PRODUCTS)
+        }
+      }
+    }
+
+    loadSearchProducts()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (menuOpen || shopOpen || ceramicOpen || companyOpen || searchOpen || langOpen) {
+      headerHideProgressRef.current = 0
+      setHeaderHideProgress(0)
+    }
+  }, [menuOpen, shopOpen, ceramicOpen, companyOpen, searchOpen, langOpen])
+
+  useEffect(() => {
+    if (!isProductPage && !isCoatingPage) {
+      headerHideProgressRef.current = 0
+      setHeaderHideProgress(0)
+    }
+  }, [isProductPage, isCoatingPage])
+
+  useEffect(() => {
+    const flushHeaderHide = () => {
+      headerHideRafRef.current = null
+      setHeaderHideProgress(headerHideProgressRef.current)
+    }
+
+    const scheduleHeaderHideFlush = () => {
+      if (headerHideRafRef.current != null) return
+      headerHideRafRef.current = requestAnimationFrame(flushHeaderHide)
+    }
+
     const onScroll = () => {
       const scrollY = window.scrollY || window.pageYOffset || 0
       const maxScroll = 200
       const progress = Math.min(scrollY / maxScroll, 1)
       setScrollProgress(progress)
 
-      // Sur les pages produit et coating, cacher/afficher la navbar selon la direction du scroll
-      if (isProductPage || isCoatingPage) {
-        const lastScrollY = lastScrollYRef.current
-        if (scrollY < 100) {
-          // Toujours visible en haut de page
-          setIsHeaderVisible(true)
-        } else {
-          // Cacher quand on scroll vers le bas, afficher quand on scroll vers le haut
-          if (scrollY > lastScrollY && scrollY > 100) {
-            setIsHeaderVisible(false)
-          } else if (scrollY < lastScrollY) {
-            setIsHeaderVisible(true)
-          }
-        }
+      if (!(isProductPage || isCoatingPage)) {
         lastScrollYRef.current = scrollY
-      } else {
-        setIsHeaderVisible(true)
+        return
+      }
+
+      const navLocked =
+        menuOpen || shopOpen || ceramicOpen || companyOpen || searchOpen || langOpen
+      if (navLocked) {
+        lastScrollYRef.current = scrollY
+        if (headerHideProgressRef.current !== 0) {
+          headerHideProgressRef.current = 0
+          scheduleHeaderHideFlush()
+        }
+        return
+      }
+
+      const lastScrollY = lastScrollYRef.current
+      const delta = scrollY - lastScrollY
+      lastScrollYRef.current = scrollY
+
+      if (scrollY < HEADER_SHOW_TOP_PX) {
+        if (headerHideProgressRef.current !== 0) {
+          headerHideProgressRef.current = 0
+          scheduleHeaderHideFlush()
+        }
+        return
+      }
+
+      if (Math.abs(delta) < SCROLL_DELTA_IGNORE) {
+        return
+      }
+
+      let next = headerHideProgressRef.current + delta * HEADER_HIDE_SCROLL_SCALE
+      next = Math.min(1, Math.max(0, next))
+      if (next !== headerHideProgressRef.current) {
+        headerHideProgressRef.current = next
+        scheduleHeaderHideFlush()
       }
     }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [isProductPage])
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (headerHideRafRef.current != null) {
+        cancelAnimationFrame(headerHideRafRef.current)
+        headerHideRafRef.current = null
+      }
+    }
+  }, [
+    isProductPage,
+    isCoatingPage,
+    menuOpen,
+    shopOpen,
+    ceramicOpen,
+    companyOpen,
+    searchOpen,
+    langOpen,
+  ])
 
   useEffect(() => {
     const onClickOutside = (event: MouseEvent) => {
@@ -236,25 +353,101 @@ export function Header() {
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [langOpen, searchOpen])
 
-  // Bloquer le scroll de la page quand le menu mobile est ouvert
+  useEffect(() => {
+    if (menuOpen) {
+      if (mobileMenuCloseTimerRef.current != null) {
+        window.clearTimeout(mobileMenuCloseTimerRef.current)
+        mobileMenuCloseTimerRef.current = null
+      }
+      setIsMobileMenuMounted(true)
+      requestAnimationFrame(() => {
+        setIsMobileMenuVisible(true)
+      })
+      return
+    }
+
+    setIsMobileMenuVisible(false)
+    if (isMobileMenuMounted) {
+      mobileMenuCloseTimerRef.current = window.setTimeout(() => {
+        setIsMobileMenuMounted(false)
+        mobileMenuCloseTimerRef.current = null
+      }, MOBILE_MENU_ANIMATION_MS)
+    }
+
+    return () => {
+      if (mobileMenuCloseTimerRef.current != null) {
+        window.clearTimeout(mobileMenuCloseTimerRef.current)
+        mobileMenuCloseTimerRef.current = null
+      }
+    }
+  }, [menuOpen, isMobileMenuMounted, MOBILE_MENU_ANIMATION_MS])
+
   useEffect(() => {
     if (!menuOpen) {
+      setMobileSearchOpen(false)
+    }
+  }, [menuOpen])
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!menuOpen) return
+
+    const closeMenuOnDesktop = () => {
+      if (window.innerWidth >= 1024) {
+        setMenuOpen(false)
+      }
+    }
+
+    closeMenuOnDesktop()
+    window.addEventListener('resize', closeMenuOnDesktop)
+    return () => window.removeEventListener('resize', closeMenuOnDesktop)
+  }, [menuOpen])
+
+  useEffect(() => {
+    setSearchQuery('')
+  }, [location.pathname])
+
+  // Bloquer totalement le scroll de fond quand le menu mobile est ouvert
+  useEffect(() => {
+    if (!isMobileMenuMounted) {
       return () => {
         // Cleanup toujours retourné pour éviter l'erreur React #310
       }
     }
-    const previous = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = previous
-    }
-  }, [menuOpen])
+    const scrollY = window.scrollY || window.pageYOffset || 0
+    const previousBodyOverflow = document.body.style.overflow
+    const previousBodyPosition = document.body.style.position
+    const previousBodyTop = document.body.style.top
+    const previousBodyWidth = document.body.style.width
+    const previousBodyTouchAction = document.body.style.touchAction
+    const previousHtmlOverflow = document.documentElement.style.overflow
 
-  const opacity = isDashboardPage ? 1 : scrollProgress * 0.95
-  const borderOpacity = isDashboardPage ? 0.45 : 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+    document.body.style.touchAction = 'none'
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.body.style.overflow = previousBodyOverflow
+      document.body.style.position = previousBodyPosition
+      document.body.style.top = previousBodyTop
+      document.body.style.width = previousBodyWidth
+      document.body.style.touchAction = previousBodyTouchAction
+      window.scrollTo(0, scrollY)
+    }
+  }, [isMobileMenuMounted])
+
+  const opacity = useSolidNav ? 1 : scrollProgress * 0.95
+  const borderOpacity = useSolidNav ? 0.45 : 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
   const solidNavColor = '#0a0a0a'
   
-  const navBgStyle: React.CSSProperties = isDashboardPage
+  const navBgStyle: React.CSSProperties = useSolidNav
     ? {
         backgroundColor: solidNavColor,
         backdropFilter: 'none',
@@ -271,6 +464,93 @@ export function Header() {
   const navLink =
     'font-nav font-bold text-white transition-colors text-xs uppercase px-4 py-2 rounded-md hover:bg-carbon-700/20 group-hover:text-silver/70 hover:!text-white'
   const anyMenuOpen = shopOpen || ceramicOpen || companyOpen || searchOpen || langOpen || menuOpen
+
+  const normalizeSearchValue = (value: string) =>
+    value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+
+  const searchEntries = useMemo<SearchEntry[]>(() => {
+    const pageEntries: SearchEntry[] = [
+      { id: 'page-boutique', label: 'Shop', to: '/boutique', kind: 'Page', keywords: ['boutique', 'products', 'store'] },
+      { id: 'page-car-club', label: 'Car club', to: '/car-club', kind: 'Page', keywords: ['club'] },
+      { id: 'page-event', label: 'Event', to: '/event', kind: 'Page', keywords: ['events'] },
+      { id: 'page-academy', label: 'Academy', to: '/academy', kind: 'Page', keywords: ['formation'] },
+      { id: 'page-company', label: 'Open FIREBALL Center', to: '/join-fireball', kind: 'Page', keywords: ['company', 'partner'] },
+      { id: 'page-contact', label: 'Contact', to: '/contact', kind: 'Page', keywords: ['support'] },
+      { id: 'page-about', label: 'About us', to: '/about', kind: 'Page', keywords: ['a propos', 'brand'] },
+      { id: 'page-legal', label: 'Legal', to: '/legal', kind: 'Page', keywords: ['mentions', 'terms'] },
+      { id: 'page-press-kit', label: 'Press kit', to: '/press-kit', kind: 'Page', keywords: ['media', 'presse'] },
+      { id: 'page-cart', label: 'Cart', to: '/panier', kind: 'Page', keywords: ['panier', 'checkout'] },
+    ]
+
+    const categoryEntries: SearchEntry[] = CATEGORIES.map((category) => ({
+      id: `category-${category.id}`,
+      label: category.name,
+      to: `/boutique/${category.id}`,
+      kind: 'Category',
+      subtitle: category.description,
+      keywords: [category.id, 'categorie', 'category', 'boutique'],
+    }))
+
+    const categoryById = new Map(CATEGORIES.map((category) => [category.id, category.name]))
+    const productEntries: SearchEntry[] = searchableProducts.map((product) => ({
+      id: `product-${product.slug}`,
+      label: product.name,
+      to: `/produit/${product.slug}`,
+      kind: 'Product',
+      subtitle: categoryById.get(product.category) ?? product.category,
+      keywords: [product.shortDesc, product.category, product.badge ?? ''],
+    }))
+
+    return [...pageEntries, ...categoryEntries, ...productEntries]
+  }, [searchableProducts])
+
+  const popularSearches = useMemo(
+    () =>
+      searchEntries.filter((entry) =>
+        ['page-boutique', 'category-revetements', 'page-car-club', 'page-academy'].includes(entry.id)
+      ),
+    [searchEntries]
+  )
+
+  const searchResults = useMemo<RankedSearchEntry[]>(() => {
+    const query = normalizeSearchValue(searchQuery)
+    if (!query) return []
+
+    return searchEntries
+      .map((entry) => {
+        const label = normalizeSearchValue(entry.label)
+        const subtitle = normalizeSearchValue(entry.subtitle ?? '')
+        const keywords = (entry.keywords ?? []).map((keyword) => normalizeSearchValue(keyword)).join(' ')
+
+        let score = 0
+        if (label.startsWith(query)) score += 120
+        else if (label.includes(query)) score += 90
+        if (subtitle.includes(query)) score += 45
+        if (keywords.includes(query)) score += 35
+        if (normalizeSearchValue(entry.to).includes(query)) score += 20
+        if (query.length > 2 && query.split(' ').every((term) => label.includes(term) || keywords.includes(term))) {
+          score += 30
+        }
+
+        return { ...entry, score }
+      })
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+  }, [searchEntries, searchQuery])
+
+  const activeSearchEntries = searchQuery.trim() ? searchResults : popularSearches
+
+  const handleSearchNavigation = (to: string) => {
+    setSearchOpen(false)
+    setMobileSearchOpen(false)
+    setMenuOpen(false)
+    navigate(to)
+  }
 
   const handleAccountClick = async (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault()
@@ -303,23 +583,31 @@ export function Header() {
         </div>
       )}
       <header
-        className={`${isProductPage || isCoatingPage ? 'sticky' : 'fixed'} top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
-          (isProductPage || isCoatingPage) && !isHeaderVisible ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
-        } ${bannerEnabled && bannerText ? 'mt-[42px]' : ''}`}
-        style={
-          menuOpen
+        className={`${isProductPage || isCoatingPage ? 'sticky' : 'fixed'} top-0 left-0 right-0 ${
+          isMobileMenuMounted ? 'z-[10010]' : 'z-[120]'
+        } ${
+          bannerEnabled && bannerText ? 'mt-[42px]' : ''
+        }`}
+        style={{
+          ...(isMobileMenuMounted
             ? {
                 ...(navBgStyle || {}),
                 backgroundColor: solidNavColor,
                 backdropFilter: 'none',
               }
-            : navBgStyle
-        }
+            : navBgStyle),
+          ...((isProductPage || isCoatingPage) && !isMobileMenuMounted
+            ? {
+                transform: `translateY(${-headerHideProgress * 100}%)`,
+                willChange: 'transform',
+              }
+            : {}),
+        }}
       >
         {anyMenuOpen && !menuOpen && (
           <div className="fixed inset-0 z-40 bg-black/15 pointer-events-none" aria-hidden />
         )}
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-20">
+        <div className={`max-w-7xl mx-auto px-6 flex items-center justify-between ${isShopPage ? 'h-16' : 'h-20'}`}>
         {/* Left: Logo + links */}
         <div className="flex items-center gap-10 h-full">
           <Link to="/" className="flex items-center h-12 w-auto select-none">
@@ -650,27 +938,41 @@ export function Header() {
                     <input
                       type="search"
                       placeholder="Search..."
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
                       className="w-full py-2.5 px-3 rounded-xl bg-transparent border border-black text-carbon-950 text-sm placeholder:text-carbon-500 focus:outline-none focus:ring-0"
                       autoFocus
                     />
                     <p className="text-carbon-500 text-xs font-nav font-bold uppercase mt-4 mb-2">
-                      Popular searches
+                      {searchQuery.trim() ? 'Search results' : 'Popular searches'}
                     </p>
-                    <ul className="space-y-0.5">
-                      {['Ceramic coating', 'Car club', 'Events', 'Academy'].map((label) => (
-                        <li key={label}>
-                          <button
-                            type="button"
-                            className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm font-nav font-bold text-carbon-900 rounded-2xl hover:bg-black/10 transition-colors"
-                          >
-                            <svg className="w-4 h-4 text-carbon-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" />
-                            </svg>
-                            {label}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                    {activeSearchEntries.length === 0 ? (
+                      <p className="px-3 py-3 text-sm text-carbon-500">No results found.</p>
+                    ) : (
+                      <ul className="space-y-0.5">
+                        {activeSearchEntries.map((entry) => (
+                          <li key={entry.id}>
+                            <button
+                              type="button"
+                              onClick={() => handleSearchNavigation(entry.to)}
+                              className="w-full flex items-start justify-between gap-3 px-3 py-2.5 text-left rounded-2xl hover:bg-black/10 transition-colors"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-sm font-nav font-bold text-carbon-900 truncate">{entry.label}</p>
+                                {entry.subtitle ? (
+                                  <p className="text-xs text-carbon-500 truncate">{entry.subtitle}</p>
+                                ) : (
+                                  <p className="text-xs text-carbon-500">{entry.to}</p>
+                                )}
+                              </div>
+                              <span className="text-[10px] mt-0.5 uppercase tracking-[0.14em] text-carbon-500">
+                                {entry.kind}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
               </div>
@@ -795,11 +1097,22 @@ export function Header() {
       </div>
 
       {/* Mobile menu */}
-      {menuOpen && (
+      {isMobileMenuMounted && typeof document !== 'undefined' && createPortal(
         <div
-          className="lg:hidden fixed inset-x-0 top-20 bottom-0 border-t border-carbon-800 px-6 py-4 animate-fade-in z-[60] overflow-x-hidden"
+          className="lg:hidden fixed inset-0 z-[9999] pointer-events-none"
           style={{ backgroundColor: solidNavColor }}
         >
+          <div
+            className={`h-full ${isShopPage ? 'pt-16' : 'pt-20'} transition-all duration-300 ease-out ${
+              isMobileMenuVisible
+                ? 'opacity-100 translate-y-0 pointer-events-auto'
+                : 'opacity-0 -translate-y-4 pointer-events-none'
+            }`}
+          >
+            <div
+              className="h-full border-t border-carbon-800 px-6 py-4 overflow-x-hidden"
+              style={{ backgroundColor: solidNavColor }}
+            >
           <div className="h-full flex flex-col">
             <nav className="-mx-6 space-y-0 pb-4 flex-1 overflow-y-auto overflow-x-hidden">
               <Link
@@ -1094,28 +1407,83 @@ export function Header() {
             </div>
 
               {/* Search */}
-              <div className="mt-4">
+              <div className={`mt-4 border-b border-white/[0.06] ${mobileSearchOpen ? 'bg-white/[0.03]' : ''}`}>
                 <button
                   type="button"
-                  className="flex w-[96%] mx-auto items-center gap-2 py-3 px-2 text-sm font-nav font-bold text-white"
+                  onClick={() => setMobileSearchOpen((open) => !open)}
+                  className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 text-sm font-nav font-bold text-white"
+                  aria-expanded={mobileSearchOpen}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-white"
-                  >
-                    <path d="m21 21-4.34-4.34" />
-                    <circle cx="11" cy="11" r="8" />
-                  </svg>
-                  <span>Search</span>
+                  <span className="inline-flex items-center gap-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-white"
+                    >
+                      <path d="m21 21-4.34-4.34" />
+                      <circle cx="11" cy="11" r="8" />
+                    </svg>
+                    <span>Search</span>
+                  </span>
+                  {mobileSearchOpen && (
+                    <svg
+                      className="w-4 h-4 transition-transform -rotate-180"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m19 12-7 7-7-7" />
+                    </svg>
+                  )}
                 </button>
+                <div
+                  className={`transition-all duration-300 ease-out overflow-hidden ${
+                    mobileSearchOpen ? 'max-h-[520px] opacity-100' : 'max-h-0 opacity-0'
+                  }`}
+                >
+                  <div className="px-2 pb-3">
+                    <div className="w-[96%] mx-auto">
+                      <input
+                        type="search"
+                        value={searchQuery}
+                        onChange={(event) => setSearchQuery(event.target.value)}
+                        placeholder="Search pages, links, products..."
+                        className="w-full py-2.5 px-3 rounded-xl border border-white/20 bg-black/20 text-white text-sm placeholder:text-silver/60 focus:outline-none focus:border-white/40"
+                      />
+                      <p className="text-[10px] font-nav font-bold uppercase tracking-[0.14em] text-silver/60 mt-3 mb-2">
+                        {searchQuery.trim() ? 'Results' : 'Popular'}
+                      </p>
+                      {activeSearchEntries.length === 0 ? (
+                        <p className="text-sm text-silver/70 py-2">No results found.</p>
+                      ) : (
+                        <ul className="space-y-1.5">
+                          {activeSearchEntries.map((entry) => (
+                            <li key={`mobile-${entry.id}`}>
+                              <button
+                                type="button"
+                                onClick={() => handleSearchNavigation(entry.to)}
+                                className="w-full text-left px-2.5 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] transition-colors"
+                              >
+                                <p className="text-sm text-white font-nav font-bold">{entry.label}</p>
+                                <div className="mt-0.5 flex items-center justify-between gap-2">
+                                  <p className="text-xs text-silver/70 truncate">{entry.subtitle || entry.to}</p>
+                                  <span className="text-[10px] uppercase tracking-[0.14em] text-silver/60">{entry.kind}</span>
+                                </div>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Langue */}
@@ -1203,7 +1571,10 @@ export function Header() {
               </button>
             </div>
           </div>
+            </div>
         </div>
+        </div>,
+        document.body
       )}
     </header>
     </>

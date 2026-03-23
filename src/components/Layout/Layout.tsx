@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { Header } from './Header'
 import { Footer } from './Footer'
+import { isShopPathname } from '@/utils/shopRoutes'
 
 export function Layout() {
   const location = useLocation()
@@ -13,25 +14,37 @@ export function Layout() {
     location.pathname.startsWith('/account') ||
     location.pathname.startsWith('/business')
   const isCartPage = location.pathname === '/cart' || location.pathname === '/panier'
-  const showHeader = !isAccountAuthPage
-  const showFooter = !isAnyAccountPage && !isCartPage
-  /** Header sticky (dans le flux) : pas de pt-20 sur le main, sinon doublon avec le header fixe */
-  const isStickyHeaderRoute =
+  const isContactPage = location.pathname === '/contact'
+  const isShopPage = isShopPathname(location.pathname)
+
+  /** Même logique que Header : navbar sticky dans le flux — pas de pt sur main (évite double bande noire). */
+  const isStickyNavPage =
     location.pathname.startsWith('/product/') ||
     location.pathname.startsWith('/produit/') ||
     location.pathname.startsWith('/coating')
+
+  const showHeader = !isAccountAuthPage
+  const showFooter = !isAnyAccountPage && !isCartPage && !isContactPage
+
+  const mainHeaderPadding = !showHeader
+    ? ''
+    : isStickyNavPage
+      ? ''
+      : isShopPage
+        ? 'pt-16'
+        : 'pt-20'
 
   return (
     <div className="min-h-screen flex flex-col">
       {showHeader && <Header />}
       <main
-        className={
-          showHeader
-            ? isStickyHeaderRoute
-              ? 'flex-1'
-              : 'flex-1 pt-20'
-            : 'flex-1'
-        }
+        className={[
+          'flex-1',
+          mainHeaderPadding,
+          isContactPage ? 'flex flex-col min-h-0 w-full' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
       >
         <Outlet />
       </main>
