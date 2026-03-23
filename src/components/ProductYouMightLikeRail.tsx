@@ -166,8 +166,8 @@ export function ProductYouMightLikeRail({
       </div>
 
       {/* Piste largeur fixe + flèches comme avant (aligné titre : max-w-7xl) */}
-      <div className="mx-auto mt-5 max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-center gap-3">
+      <div className="mx-auto mt-4 max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-3">
           <button
             type="button"
             aria-label="Scroll left"
