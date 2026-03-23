@@ -485,7 +485,7 @@ export function Header() {
     const pageEntries: SearchEntry[] = [
       { id: 'page-boutique', label: 'Shop', to: '/boutique', kind: 'Page', keywords: ['boutique', 'products', 'store'] },
       { id: 'page-car-club', label: 'Car club', to: '/car-club', kind: 'Page', keywords: ['club'] },
-      { id: 'page-event', label: 'Event', to: '/event', kind: 'Page', keywords: ['events'] },
+      { id: 'page-event', label: 'Events', to: '/event', kind: 'Page', keywords: ['events'] },
       { id: 'page-academy', label: 'Academy', to: '/academy', kind: 'Page', keywords: ['formation'] },
       { id: 'page-company', label: 'Open FIREBALL Center', to: '/join-fireball', kind: 'Page', keywords: ['company', 'partner'] },
       { id: 'page-contact', label: 'Contact', to: '/contact', kind: 'Page', keywords: ['support'] },
@@ -852,7 +852,7 @@ export function Header() {
             </div>
 
             <Link to="/event" className={navLink}>
-              Event
+              Events
             </Link>
             <Link to="/academy" className={navLink}>
               Academy
@@ -1190,7 +1190,7 @@ export function Header() {
               className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white border-b border-white/[0.06]"
               onClick={() => setMenuOpen(false)}
             >
-              <span>Event</span>
+              <span>Events</span>
             </Link>
             <Link
               to="/academy"

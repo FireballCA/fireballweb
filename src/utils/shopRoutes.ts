@@ -9,6 +9,7 @@ const NON_CATEGORY_ROUTE_SEGMENTS = new Set([
   'contact',
   'legal',
   'academy',
+  'event',
   'join-fireball',
   'account',
   'partner',
