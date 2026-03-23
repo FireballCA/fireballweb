@@ -6,10 +6,10 @@ import { buildShopifyCartUrl, fetchProductsFromShopify } from '@/utils/shopifySt
 import { supabase } from '@/lib/supabase'
 import { XP_PER_DOLLAR } from '@/utils/supabaseXp'
 import type { Product } from '@/data/products'
-import { PRODUCTS } from '@/data/products'
+import { CATEGORIES, PRODUCTS } from '@/data/products'
 import { PaymentMethodBadges } from '@/components/PaymentMethodBadges'
 import { getFavoriteSlugsResolved } from '@/utils/favorites'
-import { productDetailPath } from '@/constants/paths'
+import { productDetailPath, shopCategoryPath } from '@/constants/paths'
 import { ProductYouMightLikeRail } from '@/components/ProductYouMightLikeRail'
 import { productSectionHeadingClass } from '@/constants/typography'
 
@@ -23,6 +23,12 @@ function formatMoney(n: number) {
   return `${n.toFixed(2)} $CA`
 }
 
+type EmptyCartFeature = {
+  title: string
+  subtitle: string
+  icon: JSX.Element
+}
+
 export function Cart() {
   const { t } = useTranslation()
   const { items, removeFromCart, updateQuantity, totalPrice, addToCart } = useCart()
@@ -32,6 +38,7 @@ export function Cart() {
   const [favoriteSlugs, setFavoriteSlugs] = useState<string[]>([])
   const [productsLoading, setProductsLoading] = useState(true)
   const [allShopProducts, setAllShopProducts] = useState<Product[]>([])
+  const [emptyCtaCategoryIndex, setEmptyCtaCategoryIndex] = useState(0)
 
   useEffect(() => {
     const {
@@ -100,6 +107,27 @@ export function Cart() {
       .slice(0, 10)
   }, [allShopProducts, cartProductSlugs])
 
+  const emptyCtaCategories = useMemo(
+    () =>
+      CATEGORIES.filter((category) =>
+        ['coatings', 'sealants', 'waxes', 'dressings', 'washing', 'cleaners', 'towels', 'accessories'].includes(
+          category.id,
+        ),
+      ),
+    [],
+  )
+
+  const emptyCtaCategory = emptyCtaCategories[emptyCtaCategoryIndex] ?? emptyCtaCategories[0]
+  const emptyCtaButtonWidth = `${Math.max(16, 6 + (emptyCtaCategory?.name.length ?? 4))}ch`
+
+  useEffect(() => {
+    if (items.length > 0 || emptyCtaCategories.length <= 1) return
+    const timer = window.setInterval(() => {
+      setEmptyCtaCategoryIndex((prev) => (prev + 1) % emptyCtaCategories.length)
+    }, 3400)
+    return () => window.clearInterval(timer)
+  }, [items.length, emptyCtaCategories.length])
+
   const handleCheckout = () => {
     setCheckoutMessage(null)
 
@@ -124,17 +152,78 @@ export function Cart() {
   }
 
   if (items.length === 0) {
+    const emptyFeatures: EmptyCartFeature[] = [
+      {
+        title: 'Secure payments',
+        subtitle: 'Encrypted and trusted checkout.',
+        icon: (
+          <svg className="h-5 w-5 text-carbon-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3l7 4v5c0 5-3.5 8.3-7 9-3.5-.7-7-4-7-9V7l7-4z" />
+          </svg>
+        ),
+      },
+      {
+        title: 'Free & easy returns',
+        subtitle: 'Simple policy, no hassle.',
+        icon: (
+          <svg className="h-5 w-5 text-carbon-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 8h10a6 6 0 110 12H6" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 4L4 8l4 4" />
+          </svg>
+        ),
+      },
+      {
+        title: 'Active support',
+        subtitle: 'Fast help when you need it.',
+        icon: (
+          <svg className="h-5 w-5 text-carbon-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 10h8M8 14h5" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 12a9 9 0 11-9-9 9 9 0 019 9z" />
+          </svg>
+        ),
+      },
+    ]
+
     return (
-      <div className="bg-white min-h-screen flex items-center justify-center px-6 py-24 text-center">
-        <div>
-          <h1 className="font-sans font-bold text-4xl text-carbon-900 mb-4">{t('cart.empty')}</h1>
-          <p className="text-silver/80 mb-8">{t('cart.emptyDesc')}</p>
-          <Link
-            to="/boutique"
-            className="inline-block px-8 py-4 bg-carbon-900 text-white font-medium text-sm uppercase hover:opacity-90 transition-colors"
-          >
-            {t('cart.viewShop')}
-          </Link>
+      <div className="bg-white px-6 pt-28 pb-10">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center">
+            <h1 className="font-sans font-bold text-4xl text-carbon-900 mb-8">{t('cart.empty')}</h1>
+            <Link
+              to={emptyCtaCategory ? shopCategoryPath(emptyCtaCategory.id) : '/boutique'}
+              className="inline-flex items-center justify-center rounded-full bg-black px-8 py-4 font-medium text-white transition-[width] duration-500 ease-out"
+              style={{ width: emptyCtaButtonWidth }}
+            >
+              <span>View </span>
+              <span
+                className="ml-1 inline-block text-left transition-all duration-300 ease-out"
+              >
+                {emptyCtaCategory?.name ?? 'Shop'}
+              </span>
+            </Link>
+          </div>
+
+          <section className="mt-14">
+            <div className="grid gap-4 md:grid-cols-3">
+              {emptyFeatures.map((feature) => (
+                <article
+                  key={feature.title}
+                  className="rounded-2xl border border-carbon-200 bg-white p-5"
+                >
+                  <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-carbon-100">
+                    {feature.icon}
+                  </div>
+                  <h2 className="text-base font-semibold text-carbon-900">{feature.title}</h2>
+                  <p className="mt-1 text-sm text-carbon-600">{feature.subtitle}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="mt-10 text-center">
+            <p className="text-base font-semibold text-carbon-900">Our payments partners</p>
+            <PaymentMethodBadges className="mt-4" iconClassName="h-8 w-auto shrink-0" />
+          </section>
         </div>
       </div>
     )

@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Lenis : évite hauteur figée + désactive scroll-behavior natif quand le smooth Lenis est actif */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+html.lenis-smooth,
+html.lenis-smooth body {
+  scroll-behavior: auto !important;
+}
+
 /* Pour utiliser la police HKG Wide, décommentez et pointez vers vos fichiers :
 @font-face {
   font-family: 'HKG Wide';
@@ -13,12 +24,10 @@
 
 @layer base {
   html {
-    scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
   }
   body {
     @apply bg-carbon-950 text-pearl font-sans antialiased;
-    scroll-behavior: smooth;
     /* Améliorer les performances de scroll */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

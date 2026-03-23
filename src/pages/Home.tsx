@@ -4,6 +4,7 @@ import { CATEGORIES } from '@/data/products'
 import { getFeaturedProducts } from '@/data/products'
 import { SurfaceTechnology } from '@/components/SurfaceTechnology'
 import { ScrollReveal, ParallaxSection } from '@/components'
+import { shopCategoryPath } from '@/constants/paths'
 
 export function Home() {
   const { t } = useTranslation()
@@ -67,7 +68,7 @@ export function Home() {
             {CATEGORIES.map((cat, i) => (
                 <ScrollReveal key={cat.id} direction="up" delay={i * 100} distance={30}>
               <Link
-                to={`/boutique/${cat.id}`}
+                to={shopCategoryPath(cat.id)}
                 className="group block border border-carbon-700 hover:border-chrome/50 transition-all duration-300 overflow-hidden"
               >
                 <div className="aspect-[4/3] bg-carbon-800 relative overflow-hidden">

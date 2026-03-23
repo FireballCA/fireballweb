@@ -7,6 +7,7 @@ import { CATEGORIES, PRODUCTS } from '@/data/products'
 import { isAuthenticated } from '@/utils/supabaseAuth'
 import { supabase } from '@/lib/supabase'
 import { isShopPathname } from '@/utils/shopRoutes'
+import { isNavOverFullBleedHero } from '@/utils/navHeroOverlap'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 
 const CERAMIC_SECTIONS = [
@@ -134,9 +135,16 @@ export function Header() {
     location.pathname.startsWith('/product/') ||
     location.pathname.startsWith('/produit/')
   const isCoatingPage = location.pathname.startsWith('/coating')
-  /** Fond noir plein (pas de transparence au scroll) — pages produit / coating incluses */
+  /**
+   * Fond plein dès le haut (même logique que le footer) : tout sauf accueil / about où le hero
+   * passe sous la navbar fixe (transparence → opaque au scroll).
+   */
   const useSolidNav =
-    isDashboardPage || isContactPage || isProductPage || isCoatingPage
+    isDashboardPage ||
+    isContactPage ||
+    isProductPage ||
+    isCoatingPage ||
+    !isNavOverFullBleedHero(location.pathname)
   /** 0 = navbar visible, 1 = entièrement masquée (pages produit / coating uniquement, piloté par le scroll) */
   const [headerHideProgress, setHeaderHideProgress] = useState(0)
   const headerHideProgressRef = useRef(0)
@@ -445,7 +453,8 @@ export function Header() {
 
   const opacity = useSolidNav ? 1 : scrollProgress * 0.95
   const borderOpacity = useSolidNav ? 0.45 : 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
-  const solidNavColor = '#0a0a0a'
+  /** Aligné sur le footer (`bg-carbon-900` = #111111) */
+  const solidNavColor = '#111111'
   
   const navBgStyle: React.CSSProperties = useSolidNav
     ? {

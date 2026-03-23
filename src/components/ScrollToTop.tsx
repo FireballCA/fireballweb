@@ -1,13 +1,19 @@
-import { useEffect } from 'react'
+import { useContext, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
+import { LenisContext } from '@/components/LenisRoot'
 
-/** Remonte en haut à chaque navigation, avec défilement fluide (voir scroll-behavior sur html). */
+/** Remonte en haut à chaque navigation (Lenis si actif, sinon fallback natif). */
 export function ScrollToTop() {
   const { pathname, search } = useLocation()
+  const lenis = useContext(LenisContext)
 
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
-  }, [pathname, search])
+    if (lenis) {
+      lenis.scrollTo(0, { immediate: true })
+    } else {
+      window.scrollTo(0, 0)
+    }
+  }, [pathname, search, lenis])
 
   return null
 }
