@@ -1,17 +1,81 @@
-import { useParams, Link } from 'react-router-dom'
-import { useEffect, useState, useRef } from 'react'
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
+import type { NavigateFunction } from 'react-router-dom'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CATEGORIES, PRODUCTS, type Product as LocalProduct } from '@/data/products'
 import { useCart } from '@/context/CartContext'
 import { fetchProductFromShopifyBySlug, fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { XP_PER_DOLLAR } from '@/utils/supabaseXp'
+import { PaymentMethodBadges } from '@/components/PaymentMethodBadges'
+import { ProductYouMightLikeRail } from '@/components/ProductYouMightLikeRail'
+import { isAuthenticated } from '@/utils/supabaseAuth'
+import { isFavoriteSlug, toggleFavoriteSlug } from '@/utils/favorites'
+import { FavoritePromptModal } from '@/components/FavoritePromptModal'
+import { productDetailPath } from '@/constants/paths'
 
 type ProductType = LocalProduct
 
+function useProductFavoritePrompt(
+  slug: string | undefined,
+  setWishlisted: React.Dispatch<React.SetStateAction<boolean>>,
+  navigate: NavigateFunction,
+  location: ReturnType<typeof useLocation>,
+) {
+  const [modalOpen, setModalOpen] = useState(false)
+
+  const handleFavoriteModalContinue = async () => {
+    if (!slug) return
+    sessionStorage.setItem('favorite_modal_shown', '1')
+    setModalOpen(false)
+    const next = await toggleFavoriteSlug(slug)
+    setWishlisted(next)
+  }
+
+  const handleWishlistClick = async () => {
+    if (!slug) return
+    if (await isAuthenticated()) {
+      const next = await toggleFavoriteSlug(slug)
+      setWishlisted(next)
+      return
+    }
+    if (!sessionStorage.getItem('favorite_modal_shown')) {
+      setModalOpen(true)
+      return
+    }
+    const next = await toggleFavoriteSlug(slug)
+    setWishlisted(next)
+  }
+
+  const favoriteModal = (
+    <FavoritePromptModal
+      open={modalOpen}
+      onClose={() => setModalOpen(false)}
+      onContinue={handleFavoriteModalContinue}
+      onSignIn={() => {
+        setModalOpen(false)
+        navigate(`/account?tab=login&returnTo=${encodeURIComponent(location.pathname)}`)
+      }}
+    />
+  )
+
+  return { handleWishlistClick, favoriteModal }
+}
+
 export function Product() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const location = useLocation()
   const { slug } = useParams<{ slug: string }>()
   const { addToCart } = useCart()
+  const [shareOpen, setShareOpen] = useState(false)
+  const shareWrapRef = useRef<HTMLDivElement>(null)
+  const [wishlisted, setWishlisted] = useState(false)
+  const { handleWishlistClick, favoriteModal } = useProductFavoritePrompt(
+    slug,
+    setWishlisted,
+    navigate,
+    location,
+  )
   const [product, setProduct] = useState<ProductType | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null)
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
@@ -32,6 +96,33 @@ export function Product() {
   const navbarRef = useRef<HTMLDivElement>(null)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
+
+  const productShareUrl = useMemo(() => {
+    const path = slug ? productDetailPath(slug) : ''
+    if (typeof window === 'undefined') return path
+    return `${window.location.origin}${path}`
+  }, [slug])
+
+  useEffect(() => {
+    if (!slug) return
+    let cancelled = false
+    void (async () => {
+      const w = await isFavoriteSlug(slug)
+      if (!cancelled) setWishlisted(w)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [slug])
+
+  useEffect(() => {
+    if (!shareOpen) return
+    const onDoc = (e: MouseEvent) => {
+      if (!shareWrapRef.current?.contains(e.target as Node)) setShareOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [shareOpen])
 
   useEffect(() => {
     let cancelled = false
@@ -67,14 +158,14 @@ export function Product() {
             const allProducts = await fetchProductsFromShopify()
             const related = allProducts
               .filter((p) => p.category === loaded.category && p.id !== loaded.id)
-              .slice(0, 4)
+              .slice(0, 10)
             if (!cancelled) {
               setRelatedProducts(related)
             }
           } catch (err) {
             const related = PRODUCTS.filter(
               (p) => p.category === loaded.category && p.id !== loaded.id
-            ).slice(0, 4)
+            ).slice(0, 10)
             if (!cancelled) {
               setRelatedProducts(related)
             }
@@ -115,7 +206,7 @@ export function Product() {
       if (!headerContent) return
       
       const logo = headerContent.querySelector('a[href="/"]')
-      const cartLink = headerContent.querySelector('a[href="/panier"]')
+      const cartLink = headerContent.querySelector('a[href="/cart"]')
       
       if (logo && cartLink) {
         const logoRect = logo.getBoundingClientRect()
@@ -243,6 +334,26 @@ export function Product() {
 
   const category = CATEGORIES.find((c) => c.id === product.category)
 
+  const copyProductLink = async () => {
+    try {
+      await navigator.clipboard.writeText(productShareUrl)
+    } catch {
+      /* ignore */
+    }
+    setShareOpen(false)
+  }
+
+  const shareNative = async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share && product) {
+        await navigator.share({ title: product.name, url: productShareUrl })
+      }
+    } catch {
+      /* annulé ou indisponible */
+    }
+    setShareOpen(false)
+  }
+
   const handleAddToCart = () => {
     const productToAdd: ProductType = {
       ...product,
@@ -310,25 +421,8 @@ export function Product() {
 
   return (
     <div className="bg-white min-h-screen" data-no-smooth-scroll>
-      {/* Breadcrumb */}
-      <div className="bg-white border-b border-carbon-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <nav className="flex items-center space-x-2 text-sm text-carbon-600">
-            <Link to="/" className="hover:text-carbon-900">{t('product.shop')}</Link>
-            <span>/</span>
-            {category && (
-              <>
-                <Link to={`/boutique/${category.id}`} className="hover:text-carbon-900">{category.name}</Link>
-                <span>/</span>
-              </>
-            )}
-            <span className="text-carbon-900">{product.name}</span>
-          </nav>
-        </div>
-      </div>
-
-      {/* Main Product Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+      {/* Main Product Section — peu de pt : le flux est déjà sous la navbar (header sticky) */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-4 pb-8 lg:pb-12">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-16">
           {/* Left: Image Gallery - Sticky */}
           <div className="lg:sticky lg:top-20 lg:self-start space-y-4">
@@ -382,24 +476,90 @@ export function Product() {
                 </>
               )}
 
-              {/* Action Icons */}
-              <div className="absolute top-4 right-4 flex gap-2">
+              {/* Action Icons — partage + favoris */}
+              <div className="absolute top-4 right-4 flex gap-2 z-20">
+                <div className="relative" ref={shareWrapRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShareOpen((o) => !o)}
+                    className={`w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center transition-all ${
+                      shareOpen ? 'ring-2 ring-carbon-900/20' : ''
+                    }`}
+                    aria-expanded={shareOpen}
+                    aria-haspopup="true"
+                    aria-label={t('product.shareAria')}
+                  >
+                    <svg className="w-5 h-5 text-carbon-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                  </button>
+                  {shareOpen && (
+                    <div
+                      role="menu"
+                      className="absolute right-0 top-full mt-2 w-52 rounded-xl border border-carbon-200 bg-white py-1.5 shadow-xl text-left"
+                    >
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={copyProductLink}
+                        className="w-full px-3 py-2 text-left text-sm text-carbon-800 hover:bg-carbon-50"
+                      >
+                        {t('product.shareCopyLink')}
+                      </button>
+                      {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={shareNative}
+                          className="w-full px-3 py-2 text-left text-sm text-carbon-800 hover:bg-carbon-50"
+                        >
+                          {t('product.shareSystem')}
+                        </button>
+                      )}
+                      <a
+                        role="menuitem"
+                        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productShareUrl)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setShareOpen(false)}
+                        className="block w-full px-3 py-2 text-sm text-carbon-800 hover:bg-carbon-50"
+                      >
+                        Facebook
+                      </a>
+                      <a
+                        role="menuitem"
+                        href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(productShareUrl)}&text=${encodeURIComponent(product.name)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setShareOpen(false)}
+                        className="block w-full px-3 py-2 text-sm text-carbon-800 hover:bg-carbon-50"
+                      >
+                        X (Twitter)
+                      </a>
+                    </div>
+                  )}
+                </div>
                 <button
                   type="button"
-                  className="w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center transition-all"
-                  aria-label="Share"
+                  onClick={handleWishlistClick}
+                  className={`w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center transition-all ${
+                    wishlisted ? 'text-red-600' : 'text-carbon-600'
+                  }`}
+                  aria-label={t('product.wishlistAria')}
+                  aria-pressed={wishlisted}
                 >
-                  <svg className="w-5 h-5 text-carbon-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  className="w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center transition-all"
-                  aria-label="Add to wishlist"
-                >
-                  <svg className="w-5 h-5 text-carbon-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  <svg
+                    className="w-5 h-5"
+                    fill={wishlisted ? 'currentColor' : 'none'}
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    />
                   </svg>
                 </button>
               </div>
@@ -454,13 +614,9 @@ export function Product() {
               </span>
             )}
             <div className="mb-3">
-              <h1 className="text-3xl md:text-4xl font-bold text-carbon-900 mb-3">
-                {product.name}
-              </h1>
-              
               {/* Reviews - Style comme les cards produits */}
               {(product.rating !== undefined || product.reviewCount !== undefined) && (
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2 mb-3">
                   <div className="flex items-center gap-0.5">
                     {[...Array(5)].map((_, i) => {
                       const rating = product.rating || 0
@@ -489,6 +645,25 @@ export function Product() {
                   )}
                 </div>
               )}
+
+              <nav
+                className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[10px] leading-tight text-carbon-500 mb-2"
+                aria-label="Breadcrumb"
+              >
+                {category ? (
+                  <>
+                    <Link to={`/boutique/${category.id}`} className="hover:text-carbon-700">
+                      {category.name}
+                    </Link>
+                    <span aria-hidden="true">/</span>
+                  </>
+                ) : null}
+                <span className="text-carbon-600">{product.name}</span>
+              </nav>
+
+              <h1 className="text-3xl md:text-4xl font-bold text-carbon-900 mb-3">
+                {product.name}
+              </h1>
             </div>
 
             {/* Price */}
@@ -697,6 +872,13 @@ export function Product() {
               </button>
             </div>
 
+            <div className="text-center px-1 mt-1">
+              <p className="text-[11px] text-carbon-500 leading-snug">
+                {t('product.secureCheckoutLabel')}
+              </p>
+              <PaymentMethodBadges className="mt-2" iconClassName="h-6 w-auto shrink-0" />
+            </div>
+
             {/* Description - Sous les boutons */}
             {product.description && (
               <div className="border-t border-carbon-200 pt-6">
@@ -712,38 +894,6 @@ export function Product() {
                 </button>
               </div>
             )}
-
-            {/* Trust Signals */}
-            <div className="pt-6 border-t border-carbon-200 space-y-3">
-              <div className="flex items-center gap-2 text-sm text-carbon-600">
-                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>{t('product.trustFastShipping')}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-carbon-600">
-                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                <span>{t('product.trustProfessional')}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-carbon-600">
-                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>{t('product.trustTrusted')}</span>
-              </div>
-            </div>
-
-            {/* Payment Methods */}
-            <div className="pt-6 border-t border-carbon-200">
-              <p className="text-sm text-carbon-600 mb-3">Secure your payment guarantee.</p>
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-carbon-500">VISA</span>
-                <span className="text-xs text-carbon-500">Mastercard</span>
-                <span className="text-xs text-carbon-500">PayPal</span>
-              </div>
-            </div>
 
             {/* Return Policy */}
             <div className="pt-6 border-t border-carbon-200">
@@ -821,66 +971,11 @@ export function Product() {
         </div>
       </section>
 
-      {/* Related Products */}
+      {/* Related products — rail horizontal (même composant que le panier) */}
       {relatedProducts.length > 0 && (
         <section className="bg-white py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-2xl font-bold text-carbon-900 mb-4">{t('product.relatedTitle')}</h2>
-            <p className="text-carbon-600 mb-8">{t('product.relatedDesc')}</p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {relatedProducts.map((relatedProduct) => {
-                // Utiliser le rating réel du produit ou 0 par défaut
-                const rating = relatedProduct.rating || 0
-                return (
-                  <Link
-                    key={relatedProduct.id}
-                    to={`/produit/${relatedProduct.slug}`}
-                    className="group"
-                  >
-                    {/* Image réduite avec coins arrondis */}
-                    <div className="aspect-square bg-carbon-800 overflow-hidden rounded-lg mb-3">
-                      <img
-                        src={relatedProduct.image}
-                        alt={relatedProduct.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    </div>
-                    
-                    {/* Informations produit */}
-                    <div className="flex flex-col gap-1">
-                      <h3 className="text-carbon-900 text-sm font-bold truncate">
-                        {relatedProduct.name}
-                      </h3>
-                      
-                      {/* Étoiles */}
-                      <div className="flex items-center gap-0.5">
-                        {[...Array(5)].map((_, i) => (
-                          <svg
-                            key={i}
-                            className={`w-4 h-4 ${
-                              i < Math.floor(rating)
-                                ? 'text-yellow-400'
-                                : i < rating
-                                ? 'text-yellow-400/50'
-                                : 'text-carbon-600'
-                            }`}
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                        ))}
-                      </div>
-                      
-                      {/* Prix */}
-                      <p className="text-carbon-900 text-sm font-bold">
-                        {relatedProduct.price.toFixed(2)} $CA
-                      </p>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <ProductYouMightLikeRail title="You might also like" products={relatedProducts} />
           </div>
         </section>
       )}
@@ -962,6 +1057,8 @@ export function Product() {
           </div>
         </div>
       )}
+
+      {favoriteModal}
 
       {/* Sticky Add to Cart Mobile */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-carbon-200 p-4 z-50 shadow-lg">

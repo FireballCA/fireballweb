@@ -16,6 +16,7 @@ import {
   deleteGarageVehicle,
 } from '@/utils/supabaseGarage'
 import { ensureShopifyCustomerForProfile } from '@/utils/shopifySync'
+import { getSafeReturnToPath } from '@/utils/safeReturnTo'
 import { supabase } from '@/lib/supabase'
 
 interface Vehicle {
@@ -554,7 +555,14 @@ function VehicleSettingsModal({ vehicle, onClose, onUpdate, onDelete }: VehicleS
 export function AccountDashboard() {
   const navigate = useNavigate()
   const location = useLocation()
-  const pageState = (location.state as { fromRegister?: boolean; welcomeName?: string; shopifySyncError?: string | null } | null) || null
+  const pageState =
+    (location.state as {
+      fromRegister?: boolean
+      welcomeName?: string
+      shopifySyncError?: string | null
+      redirectAfterWelcome?: string | null
+    } | null) || null
+  const redirectAfterWelcome = getSafeReturnToPath(pageState?.redirectAfterWelcome ?? null)
   const [fullName, setFullName] = useState('')
   const [xp, setXp] = useState(0)
   const [shopifySyncWarning] = useState<string | null>(pageState?.shopifySyncError || null)
@@ -828,7 +836,14 @@ export function AccountDashboard() {
     const lineTimer = window.setTimeout(() => setWelcomeLineVisible(true), 120)
     const subtitleTimer = window.setTimeout(() => setSubtitleVisible(true), 2600)
     const ctaTimer = window.setTimeout(() => setEnterButtonVisible(true), 3400)
-    const safetyTimer = window.setTimeout(() => setShowDashboard(true), 20000)
+    const safeRedirect = getSafeReturnToPath(state?.redirectAfterWelcome ?? null)
+    const safetyTimer = window.setTimeout(() => {
+      if (safeRedirect) {
+        navigate(safeRedirect, { replace: true })
+      } else {
+        setShowDashboard(true)
+      }
+    }, 20000)
 
       return () => {
         window.clearTimeout(lineTimer)
@@ -1069,9 +1084,12 @@ export function AccountDashboard() {
                 onClick={() => {
                   setIsEnteringDashboard(true)
                   setWelcomeName(null)
-                  // Court delai pour eviter un flash vide, puis afficher le dashboard
                   window.setTimeout(() => {
-                    setShowDashboard(true)
+                    if (redirectAfterWelcome) {
+                      navigate(redirectAfterWelcome, { replace: true })
+                    } else {
+                      setShowDashboard(true)
+                    }
                     setIsEnteringDashboard(false)
                   }, 400)
                 }}

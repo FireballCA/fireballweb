@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { CartProvider } from '@/context/CartContext'
 import { NotificationsProvider } from '@/context/NotificationsContext'
 import { Layout } from '@/components/Layout/Layout'
@@ -32,6 +32,11 @@ import { PartnerSettings } from '@/pages/partner/PartnerSettings'
 import { PartnerStatistics } from '@/pages/partner/PartnerStatistics'
 import { Typhon } from '@/pages/coating/Typhon'
 
+function LegacyProduitRedirect() {
+  const { slug } = useParams<{ slug: string }>()
+  return <Navigate to={`/product/${slug}`} replace />
+}
+
 function App() {
   return (
     <NotificationsProvider>
@@ -41,12 +46,14 @@ function App() {
             <Route index element={<Home />} />
             <Route path="boutique" element={<Shop />} />
             <Route path="boutique/:categoryId" element={<Shop />} />
-            <Route path="produit/:slug" element={<Product />} />
+            <Route path="product/:slug" element={<Product />} />
+            <Route path="produit/:slug" element={<LegacyProduitRedirect />} />
             {/* Routes directes pour les catégories (doivent être après les routes spécifiques) */}
             <Route path=":categoryId" element={<Shop />} />
             <Route path="about" element={<About />} />
             <Route path="press-kit" element={<PressKit />} />
-            <Route path="panier" element={<Cart />} />
+            <Route path="cart" element={<Cart />} />
+            <Route path="panier" element={<Navigate to="/cart" replace />} />
             <Route path="car-club" element={<CarClub />} />
             <Route path="contact" element={<Contact />} />
             <Route path="legal" element={<Legal />} />

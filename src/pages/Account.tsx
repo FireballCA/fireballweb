@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { setRememberDevice, supabase } from '@/lib/supabase'
 import { isAuthenticated } from '@/utils/supabaseAuth'
+import { getSafeReturnToPath } from '@/utils/safeReturnTo'
 import { IOSCheckbox } from '@/components/IOSCheckbox'
 
 function FlagEN() {
@@ -55,8 +56,7 @@ export function Account() {
   const lang = i18n.language === 'fr' ? 'FR' : 'EN'
 
   const returnToParam = new URLSearchParams(location.search).get('returnTo')
-  const returnToPath =
-    returnToParam === '/account/company' || returnToParam === '/contact' ? returnToParam : null
+  const returnToPath = getSafeReturnToPath(returnToParam)
 
   useEffect(() => {
     document.title = 'Account | Fireball Canada'
