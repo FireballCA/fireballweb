@@ -6,12 +6,15 @@ import App from './App'
 import './index.css'
 import './styles/business.css'
 import { ScrollToTop } from '@/components/ScrollToTop'
+import { LenisRoot } from '@/components/LenisRoot'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <ScrollToTop />
-      <App />
+      <LenisRoot>
+        <ScrollToTop />
+        <App />
+      </LenisRoot>
     </BrowserRouter>
   </React.StrictMode>,
 )

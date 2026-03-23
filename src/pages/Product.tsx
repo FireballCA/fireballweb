@@ -11,7 +11,7 @@ import { ProductYouMightLikeRail } from '@/components/ProductYouMightLikeRail'
 import { isAuthenticated } from '@/utils/supabaseAuth'
 import { isFavoriteSlug, toggleFavoriteSlug } from '@/utils/favorites'
 import { FavoritePromptModal } from '@/components/FavoritePromptModal'
-import { productDetailPath } from '@/constants/paths'
+import { productDetailPath, shopCategoryPath } from '@/constants/paths'
 
 type ProductType = LocalProduct
 
@@ -652,7 +652,7 @@ export function Product() {
               >
                 {category ? (
                   <>
-                    <Link to={`/boutique/${category.id}`} className="hover:text-carbon-700">
+                    <Link to={shopCategoryPath(category.id)} className="hover:text-carbon-700">
                       {category.name}
                     </Link>
                     <span aria-hidden="true">/</span>

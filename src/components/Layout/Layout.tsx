@@ -13,7 +13,6 @@ export function Layout() {
     location.pathname === '/compte' ||
     location.pathname.startsWith('/account') ||
     location.pathname.startsWith('/business')
-  const isCartPage = location.pathname === '/cart' || location.pathname === '/panier'
   const isContactPage = location.pathname === '/contact'
   const isShopPage = isShopPathname(location.pathname)
 
@@ -24,7 +23,7 @@ export function Layout() {
     location.pathname.startsWith('/coating')
 
   const showHeader = !isAccountAuthPage
-  const showFooter = !isAnyAccountPage && !isCartPage && !isContactPage
+  const showFooter = !isAnyAccountPage && !isContactPage
 
   const mainHeaderPadding = !showHeader
     ? ''
