@@ -1,5 +1,5 @@
 /** Même pattern que Home / About : hero remonte sous la navbar fixe (`-mt-20`). */
-const NAV_OVER_HERO_PATHS = new Set(['/', '/about', '/car-club', '/academy'])
+const NAV_OVER_HERO_PATHS = new Set(['/', '/about', '/car-club', '/academy', '/event'])
 
 /**
  * Pages où la navbar se superpose visuellement à un hero plein écran.
