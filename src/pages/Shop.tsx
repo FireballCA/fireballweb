@@ -272,8 +272,8 @@ export function Shop() {
     <div>
       {/* Hero section avec le nom de la catégorie */}
       {category && (
-        <section className="relative min-h-[70vh] flex items-start justify-center border-b border-carbon-800 pt-20">
-          <div className="w-full px-6 text-center pt-16 md:pt-24">
+        <section className="relative min-h-[70vh] flex items-start justify-center border-b border-carbon-800 pt-6 md:pt-10">
+          <div className="w-full px-6 text-center pt-8 md:pt-16">
             {/* Catégorie en dégradé */}
             <h1 className="text-[clamp(5.5rem,18vw,14rem)] font-black uppercase leading-[0.78] tracking-[-0.045em] bg-gradient-to-b from-white/[0.2] via-white/[0.08] to-transparent bg-clip-text text-transparent whitespace-nowrap overflow-hidden select-none">
               {category.name}
