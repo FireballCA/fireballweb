@@ -102,7 +102,7 @@ export function Home() {
             {featured.map((product) => (
               <Link
                 key={product.id}
-                to={`/produit/${product.slug}`}
+                to={`/product/${product.slug}`}
                 className="group block"
               >
                 <div className="aspect-square bg-carbon-800 overflow-hidden mb-4 relative">

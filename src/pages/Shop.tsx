@@ -25,7 +25,23 @@ export function Shop() {
 
   // Détecter la catégorie depuis l'URL (support /boutique/category et /category)
   // Liste des routes qui ne sont pas des catégories
-  const nonCategoryRoutes = ['produit', 'about', 'panier', 'car-club', 'contact', 'legal', 'academy', 'join-fireball', 'account', 'partner', 'dashboard', 'compte', 'boutique']
+  const nonCategoryRoutes = [
+    'produit',
+    'product',
+    'about',
+    'panier',
+    'cart',
+    'car-club',
+    'contact',
+    'legal',
+    'academy',
+    'join-fireball',
+    'account',
+    'partner',
+    'dashboard',
+    'compte',
+    'boutique',
+  ]
   const pathSegment = location.pathname !== '/' && !location.pathname.startsWith('/boutique/')
     ? location.pathname.slice(1).split('/')[0] 
     : undefined
@@ -533,7 +549,7 @@ export function Shop() {
             return (
               <Link
                 key={product.id}
-                to={`/produit/${product.slug}`}
+                to={`/product/${product.slug}`}
                 className="group"
               >
                 {/* Image réduite avec coins arrondis */}
@@ -547,10 +563,6 @@ export function Shop() {
                 
                 {/* Informations produit */}
                 <div className="flex flex-col gap-1">
-                  <h2 className="text-white text-sm font-bold truncate">
-                    {product.name}
-                  </h2>
-                  
                   {/* Étoiles */}
                   <div className="flex items-center gap-0.5">
                     {[...Array(5)].map((_, i) => (
@@ -570,6 +582,10 @@ export function Shop() {
                       </svg>
                     ))}
                   </div>
+
+                  <h2 className="text-white text-sm font-bold truncate">
+                    {product.name}
+                  </h2>
                   
                   {/* Prix */}
                   <p className="text-white text-sm font-bold">
@@ -635,13 +651,6 @@ export function Shop() {
                         />
                       </div>
                       
-                      {/* Nom du produit - flouté individuellement avec espacement */}
-                      <div className="mb-1 select-none">
-                        <h3 className="text-white text-sm font-bold truncate blur-sm">
-                          {product.name}
-                        </h3>
-                      </div>
-                      
                       {/* Étoiles et avis - floutés individuellement avec espacement */}
                       <div className="flex items-center gap-2 mb-1 select-none">
                         <div className="flex items-center gap-0.5 blur-sm">
@@ -667,6 +676,13 @@ export function Shop() {
                             {product.reviewCount} Reviews
                           </span>
                         )}
+                      </div>
+
+                      {/* Nom du produit - flouté individuellement avec espacement */}
+                      <div className="mb-1 select-none">
+                        <h3 className="text-white text-sm font-bold truncate blur-sm">
+                          {product.name}
+                        </h3>
                       </div>
                       
                       {/* Prix - flouté individuellement avec espacement */}

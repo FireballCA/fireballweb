@@ -108,7 +108,8 @@ export function Header() {
   const searchMenuRef = useRef<HTMLDivElement | null>(null)
   const { totalItems } = useCart()
   const isDashboardPage = location.pathname === '/account/dashboard' || location.pathname === '/dashboard'
-  const isProductPage = location.pathname.startsWith('/produit')
+  const isProductPage =
+    location.pathname.startsWith('/product/') || location.pathname.startsWith('/produit/')
   const isCoatingPage = location.pathname.startsWith('/coating')
   const [isHeaderVisible, setIsHeaderVisible] = useState(true)
   const lastScrollYRef = useRef(0)
@@ -747,9 +748,9 @@ export function Header() {
             </Link>
 
             <Link
-              to="/panier"
+              to="/cart"
               className="relative px-2 py-1.5 rounded-md text-white transition-colors hover:bg-carbon-700/30"
-              aria-label="Panier"
+              aria-label="Cart"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <circle cx="8" cy="21" r="1" />
@@ -757,7 +758,7 @@ export function Header() {
                 <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
               </svg>
               {totalItems > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-chrome text-carbon-950 text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[1rem] h-4 px-0.5 rounded-full bg-[#B61B1B] text-white text-[10px] font-bold flex items-center justify-center">
                   {totalItems}
                 </span>
               )}
@@ -767,9 +768,9 @@ export function Header() {
 
         {/* Mobile: logo + cart + menu */}
         <div className="flex lg:hidden items-center gap-3">
-          <Link to="/panier" className="relative p-2 text-white">
+          <Link to="/cart" className="relative p-2 text-white" aria-label="Cart">
             {totalItems > 0 && (
-              <span className="absolute top-0 right-0 w-4 h-4 rounded-full bg-chrome text-carbon-950 text-[10px] font-bold flex items-center justify-center">
+              <span className="absolute top-0 right-0 min-w-[1rem] h-4 px-0.5 rounded-full bg-[#B61B1B] text-white text-[10px] font-bold flex items-center justify-center">
                 {totalItems}
               </span>
             )}
