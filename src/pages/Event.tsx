@@ -43,7 +43,7 @@ function GpsIcon({ className }: { className?: string }) {
   )
 }
 
-/** Même flèche que les liens « Send message » / « Sign in » sur Contact.tsx */
+/** Same arrow as Contact “Send message” / “Sign in” links */
 function ContactLinkArrow({ className }: { className?: string }) {
   return (
     <svg
@@ -77,10 +77,10 @@ const UPCOMING_EVENTS: CalendarEvent[] = [
   {
     id: 'driven-show-2026-05-16',
     day: '16',
-    monthFull: 'MAI',
+    monthFull: 'MAY',
     title: 'The Driven Show',
     description:
-      'Salon automobile et culture tuning au Centre de foires de Saint-Hyacinthe : exposants, véhicules et activités sur place.',
+      'Canada’s aftermarket performance showcase in Saint-Hyacinthe — builders, brands, vendors, and show cars in one day.',
     cityRegion: 'Saint-Hyacinthe, QC',
     imageSrc: '/Assets/Driven.webp',
     isPrivate: false,
@@ -90,19 +90,19 @@ const UPCOMING_EVENTS: CalendarEvent[] = [
   {
     id: 'fireball-after-party-2026-05-16',
     day: '16',
-    monthFull: 'MAI',
+    monthFull: 'MAY',
     title: 'Fireball After Party',
     description:
-      'Soirée après le salon, sur invitation uniquement : retrouvailles, ambiance privée et détails communiqués aux invités confirmés.',
+      'Private evening after the show — invitation only. Meet the team, connect with the community, and get details once your spot is confirmed.',
     cityRegion: 'Saint-Hyacinthe, QC',
     imageSrc: '/Assets/FireballAfterParty.png',
     isPrivate: true,
     ctaLabel: 'RSVP NOW',
-    ctaHref: '#rsvp-fireball-after-party',
+    ctaHref: '/event/fireball-after-party',
   },
 ]
 
-/** Images un peu plus visibles, texte toujours lisible */
+/** Slightly lighter overlay so photos read through; text stays readable */
 const eventCardOverlayBaseClass = 'absolute inset-0 bg-black/42'
 const eventCardOverlayGradientClass =
   'absolute inset-0 bg-gradient-to-r from-black/[0.88] via-black/[0.76] to-black/[0.64] md:from-black/[0.84] md:via-black/[0.72] md:to-black/[0.58]'
@@ -237,7 +237,7 @@ export function Event() {
               id="upcoming-events-heading"
               className="shrink-0 font-nav text-sm font-bold uppercase tracking-[0.2em] text-pearl md:text-base"
             >
-              MAI 2026
+              MAY 2026
             </h2>
             <div className="h-px min-w-0 flex-1 bg-white/20" aria-hidden />
           </div>
