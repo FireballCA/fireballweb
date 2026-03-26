@@ -39,8 +39,7 @@ const COMPANY_SECTIONS: Array<{
     description: 'Brand, recognition & story',
     links: [
       { label: 'Open FIREBALL Center', to: '/join-fireball' },
-      { label: 'Merch', to: '/boutique' },
-      { label: 'Awards', href: '#' },
+      { label: 'Merch', to: '/apparel' },
       { label: 'About us', to: '/about' },
     ],
   },
@@ -135,6 +134,9 @@ export function Header() {
     location.pathname.startsWith('/product/') ||
     location.pathname.startsWith('/produit/')
   const isCoatingPage = location.pathname.startsWith('/coating')
+  const isEventDriven26Page = location.pathname === '/event/driven26'
+  const isBusinessPage =
+    location.pathname.startsWith('/business') || location.pathname.startsWith('/account/business')
   /**
    * Fond plein dès le haut (même logique que le footer) : tout sauf accueil / about où le hero
    * passe sous la navbar fixe (transparence → opaque au scroll).
@@ -157,10 +159,59 @@ export function Header() {
   const SCROLL_DELTA_IGNORE = 0.75
   const MOBILE_MENU_ANIMATION_MS = 280
   
+  type BannerItem = {
+    id: string
+    enabled: boolean
+    text: string
+    button_text: string | null
+    button_to: string | null
+  }
+
   // Announcement settings
-  const [bannerText, setBannerText] = useState<string | null>(null)
-  const [bannerLink, setBannerLink] = useState<string | null>(null)
-  const [bannerEnabled, setBannerEnabled] = useState(false)
+  // Defaults: show an example banner unless Supabase overrides it.
+  const [banners, setBanners] = useState<BannerItem[]>([
+    {
+      id: 'banner-example',
+      enabled: true,
+      text: 'Exemple — Livraison gratuite dès 99$ · Retours 30 jours',
+      button_text: 'Contact us',
+      button_to: '/contact',
+    },
+  ])
+  const [bannerHidden, setBannerHidden] = useState(false)
+  const lastBannerScrollYRef = useRef(0)
+  const bannerRef = useRef<HTMLDivElement | null>(null)
+  const [bannerHeightPx, setBannerHeightPx] = useState(0)
+  // Disable banners inside dashboards (member dashboard + business/admin)
+  const bannerAllowedByRoute =
+    !isContactPage && !isEventDriven26Page && !isBusinessPage && !isDashboardPage
+  const activeBanners = useMemo(
+    () => banners.filter((b) => b.enabled && String(b.text || '').trim().length > 0),
+    [banners],
+  )
+  const bannerActive = bannerAllowedByRoute && activeBanners.length > 0
+  const [bannerIndex, setBannerIndex] = useState(0)
+  const currentBanner = activeBanners[Math.min(bannerIndex, Math.max(activeBanners.length - 1, 0))]
+
+  useEffect(() => {
+    if (!bannerActive) {
+      setBannerHeightPx(0)
+      return
+    }
+
+    const el = bannerRef.current
+    if (!el) return
+
+    const measure = () => {
+      const next = Math.round(el.getBoundingClientRect().height)
+      setBannerHeightPx(next)
+    }
+
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [bannerActive, banners, bannerIndex])
   const [featuredName, setFeaturedName] = useState('Featured Collection')
   const [featuredDescription, setFeaturedDescription] = useState('Découvrez notre sélection premium de produits haut de gamme')
   const [featuredImage, setFeaturedImage] = useState<string | null>(null)
@@ -184,9 +235,37 @@ export function Header() {
         if (data?.value) {
           const settings = data.value as any
           console.log('Loaded announcement settings:', settings)
-          setBannerText(settings.navbar_banner_text || null)
-          setBannerLink(settings.navbar_banner_link || null)
-          setBannerEnabled(settings.navbar_banner_enabled || false)
+
+          // New multi-banners
+          if (Array.isArray(settings.navbar_banners) && settings.navbar_banners.length > 0) {
+            setBanners(
+              settings.navbar_banners.map((b: any, i: number) => ({
+                id: String(b.id ?? `banner-${i}`),
+                enabled: Boolean(b.enabled),
+                text: String(b.text ?? ''),
+                button_text: b.button_text != null ? String(b.button_text) : null,
+                button_to: b.button_to != null ? String(b.button_to) : null,
+              })),
+            )
+          } else if (
+            settings.navbar_banner_text !== null ||
+            settings.navbar_banner_link !== null ||
+            settings.navbar_banner_enabled !== null
+          ) {
+            // Back-compat (single banner old)
+            const text = settings.navbar_banner_text ? String(settings.navbar_banner_text) : ''
+            const enabled = Boolean(settings.navbar_banner_enabled)
+            const btnText = settings.navbar_banner_button_text != null ? String(settings.navbar_banner_button_text) : null
+            const btnTo =
+              settings.navbar_banner_button_to != null
+                ? String(settings.navbar_banner_button_to)
+                : settings.navbar_banner_link != null
+                  ? String(settings.navbar_banner_link)
+                  : null
+            setBanners([
+              { id: 'banner-1', enabled, text, button_text: btnText, button_to: btnTo },
+            ])
+          }
           
           // Use the saved values, or fallback to defaults only if they are null/undefined
           if (settings.featured_collection_name !== null && settings.featured_collection_name !== undefined) {
@@ -228,6 +307,54 @@ export function Header() {
       supabase.removeChannel(channel)
     }
   }, [])
+
+  // Rotation (only among active banners)
+  useEffect(() => {
+    if (!bannerActive) return
+    if (activeBanners.length <= 1) return
+    const id = window.setInterval(() => {
+      setBannerIndex((i) => (i + 1) % activeBanners.length)
+    }, 6500)
+    return () => window.clearInterval(id)
+  }, [bannerActive, activeBanners.length])
+
+  // Banner behavior: hide on scroll down, show on scroll up
+  useEffect(() => {
+    if (!bannerActive) return
+
+    lastBannerScrollYRef.current = window.scrollY || window.pageYOffset || 0
+    let raf: number | null = null
+
+    const onScroll = () => {
+      if (raf != null) return
+      raf = requestAnimationFrame(() => {
+        raf = null
+        const y = window.scrollY || window.pageYOffset || 0
+        const last = lastBannerScrollYRef.current
+        const delta = y - last
+        lastBannerScrollYRef.current = y
+
+        // Always show near top
+        if (y < 24) {
+          if (bannerHidden) setBannerHidden(false)
+          return
+        }
+
+        // Threshold to avoid jitter
+        if (delta > 6) {
+          if (!bannerHidden) setBannerHidden(true)
+        } else if (delta < -6) {
+          if (bannerHidden) setBannerHidden(false)
+        }
+      })
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (raf != null) cancelAnimationFrame(raf)
+    }
+  }, [bannerActive, bannerHidden])
 
   useEffect(() => {
     let cancelled = false
@@ -574,45 +701,73 @@ export function Header() {
 
   return (
     <>
-      {/* Navbar Banner */}
-      {bannerEnabled && bannerText && (
-        <div className="fixed top-0 left-0 right-0 z-[60] bg-carbon-900 border-b border-carbon-800">
-          <div className="max-w-7xl mx-auto px-6 py-2">
-            {bannerLink ? (
-              <Link
-                to={bannerLink}
-                className="block text-center text-sm text-white/90 hover:text-white transition-colors"
-              >
-                {bannerText}
-              </Link>
-            ) : (
-              <p className="text-center text-sm text-white/90">{bannerText}</p>
-            )}
-          </div>
-        </div>
-      )}
-      <header
-        className={`${isProductPage || isCoatingPage ? 'sticky' : 'fixed'} top-0 left-0 right-0 ${
+      {/* Banner + Navbar: move as ONE block (no gap, smoother) */}
+      <div
+        className={`${isProductPage || isCoatingPage ? '' : 'fixed'} top-0 left-0 right-0 ${
           isMobileMenuMounted ? 'z-[10010]' : 'z-[120]'
-        } ${
-          bannerEnabled && bannerText ? 'mt-[42px]' : ''
-        }`}
+        } transition-transform duration-300 ease-out will-change-transform`}
         style={{
-          ...(isMobileMenuMounted
-            ? {
-                ...(navBgStyle || {}),
-                backgroundColor: solidNavColor,
-                backdropFilter: 'none',
-              }
-            : navBgStyle),
-          ...((isProductPage || isCoatingPage) && !isMobileMenuMounted
-            ? {
-                transform: `translateY(${-headerHideProgress * 100}%)`,
-                willChange: 'transform',
-              }
-            : {}),
+          transform:
+            bannerActive && bannerHidden && bannerHeightPx > 0
+              ? `translateY(-${bannerHeightPx}px)`
+              : 'translateY(0)',
         }}
       >
+        {/* Navbar Banner */}
+        {bannerActive && (
+          <div
+            ref={bannerRef}
+            className="border-b border-carbon-800 bg-white text-carbon-900"
+          >
+            <div className="max-w-7xl mx-auto px-6 py-2">
+              <div className="flex items-center justify-center gap-3">
+                <p className="text-center text-sm font-nav font-bold text-carbon-900">
+                  {currentBanner?.text ?? ''}
+                </p>
+                {currentBanner?.button_to && currentBanner?.button_text ? (
+                  <Link
+                    to={currentBanner.button_to}
+                    className="group inline-flex items-center gap-1.5 text-sm font-nav font-bold text-carbon-900 hover:text-carbon-700 transition-colors"
+                  >
+                    <span className="underline underline-offset-4 decoration-carbon-900/40 group-hover:decoration-carbon-900">
+                      {currentBanner.button_text}
+                    </span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 640 640"
+                      className="shrink-0 h-[14px] w-[14px] transition-transform duration-200 group-hover:translate-x-0.5"
+                      aria-hidden
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z"
+                      />
+                    </svg>
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <header
+          className={`${isProductPage || isCoatingPage ? 'sticky' : ''} left-0 right-0`}
+          style={{
+            ...(isMobileMenuMounted
+              ? {
+                  ...(navBgStyle || {}),
+                  backgroundColor: solidNavColor,
+                  backdropFilter: 'none',
+                }
+              : navBgStyle),
+            ...((isProductPage || isCoatingPage) && !isMobileMenuMounted
+              ? {
+                  transform: `translateY(${-headerHideProgress * 100}%)`,
+                  willChange: 'transform',
+                }
+              : {}),
+          }}
+        >
         {anyMenuOpen && !menuOpen && (
           <div className="fixed inset-0 z-40 bg-black/15 pointer-events-none" aria-hidden />
         )}
@@ -1257,7 +1412,7 @@ export function Header() {
                         <span>Open FIREBALL Center</span>
                       </Link>
                       <Link
-                        to="/boutique"
+                        to="/apparel"
                         className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
                         onClick={() => setMenuOpen(false)}
                       >
@@ -1278,29 +1433,6 @@ export function Header() {
                         </span>
                         <span>Merch</span>
                       </Link>
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <circle cx="12" cy="8" r="6" />
-                            <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" />
-                          </svg>
-                        </span>
-                        <span>Awards</span>
-                      </button>
                       <button
                         type="button"
                         className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
@@ -1585,7 +1717,8 @@ export function Header() {
         </div>,
         document.body
       )}
-    </header>
+        </header>
+      </div>
     </>
   )
 }

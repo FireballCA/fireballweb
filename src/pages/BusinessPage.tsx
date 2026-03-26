@@ -17,6 +17,9 @@ import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { supabase } from '@/lib/supabase'
 import { FireballLoading } from '@/components/FireballLoading'
 import { cn } from '@/lib/utils'
+import { SITE_PAGES, type SitePage } from '@/constants/sitePages'
+import { CATEGORIES } from '@/data/products'
+import { getClientCache, setClientCache } from '@/utils/clientCache'
 
 type View = 'loading' | 'denied' | 'form' | 'dashboard'
 
@@ -53,6 +56,45 @@ interface ActivityEvent {
   label: string
   date: Date
   meta?: string
+}
+
+type BusinessCacheSnapshot = {
+  view: View
+  isAdmin: boolean
+  userDisplayName: string
+  companyName: string
+  companyNameInput: string
+  companyLogo: string
+  companyAddress: string
+  phone: string
+  website: string
+  description: string
+  clients: ClientRow[]
+  vehicles: VehicleRow[]
+  warranties: WarrantyRow[]
+}
+
+const BUSINESS_CACHE_KEY = 'business_dashboard_snapshot_v1'
+const BUSINESS_CACHE_TTL_MS = 1000 * 60 * 8
+
+type AnnouncementSettings = {
+  navbar_banners?: BannerItem[] | null
+  navbar_banner_text: string | null
+  navbar_banner_link: string | null
+  navbar_banner_enabled: boolean
+  navbar_banner_button_text?: string | null
+  navbar_banner_button_to?: string | null
+  featured_collection_name: string | null
+  featured_collection_description: string | null
+  featured_collection_image: string | null
+}
+
+type BannerItem = {
+  id: string
+  enabled: boolean
+  text: string
+  button_text: string | null
+  button_to: string | null
 }
 
 function parseDate(value: string | null | undefined): Date | null {
@@ -393,6 +435,490 @@ function SimpleDonutChart({ data }: { data: { label: string; value: number }[] }
   )
 }
 
+function BusinessAdminAnnouncements() {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  const [banners, setBanners] = useState<BannerItem[]>([])
+  const [pageQuery, setPageQuery] = useState('')
+  const [pagePickerBannerId, setPagePickerBannerId] = useState<string | null>(null)
+  const [pagePickerMode, setPagePickerMode] = useState<'all' | 'pages' | 'categories'>('all')
+  const [featuredName, setFeaturedName] = useState('')
+  const [featuredDescription, setFeaturedDescription] = useState('')
+  const [featuredImage, setFeaturedImage] = useState('')
+
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      setError('')
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('site_settings')
+          .select('*')
+          .eq('key', 'announcements')
+          .maybeSingle()
+
+        if (fetchError) {
+          throw fetchError
+        }
+
+        const settings = (data?.value ?? null) as AnnouncementSettings | null
+        if (mounted && settings) {
+          // Multi banners (new)
+          const multi = Array.isArray(settings.navbar_banners) ? settings.navbar_banners : null
+          if (multi && multi.length > 0) {
+            setBanners(
+              multi.map((b) => ({
+                id: String(b.id),
+                enabled: Boolean((b as any).enabled),
+                text: String((b as any).text ?? ''),
+                button_text: (b as any).button_text != null ? String((b as any).button_text) : null,
+                button_to: (b as any).button_to != null ? String((b as any).button_to) : null,
+              })),
+            )
+          } else {
+            // Back-compat (single banner old)
+            const oldEnabled = Boolean(settings.navbar_banner_enabled)
+            const oldText = settings.navbar_banner_text ?? ''
+            const oldTo = settings.navbar_banner_link ?? null
+            const oldBtnText = (settings as any).navbar_banner_button_text ?? null
+            const oldBtnTo = (settings as any).navbar_banner_button_to ?? null
+            setBanners([
+              {
+                id: 'banner-1',
+                enabled: oldEnabled,
+                text: oldText,
+                button_text: oldBtnText ? String(oldBtnText) : null,
+                button_to: oldBtnTo ? String(oldBtnTo) : oldTo ? String(oldTo) : null,
+              },
+            ])
+          }
+          setFeaturedName(settings.featured_collection_name ?? '')
+          setFeaturedDescription(settings.featured_collection_description ?? '')
+          setFeaturedImage(settings.featured_collection_image ?? '')
+        }
+      } catch (e) {
+        if (mounted) setError(e instanceof Error ? e.message : 'Failed to load settings.')
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const handleSave = async () => {
+    setError('')
+    setSuccess('')
+    setSaving(true)
+    try {
+      const normalizedBanners: BannerItem[] = banners.map((b) => ({
+        ...b,
+        text: (b.text ?? '').trim(),
+        button_text: b.button_text ? b.button_text.trim() : null,
+        button_to: b.button_to ? b.button_to.trim() : null,
+      }))
+
+      const settings: AnnouncementSettings = {
+        navbar_banners: normalizedBanners,
+        // keep old keys too (back-compat) but they won't be used once multi exists
+        navbar_banner_text: normalizedBanners[0]?.text ?? null,
+        navbar_banner_link: normalizedBanners[0]?.button_to ?? null,
+        navbar_banner_enabled: Boolean(normalizedBanners[0]?.enabled),
+        navbar_banner_button_text: normalizedBanners[0]?.button_text ?? null,
+        navbar_banner_button_to: normalizedBanners[0]?.button_to ?? null,
+        featured_collection_name: featuredName.trim() || null,
+        featured_collection_description: featuredDescription.trim() || null,
+        featured_collection_image: featuredImage.trim() || null,
+      }
+
+      const { data: existing, error: existingError } = await supabase
+        .from('site_settings')
+        .select('id')
+        .eq('key', 'announcements')
+        .maybeSingle()
+      if (existingError) throw existingError
+
+      const write = existing
+        ? supabase
+            .from('site_settings')
+            .update({ value: settings, updated_at: new Date().toISOString() })
+            .eq('key', 'announcements')
+        : supabase
+            .from('site_settings')
+            .insert({ key: 'announcements', value: settings, updated_at: new Date().toISOString() })
+
+      const result = await write
+      if (result.error) throw result.error
+
+      setSuccess('Saved.')
+      window.setTimeout(() => setSuccess(''), 2200)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save settings.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-slate-400">
+            Admin
+          </p>
+          <h2 className="mt-1 text-2xl md:text-3xl font-semibold text-slate-900">
+            Announcements
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Créez la bannière navbar et la collection “featured” (mega menu Shop).
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={loading || saving}
+          className="inline-flex items-center gap-2 rounded-full bg-[#4318FF] text-white px-4 py-2 text-sm font-semibold hover:bg-[#3312C8] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+
+      {loading && (
+        <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+          <p className="text-sm text-slate-500">Loading…</p>
+        </div>
+      )}
+
+      {!loading && (error || success) && (
+        <div
+          className={cn(
+            'rounded-2xl border px-4 py-3 text-sm',
+            error
+              ? 'border-rose-200 bg-rose-50 text-rose-800'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-800',
+          )}
+        >
+          {error || success}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <section className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+          <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-3">
+            Navbar banners (rotation)
+          </p>
+
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-slate-700">
+              Ajoute plusieurs bannières, active celles que tu veux, elles tourneront automatiquement.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                const id = `banner-${Date.now()}`
+                setBanners((prev) => [
+                  ...prev,
+                  { id, enabled: true, text: '', button_text: 'Contact us', button_to: '/contact' },
+                ])
+              }}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              + Add banner
+            </button>
+          </div>
+
+          <div className="mt-4 space-y-4">
+            {banners.length === 0 ? (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                Aucune bannière pour le moment.
+              </div>
+            ) : (
+              banners.map((b, idx) => (
+                <div key={b.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-slate-300"
+                        checked={b.enabled}
+                        onChange={(e) => {
+                          const enabled = e.target.checked
+                          setBanners((prev) => prev.map((x) => (x.id === b.id ? { ...x, enabled } : x)))
+                        }}
+                      />
+                      <p className="text-sm font-semibold text-slate-900">Banner {idx + 1}</p>
+                      <span className="text-xs text-slate-500">{b.enabled ? 'Active' : 'Disabled'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (idx === 0) return
+                          setBanners((prev) => {
+                            const copy = [...prev]
+                            const [item] = copy.splice(idx, 1)
+                            copy.splice(idx - 1, 0, item)
+                            return copy
+                          })
+                        }}
+                        className="text-xs font-medium text-slate-600 hover:text-slate-900"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (idx === banners.length - 1) return
+                          setBanners((prev) => {
+                            const copy = [...prev]
+                            const [item] = copy.splice(idx, 1)
+                            copy.splice(idx + 1, 0, item)
+                            return copy
+                          })
+                        }}
+                        className="text-xs font-medium text-slate-600 hover:text-slate-900"
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBanners((prev) => prev.filter((x) => x.id !== b.id))}
+                        className="text-xs font-semibold text-rose-600 hover:text-rose-700"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Texte</label>
+                      <input
+                        value={b.text}
+                        onChange={(e) => {
+                          const text = e.target.value
+                          setBanners((prev) => prev.map((x) => (x.id === b.id ? { ...x, text } : x)))
+                        }}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                        placeholder="Ex: Livraison gratuite dès 99$ · Retours 30 jours"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Texte du bouton</label>
+                        <input
+                          value={b.button_text ?? ''}
+                          onChange={(e) => {
+                            const button_text = e.target.value
+                            setBanners((prev) =>
+                              prev.map((x) => (x.id === b.id ? { ...x, button_text } : x)),
+                            )
+                          }}
+                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                          placeholder="Contact us"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Destination</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={b.button_to ?? ''}
+                            onChange={(e) => {
+                              const button_to = e.target.value
+                              setBanners((prev) =>
+                                prev.map((x) => (x.id === b.id ? { ...x, button_to } : x)),
+                              )
+                            }}
+                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                            placeholder="/contact"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPageQuery('')
+                              setPagePickerBannerId(b.id)
+                            }}
+                            className="shrink-0 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                          >
+                            Choisir…
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+          <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-3">
+            Featured collection (Shop mega menu)
+          </p>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Nom</label>
+              <input
+                value={featuredName}
+                onChange={(e) => setFeaturedName(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                placeholder="Featured Collection"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Description</label>
+              <textarea
+                value={featuredDescription}
+                onChange={(e) => setFeaturedDescription(e.target.value)}
+                rows={3}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400 resize-none"
+                placeholder="Décrivez la collection mise en avant."
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Image URL (optionnel)</label>
+              <input
+                value={featuredImage}
+                onChange={(e) => setFeaturedImage(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                placeholder="https://..."
+              />
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* Page picker (search) */}
+      {pagePickerBannerId && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setPagePickerBannerId(null)}
+            aria-label="Close"
+          />
+          <div className="relative w-full max-w-2xl rounded-3xl bg-white p-5 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-slate-900">Choisir une page</p>
+              <button
+                type="button"
+                onClick={() => setPagePickerBannerId(null)}
+                className="text-sm font-semibold text-slate-600 hover:text-slate-900"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-3">
+              <div className="mb-3 inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1">
+                <button
+                  type="button"
+                  onClick={() => setPagePickerMode('all')}
+                  className={cn(
+                    'px-3 py-1 rounded-full text-[11px] font-medium transition-colors',
+                    pagePickerMode === 'all' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100',
+                  )}
+                >
+                  Tous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPagePickerMode('pages')}
+                  className={cn(
+                    'px-3 py-1 rounded-full text-[11px] font-medium transition-colors',
+                    pagePickerMode === 'pages' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100',
+                  )}
+                >
+                  Pages
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPagePickerMode('categories')}
+                  className={cn(
+                    'px-3 py-1 rounded-full text-[11px] font-medium transition-colors',
+                    pagePickerMode === 'categories'
+                      ? 'bg-slate-900 text-white'
+                      : 'text-slate-700 hover:bg-slate-100',
+                  )}
+                >
+                  Catégories
+                </button>
+              </div>
+              <input
+                value={pageQuery}
+                onChange={(e) => setPageQuery(e.target.value)}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                placeholder="Rechercher une page…"
+                autoFocus
+              />
+              <div className="mt-3 max-h-[420px] overflow-y-auto rounded-2xl border border-slate-200">
+                {(() => {
+                  const q = pageQuery.trim().toLowerCase()
+                  const pageOptions = SITE_PAGES.map((p) => ({
+                    kind: 'Page' as const,
+                    label: p.label,
+                    to: p.to,
+                    keywords: p.keywords ?? [],
+                  }))
+                  const categoryOptions = CATEGORIES.map((c) => ({
+                    kind: 'Category' as const,
+                    label: c.name,
+                    to: `/boutique/${c.id}`,
+                    keywords: [c.id, c.description],
+                  }))
+                  const base =
+                    pagePickerMode === 'pages'
+                      ? pageOptions
+                      : pagePickerMode === 'categories'
+                        ? categoryOptions
+                        : [...pageOptions, ...categoryOptions]
+
+                  const options = base.filter((opt) => {
+                    if (!q) return true
+                    const hay = `${opt.kind} ${opt.label} ${opt.to} ${opt.keywords.join(' ')}`.toLowerCase()
+                    return hay.includes(q)
+                  })
+
+                  return options.map((opt) => (
+                    <button
+                      key={`${opt.kind}:${opt.to}`}
+                      type="button"
+                      onClick={() => {
+                        const to = opt.to
+                        setBanners((prev) =>
+                          prev.map((x) => (x.id === pagePickerBannerId ? { ...x, button_to: to } : x)),
+                        )
+                        setPagePickerBannerId(null)
+                      }}
+                      className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium text-slate-900">{opt.label}</span>
+                        <p className="text-xs text-slate-500 truncate">{opt.to}</p>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600">
+                        {opt.kind}
+                      </span>
+                    </button>
+                  ))
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function BusinessPage() {
   const location = useLocation()
   const [view, setView] = useState<View>('loading')
@@ -420,6 +946,53 @@ export function BusinessPage() {
   const [formError, setFormError] = useState('')
   const [showQuickActions, setShowQuickActions] = useState(true)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const cached = getClientCache<BusinessCacheSnapshot>(BUSINESS_CACHE_KEY)
+    if (!cached) return
+    setView(cached.view ?? 'loading')
+    setIsAdmin(Boolean(cached.isAdmin))
+    setUserDisplayName(cached.userDisplayName ?? '')
+    setCompanyName(cached.companyName ?? '')
+    setCompanyNameInput(cached.companyNameInput ?? '')
+    setCompanyLogo(cached.companyLogo ?? '')
+    setCompanyAddress(cached.companyAddress ?? '')
+    setPhone(cached.phone ?? '')
+    setWebsite(cached.website ?? '')
+    setDescription(cached.description ?? '')
+    setClients(Array.isArray(cached.clients) ? cached.clients : [])
+    setVehicles(Array.isArray(cached.vehicles) ? cached.vehicles : [])
+    setWarranties(Array.isArray(cached.warranties) ? cached.warranties : [])
+  }, [])
+
+  // Safety net: ensure we never keep the document locked (overflow hidden) when navigating into Business.
+  // Some pages (contact/event driven/account modals) temporarily lock scroll and a buggy cleanup can
+  // leave the app in a state where wheel/touchpad scrolling feels "dead".
+  useEffect(() => {
+    const html = document.documentElement
+    const body = document.body
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+      bodyOverscroll: body.style.overscrollBehavior,
+      bodyTouchAction: body.style.touchAction,
+    }
+
+    html.style.overflow = ''
+    body.style.overflow = ''
+    html.style.overscrollBehavior = ''
+    body.style.overscrollBehavior = ''
+    body.style.touchAction = 'auto'
+
+    return () => {
+      html.style.overflow = prev.htmlOverflow
+      body.style.overflow = prev.bodyOverflow
+      html.style.overscrollBehavior = prev.htmlOverscroll
+      body.style.overscrollBehavior = prev.bodyOverscroll
+      body.style.touchAction = prev.bodyTouchAction
+    }
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -836,6 +1409,40 @@ export function BusinessPage() {
     }
   }, [])
 
+  useEffect(() => {
+    if (view === 'loading' || view === 'denied') return
+    const snapshot: BusinessCacheSnapshot = {
+      view,
+      isAdmin,
+      userDisplayName,
+      companyName,
+      companyNameInput,
+      companyLogo,
+      companyAddress,
+      phone,
+      website,
+      description,
+      clients,
+      vehicles,
+      warranties,
+    }
+    setClientCache(BUSINESS_CACHE_KEY, snapshot, BUSINESS_CACHE_TTL_MS)
+  }, [
+    view,
+    isAdmin,
+    userDisplayName,
+    companyName,
+    companyNameInput,
+    companyLogo,
+    companyAddress,
+    phone,
+    website,
+    description,
+    clients,
+    vehicles,
+    warranties,
+  ])
+
   if (view === 'loading') return <FireballLoading />
   if (view === 'denied') return <Navigate to="/account/dashboard" replace />
 
@@ -1004,13 +1611,6 @@ export function BusinessPage() {
     { label: 'Pro Shop', href: '/business/shop', icon: <IconShoppingBag className={iconClass} /> },
     { label: 'Business Settings', href: '/business/settings', icon: <IconSettings className={iconClass} /> },
   ]
-  if (isAdmin) {
-    mainLinks.push({
-      label: 'Admin',
-      href: '/business/admin',
-      icon: <IconShieldLock className="h-5 w-5 shrink-0 text-red-400" />,
-    })
-  }
   const adminSubLinks = isAdmin
     ? [
         { label: 'Stats', href: '/business/admin/stats', icon: <IconChartBar className="h-4 w-4 shrink-0 text-red-400" /> },
@@ -1102,6 +1702,7 @@ export function BusinessPage() {
         <div className="flex h-full min-h-full w-full flex-1 p-4 md:p-6">
           <div
             ref={scrollContainerRef}
+            data-no-smooth-scroll
             className="business-scroll relative z-10 flex flex-1 flex-col gap-6 rounded-3xl border border-slate-100 bg-white p-6 pb-6 md:p-10 md:pb-10 overflow-auto shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
           >
             {isAdminPath ? (
@@ -1109,15 +1710,11 @@ export function BusinessPage() {
                 <Navigate to="/business" replace />
               ) : (
                 <div className="flex flex-col gap-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-[#4318FF]">
-                        Admin
-                      </p>
-                      <h1 className="text-2xl font-semibold text-slate-900 mt-1">Admin panel</h1>
-                    </div>
-                  </div>
-                  <AdminPanelContent section={adminSection} />
+                  {adminSection === 'announcements' ? (
+                    <BusinessAdminAnnouncements />
+                  ) : (
+                    <AdminPanelContent section={adminSection} />
+                  )}
                 </div>
               )
             ) : isClientsPath ? (
@@ -1712,73 +2309,7 @@ export function BusinessPage() {
               </div>
             )}
 
-            {/* Barre Quick actions – flottante, style Liquid Glass du site */}
-            <div className="hidden md:flex fixed inset-x-0 bottom-6 z-30 justify-center pointer-events-none px-4">
-              <div
-                className={`pointer-events-auto relative flex items-center gap-4 px-6 py-4 max-w-3xl w-full transition-opacity duration-300 ease-in-out
-                  rounded-[18px] bg-[rgba(10,10,10,0.65)] border border-[rgba(255,255,255,0.18)]
-                  shadow-[0_18px_45px_rgba(0,0,0,0.65)] backdrop-blur-[22px]
-                  before:content-[''] before:absolute before:inset-px before:rounded-[16px]
-                  before:bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.32),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.42),transparent_60%)] before:opacity-80 before:pointer-events-none
-                  after:content-[''] after:absolute after:inset-0 after:rounded-[18px]
-                  after:bg-[linear-gradient(145deg,rgba(255,255,255,0.55),rgba(255,255,255,0.06))] after:mix-blend-soft-light after:opacity-70 after:pointer-events-none
-                  ${
-                  showQuickActions ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                }`}
-              >
-                {/* Titre + sous-texte */}
-                <div className="min-w-0">
-                  <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-white/80 mb-0.5">
-                    Quick actions
-                  </p>
-                  <p className="text-xs text-white/70 truncate">
-                    Search across clients and vehicles, then jump into key tools.
-                  </p>
-                </div>
-
-                {/* Barre de recherche */}
-                <div className="flex-1 max-w-md">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search clients, vehicles…"
-                      className="w-full rounded-full border border-white/18 bg-white/5 px-3 pl-9 py-1.5 text-xs text-white placeholder:text-white/60 focus:outline-none focus:border-white/70 focus:bg-white/10"
-                    />
-                    <svg
-                      className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/80"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"
-                      />
-                    </svg>
-                  </div>
-                </div>
-
-                {/* Boutons rapides */}
-                <div className="flex items-center gap-2">
-                  <Link
-                    to="/business/clients"
-                    className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/12 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/22 hover:border-white/60 transition-colors"
-                  >
-                    <IconUsers className="h-3.5 w-3.5" />
-                    Clients
-                  </Link>
-                  <Link
-                    to="/business/admin"
-                    className="inline-flex items-center gap-1.5 rounded-full bg-[#FF375F] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#ff2350] transition-colors shadow-[0_0_0_1px_rgba(255,255,255,0.2)]"
-                  >
-                    <IconShieldLock className="h-3.5 w-3.5" />
-                    Admin
-                  </Link>
-                </div>
-              </div>
-            </div>
+            {/* Quick actions bar removed (per request) */}
           </div>
         </div>
       </div>

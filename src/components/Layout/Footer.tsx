@@ -4,7 +4,7 @@ export function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="bg-carbon-900 border-t border-carbon-700">
+    <footer className="relative z-10 bg-carbon-900 border-t border-carbon-700">
       <div className="max-w-7xl mx-auto px-6 py-12 md:py-16">
         {/* Top: Logo + Social Icons */}
         <div className="flex items-center justify-between mb-8">
@@ -66,16 +66,16 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                <Link to="/academy" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
                   Academy
                   <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                <Link to="/coating/typhon" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
                   Protection services
                   <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -93,16 +93,10 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                <Link to="/press-kit" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
                   Press Kit
                   <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
-                </a>
-              </li>
-              <li>
-                <a href="#" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
-                  Awards
-                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
-                </a>
+                </Link>
               </li>
               <li>
                 <Link to="/contact" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">

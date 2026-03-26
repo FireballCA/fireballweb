@@ -13,6 +13,20 @@ const SCROLL_SPEED = 0.6 // Vitesse de scroll (plus lent = plus professionnel)
 const DAMPING = 0.12 // Damping pour l'effet d'élasticité
 const PARALLAX_ELEMENTS: Array<{ element: HTMLElement; intensity: number; direction: 'up' | 'down' }> = []
 
+function isScrollableContainer(el: HTMLElement | null): boolean {
+  let node: HTMLElement | null = el
+  while (node && node !== document.body) {
+    const style = window.getComputedStyle(node)
+    const overflowY = style.overflowY
+    const canScrollY = overflowY === 'auto' || overflowY === 'scroll'
+    if (canScrollY && node.scrollHeight > node.clientHeight + 1) {
+      return true
+    }
+    node = node.parentElement
+  }
+  return false
+}
+
 /**
  * Initialise le système de scroll professionnel
  * Compatible avec les éléments fixed/sticky comme la navbar
@@ -31,10 +45,27 @@ export function initProfessionalScroll() {
 
   const handleWheel = (e: WheelEvent) => {
     const target = e.target as HTMLElement
+
+    // Hard disable on business routes (dashboard uses its own scroll container)
+    const path = window.location?.pathname ?? ''
+    if (path.startsWith('/business') || path.startsWith('/account/business')) {
+      return
+    }
     
     // Ne JAMAIS intercepter si on est dans le header ou un élément fixed/sticky
     const header = document.querySelector('header')
     const isInHeader = header && (header.contains(target) || target.closest('header'))
+
+    // Business dashboard: laisser le scroll natif (sinon la molette est souvent bloquée)
+    // Note: `BusinessPage` utilise `.business-layout` + un conteneur `.business-scroll` en overflow auto.
+    if (target.closest('.business-layout') || target.closest('.business-scroll')) {
+      return
+    }
+
+    // Ne jamais intercepter si l'utilisateur scroll dans un conteneur scrollable (dashboard, tables, panels, etc.)
+    if (isScrollableContainer(target)) {
+      return
+    }
     
     // Ne pas intercepter si l'utilisateur scroll dans un élément spécifique
     if (
