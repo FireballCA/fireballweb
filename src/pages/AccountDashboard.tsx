@@ -18,6 +18,7 @@ import {
 import { ensureShopifyCustomerForProfile } from '@/utils/shopifySync'
 import { getSafeReturnToPath } from '@/utils/safeReturnTo'
 import { supabase } from '@/lib/supabase'
+import { getClientCache, setClientCache } from '@/utils/clientCache'
 
 interface Vehicle {
   id: string
@@ -60,6 +61,26 @@ interface DashboardNotification {
   message: string
   created_at: string
 }
+
+type DashboardCacheSnapshot = {
+  fullName: string
+  xp: number
+  subscriptionTier: SubscriptionTier
+  userRole: UserRole
+  companyName: string | null
+  partnerStatus: string | null
+  memberId: string | null
+  barcodeValue: string | null
+  vehicles: Vehicle[]
+  orders: Order[]
+  notifications: DashboardNotification[]
+  latestNotification: DashboardNotification | null
+  notificationDismissed: boolean
+  currentUserId: string | null
+}
+
+const ACCOUNT_DASHBOARD_CACHE_KEY = 'account_dashboard_snapshot_v1'
+const ACCOUNT_DASHBOARD_CACHE_TTL_MS = 1000 * 60 * 8
 
 function formatOrderRef(orderNumber?: string | null): string {
   if (!orderNumber) return '-'
@@ -598,6 +619,29 @@ export function AccountDashboard() {
   const notificationsMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
+    if (pageState?.fromRegister) return
+    const cached = getClientCache<DashboardCacheSnapshot>(ACCOUNT_DASHBOARD_CACHE_KEY)
+    if (!cached) return
+
+    setFullName(cached.fullName || '')
+    setXp(typeof cached.xp === 'number' ? cached.xp : 0)
+    setSubscriptionTier(cached.subscriptionTier ?? 'none')
+    setUserRole(cached.userRole ?? 'member')
+    setCompanyName(cached.companyName ?? null)
+    setPartnerStatus(cached.partnerStatus ?? null)
+    setMemberId(cached.memberId ?? null)
+    setBarcodeValue(cached.barcodeValue ?? null)
+    setVehicles(Array.isArray(cached.vehicles) ? cached.vehicles : [])
+    setOrders(Array.isArray(cached.orders) ? cached.orders : [])
+    setNotifications(Array.isArray(cached.notifications) ? cached.notifications : [])
+    setLatestNotification(cached.latestNotification ?? null)
+    setNotificationDismissed(Boolean(cached.notificationDismissed))
+    setCurrentUserId(cached.currentUserId ?? null)
+    setShowDashboard(true)
+    setDashboardDataLoaded(true)
+  }, [pageState?.fromRegister])
+
+  useEffect(() => {
     if (!notificationsMenuOpen) {
       return () => {
         // Cleanup toujours retourné pour éviter l'erreur React #310
@@ -1048,6 +1092,45 @@ export function AccountDashboard() {
   useEffect(() => {
     setOrdersCarouselIndex((i) => Math.min(i, carouselMaxIndex))
   }, [carouselMaxIndex, displayOrders.length])
+
+  useEffect(() => {
+    if (!dashboardDataLoaded) return
+    if (!showDashboard) return
+    const snapshot: DashboardCacheSnapshot = {
+      fullName,
+      xp,
+      subscriptionTier,
+      userRole,
+      companyName,
+      partnerStatus,
+      memberId,
+      barcodeValue,
+      vehicles,
+      orders,
+      notifications,
+      latestNotification,
+      notificationDismissed,
+      currentUserId,
+    }
+    setClientCache(ACCOUNT_DASHBOARD_CACHE_KEY, snapshot, ACCOUNT_DASHBOARD_CACHE_TTL_MS)
+  }, [
+    dashboardDataLoaded,
+    showDashboard,
+    fullName,
+    xp,
+    subscriptionTier,
+    userRole,
+    companyName,
+    partnerStatus,
+    memberId,
+    barcodeValue,
+    vehicles,
+    orders,
+    notifications,
+    latestNotification,
+    notificationDismissed,
+    currentUserId,
+  ])
 
   return (
     <section className="relative min-h-screen bg-[#0a0a0a] text-pearl">

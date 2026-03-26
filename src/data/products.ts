@@ -3,6 +3,7 @@ export type CategoryId =
   | 'sealants' 
   | 'waxes' 
   | 'dressings'
+  | 'apparel'
   | 'washing'
   | 'cleaners'
   | 'towels'
@@ -54,6 +55,7 @@ export const CATEGORIES: { id: CategoryId; name: string; description: string }[]
   { id: 'sealants', name: 'Sealants', description: 'Advanced sealants for long-lasting protection' },
   { id: 'waxes', name: 'Waxes', description: 'Premium waxes for deep shine and protection' },
   { id: 'dressings', name: 'Dressings', description: 'Tire and trim dressings for complete finish' },
+  { id: 'apparel', name: 'Apparel', description: 'Merch, clothing and branded lifestyle items' },
   // Maintenance & Preparation
   { id: 'washing', name: 'Washing', description: 'Professional washing products and solutions' },
   { id: 'cleaners', name: 'Cleaners', description: 'Specialized cleaners for all surfaces' },

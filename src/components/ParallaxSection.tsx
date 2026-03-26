@@ -19,7 +19,13 @@ export function ParallaxSection({
   direction = 'up',
   className = '',
 }: ParallaxSectionProps) {
-  const ref = useRef<HTMLElement>(null)
+  /**
+   * Important: on applique le transform parallaxe sur un conteneur interne,
+   * pas sur la <section> elle-même, sinon on peut créer des overlaps visuels
+   * (la section reste dans le flux mais son contenu "glisse" au-dessus/au-dessous,
+   * donnant l'impression que la hero est "pinned" au scroll).
+   */
+  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const element = ref.current
@@ -39,8 +45,10 @@ export function ParallaxSection({
   }, [intensity, direction])
 
   return (
-    <section ref={ref} data-parallax className={className}>
-      {children}
+    <section className={className}>
+      <div ref={ref} data-parallax>
+        {children}
+      </div>
     </section>
   )
 }

@@ -12,15 +12,25 @@ function setLearnClipVars(el: HTMLAnchorElement, clientX: number, clientY: numbe
   const rect = el.getBoundingClientRect()
   const w = rect.width || 1
   const h = rect.height || 1
-  const x = ((clientX - rect.left) / w) * 100
-  const y = ((clientY - rect.top) / h) * 100
+  const localX = clientX - rect.left
+  const localY = clientY - rect.top
+  const x = (localX / w) * 100
+  const y = (localY / h) * 100
+
+  const d1 = Math.hypot(localX, localY)
+  const d2 = Math.hypot(w - localX, localY)
+  const d3 = Math.hypot(localX, h - localY)
+  const d4 = Math.hypot(w - localX, h - localY)
+  const r = Math.max(d1, d2, d3, d4)
   el.style.setProperty('--clip-x', `${x}%`)
   el.style.setProperty('--clip-y', `${y}%`)
+  el.style.setProperty('--clip-r', `${r}px`)
 }
 
 const learnLinkCssVars = {
   '--clip-x': '50%',
   '--clip-y': '50%',
+  '--clip-r': '0px',
 } as CSSProperties
 
 function GpsIcon({ className }: { className?: string }) {
@@ -126,7 +136,8 @@ export function Event() {
     setLearnClipVars(e.currentTarget, e.clientX, e.clientY)
   }, [])
 
-  const onLearnPointerLeave = useCallback(() => {
+  const onLearnPointerLeave = useCallback((e: ReactPointerEvent<HTMLAnchorElement>) => {
+    setLearnClipVars(e.currentTarget, e.clientX, e.clientY)
     setLearnHover(false)
   }, [])
 
@@ -174,22 +185,26 @@ export function Event() {
             <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:mt-10 sm:flex-row sm:items-center sm:justify-center sm:gap-4">
               <a
                 href="#request-invitation"
-                className="inline-flex items-center justify-center rounded-lg bg-black px-6 py-3.5 text-center font-nav text-sm font-bold text-white transition-opacity hover:opacity-90 md:px-8"
+                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-2.5 text-center font-nav text-sm font-bold text-white transition-opacity hover:opacity-90 md:px-8"
               >
                 Request your invitation
               </a>
               <a
                 href="#learn-more"
-                className="relative inline-flex items-center justify-center overflow-hidden rounded-lg border border-white/[0.12] bg-transparent px-6 py-3.5 text-center font-nav text-sm font-bold transition-[border-color,color] duration-500 ease-out hover:border-white/25 motion-reduce:transition-none md:px-8"
+                className="relative inline-flex items-center justify-center overflow-hidden rounded-xl border border-white/[0.12] bg-transparent px-6 py-2.5 text-center font-nav text-sm font-bold transition-[border-color,color] duration-500 ease-out hover:border-white/25 motion-reduce:transition-none md:px-8"
                 style={learnLinkCssVars}
                 onPointerEnter={onLearnPointerEnter}
                 onPointerMove={onLearnPointerMove}
                 onPointerLeave={onLearnPointerLeave}
               >
                 <span
-                  className="pointer-events-none absolute inset-0 z-0 bg-white transition-[clip-path] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:!transition-none"
+                  className="pointer-events-none absolute inset-0 z-0 bg-white"
                   style={{
-                    clipPath: `circle(${learnHover ? 240 : 0}% at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                    clipPath: `circle(${learnHover ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                    WebkitClipPath: `circle(${learnHover ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                    transition:
+                      'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
+                    willChange: 'clip-path',
                   }}
                   aria-hidden
                 />

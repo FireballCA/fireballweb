@@ -50,6 +50,7 @@ function resolveCategoryFromTags(tags: string[]): CategoryId {
   if (lower.some(t => t.includes('sealant') || t.includes('sealants'))) return 'sealants'
   if (lower.some(t => t.includes('wax') || t.includes('waxes'))) return 'waxes'
   if (lower.some(t => t.includes('dressing') || t.includes('dressings'))) return 'dressings'
+  if (lower.some(t => t.includes('apparel') || t.includes('merch') || t.includes('clothing'))) return 'apparel'
   
   // Maintenance & Preparation
   if (lower.some(t => t.includes('washing') || t.includes('wash'))) return 'washing'
