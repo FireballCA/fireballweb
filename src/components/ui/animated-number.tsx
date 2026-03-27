@@ -53,7 +53,7 @@ export function AnimatedNumber({ value, className = '' }: Props) {
   const paddedNext = [...Array(len)].map((_, i) => nextChars[i] ?? ' ')
 
   return (
-    <span className={className} aria-label={target}>
+    <span className={`inline-flex items-baseline ${className}`} aria-label={target}>
       {paddedNext.map((nextCh, i) => {
         const prevCh = paddedPrev[i]
         const isDigit = nextCh >= '0' && nextCh <= '9'
@@ -63,7 +63,10 @@ export function AnimatedNumber({ value, className = '' }: Props) {
         const delayMs = clamp(i * 12, 0, 120)
 
         return (
-          <span key={i} className="relative inline-block h-[1.2em] w-[0.62em] overflow-hidden align-baseline tabular-nums">
+          <span
+            key={i}
+            className="relative inline-block h-[1.15em] w-[0.62em] overflow-hidden align-baseline tabular-nums"
+          >
             <span
               className="block"
               style={{
