@@ -14,6 +14,7 @@ import { FavoritePromptModal } from '@/components/FavoritePromptModal'
 import { productDetailPath, shopCategoryPath } from '@/constants/paths'
 import { getProductPageContent } from '@/data/productPageContent'
 import { supabase } from '@/lib/supabase'
+import { AnimatedNumber } from '@/components/ui/animated-number'
 
 type ProductType = LocalProduct
 
@@ -66,33 +67,6 @@ function useProductFavoritePrompt(
   )
 
   return { handleWishlistClick, favoriteModal }
-}
-
-function SlotText({ value }: { value: string }) {
-  const [prev, setPrev] = useState(value)
-  const [anim, setAnim] = useState(false)
-
-  useEffect(() => {
-    if (value === prev) return
-    setAnim(true)
-    const t = window.setTimeout(() => {
-      setPrev(value)
-      setAnim(false)
-    }, 260)
-    return () => window.clearTimeout(t)
-  }, [value, prev])
-
-  return (
-    <span className="relative inline-block h-[1.2em] overflow-hidden tabular-nums">
-      <span
-        className="block transition-transform duration-300 ease-out"
-        style={{ transform: anim ? 'translateY(-50%)' : 'translateY(0%)' }}
-      >
-        <span className="block leading-[1.2em]">{prev}</span>
-        <span className="block leading-[1.2em]">{value}</span>
-      </span>
-    </span>
-  )
 }
 
 export function Product() {
@@ -1356,7 +1330,10 @@ export function Product() {
           <div className="flex-1">
             <p className="text-xs text-carbon-500 mb-1">{t('cart.total')}</p>
             <p className="text-xl font-bold text-carbon-900">
-              <SlotText value={`${(displayPrice * quantity).toFixed(2)} $CA`} />
+              <span className="tabular-nums font-mono">
+                <AnimatedNumber value={displayPrice * quantity} className="" />
+              </span>{' '}
+              <span>$CA</span>
             </p>
           </div>
           <button
