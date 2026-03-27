@@ -25,6 +25,7 @@ html.lenis-smooth body {
 @layer base {
   html {
     -webkit-overflow-scrolling: touch;
+    -webkit-text-size-adjust: 100%;
   }
   body {
     @apply bg-carbon-950 text-pearl font-sans antialiased;
@@ -48,6 +49,23 @@ html.lenis-smooth body {
   textarea,
   select {
     @apply outline-none focus:outline-none;
+  }
+
+  /* iOS Safari: empêche le zoom auto au focus des champs */
+  @media (max-width: 1024px) {
+    input,
+    textarea,
+    select,
+    button[type='search'],
+    input[type='search'],
+    input[type='email'],
+    input[type='text'],
+    input[type='tel'],
+    input[type='url'],
+    input[type='password'],
+    input[type='number'] {
+      font-size: 16px !important;
+    }
   }
 
   /* Price slider styles - From Uiverse.io by Galahhad */

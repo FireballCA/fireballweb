@@ -1329,11 +1329,11 @@ export function Product() {
         <div className="max-w-7xl mx-auto flex gap-3">
           <div className="flex-1">
             <p className="text-xs text-carbon-500 mb-1">{t('cart.total')}</p>
-            <p className="text-xl font-bold text-carbon-900">
-              <span className="tabular-nums font-mono">
-                <AnimatedNumber value={displayPrice * quantity} className="" />
-              </span>{' '}
-              <span>$CA</span>
+            <p className="text-xl font-bold text-carbon-900 flex items-baseline gap-1">
+              <span className="tabular-nums font-mono leading-none">
+                <AnimatedNumber value={displayPrice * quantity} className="leading-none" />
+              </span>
+              <span className="text-xs font-semibold text-carbon-600 leading-none">$CA</span>
             </p>
           </div>
           <button
