@@ -8,12 +8,19 @@ import { fetchProductFromShopifyBySlug, fetchProductsFromShopify } from '@/utils
 import { XP_PER_DOLLAR } from '@/utils/supabaseXp'
 import { PaymentMethodBadges } from '@/components/PaymentMethodBadges'
 import { ProductYouMightLikeRail } from '@/components/ProductYouMightLikeRail'
-import { isAuthenticated } from '@/utils/supabaseAuth'
+import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { isFavoriteSlug, toggleFavoriteSlug } from '@/utils/favorites'
 import { FavoritePromptModal } from '@/components/FavoritePromptModal'
 import { productDetailPath, shopCategoryPath } from '@/constants/paths'
+import { getProductPageContent } from '@/data/productPageContent'
+import { supabase } from '@/lib/supabase'
 
 type ProductType = LocalProduct
+
+type ProductPageOverrides = Record<
+  string,
+  { why?: string | null; howToUseSteps?: string[] | null } | undefined
+>
 
 function useProductFavoritePrompt(
   slug: string | undefined,
@@ -86,8 +93,8 @@ export function Product() {
   const [loading, setLoading] = useState(true)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [relatedProducts, setRelatedProducts] = useState<LocalProduct[]>([])
-  const [descriptionExpanded, setDescriptionExpanded] = useState(false)
-  const [showDescriptionModal, setShowDescriptionModal] = useState(false)
+  const [openAccordion, setOpenAccordion] = useState<'description' | 'why' | 'howToUse' | null>('description')
+  const [adminEditorOpen, setAdminEditorOpen] = useState(false)
   const [showStickyBar, setShowStickyBar] = useState(false)
   const [navbarWidth, setNavbarWidth] = useState(0)
   const [shippingProgressAnimated, setShippingProgressAnimated] = useState(false)
@@ -96,6 +103,12 @@ export function Product() {
   const navbarRef = useRef<HTMLDivElement>(null)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [productPageOverrides, setProductPageOverrides] = useState<ProductPageOverrides>({})
+  const [savingProductPage, setSavingProductPage] = useState(false)
+  const [productPageSaveError, setProductPageSaveError] = useState('')
+  const [whyDraft, setWhyDraft] = useState('')
+  const [howToUseDraft, setHowToUseDraft] = useState('')
 
   const productShareUrl = useMemo(() => {
     const path = slug ? productDetailPath(slug) : ''
@@ -123,6 +136,52 @@ export function Product() {
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)
   }, [shareOpen])
+
+  // Bloquer le scroll de fond quand une modale est ouverte
+  useEffect(() => {
+    if (!adminEditorOpen) return
+    const prevHtmlOverflow = document.documentElement.style.overflow
+    const prevBodyOverflow = document.body.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.documentElement.style.overflow = prevHtmlOverflow
+      document.body.style.overflow = prevBodyOverflow
+    }
+  }, [adminEditorOpen])
+
+  useEffect(() => {
+    let mounted = true
+    void (async () => {
+      const profile = await getCurrentUserProfile()
+      if (!mounted) return
+      const role = (profile?.role || '').toLowerCase()
+      setIsAdmin(role === 'admin')
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    if (!slug) return
+    void (async () => {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'product_pages')
+        .maybeSingle()
+      if (!mounted) return
+      if (error) return
+      const raw = (data?.value ?? {}) as unknown
+      const map = raw && typeof raw === 'object' ? (raw as ProductPageOverrides) : {}
+      setProductPageOverrides(map)
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [slug])
 
   useEffect(() => {
     let cancelled = false
@@ -333,6 +392,65 @@ export function Product() {
   }
 
   const category = CATEGORIES.find((c) => c.id === product.category)
+  const jsonContent = getProductPageContent(slug)
+  const override = (slug ? productPageOverrides[slug] : undefined) ?? null
+  const pageContent = {
+    why: override?.why ?? jsonContent?.why ?? null,
+    howToUseSteps: override?.howToUseSteps ?? jsonContent?.howToUseSteps ?? null,
+  }
+
+  const openAdminEditor = () => {
+    setProductPageSaveError('')
+    setWhyDraft(pageContent.why ?? '')
+    setHowToUseDraft(Array.isArray(pageContent.howToUseSteps) ? pageContent.howToUseSteps.join('\n') : '')
+    setAdminEditorOpen(true)
+  }
+
+  const saveAdminEditor = async () => {
+    if (!slug) return
+    setSavingProductPage(true)
+    setProductPageSaveError('')
+    try {
+      const steps = howToUseDraft
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean)
+      const nextForSlug = {
+        why: whyDraft.trim() ? whyDraft.trim() : null,
+        howToUseSteps: steps.length ? steps : null,
+      }
+      const nextMap: ProductPageOverrides = {
+        ...productPageOverrides,
+        [slug]: nextForSlug,
+      }
+
+      const { data: existing, error: existingError } = await supabase
+        .from('site_settings')
+        .select('id')
+        .eq('key', 'product_pages')
+        .maybeSingle()
+      if (existingError) throw existingError
+
+      const write = existing
+        ? supabase
+            .from('site_settings')
+            .update({ value: nextMap, updated_at: new Date().toISOString() })
+            .eq('key', 'product_pages')
+        : supabase
+            .from('site_settings')
+            .insert({ key: 'product_pages', value: nextMap, updated_at: new Date().toISOString() })
+
+      const res = await write
+      if (res.error) throw res.error
+
+      setProductPageOverrides(nextMap)
+      setAdminEditorOpen(false)
+    } catch (e) {
+      setProductPageSaveError(e instanceof Error ? e.message : 'Unable to save.')
+    } finally {
+      setSavingProductPage(false)
+    }
+  }
 
   const copyProductLink = async () => {
     try {
@@ -607,6 +725,18 @@ export function Product() {
 
           {/* Right: Product Information */}
           <div className="space-y-6">
+            {/* Admin quick edit (only admins) */}
+            {isAdmin && (
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={openAdminEditor}
+                  className="inline-flex items-center gap-2 rounded-full border border-carbon-200 bg-carbon-50 px-4 py-2 text-xs font-semibold text-carbon-900 hover:bg-carbon-100 transition-colors"
+                >
+                  Admin: éditer Why / How to use
+                </button>
+              </div>
+            )}
             {/* Product Title */}
             {product.badge && (
               <span className="inline-block text-xs font-semibold text-chrome uppercase tracking-wide mb-2">
@@ -879,28 +1009,114 @@ export function Product() {
               <PaymentMethodBadges className="mt-2" iconClassName="h-6 w-auto shrink-0" />
             </div>
 
-            {/* Description - Sous les boutons */}
-            {product.description && (
-              <div className="border-t border-carbon-200 pt-6">
-                <p className="text-sm text-carbon-600 line-clamp-3 mb-3">
-                  {product.description}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowDescriptionModal(true)}
-                  className="text-sm text-carbon-600 hover:text-carbon-900 underline"
-                >
-                  View description
-                </button>
-              </div>
-            )}
+            {/* Product accordions: Description / Why / How to use */}
+            <div className="pt-6 border-t border-carbon-200 divide-y divide-carbon-200">
+              {product.description && (
+                <div className="py-4">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenAccordion((prev) => (prev === 'description' ? null : 'description'))
+                    }
+                    className="w-full flex items-center justify-between gap-4"
+                  >
+                    <h3 className="text-sm font-semibold text-carbon-900">Description</h3>
+                    <svg
+                      className={`w-4 h-4 text-carbon-600 transition-transform ${
+                        openAccordion === 'description' ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div
+                    className={`grid transition-all duration-300 ease-out ${
+                      openAccordion === 'description'
+                        ? 'grid-rows-[1fr] opacity-100 mt-3'
+                        : 'grid-rows-[0fr] opacity-0 mt-0'
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <p className="text-sm text-carbon-600 whitespace-pre-line">{product.description}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-            {/* Return Policy */}
-            <div className="pt-6 border-t border-carbon-200">
-              <h3 className="text-sm font-semibold text-carbon-900 mb-2">Return</h3>
-              <p className="text-sm text-carbon-600">
-                You have 60 days to return the item(s) using any of the following methods: Free store return, Free returns via USPS Dropoff Service.
-              </p>
+              {pageContent?.why && (
+                <div className="py-4">
+                  <button
+                    type="button"
+                    onClick={() => setOpenAccordion((prev) => (prev === 'why' ? null : 'why'))}
+                    className="w-full flex items-center justify-between gap-4"
+                  >
+                    <h3 className="text-sm font-semibold text-carbon-900">Why {product.name}?</h3>
+                    <svg
+                      className={`w-4 h-4 text-carbon-600 transition-transform ${
+                        openAccordion === 'why' ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div
+                    className={`grid transition-all duration-300 ease-out ${
+                      openAccordion === 'why'
+                        ? 'grid-rows-[1fr] opacity-100 mt-3'
+                        : 'grid-rows-[0fr] opacity-0 mt-0'
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <p className="text-sm text-carbon-600 whitespace-pre-line">{pageContent.why}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {pageContent?.howToUseSteps && pageContent.howToUseSteps.length > 0 && (
+                <div className="py-4">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenAccordion((prev) => (prev === 'howToUse' ? null : 'howToUse'))
+                    }
+                    className="w-full flex items-center justify-between gap-4"
+                  >
+                    <h3 className="text-sm font-semibold text-carbon-900">How to use</h3>
+                    <svg
+                      className={`w-4 h-4 text-carbon-600 transition-transform ${
+                        openAccordion === 'howToUse' ? 'rotate-180' : ''
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div
+                    className={`grid transition-all duration-300 ease-out ${
+                      openAccordion === 'howToUse'
+                        ? 'grid-rows-[1fr] opacity-100 mt-3'
+                        : 'grid-rows-[0fr] opacity-0 mt-0'
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <ol className="text-sm text-carbon-600 list-decimal pl-5 space-y-1">
+                        {pageContent.howToUseSteps.map((step, idx) => (
+                          <li key={`${idx}-${step.slice(0, 16)}`}>{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1024,35 +1240,82 @@ export function Product() {
         </div>
       )}
 
-      {/* Description Modal */}
-      {showDescriptionModal && (
-        <div 
+      {/* Admin editor modal */}
+      {adminEditorOpen && (
+        <div
           className="fixed inset-0 z-50 flex items-center justify-end bg-black/50"
-          onClick={() => setShowDescriptionModal(false)}
+          onClick={() => setAdminEditorOpen(false)}
         >
-          <div 
+          <div
             className="bg-white h-full w-full max-w-md rounded-l-2xl shadow-xl overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header avec bouton X */}
             <div className="flex items-center justify-between p-6 border-b border-carbon-200">
-              <h2 className="text-xl font-bold text-carbon-900">Description</h2>
+              <div>
+                <p className="text-[11px] font-semibold text-carbon-500">Admin</p>
+                <h2 className="text-xl font-bold text-carbon-900">Why / How to use</h2>
+                <p className="text-xs text-carbon-500 mt-1 line-clamp-1">{product.name}</p>
+              </div>
               <button
                 type="button"
-                onClick={() => setShowDescriptionModal(false)}
+                onClick={() => setAdminEditorOpen(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-carbon-100 transition-colors"
+                aria-label="Close"
               >
                 <svg className="w-5 h-5 text-carbon-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            
-            {/* Description content */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <p className="text-sm text-carbon-700 leading-relaxed whitespace-pre-line">
-                {product.description}
-              </p>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              {productPageSaveError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                  {productPageSaveError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[11px] font-semibold text-carbon-700 mb-2">
+                  Why (texte)
+                </label>
+                <textarea
+                  value={whyDraft}
+                  onChange={(e) => setWhyDraft(e.target.value)}
+                  className="w-full min-h-[140px] rounded-xl border border-carbon-200 bg-white px-3 py-2 text-sm text-carbon-900 placeholder:text-carbon-400 focus:outline-none focus:border-carbon-400 resize-vertical"
+                  placeholder="Why..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-carbon-700 mb-2">
+                  How to use (1 étape par ligne)
+                </label>
+                <textarea
+                  value={howToUseDraft}
+                  onChange={(e) => setHowToUseDraft(e.target.value)}
+                  className="w-full min-h-[160px] rounded-xl border border-carbon-200 bg-white px-3 py-2 text-sm text-carbon-900 placeholder:text-carbon-400 focus:outline-none focus:border-carbon-400 resize-vertical"
+                  placeholder={'Step 1...\nStep 2...\nStep 3...'}
+                />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-carbon-200 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setAdminEditorOpen(false)}
+                className="px-4 py-2 rounded-full text-sm font-semibold text-carbon-700 hover:bg-carbon-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveAdminEditor}
+                disabled={savingProductPage || !slug}
+                className="px-4 py-2 rounded-full text-sm font-semibold text-white bg-carbon-900 hover:bg-carbon-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+              >
+                {savingProductPage ? 'Saving…' : 'Save'}
+              </button>
             </div>
           </div>
         </div>

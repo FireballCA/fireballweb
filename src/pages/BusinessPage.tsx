@@ -18,8 +18,9 @@ import { supabase } from '@/lib/supabase'
 import { FireballLoading } from '@/components/FireballLoading'
 import { cn } from '@/lib/utils'
 import { SITE_PAGES, type SitePage } from '@/constants/sitePages'
-import { CATEGORIES } from '@/data/products'
+import { CATEGORIES, PRODUCTS, type Product as LocalProduct } from '@/data/products'
 import { getClientCache, setClientCache } from '@/utils/clientCache'
+import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 
 type View = 'loading' | 'denied' | 'form' | 'dashboard'
 
@@ -95,6 +96,24 @@ type BannerItem = {
   text: string
   button_text: string | null
   button_to: string | null
+}
+
+type ProductPageContent = {
+  why: string | null
+  how_to_use_steps: string[] | null
+}
+
+type ProductPagesSettings = Record<string, ProductPageContent | undefined>
+
+function normalizeStepsFromTextarea(value: string): string[] {
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+function stepsToTextarea(steps: string[] | null | undefined): string {
+  return Array.isArray(steps) ? steps.join('\n') : ''
 }
 
 function parseDate(value: string | null | undefined): Date | null {
@@ -919,6 +938,218 @@ function BusinessAdminAnnouncements() {
   )
 }
 
+function BusinessAdminProductPages() {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  const [products, setProducts] = useState<LocalProduct[]>(PRODUCTS)
+  const [selectedSlug, setSelectedSlug] = useState<string>(PRODUCTS[0]?.slug ?? '')
+  const [settings, setSettings] = useState<ProductPagesSettings>({})
+
+  const selectedProduct = products.find((p) => p.slug === selectedSlug) ?? null
+  const current = settings[selectedSlug] ?? { why: null, how_to_use_steps: null }
+
+  const [whyText, setWhyText] = useState('')
+  const [stepsText, setStepsText] = useState('')
+
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      setError('')
+      setSuccess('')
+      setLoading(true)
+      try {
+        const [productsRes, settingsRes] = await Promise.allSettled([
+          fetchProductsFromShopify(),
+          supabase.from('site_settings').select('value').eq('key', 'product_pages').maybeSingle(),
+        ])
+
+        if (!mounted) return
+
+        if (productsRes.status === 'fulfilled' && Array.isArray(productsRes.value) && productsRes.value.length > 0) {
+          setProducts(productsRes.value)
+          setSelectedSlug((prev) => prev || productsRes.value[0]?.slug || '')
+        } else {
+          setProducts(PRODUCTS)
+          setSelectedSlug((prev) => prev || PRODUCTS[0]?.slug || '')
+        }
+
+        if (settingsRes.status === 'fulfilled') {
+          const row = settingsRes.value
+          const raw = (row.data?.value ?? {}) as unknown
+          const next = raw && typeof raw === 'object' ? (raw as ProductPagesSettings) : {}
+          setSettings(next)
+        }
+      } catch (e) {
+        if (mounted) setError(e instanceof Error ? e.message : 'Failed to load product settings.')
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    setWhyText(current.why ?? '')
+    setStepsText(stepsToTextarea(current.how_to_use_steps))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSlug])
+
+  const handleSave = async () => {
+    if (!selectedSlug) return
+    setError('')
+    setSuccess('')
+    setSaving(true)
+    try {
+      const nextEntry: ProductPageContent = {
+        why: whyText.trim() ? whyText.trim() : null,
+        how_to_use_steps: normalizeStepsFromTextarea(stepsText).length
+          ? normalizeStepsFromTextarea(stepsText)
+          : null,
+      }
+      const nextSettings: ProductPagesSettings = { ...settings, [selectedSlug]: nextEntry }
+
+      const { data: existing, error: existingError } = await supabase
+        .from('site_settings')
+        .select('id')
+        .eq('key', 'product_pages')
+        .maybeSingle()
+      if (existingError) throw existingError
+
+      const write = existing
+        ? supabase
+            .from('site_settings')
+            .update({ value: nextSettings, updated_at: new Date().toISOString() })
+            .eq('key', 'product_pages')
+        : supabase
+            .from('site_settings')
+            .insert({ key: 'product_pages', value: nextSettings, updated_at: new Date().toISOString() })
+
+      const res = await write
+      if (res.error) throw res.error
+
+      setSettings(nextSettings)
+      setSuccess('Saved.')
+      window.setTimeout(() => setSuccess(''), 2200)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save product settings.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-slate-400">
+            Admin
+          </p>
+          <h2 className="mt-1 text-2xl md:text-3xl font-semibold text-slate-900">
+            Configuration produits
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Configure “Why [PRODUCT]?” et “How to use” affichés sur les pages produit.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={loading || saving || !selectedSlug}
+          className="inline-flex items-center gap-2 rounded-full bg-[#4318FF] text-white px-4 py-2 text-sm font-semibold hover:bg-[#3312C8] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+
+      {loading && (
+        <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+          <p className="text-sm text-slate-500">Loading…</p>
+        </div>
+      )}
+
+      {!loading && (error || success) && (
+        <div
+          className={cn(
+            'rounded-2xl border px-4 py-3 text-sm',
+            error
+              ? 'border-rose-200 bg-rose-50 text-rose-800'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-800',
+          )}
+        >
+          {error || success}
+        </div>
+      )}
+
+      {!loading && (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <section className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+            <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-3">
+              Produit
+            </p>
+            <select
+              value={selectedSlug}
+              onChange={(e) => setSelectedSlug(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-400"
+            >
+              {products.map((p) => (
+                <option key={p.slug} value={p.slug}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-1">
+                Titre affiché
+              </p>
+              <p className="text-base font-semibold text-slate-900">
+                Why {selectedProduct?.name ?? selectedSlug}?
+              </p>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm space-y-4">
+            <div>
+              <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-2">
+                Why (texte)
+              </p>
+              <textarea
+                value={whyText}
+                onChange={(e) => setWhyText(e.target.value)}
+                rows={7}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400 resize-vertical"
+                placeholder={`Example:\nWhy ${selectedProduct?.name ?? '[PRODUCT]'}?\nWater spots are caused by mineral deposits...`}
+              />
+            </div>
+
+            <div>
+              <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-2">
+                How to use (1 étape par ligne)
+              </p>
+              <textarea
+                value={stepsText}
+                onChange={(e) => setStepsText(e.target.value)}
+                rows={7}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400 resize-vertical"
+                placeholder={'Step 1...\nStep 2...\nStep 3...'}
+              />
+              <p className="mt-2 text-xs text-slate-500">
+                Les lignes vides sont ignorées.
+              </p>
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function BusinessPage() {
   const location = useLocation()
   const [view, setView] = useState<View>('loading')
@@ -934,7 +1165,15 @@ export function BusinessPage() {
     location.pathname.includes('/business/admin') || location.pathname.includes('/account/business/admin')
   const isClientsPath =
     location.pathname.includes('/business/clients') || location.pathname.includes('/account/business/clients')
-  const adminSection = location.pathname.includes('/admin/partners') ? 'partners' : location.pathname.includes('/admin/notifications') ? 'notifications' : location.pathname.includes('/admin/announcements') ? 'announcements' : 'stats'
+  const adminSection = location.pathname.includes('/admin/partners')
+    ? 'partners'
+    : location.pathname.includes('/admin/notifications')
+      ? 'notifications'
+      : location.pathname.includes('/admin/announcements')
+        ? 'announcements'
+        : location.pathname.includes('/admin/products')
+          ? 'products'
+          : 'stats'
 
   const [companyNameInput, setCompanyNameInput] = useState('')
   const [companyLogo, setCompanyLogo] = useState('')
@@ -1617,6 +1856,7 @@ export function BusinessPage() {
         { label: 'Partners', href: '/business/admin/partners', icon: <IconUsers className="h-4 w-4 shrink-0 text-red-400" /> },
         { label: 'Notifications', href: '/business/admin/notifications', icon: <IconBell className="h-4 w-4 shrink-0 text-red-400" /> },
         { label: 'Announcements', href: '/business/admin/announcements', icon: <IconBell className="h-4 w-4 shrink-0 text-red-400" /> },
+        { label: 'Configuration produits', href: '/business/admin/products', icon: <IconSettings className="h-4 w-4 shrink-0 text-red-400" /> },
       ]
     : []
   const backLink = {
@@ -1712,6 +1952,8 @@ export function BusinessPage() {
                 <div className="flex flex-col gap-6">
                   {adminSection === 'announcements' ? (
                     <BusinessAdminAnnouncements />
+                  ) : adminSection === 'products' ? (
+                    <BusinessAdminProductPages />
                   ) : (
                     <AdminPanelContent section={adminSection} />
                   )}

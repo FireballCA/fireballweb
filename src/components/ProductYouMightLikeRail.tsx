@@ -13,8 +13,8 @@ function categoryLabel(categoryId: Product['category']): string {
 const cardWidthClass =
   'w-[260px] flex-shrink-0 sm:w-[270px] lg:w-[280px]'
 
-/** Largeur fixe de la piste (comme avant), pas toute la largeur du conteneur */
-const SCROLL_TRACK_WIDTH_CLASS = 'w-[240px] sm:w-[280px]'
+/** Piste plus longue mais plus fine */
+const SCROLL_TRACK_WIDTH_CLASS = 'flex-1 max-w-[720px] sm:max-w-[820px]'
 
 type Props = {
   title?: string
@@ -52,6 +52,8 @@ export function ProductYouMightLikeRail({
   const headingId = useId()
   const scrollerRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
+  const draggingRef = useRef(false)
+  const dragOffsetPxRef = useRef(0)
   const [thumbLeftPct, setThumbLeftPct] = useState(0)
   const [thumbWidthPct, setThumbWidthPct] = useState(100)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -102,16 +104,54 @@ export function ProductYouMightLikeRail({
     return Math.min(320, Math.round(el.clientWidth * 0.75))
   }, [])
 
-  const onTrackPointerDown = (e: MouseEvent<HTMLDivElement>) => {
+  const setScrollFromClientX = useCallback((clientX: number) => {
     const el = scrollerRef.current
     const track = trackRef.current
     if (!el || !track) return
     const max = el.scrollWidth - el.clientWidth
     if (max <= 0) return
     const rect = track.getBoundingClientRect()
-    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
-    el.scrollTo({ left: ratio * max, behavior: 'smooth' })
+    const thumbPx = (thumbWidthPct / 100) * rect.width
+    const usable = Math.max(1, rect.width - thumbPx)
+    const x = clientX - rect.left - dragOffsetPxRef.current
+    const ratio = Math.min(1, Math.max(0, x / usable))
+    el.scrollLeft = ratio * max
+  }, [thumbWidthPct])
+
+  const onTrackPointerDown = (e: MouseEvent<HTMLDivElement>) => {
+    const track = trackRef.current
+    if (!track) return
+    const rect = track.getBoundingClientRect()
+    const thumbPx = (thumbWidthPct / 100) * rect.width
+    dragOffsetPxRef.current = thumbPx / 2
+    draggingRef.current = true
+    setScrollFromClientX(e.clientX)
   }
+
+  const onThumbMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const thumb = e.currentTarget
+    const rect = thumb.getBoundingClientRect()
+    dragOffsetPxRef.current = Math.min(rect.width, Math.max(0, e.clientX - rect.left))
+    draggingRef.current = true
+  }
+
+  useEffect(() => {
+    const onMove = (e: globalThis.MouseEvent) => {
+      if (!draggingRef.current) return
+      setScrollFromClientX(e.clientX)
+    }
+    const onUp = () => {
+      draggingRef.current = false
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [setScrollFromClientX])
 
   if (products.length === 0) return null
 
@@ -181,15 +221,18 @@ export function ProductYouMightLikeRail({
           <div
             ref={trackRef}
             role="presentation"
-            className={`relative h-1 shrink-0 cursor-pointer rounded-full bg-carbon-200/80 ${SCROLL_TRACK_WIDTH_CLASS}`}
+            className={`relative h-1.5 shrink-0 cursor-pointer rounded-full bg-carbon-200/80 ${SCROLL_TRACK_WIDTH_CLASS}`}
             onClick={onTrackPointerDown}
           >
             <div
-              className="pointer-events-none absolute top-0 h-full rounded-full bg-carbon-500 transition-[left,width] duration-100 ease-out"
+              role="slider"
+              aria-label="Horizontal scroll thumb"
+              className="absolute top-0 h-full rounded-full bg-carbon-500 cursor-grab active:cursor-grabbing transition-[left,width] duration-100 ease-out"
               style={{
                 width: `${thumbWidthPct}%`,
                 left: `${thumbLeftPct}%`,
               }}
+              onMouseDown={onThumbMouseDown}
             />
           </div>
 
