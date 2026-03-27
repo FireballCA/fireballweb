@@ -198,6 +198,22 @@ function App() {
               }
             />
             <Route
+              path="account/business/admin/products"
+              element={
+                <ProtectedRoute>
+                  <BusinessPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="business/admin/products"
+              element={
+                <ProtectedRoute>
+                  <BusinessPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="account/manage-partners"
               element={
                 <ProtectedRoute>

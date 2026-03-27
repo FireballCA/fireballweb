@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
+import { PRODUCTS, type Product as LocalProduct } from '@/data/products'
 
 interface AnnouncementSettings {
   navbar_banner_text: string | null
@@ -16,7 +18,7 @@ interface AdminPanelSheetProps {
   onClose: () => void
 }
 
-export type AdminSection = 'stats' | 'partners' | 'notifications' | 'announcements'
+export type AdminSection = 'stats' | 'partners' | 'notifications' | 'announcements' | 'products'
 
 /** Contenu du panneau admin (stats, partners, notifications) réutilisable en page pleine. */
 export function AdminPanelContent({ section }: { section?: AdminSection }) {
@@ -82,6 +84,18 @@ export function AdminPanelContent({ section }: { section?: AdminSection }) {
                   <span>Announcements</span>
                   <span className="text-[9px] uppercase tracking-[0.18em] text-white/50">Banner & Featured</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSection('products')}
+                  className={`flex-1 inline-flex items-center justify-between rounded-2xl px-3 py-2 text-xs font-medium transition-colors ${
+                    activeSection === 'products'
+                      ? 'bg-white/15 text-white border border-white/50'
+                      : 'bg-white/[0.02] text-white/70 border border-white/[0.08] hover:bg-white/[0.08] hover:text-white'
+                  }`}
+                >
+                  <span>Products</span>
+                  <span className="text-[9px] uppercase tracking-[0.18em] text-white/50">Why + How to use</span>
+                </button>
               </div>
             </div>
           </aside>
@@ -91,6 +105,7 @@ export function AdminPanelContent({ section }: { section?: AdminSection }) {
           {effectiveSection === 'partners' && <AdminPartnersSection />}
           {effectiveSection === 'notifications' && <AdminNotificationsSection />}
           {effectiveSection === 'announcements' && <AdminAnnouncementsSection />}
+          {effectiveSection === 'products' && <AdminProductsSection />}
         </main>
       </div>
     </div>
@@ -1116,6 +1131,230 @@ function AdminAnnouncementsSection() {
             className="inline-flex items-center gap-2 rounded-full bg-white text-black px-4 py-2 text-[11px] font-nav uppercase tracking-[0.16em] hover:bg-silver disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving…' : 'Save Settings'}
+          </button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+type ProductPageContent = {
+  why: string | null
+  how_to_use_steps: string[] | null
+}
+
+type ProductPagesSettings = Record<string, ProductPageContent | undefined>
+
+function normalizeStepsFromTextarea(value: string): string[] {
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+function stepsToTextarea(steps: string[] | null | undefined): string {
+  return Array.isArray(steps) ? steps.join('\n') : ''
+}
+
+function AdminProductsSection() {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  const [products, setProducts] = useState<LocalProduct[]>(PRODUCTS)
+  const [selectedSlug, setSelectedSlug] = useState<string>(PRODUCTS[0]?.slug ?? '')
+
+  const [settings, setSettings] = useState<ProductPagesSettings>({})
+  const current = settings[selectedSlug] ?? { why: null, how_to_use_steps: null }
+
+  const [whyText, setWhyText] = useState('')
+  const [stepsText, setStepsText] = useState('')
+
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      setError('')
+      setSuccess('')
+      setLoading(true)
+      try {
+        const [productsRes, settingsRes] = await Promise.allSettled([
+          fetchProductsFromShopify(),
+          supabase.from('site_settings').select('value').eq('key', 'product_pages').maybeSingle(),
+        ])
+
+        if (mounted) {
+          if (productsRes.status === 'fulfilled' && Array.isArray(productsRes.value) && productsRes.value.length > 0) {
+            setProducts(productsRes.value)
+            setSelectedSlug((prev) => prev || productsRes.value[0]?.slug || '')
+          } else {
+            setProducts(PRODUCTS)
+            setSelectedSlug((prev) => prev || PRODUCTS[0]?.slug || '')
+          }
+
+          if (settingsRes.status === 'fulfilled') {
+            const row = settingsRes.value
+            const raw = (row.data?.value ?? {}) as unknown
+            const next = (raw && typeof raw === 'object' ? (raw as ProductPagesSettings) : {}) as ProductPagesSettings
+            setSettings(next)
+          }
+        }
+      } catch (e) {
+        if (mounted) setError(e instanceof Error ? e.message : 'Failed to load product settings.')
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    setWhyText(current.why ?? '')
+    setStepsText(stepsToTextarea(current.how_to_use_steps))
+  }, [selectedSlug]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSave = async () => {
+    if (!selectedSlug) return
+    setError('')
+    setSuccess('')
+    setSaving(true)
+    try {
+      const nextEntry: ProductPageContent = {
+        why: whyText.trim() ? whyText.trim() : null,
+        how_to_use_steps: normalizeStepsFromTextarea(stepsText).length
+          ? normalizeStepsFromTextarea(stepsText)
+          : null,
+      }
+      const nextSettings: ProductPagesSettings = {
+        ...settings,
+        [selectedSlug]: nextEntry,
+      }
+
+      const { data: existing, error: existingError } = await supabase
+        .from('site_settings')
+        .select('id')
+        .eq('key', 'product_pages')
+        .maybeSingle()
+
+      if (existingError) throw existingError
+
+      const write = existing
+        ? supabase
+            .from('site_settings')
+            .update({ value: nextSettings, updated_at: new Date().toISOString() })
+            .eq('key', 'product_pages')
+        : supabase
+            .from('site_settings')
+            .insert({ key: 'product_pages', value: nextSettings, updated_at: new Date().toISOString() })
+
+      const res = await write
+      if (res.error) throw res.error
+
+      setSettings(nextSettings)
+      setSuccess('Saved.')
+      setTimeout(() => setSuccess(''), 2200)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save product settings.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const selectedProduct = products.find((p) => p.slug === selectedSlug) ?? null
+
+  if (loading) {
+    return (
+      <section className="rounded-3xl border border-white/[0.09] bg-white/[0.02] px-5 py-5 shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
+        <p className="text-white/60">Loading...</p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="rounded-3xl border border-white/[0.09] bg-white/[0.02] px-5 py-5 shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
+      <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55 mb-3">
+        Products
+      </p>
+      <p className="text-[12px] text-white/60 mb-6">
+        Configure “Why [PRODUCT]?” and “How to use” sections shown on product pages.
+      </p>
+
+      {(error || success) && (
+        <div
+          className={`mb-4 rounded-xl border px-3 py-2 text-[12px] ${
+            error
+              ? 'border-red-500/40 bg-red-500/10 text-red-200'
+              : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'
+          }`}
+        >
+          {error || success}
+        </div>
+      )}
+
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+              Product
+            </label>
+            <select
+              value={selectedSlug}
+              onChange={(e) => setSelectedSlug(e.target.value)}
+              className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white focus:outline-none focus:border-white/60"
+            >
+              {products.map((p) => (
+                <option key={p.slug} value={p.slug}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-3">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1">Preview title</p>
+            <p className="text-sm font-semibold text-white">
+              Why {selectedProduct?.name ?? selectedSlug}?
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+            Why (text)
+          </label>
+          <textarea
+            value={whyText}
+            onChange={(e) => setWhyText(e.target.value)}
+            className="w-full min-h-[120px] rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60 resize-vertical"
+            placeholder={`Example:\nWhy ${selectedProduct?.name ?? '[PRODUCT]'}?\nWater spots are caused by mineral deposits...`}
+          />
+        </div>
+
+        <div>
+          <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+            How to use (1 step per line)
+          </label>
+          <textarea
+            value={stepsText}
+            onChange={(e) => setStepsText(e.target.value)}
+            className="w-full min-h-[140px] rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60 resize-vertical"
+            placeholder={'Step 1...\nStep 2...\nStep 3...'}
+          />
+          <p className="mt-2 text-[11px] text-white/45">
+            Tip: empty lines are ignored.
+          </p>
+        </div>
+
+        <div className="pt-1 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || !selectedSlug}
+            className="inline-flex items-center gap-2 rounded-full bg-white text-black px-4 py-2 text-[11px] font-nav uppercase tracking-[0.16em] hover:bg-silver disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Saving…' : 'Save'}
           </button>
         </div>
       </div>
