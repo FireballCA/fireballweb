@@ -1316,31 +1316,133 @@ export function Header() {
                 </svg>
               </button>
               {mobileShopOpen && (
-                <div className="pl-10 pb-2 space-y-1 animate-fade-in">
-                  <Link
-                    to="/boutique"
-                    className="block py-1 font-nav text-silver hover:text-chrome"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Tous les produits
-                  </Link>
-                  {CATEGORIES.map((c) => (
-                    <Link
-                      key={c.id}
-                      to={`/boutique/${c.id}`}
-                      className="block py-1 font-nav text-silver hover:text-chrome"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      {c.name}
-                    </Link>
-                  ))}
-                  <Link
-                    to="/boutique/revetements"
-                    className="block py-1 font-nav text-silver hover:text-chrome"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Ceramic coating
-                  </Link>
+                <div className="pl-4 pb-2 space-y-4 animate-fade-in">
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
+                      PROTECTION SYSTEMS
+                    </p>
+                    <div className="mt-1 space-y-1.5 pl-3">
+                      <Link
+                        to="/coatings"
+                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10.5 3 8 9l4 13 4-13-2.5-6" />
+                            <path d="M17 3a2 2 0 0 1 1.6.8l3 4a2 2 0 0 1 .013 2.382l-7.99 10.986a2 2 0 0 1-3.247 0l-7.99-10.986A2 2 0 0 1 2.4 7.8l2.998-3.997A2 2 0 0 1 7 3z" />
+                            <path d="M2 9h20" />
+                          </svg>
+                        </span>
+                        <span>Coatings</span>
+                      </Link>
+                      <Link
+                        to="/sealants"
+                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="1" />
+                            <path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z" />
+                            <path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z" />
+                          </svg>
+                        </span>
+                        <span>Sealants</span>
+                      </Link>
+                      <Link
+                        to="/waxes"
+                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M7 10H6a4 4 0 0 1-4-4 1 1 0 0 1 1-1h4" />
+                            <path d="M7 5a1 1 0 0 1 1-1h13a1 1 0 0 1 1 1 7 7 0 0 1-7 7H8a1 1 0 0 1-1-1z" />
+                            <path d="M9 12v5" />
+                            <path d="M15 12v5" />
+                            <path d="M5 20a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3 1 1 0 0 1-1 1H6a1 1 0 0 1-1-1" />
+                          </svg>
+                        </span>
+                        <span>Waxes</span>
+                      </Link>
+                      <Link
+                        to="/dressings"
+                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M2.5 16.88a1 1 0 0 1-.32-1.43l9-13.02a1 1 0 0 1 1.64 0l9 13.01a1 1 0 0 1-.32 1.44l-8.51 4.86a2 2 0 0 1-1.98 0Z" />
+                            <path d="M12 2v20" />
+                          </svg>
+                        </span>
+                        <span>Dressings</span>
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/[0.06] space-y-1.5">
+                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
+                      MAINTENANCE &amp; PREPARATION
+                    </p>
+                    <div className="mt-1 space-y-1.5 pl-3">
+                      <Link
+                        to="/washing"
+                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M8 2h8l2 6H6l2-6Z" />
+                            <path d="M6 8v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8" />
+                            <path d="M10 12h4" />
+                          </svg>
+                        </span>
+                        <span>Washing</span>
+                      </Link>
+                      <Link
+                        to="/cleaners"
+                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m11 10 3 3" />
+                            <path d="M6.5 21A3.5 3.5 0 1 0 3 17.5a2.62 2.62 0 0 1-.708 1.792A1 1 0 0 0 3 21z" />
+                            <path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031" />
+                          </svg>
+                        </span>
+                        <span>Cleaners</span>
+                      </Link>
+                      <Link
+                        to="/towels"
+                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M22 7h-2" />
+                            <path d="M6.5 3h11A2.5 2.5 0 0 1 20 5.5V20a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V5.5a1 1 0 0 0-5 0V17a1 1 0 0 0 1 1h4" />
+                            <path d="M9 7H2" />
+                          </svg>
+                        </span>
+                        <span>Towels</span>
+                      </Link>
+                      <Link
+                        to="/accessories"
+                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z" />
+                          </svg>
+                        </span>
+                        <span>Accessories</span>
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
