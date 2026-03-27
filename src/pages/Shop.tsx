@@ -269,11 +269,11 @@ export function Shop() {
   }
 
   return (
-    <div>
+    <div className="w-full overflow-x-hidden">
       {/* Hero section avec le nom de la catégorie */}
       {category && (
-        <section className="relative min-h-[70vh] flex items-start justify-center border-b border-carbon-800 pt-6 md:pt-10">
-          <div className="w-full px-6 text-center pt-8 md:pt-16">
+        <section className="relative min-h-[42vh] md:min-h-[70vh] flex items-center justify-center border-b border-carbon-800 pt-2 md:pt-10">
+          <div className="w-full px-6 text-center pt-10 md:pt-16">
             {/* Catégorie en dégradé */}
             <h1 className="text-[clamp(5.5rem,18vw,14rem)] font-black uppercase leading-[0.78] tracking-[-0.045em] bg-gradient-to-b from-white/[0.2] via-white/[0.08] to-transparent bg-clip-text text-transparent whitespace-nowrap overflow-hidden select-none">
               {category.name}
@@ -283,7 +283,7 @@ export function Shop() {
       )}
 
       {/* Contenu principal */}
-      <div className="max-w-7xl mx-auto px-6 py-16">
+      <div className="max-w-7xl mx-auto px-6 pt-6 pb-16 md:py-16">
         {/* Filtres */}
         {category && !loading && (
           <div className="mb-12 flex flex-wrap items-end gap-4 justify-between">
@@ -541,7 +541,7 @@ export function Shop() {
           )}
 
           {/* Produits disponibles */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-8">
             {products.map((product) => {
             // Utiliser le rating réel du produit ou 0 par défaut
             const rating = product.rating || 0
@@ -550,7 +550,7 @@ export function Shop() {
               <Link
                 key={product.id}
                 to={`/product/${product.slug}`}
-                className="group"
+                className="group min-w-0"
               >
                 {/* Image réduite avec coins arrondis */}
                 <div className="aspect-square bg-carbon-800 overflow-hidden rounded-lg mb-3">
