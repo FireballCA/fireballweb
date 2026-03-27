@@ -68,6 +68,33 @@ function useProductFavoritePrompt(
   return { handleWishlistClick, favoriteModal }
 }
 
+function SlotText({ value }: { value: string }) {
+  const [prev, setPrev] = useState(value)
+  const [anim, setAnim] = useState(false)
+
+  useEffect(() => {
+    if (value === prev) return
+    setAnim(true)
+    const t = window.setTimeout(() => {
+      setPrev(value)
+      setAnim(false)
+    }, 260)
+    return () => window.clearTimeout(t)
+  }, [value, prev])
+
+  return (
+    <span className="relative inline-block h-[1.2em] overflow-hidden tabular-nums">
+      <span
+        className="block transition-transform duration-300 ease-out"
+        style={{ transform: anim ? 'translateY(-50%)' : 'translateY(0%)' }}
+      >
+        <span className="block leading-[1.2em]">{prev}</span>
+        <span className="block leading-[1.2em]">{value}</span>
+      </span>
+    </span>
+  )
+}
+
 export function Product() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -727,7 +754,7 @@ export function Product() {
           <div className="space-y-6">
             {/* Admin quick edit (only admins) */}
             {isAdmin && (
-              <div className="flex items-center justify-end">
+              <div className="hidden lg:flex items-center justify-end">
                 <button
                   type="button"
                   onClick={openAdminEditor}
@@ -1328,7 +1355,9 @@ export function Product() {
         <div className="max-w-7xl mx-auto flex gap-3">
           <div className="flex-1">
             <p className="text-xs text-carbon-500 mb-1">{t('cart.total')}</p>
-            <p className="text-xl font-bold text-carbon-900">{(displayPrice * quantity).toFixed(2)} €</p>
+            <p className="text-xl font-bold text-carbon-900">
+              <SlotText value={`${(displayPrice * quantity).toFixed(2)} $CA`} />
+            </p>
           </div>
           <button
             type="button"

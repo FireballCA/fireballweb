@@ -720,14 +720,14 @@ export function Header() {
             className="border-b border-carbon-800 bg-white text-carbon-900"
           >
             <div className="max-w-7xl mx-auto px-6 py-2">
-              <div className="flex items-center justify-center gap-3">
-                <p className="text-center text-sm font-nav font-bold text-carbon-900">
+              <div className="flex items-center justify-center gap-2 flex-nowrap overflow-hidden">
+                <p className="min-w-0 text-center text-[11px] sm:text-sm font-nav font-bold text-carbon-900 truncate whitespace-nowrap">
                   {currentBanner?.text ?? ''}
                 </p>
                 {currentBanner?.button_to && currentBanner?.button_text ? (
                   <Link
                     to={currentBanner.button_to}
-                    className="group inline-flex items-center gap-1.5 text-sm font-nav font-bold text-carbon-900 hover:text-carbon-700 transition-colors"
+                    className="shrink-0 group inline-flex items-center gap-1 text-[11px] sm:text-sm font-nav font-bold text-carbon-900 hover:text-carbon-700 transition-colors whitespace-nowrap"
                   >
                     <span className="underline underline-offset-4 decoration-carbon-900/40 group-hover:decoration-carbon-900">
                       {currentBanner.button_text}
@@ -1267,11 +1267,16 @@ export function Header() {
           style={{ backgroundColor: solidNavColor }}
         >
           <div
-            className={`h-full ${isShopPage ? 'pt-16' : 'pt-20'} transition-all duration-300 ease-out ${
+            className={`h-full transition-all duration-300 ease-out ${
               isMobileMenuVisible
                 ? 'opacity-100 translate-y-0 pointer-events-auto'
                 : 'opacity-0 -translate-y-4 pointer-events-none'
             }`}
+            style={{
+              paddingTop: `${
+                (isShopPage ? 64 : 80) + (bannerActive ? bannerHeightPx : 0)
+              }px`,
+            }}
           >
             <div
               className="h-full border-t border-carbon-800 px-6 py-4 overflow-x-hidden"
