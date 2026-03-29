@@ -38,7 +38,7 @@ const COMPANY_SECTIONS: Array<{
     title: 'COMPANY',
     description: 'Brand, recognition & story',
     links: [
-      { label: 'Open FIREBALL Center', to: '/join-fireball' },
+      { label: 'Join Fireball', to: '/join-fireball' },
       { label: 'Merch', to: '/apparel' },
       { label: 'About us', to: '/about' },
     ],
@@ -614,7 +614,7 @@ export function Header() {
       { id: 'page-car-club', label: 'Car club', to: '/car-club', kind: 'Page', keywords: ['club'] },
       { id: 'page-event', label: 'Events', to: '/event', kind: 'Page', keywords: ['events'] },
       { id: 'page-academy', label: 'Academy', to: '/academy', kind: 'Page', keywords: ['formation'] },
-      { id: 'page-company', label: 'Open FIREBALL Center', to: '/join-fireball', kind: 'Page', keywords: ['company', 'partner'] },
+      { id: 'page-company', label: 'Join Fireball', to: '/join-fireball', kind: 'Page', keywords: ['company', 'partner'] },
       { id: 'page-contact', label: 'Contact', to: '/contact', kind: 'Page', keywords: ['support'] },
       { id: 'page-about', label: 'About us', to: '/about', kind: 'Page', keywords: ['a propos', 'brand'] },
       { id: 'page-legal', label: 'Legal', to: '/legal', kind: 'Page', keywords: ['mentions', 'terms'] },
@@ -1516,7 +1516,7 @@ export function Header() {
                             <path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
                           </svg>
                         </span>
-                        <span>Open FIREBALL Center</span>
+                        <span>Join Fireball</span>
                       </Link>
                       <Link
                         to="/apparel"

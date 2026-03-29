@@ -628,4 +628,14 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },
   },
+  optimizeDeps: {
+    exclude: ['lenis'],
+    include: ['three', 'three-globe', '@react-three/fiber', '@react-three/drei', 'react-router-dom'],
+  },
+  server: {
+    watch: {
+      usePolling: true,
+      interval: 150,
+    },
+  },
 }))
