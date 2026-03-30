@@ -70,12 +70,14 @@ export function Home() {
         </video>
         <div className="pointer-events-none absolute inset-0 bg-black/45" aria-hidden />
 
-        <div className="relative z-10 mx-auto max-w-4xl px-6 text-center animate-slide-up">
-          <h1 className="font-nav font-bold text-6xl md:text-8xl lg:text-9xl text-pearl tracking-tight leading-none mb-4">
-            {t('home.heroTitle')}
+        <div className="relative z-10 mx-auto max-w-5xl px-6 text-center animate-slide-up pt-16 md:pt-24 lg:pt-28">
+          <h1 className="font-nav font-bold text-4xl md:text-6xl lg:text-7xl text-pearl tracking-tight leading-tight mb-4">
+            Long-Lasting
+            <br />
+            Gloss & Protection
           </h1>
-          <p className="text-silver/80 text-lg md:text-xl max-w-xl mx-auto font-light">
-            {t('home.heroSubtitle')}
+          <p className="text-silver/80 text-base md:text-lg max-w-3xl mx-auto font-light">
+            Professional ceramic coatings designed for real durability and a deep, flawless shine.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <Link
@@ -83,10 +85,10 @@ export function Home() {
               className="inline-block px-8 py-2.5 font-nav font-bold text-sm uppercase rounded-xl hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl"
               style={{ backgroundColor: '#B61B1B', color: 'white' }}
             >
-              Discover
+              Explore Products
             </Link>
             <Link
-              to="/boutique#featured"
+              to="/about"
               className="relative inline-flex items-center justify-center overflow-hidden rounded-xl border border-white/[0.12] bg-transparent px-8 py-2.5 text-center font-nav text-sm font-bold uppercase transition-[border-color,color] duration-500 ease-out hover:border-white/25 motion-reduce:transition-none"
               style={technologyLinkCssVars}
               onPointerEnter={onTechnologyPointerEnter}
@@ -109,7 +111,7 @@ export function Home() {
                   technologyHover ? 'text-black' : 'text-pearl'
                 }`}
               >
-                {t('home.technology')}
+                About Fireball
               </span>
             </Link>
           </div>
