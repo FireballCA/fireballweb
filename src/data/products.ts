@@ -49,6 +49,23 @@ export interface Product {
   reviewCount?: number
 }
 
+/**
+ * Les 8 catégories du menu Shop (Header), dans l’ordre d’affichage.
+ * Aligné sur les liens /coatings, /sealants, etc.
+ */
+export const SHOP_NAV_CATEGORY_IDS = [
+  'coatings',
+  'sealants',
+  'waxes',
+  'dressings',
+  'washing',
+  'cleaners',
+  'towels',
+  'accessories',
+] as const satisfies readonly CategoryId[]
+
+export type ShopNavCategoryId = (typeof SHOP_NAV_CATEGORY_IDS)[number]
+
 export const CATEGORIES: { id: CategoryId; name: string; description: string }[] = [
   // Protection Systems
   { id: 'coatings', name: 'Coatings', description: 'Ceramic coatings and high-performance protection systems' },

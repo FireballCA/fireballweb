@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom'
+import { LineupImageTransitionProvider } from '@/context/LineupImageTransitionContext'
 import { Header } from './Header'
 import { Footer } from './Footer'
 import { isShopPathname } from '@/utils/shopRoutes'
@@ -63,7 +64,9 @@ export function Layout() {
           .filter(Boolean)
           .join(' ')}
       >
-        <Outlet />
+        <LineupImageTransitionProvider>
+          <Outlet />
+        </LineupImageTransitionProvider>
       </main>
       {showFooter && <Footer />}
     </div>

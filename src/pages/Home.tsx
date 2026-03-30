@@ -1,11 +1,10 @@
-import { useCallback, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useContext, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CATEGORIES } from '@/data/products'
 import { getFeaturedProducts } from '@/data/products'
 import { SurfaceTechnology } from '@/components/SurfaceTechnology'
-import { ScrollReveal, ParallaxSection } from '@/components'
-import { shopCategoryPath } from '@/constants/paths'
+import { ProductCategoryLineup } from '@/components/ProductCategoryLineup'
+import { LenisContext } from '@/components/LenisRoot'
 
 function setTechnologyClipVars(el: HTMLAnchorElement, clientX: number, clientY: number) {
   const rect = el.getBoundingClientRect()
@@ -35,8 +34,19 @@ const technologyLinkCssVars = {
 
 export function Home() {
   const { t } = useTranslation()
+  const lenis = useContext(LenisContext)
   const featured = getFeaturedProducts()
   const [technologyHover, setTechnologyHover] = useState(false)
+
+  const scrollToProductLineup = useCallback(() => {
+    const el = document.getElementById('product-lineup')
+    if (!el) return
+    if (lenis) {
+      lenis.scrollTo(el, { offset: -96, duration: 1.15 })
+    } else {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [lenis])
 
   const onTechnologyPointerEnter = useCallback((e: ReactPointerEvent<HTMLAnchorElement>) => {
     setTechnologyClipVars(e.currentTarget, e.clientX, e.clientY)
@@ -80,13 +90,14 @@ export function Home() {
             Professional ceramic coatings designed for real durability and a deep, flawless shine.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <Link
-              to="/boutique"
-              className="inline-block px-8 py-2.5 font-nav font-bold text-sm uppercase rounded-xl hover:opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl"
+            <button
+              type="button"
+              onClick={scrollToProductLineup}
+              className="inline-block cursor-pointer px-8 py-2.5 font-nav text-sm font-bold uppercase rounded-xl shadow-lg transition-all duration-300 hover:opacity-90 hover:shadow-xl"
               style={{ backgroundColor: '#B61B1B', color: 'white' }}
             >
               Explore Products
-            </Link>
+            </button>
             <Link
               to="/about"
               className="relative inline-flex items-center justify-center overflow-hidden rounded-xl border border-white/[0.12] bg-transparent px-8 py-2.5 text-center font-nav text-sm font-bold uppercase transition-[border-color,color] duration-500 ease-out hover:border-white/25 motion-reduce:transition-none"
@@ -127,47 +138,10 @@ export function Home() {
         {/* Spacer (transparent) MUST NOT block interactions with the pinned hero */}
         <div className="h-[calc(100dvh-5rem)] pointer-events-none select-none" aria-hidden />
         <div className="bg-carbon-950 pointer-events-auto">
+      <ProductCategoryLineup />
 
       {/* Surface Technology */}
       <SurfaceTechnology />
-
-      {/* Categories avec effet parallaxe et reveal */}
-      <ParallaxSection intensity={0.2} direction="up">
-      <section className="py-24 border-t border-carbon-800">
-        <div className="max-w-7xl mx-auto px-6">
-            <ScrollReveal direction="up" delay={0}>
-          <p className="text-chrome text-sm uppercase mb-2">Gammes</p>
-          <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight mb-16">
-            {t('home.categoriesTitle')}
-          </h2>
-            </ScrollReveal>
-          <div className="grid md:grid-cols-3 gap-8">
-            {CATEGORIES.map((cat, i) => (
-                <ScrollReveal key={cat.id} direction="up" delay={i * 100} distance={30}>
-              <Link
-                to={shopCategoryPath(cat.id)}
-                className="group block border border-carbon-700 hover:border-chrome/50 transition-all duration-300 overflow-hidden"
-              >
-                <div className="aspect-[4/3] bg-carbon-800 relative overflow-hidden">
-                  <div
-                    className="absolute inset-0 bg-cover bg-center opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-all duration-500"
-                    style={{
-                      backgroundImage: `url(https://images.unsplash.com/photo-${i === 0 ? '1607860108855-64acf2078ed9' : i === 1 ? '1487754180451-c456f719a1fc' : '1492144534655-ae79c964c9d7'}?w=800)`,
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-carbon-950/40 group-hover:bg-carbon-950/20 transition-colors" />
-                  <div className="absolute inset-0 flex flex-col justify-end p-8">
-                    <span className="font-display text-3xl text-pearl">{cat.name}</span>
-                    <span className="text-silver/80 text-sm mt-1">{cat.description}</span>
-                  </div>
-                </div>
-              </Link>
-                </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
-      </ParallaxSection>
 
       {/* Featured products */}
       <section id="featured" className="py-24 bg-carbon-900/50 border-t border-carbon-800">
