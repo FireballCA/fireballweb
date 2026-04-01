@@ -15,6 +15,7 @@ import { productDetailPath, shopCategoryPath } from '@/constants/paths'
 import { getProductPageContent } from '@/data/productPageContent'
 import { supabase } from '@/lib/supabase'
 import { AnimatedNumber } from '@/components/ui/animated-number'
+import { FireballLoading } from '@/components/FireballLoading'
 
 type ProductType = LocalProduct
 
@@ -110,6 +111,15 @@ export function Product() {
   const [productPageSaveError, setProductPageSaveError] = useState('')
   const [whyDraft, setWhyDraft] = useState('')
   const [howToUseDraft, setHowToUseDraft] = useState('')
+
+  const sizeSegmentRef = useRef<HTMLDivElement>(null)
+  const sizeGroupRef = useRef<HTMLDivElement>(null)
+  const sizeButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const [sizeIndicator, setSizeIndicator] = useState<{ left: number; width: number; visible: boolean }>({
+    left: 0,
+    width: 0,
+    visible: false,
+  })
 
   const productShareUrl = useMemo(() => {
     const path = slug ? productDetailPath(slug) : ''
@@ -368,12 +378,50 @@ export function Product() {
     opt.name.toLowerCase() === 'size' || opt.name.toLowerCase() === 'taille'
   )?.values || []
 
+  const selectedSizeValue = selectedSize || sizeOptions[0] || ''
+
+  useEffect(() => {
+    const scrollContainer = sizeSegmentRef.current
+    const group = sizeGroupRef.current
+    if (!scrollContainer || !group) return
+
+    const measure = () => {
+      const selected = selectedSizeValue
+      if (!selected) {
+        setSizeIndicator((prev) => (prev.visible ? { ...prev, visible: false } : prev))
+        return
+      }
+      const btn = sizeButtonRefs.current[selected]
+      if (!btn) {
+        setSizeIndicator((prev) => (prev.visible ? { ...prev, visible: false } : prev))
+        return
+      }
+      const groupRect = group.getBoundingClientRect()
+      const btnRect = btn.getBoundingClientRect()
+      const insetPx = 1
+      const left = Math.round(btnRect.left - groupRect.left) + insetPx
+      const width = Math.max(0, Math.round(btnRect.width) - insetPx * 2)
+      setSizeIndicator({ left, width, visible: width > 0 })
+    }
+
+    measure()
+    const onResize = () => measure()
+    const onScroll = () => measure()
+
+    window.addEventListener('resize', onResize)
+    scrollContainer.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('resize', onResize)
+      scrollContainer.removeEventListener('scroll', onScroll)
+    }
+  }, [selectedSizeValue, sizeOptions.length])
+
   if (loading) {
     return (
       <div className="bg-white min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-chrome mx-auto mb-4"></div>
-          <p className="text-carbon-600">{t('product.loading')}</p>
+          <FireballLoading fullScreen={false} backgroundClassName="bg-transparent" size={64} />
+          <p className="text-carbon-600 mt-4">{t('product.loading')}</p>
         </div>
       </div>
     )
@@ -886,42 +934,97 @@ export function Product() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium text-carbon-900">
-                    Size: {selectedSize || sizeOptions[0]}
+                    Size: {selectedSizeValue}
                   </label>
                   <button type="button" className="text-sm text-carbon-600 hover:text-carbon-900 underline">
                     View Size Chart
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {sizeOptions.map((size) => {
-                    const isSelected = selectedSize === size || (!selectedSize && size === sizeOptions[0])
-                    const isAvailable = product.variants?.some((v) => {
-                      const sizeOpt = v.selectedOptions.find((o) => 
-                        (o.name.toLowerCase() === 'size' || o.name.toLowerCase() === 'taille') && o.value === size
+                <div ref={sizeSegmentRef} className="relative inline-block max-w-full overflow-x-auto">
+                  <div
+                    ref={sizeGroupRef}
+                    role="radiogroup"
+                    aria-label="Size"
+                    className="relative inline-flex w-max items-stretch gap-1 rounded-full border border-carbon-200 bg-carbon-50 p-1"
+                  >
+                    <div
+                      aria-hidden="true"
+                      className={`absolute left-0 top-1 bottom-1 rounded-full bg-[#F6F6F6] shadow-sm ring-1 ring-carbon-900/5 transition-[transform,width,opacity] duration-300 ease-out ${
+                        sizeIndicator.visible ? 'opacity-100' : 'opacity-0'
+                      }`}
+                      style={{
+                        width: `${sizeIndicator.width}px`,
+                        transform: `translate3d(${sizeIndicator.left}px, 0, 0)`,
+                      }}
+                    />
+                    {sizeOptions.map((size) => {
+                      const isSelected = selectedSizeValue === size
+                      const isAvailable = product.variants?.some((v) => {
+                        const sizeOpt = v.selectedOptions.find((o) =>
+                          (o.name.toLowerCase() === 'size' || o.name.toLowerCase() === 'taille') && o.value === size
+                        )
+                        return sizeOpt && v.availableForSale
+                      })
+
+                      return (
+                        <button
+                          key={size}
+                          ref={(el) => {
+                            sizeButtonRefs.current[size] = el
+                          }}
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
+                          disabled={!isAvailable}
+                          onKeyDown={(e) => {
+                            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+                            e.preventDefault()
+                            const enabled = sizeOptions.filter((s) =>
+                              product.variants?.some((v) => {
+                                const sizeOpt = v.selectedOptions.find(
+                                  (o) =>
+                                    (o.name.toLowerCase() === 'size' || o.name.toLowerCase() === 'taille') &&
+                                    o.value === s,
+                                )
+                                return sizeOpt && v.availableForSale
+                              }),
+                            )
+                            if (enabled.length <= 1) return
+                            const current = selectedSizeValue
+                            const idx = Math.max(0, enabled.indexOf(current))
+                            const nextIdx =
+                              e.key === 'ArrowRight'
+                                ? (idx + 1) % enabled.length
+                                : (idx - 1 + enabled.length) % enabled.length
+                            const next = enabled[nextIdx]
+                            const optionName =
+                              product.options?.find(
+                                (opt) => opt.name.toLowerCase() === 'size' || opt.name.toLowerCase() === 'taille',
+                              )?.name || 'Size'
+                            handleOptionChange(optionName, next)
+                            sizeButtonRefs.current[next]?.focus()
+                          }}
+                          onClick={() =>
+                            handleOptionChange(
+                              product.options?.find(
+                                (opt) => opt.name.toLowerCase() === 'size' || opt.name.toLowerCase() === 'taille',
+                              )?.name || 'Size',
+                              size,
+                            )
+                          }
+                          className={`relative z-10 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                            isSelected
+                              ? 'text-carbon-950'
+                              : isAvailable
+                                ? 'text-carbon-700 hover:text-carbon-950'
+                                : 'text-carbon-500 opacity-50 cursor-not-allowed'
+                          }`}
+                        >
+                          {size}
+                        </button>
                       )
-                      return sizeOpt && v.availableForSale
-                    })
-                    return (
-                      <button
-                        key={size}
-                        type="button"
-                        onClick={() => handleOptionChange(
-                          product.options?.find(opt => opt.name.toLowerCase() === 'size' || opt.name.toLowerCase() === 'taille')?.name || 'Size',
-                          size
-                        )}
-                        disabled={!isAvailable}
-                        className={`px-4 py-2 text-sm font-medium border-2 rounded-full transition-all ${
-                          isSelected
-                            ? 'border-carbon-900 bg-carbon-900 text-white'
-                            : isAvailable
-                              ? 'border-carbon-300 text-carbon-900 hover:border-carbon-400'
-                              : 'border-carbon-200 text-carbon-900 opacity-50 cursor-not-allowed'
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    )
-                  })}
+                    })}
+                  </div>
                 </div>
               </div>
             )}

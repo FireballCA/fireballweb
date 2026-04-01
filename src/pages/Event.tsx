@@ -95,7 +95,7 @@ const UPCOMING_EVENTS: CalendarEvent[] = [
     imageSrc: '/Assets/Driven.webp',
     isPrivate: false,
     ctaLabel: 'See details',
-    ctaHref: '/event/driven26',
+    ctaHref: 'https://www.drivenshow.ca/sainthyacinthe/',
   },
   {
     id: 'fireball-after-party-2026-05-16',
@@ -118,7 +118,7 @@ const eventCardOverlayGradientClass =
   'absolute inset-0 bg-gradient-to-r from-black/[0.88] via-black/[0.76] to-black/[0.64] md:from-black/[0.84] md:via-black/[0.72] md:to-black/[0.58]'
 
 const eventCardCtaClass =
-  'group pointer-events-auto inline-flex items-center gap-1.5 text-xs font-bold text-white transition-opacity duration-200 hover:opacity-90'
+  'group pointer-events-auto inline-flex items-center gap-1.5 text-xs font-bold uppercase text-white transition-opacity duration-200 hover:opacity-90'
 
 const eventMetaPillClass =
   'inline-flex items-center gap-2.5 rounded-md bg-white px-4 py-2.5 text-left text-sm font-medium text-carbon-900 shadow-sm'
@@ -178,20 +178,20 @@ export function Event() {
             <p className="font-nav text-[11px] font-bold uppercase tracking-[0.35em] text-pearl/75 md:text-xs">
               UPCOMING EVENTS
             </p>
-            <h1 className="mt-4 font-nav text-5xl font-bold leading-[1.02] tracking-tight text-pearl md:text-6xl lg:text-7xl xl:text-8xl">
-              An Evening After the Show
+            <h1 className="mt-4 font-nav text-4xl font-black uppercase leading-[1.02] tracking-tight text-pearl md:text-5xl lg:text-6xl xl:text-7xl">
+              2026 CALENDAR
             </h1>
 
             <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:mt-10 sm:flex-row sm:items-center sm:justify-center sm:gap-4">
               <a
                 href="#request-invitation"
-                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-2.5 text-center font-nav text-sm font-bold text-white transition-opacity hover:opacity-90 md:px-8"
+                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-2.5 text-center font-nav text-sm font-bold uppercase text-white transition-opacity hover:opacity-90 md:px-8"
               >
                 Request your invitation
               </a>
               <a
                 href="#learn-more"
-                className="relative inline-flex items-center justify-center overflow-hidden rounded-xl border border-white/[0.12] bg-transparent px-6 py-2.5 text-center font-nav text-sm font-bold transition-[border-color,color] duration-500 ease-out hover:border-white/25 motion-reduce:transition-none md:px-8"
+                className="relative inline-flex items-center justify-center overflow-hidden rounded-xl border border-white/[0.12] bg-transparent px-6 py-2.5 text-center font-nav text-sm font-bold uppercase transition-[border-color,color] duration-500 ease-out hover:border-white/25 motion-reduce:transition-none md:px-8"
                 style={learnLinkCssVars}
                 onPointerEnter={onLearnPointerEnter}
                 onPointerMove={onLearnPointerMove}
@@ -309,7 +309,12 @@ export function Event() {
                       <ContactLinkArrow className="h-[14px] w-[14px] shrink-0 transition-transform duration-200 group-hover:translate-x-0.5" />
                     </Link>
                   ) : (
-                    <a href={ev.ctaHref} className={eventCardCtaClass}>
+                    <a
+                      href={ev.ctaHref}
+                      className={eventCardCtaClass}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       {ev.ctaLabel}
                       <ContactLinkArrow className="h-[14px] w-[14px] shrink-0 transition-transform duration-200 group-hover:translate-x-0.5" />
                     </a>

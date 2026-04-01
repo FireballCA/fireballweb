@@ -13,7 +13,6 @@ import React, {
   type ReactElement,
 } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useLineupImageTransition } from '@/context/LineupImageTransitionContext'
 import {
   IconArrowNarrowLeft,
   IconArrowNarrowRight,
@@ -405,10 +404,8 @@ export const Card = ({ card }: { card: AppleCarouselCard }) => {
   const basePx = useLineupCardBaseWidth()
   const reduceMotion = useReducedMotion()
   const lineupCtx = useContext(LineupExpandContext)
-  const lineupTransition = useLineupImageTransition()
   const navigate = useNavigate()
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const imageRef = useRef<HTMLDivElement>(null)
   const wasActiveRef = useRef(false)
 
   const [hovered, setHovered] = useState(false)
@@ -418,20 +415,7 @@ export const Card = ({ card }: { card: AppleCarouselCard }) => {
   const active = (hovered || focused) && !reduceMotion
 
   const goToCategory = () => {
-    if (reduceMotion) {
-      void navigate(card.to)
-      return
-    }
-    const r = imageRef.current?.getBoundingClientRect()
-    if (r && lineupTransition?.startLineupImageTransition) {
-      lineupTransition.startLineupImageTransition({
-        to: card.to,
-        imageSrc: card.src,
-        rect: r,
-      })
-    } else {
-      void navigate(card.to)
-    }
+    void navigate(card.to, { state: { pageTransition: reduceMotion ? undefined : 'slideUp' } })
   }
 
   const onCardKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -515,10 +499,7 @@ export const Card = ({ card }: { card: AppleCarouselCard }) => {
             {card.title}
           </p>
         </div>
-        <div
-          ref={imageRef}
-          className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-3xl"
-        >
+        <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-3xl">
           <BlurImage
             src={card.src}
             alt=""

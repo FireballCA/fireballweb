@@ -3,6 +3,10 @@ import './FireballLoading.css'
 interface FireballLoadingProps {
   /** Taille du conteneur (logo + anneau) en pixels */
   size?: number
+  /** Affichage pleine page (centre + min-height) */
+  fullScreen?: boolean
+  /** Classe de fond (ex: bg-white / bg-black). */
+  backgroundClassName?: string
   /** Classe CSS additionnelle pour le conteneur */
   className?: string
 }
@@ -11,10 +15,16 @@ interface FireballLoadingProps {
  * Écran de chargement Fireball : logo rond en blanc avec un anneau
  * qui tourne autour (avec un espace, les deux bouts ne se touchent jamais).
  */
-export function FireballLoading({ size = 120, className = '' }: FireballLoadingProps) {
+export function FireballLoading({
+  size = 120,
+  fullScreen = true,
+  backgroundClassName = 'bg-[#0B0B0B]',
+  className = '',
+}: FireballLoadingProps) {
   const ringSize = size * 1.24
   const ringStroke = Math.max(3, size * 0.04)
-  const logoSize = size * 0.56
+  const badgeSize = size * 0.64
+  const iconSize = size * 0.42
   // Cercle : ~75% tracé, ~25% vide pour que les deux bouts ne se touchent jamais
   const circumference = 2 * Math.PI * (ringSize / 2 - ringStroke / 2)
   const dashLength = circumference * 0.72
@@ -22,7 +32,14 @@ export function FireballLoading({ size = 120, className = '' }: FireballLoadingP
 
   return (
     <div
-      className={`fireball-loading flex items-center justify-center bg-[#0B0B0B] min-h-screen w-full ${className}`}
+      className={[
+        'fireball-loading flex items-center justify-center w-full',
+        fullScreen ? 'min-h-screen' : '',
+        backgroundClassName,
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
       role="status"
       aria-label="Chargement"
     >
@@ -45,17 +62,22 @@ export function FireballLoading({ size = 120, className = '' }: FireballLoadingP
             strokeDasharray={`${dashLength} ${gapLength}`}
           />
         </svg>
-        {/* Logo Fireball en blanc (centré) */}
+        {/* Badge (rond blanc) + icône (centrée) */}
         <div
           className="fireball-loading__logo absolute inset-0 flex items-center justify-center"
           style={{ width: ringSize, height: ringSize }}
         >
+          <div
+            className="rounded-full bg-white shadow-sm"
+            style={{ width: badgeSize, height: badgeSize }}
+            aria-hidden
+          />
           <img
-            src="/Assets/Logo ROnd.png"
+            src="/Assets/BrandKIT/Icon/RBG%20(for%20Digital)/Icon_Black.svg"
             alt=""
-            width={logoSize}
-            height={logoSize}
-            className="fireball-loading__logo-img select-none pointer-events-none"
+            width={iconSize}
+            height={iconSize}
+            className="absolute select-none pointer-events-none"
             draggable={false}
           />
         </div>

@@ -5,6 +5,7 @@ import { CATEGORIES, type CategoryId, type Product } from '@/data/products'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { LiquidGlassSelect } from '@/components/LiquidGlassSelect'
 import { getCurrentUserProfile } from '@/utils/supabaseAuth'
+import { FireballLoading } from '@/components/FireballLoading'
 
 export function Shop() {
   const { t } = useTranslation()
@@ -479,11 +480,9 @@ export function Shop() {
         )}
 
         {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-chrome mx-auto mb-4"></div>
-            <p className="text-carbon-600">{t('shop.loading')}</p>
-          </div>
+        <div className="py-24">
+          <FireballLoading fullScreen={false} backgroundClassName="bg-transparent" size={56} />
+          <p className="mt-4 text-center text-carbon-600">{t('shop.loading')}</p>
         </div>
       ) : error ? (
         <div className="text-center py-24">

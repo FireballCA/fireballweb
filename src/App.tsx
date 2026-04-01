@@ -19,7 +19,6 @@ import { ManagePartners } from '@/pages/ManagePartners'
 import { PartnerCompany } from '@/pages/PartnerCompany'
 import { CarClub } from '@/pages/CarClub'
 import { Event } from '@/pages/Event'
-import { EventDriven26 } from '@/pages/EventDriven26'
 import { EventDetail } from '@/pages/EventDetail'
 import { Contact } from '@/pages/Contact'
 import { Legal } from '@/pages/Legal'
@@ -35,6 +34,10 @@ import { PartnerCertification } from '@/pages/partner/PartnerCertification'
 import { PartnerSettings } from '@/pages/partner/PartnerSettings'
 import { PartnerStatistics } from '@/pages/partner/PartnerStatistics'
 import { Typhon } from '@/pages/coating/Typhon'
+import { CompareCoatings } from '@/pages/coatings/CompareCoatings'
+import { CeramicCoating } from '@/pages/coatings/CeramicCoating'
+import { FindInstaller } from '@/pages/coatings/FindInstaller'
+import { HowItWorks } from '@/pages/coatings/HowItWorks'
 
 function LegacyProduitRedirect() {
   const { slug } = useParams<{ slug: string }>()
@@ -52,6 +55,10 @@ function App() {
             <Route path="boutique/:categoryId" element={<Shop />} />
             <Route path="product/:slug" element={<Product />} />
             <Route path="produit/:slug" element={<LegacyProduitRedirect />} />
+            <Route path="coatings" element={<CeramicCoating />} />
+            <Route path="coatings/compare" element={<CompareCoatings />} />
+            <Route path="coatings/find-installer" element={<FindInstaller />} />
+            <Route path="coatings/how-it-works" element={<HowItWorks />} />
             {/* Routes directes pour les catégories (doivent être après les routes spécifiques) */}
             <Route path=":categoryId" element={<Shop />} />
             <Route path="about" element={<About />} />
@@ -59,7 +66,6 @@ function App() {
             <Route path="cart" element={<Cart />} />
             <Route path="panier" element={<Navigate to="/cart" replace />} />
             <Route path="car-club" element={<CarClub />} />
-            <Route path="event/driven26" element={<EventDriven26 />} />
             <Route path="event/:eventSlug" element={<EventDetail />} />
             <Route path="event" element={<Event />} />
             <Route path="contact" element={<Contact />} />
