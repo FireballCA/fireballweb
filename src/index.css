@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Hauser Gothic';
+  src: url('/Assets/BrandKIT/HauserFONT/HauserGothic_Test-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Lenis : évite hauteur figée + désactive scroll-behavior natif quand le smooth Lenis est actif */
 html.lenis,
 html.lenis body {
@@ -121,6 +129,92 @@ html.lenis-smooth body {
     -webkit-box-shadow: 0 0 0px 1000px transparent inset;
     -webkit-text-fill-color: #ffffff;
     background-color: transparent !important;
+  }
+}
+
+@layer components {
+  /* ==========================================================================
+     Meter (HeroUI-style) — BEM classes
+     ========================================================================== */
+
+  .meter {
+    @apply grid w-full gap-1;
+    grid-template-areas:
+      "label output"
+      "track track";
+    grid-template-columns: 1fr auto;
+
+    --meter-fill: var(--color-accent, #B61B1B);
+
+    [data-slot="label"] {
+      @apply w-fit text-sm font-medium;
+      grid-area: label;
+    }
+
+    .meter__output {
+      @apply text-sm font-medium tabular-nums;
+      grid-area: output;
+    }
+
+    .meter__track {
+      @apply relative overflow-hidden rounded-full;
+      grid-area: track;
+      @apply h-2;
+      background: rgba(17, 17, 17, 0.12);
+    }
+
+    .meter__fill {
+      @apply absolute top-0 left-0 h-full rounded-full;
+      background-color: var(--meter-fill);
+      transition: width 300ms cubic-bezier(0.22, 1, 0.36, 1);
+      @apply motion-reduce:transition-none;
+    }
+
+    &:disabled,
+    &[data-disabled="true"],
+    &[aria-disabled="true"] {
+      opacity: 0.5;
+
+      [data-slot="label"] {
+        @apply opacity-100;
+      }
+    }
+  }
+
+  .meter--sm {
+    .meter__track {
+      @apply h-1;
+    }
+  }
+
+  .meter--md {
+    /* default */
+  }
+
+  .meter--lg {
+    .meter__track {
+      @apply h-3;
+    }
+  }
+
+  .meter--default {
+    --meter-fill: var(--color-default-foreground, #111111);
+  }
+
+  .meter--accent {
+    --meter-fill: var(--color-accent, #B61B1B);
+  }
+
+  .meter--success {
+    --meter-fill: var(--color-success, #16a34a);
+  }
+
+  .meter--warning {
+    --meter-fill: var(--color-warning, #f59e0b);
+  }
+
+  .meter--danger {
+    --meter-fill: var(--color-danger, #dc2626);
   }
 }
 

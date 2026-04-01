@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { LineupImageTransitionProvider } from '@/context/LineupImageTransitionContext'
 import { Header } from './Header'
 import { Footer } from './Footer'
@@ -6,6 +7,7 @@ import { isShopPathname } from '@/utils/shopRoutes'
 
 export function Layout() {
   const location = useLocation()
+  const reduceMotion = useReducedMotion()
   const isAccountAuthPage =
     location.pathname === '/compte' ||
     location.pathname === '/account' ||
@@ -15,7 +17,6 @@ export function Layout() {
     location.pathname.startsWith('/account') ||
     location.pathname.startsWith('/business')
   const isContactPage = location.pathname === '/contact'
-  const isEventDriven26Page = location.pathname === '/event/driven26'
   const isShopPage = isShopPathname(location.pathname)
 
   /** Même logique que Header : navbar sticky dans le flux — pas de pt sur main (évite double bande noire). */
@@ -25,10 +26,10 @@ export function Layout() {
     location.pathname.startsWith('/coating')
 
   const showHeader = !isAccountAuthPage
-  const showFooter = !isAnyAccountPage && !isContactPage && !isEventDriven26Page
+  const showFooter = !isAnyAccountPage && !isContactPage
 
   const mainHeaderPadding =
-    isEventDriven26Page || !showHeader
+    !showHeader
       ? ''
       : isStickyNavPage
         ? ''
@@ -41,9 +42,7 @@ export function Layout() {
   return (
     <div
       className={[
-        isEventDriven26Page
-          ? 'flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden'
-          : 'flex min-h-screen flex-col',
+        'flex min-h-screen flex-col',
         isContactPage ? 'max-lg:h-[100dvh] max-lg:max-h-[100dvh] max-lg:overflow-hidden' : '',
       ]
         .filter(Boolean)
@@ -52,20 +51,35 @@ export function Layout() {
       {showHeader && <Header />}
       <main
         className={[
-          isEventDriven26Page ? '' : 'flex-1',
+          'flex-1',
           mainHeaderPadding,
           isContactPage
             ? 'flex min-h-0 w-full flex-col max-lg:mt-20 max-lg:h-[calc(100dvh-5rem)] max-lg:max-h-[calc(100dvh-5rem)] max-lg:overflow-hidden max-lg:flex-shrink-0'
-            : '',
-          isEventDriven26Page
-            ? 'mt-20 flex h-[calc(100dvh-5rem)] min-h-0 flex-shrink-0 flex-col overflow-hidden'
             : '',
         ]
           .filter(Boolean)
           .join(' ')}
       >
         <LineupImageTransitionProvider>
-          <Outlet />
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={location.key}
+              initial={
+                !reduceMotion && (location.state as { pageTransition?: string } | null | undefined)?.pageTransition === 'slideUp'
+                  ? { y: 64, opacity: 0 }
+                  : { y: 0, opacity: 1 }
+              }
+              animate={{ y: 0, opacity: 1 }}
+              exit={
+                !reduceMotion && (location.state as { pageTransition?: string } | null | undefined)?.pageTransition === 'slideUp'
+                  ? { y: -16, opacity: 0 }
+                  : { y: 0, opacity: 1 }
+              }
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </LineupImageTransitionProvider>
       </main>
       {showFooter && <Footer />}

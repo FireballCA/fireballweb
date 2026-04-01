@@ -12,19 +12,19 @@ import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 
 const CERAMIC_SECTIONS = [
   {
-    title: 'CARROSSERIE',
-    description: 'Protection complète de la carrosserie',
+    title: 'Shop Coatings',
+    description: 'Explore and compare our full range of high-performance ceramic coatings.',
     links: [
-      { label: 'Coatings', to: '/boutique/revetements' },
-      { label: 'Sealants', to: '/boutique/revetements' },
+      { label: 'All Coatings', to: '/coatings' },
+      { label: 'Compare Coatings', to: '/coatings/compare' },
     ],
   },
   {
-    title: 'SURFACES SPÉCIALES',
-    description: 'Jantes, vitres et plastiques',
+    title: 'Learn & Connect',
+    description: 'Find certified installers and learn how ceramic coatings work.',
     links: [
-      { label: 'Jantes', to: '/boutique/revetements' },
-      { label: 'Vitres', to: '/boutique/revetements' },
+      { label: 'Find Installer', to: '/coatings/find-installer' },
+      { label: 'How It Works', to: '/coatings/how-it-works' },
     ],
   },
 ]
@@ -134,7 +134,6 @@ export function Header() {
     location.pathname.startsWith('/product/') ||
     location.pathname.startsWith('/produit/')
   const isCoatingPage = location.pathname.startsWith('/coating')
-  const isEventDriven26Page = location.pathname === '/event/driven26'
   const isBusinessPage =
     location.pathname.startsWith('/business') || location.pathname.startsWith('/account/business')
   /**
@@ -184,7 +183,7 @@ export function Header() {
   const [bannerHeightPx, setBannerHeightPx] = useState(0)
   // Disable banners inside dashboards (member dashboard + business/admin)
   const bannerAllowedByRoute =
-    !isContactPage && !isEventDriven26Page && !isBusinessPage && !isDashboardPage
+    !isContactPage && !isBusinessPage && !isDashboardPage
   const activeBanners = useMemo(
     () => banners.filter((b) => b.enabled && String(b.text || '').trim().length > 0),
     [banners],

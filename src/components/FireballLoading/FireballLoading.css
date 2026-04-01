@@ -2,12 +2,6 @@
   color: #fff;
 }
 
-/* Logo en blanc via filtre */
-.fireball-loading__logo-img {
-  filter: brightness(0) invert(1);
-  object-fit: contain;
-}
-
 /* Anneau qui tourne à l'infini */
 .fireball-loading__ring {
   animation: fireball-loading-spin 0.9s linear infinite;
