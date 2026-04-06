@@ -44,6 +44,12 @@ function LegacyProduitRedirect() {
   return <Navigate to={`/product/${slug}`} replace />
 }
 
+/** Anciennes URLs `/shop/:cat` → `/:cat` (ex. `/shop/coatings` → `/coatings`). */
+function LegacyShopCategoryRedirect() {
+  const { categoryId } = useParams<{ categoryId: string }>()
+  return <Navigate to={`/${categoryId}`} replace />
+}
+
 function App() {
   return (
     <NotificationsProvider>
@@ -53,12 +59,15 @@ function App() {
             <Route index element={<Home />} />
             <Route path="boutique" element={<Shop />} />
             <Route path="boutique/:categoryId" element={<Shop />} />
+            <Route path="shop" element={<Navigate to="/boutique" replace />} />
+            <Route path="shop/:categoryId" element={<LegacyShopCategoryRedirect />} />
             <Route path="product/:slug" element={<Product />} />
             <Route path="produit/:slug" element={<LegacyProduitRedirect />} />
-            <Route path="coatings" element={<CeramicCoating />} />
+            <Route path="all-coatings" element={<CeramicCoating />} />
             <Route path="coatings/compare" element={<CompareCoatings />} />
             <Route path="coatings/find-installer" element={<FindInstaller />} />
             <Route path="coatings/how-it-works" element={<HowItWorks />} />
+            <Route path="coatings" element={<Shop />} />
             {/* Routes directes pour les catégories (doivent être après les routes spécifiques) */}
             <Route path=":categoryId" element={<Shop />} />
             <Route path="about" element={<About />} />

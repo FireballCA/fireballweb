@@ -5,6 +5,10 @@ import path from 'path'
 function shopifyCustomerApiPlugin(mode: string): Plugin {
   const env = loadEnv(mode, process.cwd(), '')
   const shopifyStoreUrl = env.SHOPIFY_STORE_URL || env.VITE_SHOPIFY_STORE_URL || ''
+  const shopifyStorefrontToken =
+    env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN || ''
+  const shopifyStorefrontApiVersion =
+    env.SHOPIFY_STOREFRONT_API_VERSION || env.VITE_SHOPIFY_STOREFRONT_API_VERSION || '2024-10'
   const shopifyAdminApiToken = env.SHOPIFY_ADMIN_API_TOKEN || ''
   const shopifyApiVersion = env.SHOPIFY_ADMIN_API_VERSION || '2024-10'
   const resendApiKey = env.RESEND_API_KEY || env.RESEND_KEY || ''
@@ -63,6 +67,69 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
   return {
     name: 'shopify-customer-api-dev',
     configureServer(server) {
+      server.middlewares.use('/api/shopify-storefront', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Method not allowed' }))
+          return
+        }
+
+        if (!shopifyStoreUrl || !shopifyStorefrontToken) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              error:
+                'Missing SHOPIFY_STORE_URL or SHOPIFY_STOREFRONT_ACCESS_TOKEN (server env, not exposed to the client).',
+            }),
+          )
+          return
+        }
+
+        try {
+          const body = (await readJsonBody(req)) as { query?: unknown; variables?: Record<string, unknown> }
+          const query = typeof body.query === 'string' ? body.query : ''
+          if (!query.trim()) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: 'Missing GraphQL query' }))
+            return
+          }
+
+          const normalizedStoreUrl = shopifyStoreUrl.startsWith('http')
+            ? shopifyStoreUrl
+            : `https://${shopifyStoreUrl}`
+          const endpoint = `${normalizedStoreUrl}/api/${shopifyStorefrontApiVersion}/graphql.json`
+
+          const sfResponse = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Shopify-Storefront-Access-Token': shopifyStorefrontToken,
+            },
+            body: JSON.stringify({
+              query,
+              variables: body.variables,
+            }),
+          })
+
+          const payload = (await sfResponse.json().catch(() => null)) as unknown
+          res.statusCode = sfResponse.status
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify(payload ?? { errors: [{ message: 'Invalid JSON from Shopify' }] }))
+        } catch (error) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              error: 'Shopify Storefront proxy failed',
+              details: error instanceof Error ? error.message : 'Unknown error',
+            }),
+          )
+        }
+      })
+
       server.middlewares.use('/api/create-shopify-customer', async (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405

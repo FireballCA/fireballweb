@@ -2,15 +2,10 @@ import { PRODUCTS, type Product, type ProductVariant, type CategoryId, getProduc
 
 const SHOPIFY_STORE_URL =
   (import.meta.env.VITE_SHOPIFY_STORE_URL as string | undefined) || 'fireball-canada.myshopify.com'
-const SHOPIFY_STOREFRONT_TOKEN = import.meta.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN as
-  | string
-  | undefined
 
-const SHOPIFY_API_VERSION =
-  (import.meta.env.VITE_SHOPIFY_STOREFRONT_API_VERSION as string | undefined) || '2024-10'
-
+/** Le token Storefront ne doit plus être dans le bundle : requêtes via /api/shopify-storefront (Vite dev + Vercel). */
 function hasShopifyConfig(): boolean {
-  return Boolean(SHOPIFY_STOREFRONT_TOKEN && SHOPIFY_STORE_URL)
+  return Boolean(SHOPIFY_STORE_URL)
 }
 
 function getNormalizedStoreUrl(): string {
@@ -22,13 +17,10 @@ async function shopifyFetch<T>(query: string, variables?: Record<string, unknown
     throw new Error('Missing Shopify Storefront configuration')
   }
 
-  const normalizedStoreUrl = getNormalizedStoreUrl()
-
-  const response = await fetch(`${normalizedStoreUrl}/api/${SHOPIFY_API_VERSION}/graphql.json`, {
+  const response = await fetch('/api/shopify-storefront', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_TOKEN as string,
     },
     body: JSON.stringify({ query, variables }),
   })

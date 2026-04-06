@@ -11,6 +11,16 @@ interface AnnouncementSettings {
   featured_collection_name: string | null
   featured_collection_description: string | null
   featured_collection_image: string | null
+  /** Landing plein écran — séparé du mega menu Shop */
+  home_collection_eyebrow?: string | null
+  home_collection_headline?: string | null
+  home_collection_description?: string | null
+  home_collection_image?: string | null
+  home_collection_href?: string | null
+  home_collection_button1_label?: string | null
+  home_collection_button1_href?: string | null
+  home_collection_button2_label?: string | null
+  home_collection_button2_href?: string | null
 }
 
 interface AdminPanelSheetProps {
@@ -846,6 +856,15 @@ function AdminAnnouncementsSection() {
   const [featuredName, setFeaturedName] = useState('')
   const [featuredDescription, setFeaturedDescription] = useState('')
   const [featuredImage, setFeaturedImage] = useState('')
+  const [homeEyebrow, setHomeEyebrow] = useState('')
+  const [homeHeadline, setHomeHeadline] = useState('')
+  const [homeDescription, setHomeDescription] = useState('')
+  const [homeImage, setHomeImage] = useState('')
+  const [homeHref, setHomeHref] = useState('')
+  const [homeBtn1Label, setHomeBtn1Label] = useState('')
+  const [homeBtn1Href, setHomeBtn1Href] = useState('')
+  const [homeBtn2Label, setHomeBtn2Label] = useState('')
+  const [homeBtn2Href, setHomeBtn2Href] = useState('')
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -870,6 +889,15 @@ function AdminAnnouncementsSection() {
           setFeaturedName(settings.featured_collection_name || '')
           setFeaturedDescription(settings.featured_collection_description || '')
           setFeaturedImage(settings.featured_collection_image || '')
+          setHomeEyebrow(settings.home_collection_eyebrow || '')
+          setHomeHeadline(settings.home_collection_headline || '')
+          setHomeDescription(settings.home_collection_description || '')
+          setHomeImage(settings.home_collection_image || '')
+          setHomeHref(settings.home_collection_href || '')
+          setHomeBtn1Label(settings.home_collection_button1_label || '')
+          setHomeBtn1Href(settings.home_collection_button1_href || '')
+          setHomeBtn2Label(settings.home_collection_button2_label || '')
+          setHomeBtn2Href(settings.home_collection_button2_href || '')
         }
       } catch (err) {
         console.error('Error loading settings:', err)
@@ -895,6 +923,15 @@ function AdminAnnouncementsSection() {
         featured_collection_name: featuredName.trim() || null,
         featured_collection_description: featuredDescription.trim() || null,
         featured_collection_image: featuredImage.trim() || null,
+        home_collection_eyebrow: homeEyebrow.trim() || null,
+        home_collection_headline: homeHeadline.trim() || null,
+        home_collection_description: homeDescription.trim() || null,
+        home_collection_image: homeImage.trim() || null,
+        home_collection_href: homeHref.trim() || null,
+        home_collection_button1_label: homeBtn1Label.trim() || null,
+        home_collection_button1_href: homeBtn1Href.trim() || null,
+        home_collection_button2_label: homeBtn2Label.trim() || null,
+        home_collection_button2_href: homeBtn2Href.trim() || null,
       }
 
       // First, check if the record exists
@@ -954,7 +991,7 @@ function AdminAnnouncementsSection() {
         Announcements
       </p>
       <p className="text-[12px] text-white/60 mb-6">
-        Manage the navbar banner and featured collection displayed in the shop menu.
+        Navbar banner, bloc « Featured » du menu Shop, et bannière plein écran d’accueil (réglages séparés).
       </p>
 
       {error && (
@@ -1119,6 +1156,128 @@ function AdminAnnouncementsSection() {
                   />
                 </div>
               )}
+            </div>
+
+            <div className="pt-4 border-t border-white/[0.08]">
+              <p className="text-[11px] font-nav font-bold uppercase tracking-[0.14em] text-white/45 mb-1">
+                Home — bannière plein écran
+              </p>
+              <p className="text-[11px] text-white/45 mb-3">
+                Indépendant du bloc « Featured » ci-dessus (menu Shop). Texte et boutons en bas à gauche sur la page
+                d’accueil.
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                    Image URL (bannière)
+                  </label>
+                  <input
+                    type="text"
+                    value={homeImage}
+                    onChange={(e) => setHomeImage(e.target.value)}
+                    className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
+                    placeholder="/Assets/Coatings/Coatings%20Banner.png"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                    Eyebrow (ligne 1, bas gauche)
+                  </label>
+                  <input
+                    type="text"
+                    value={homeEyebrow}
+                    onChange={(e) => setHomeEyebrow(e.target.value)}
+                    className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
+                    placeholder="Surface Technology"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                    Headline (ligne 2, légèrement plus grand)
+                  </label>
+                  <input
+                    type="text"
+                    value={homeHeadline}
+                    onChange={(e) => setHomeHeadline(e.target.value)}
+                    className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
+                    placeholder="Coatings"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                    Description
+                  </label>
+                  <textarea
+                    value={homeDescription}
+                    onChange={(e) => setHomeDescription(e.target.value)}
+                    rows={2}
+                    className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60 resize-none"
+                    placeholder="Excellence in every detail"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                    Clic sur toute l’image (route ou URL)
+                  </label>
+                  <input
+                    type="text"
+                    value={homeHref}
+                    onChange={(e) => setHomeHref(e.target.value)}
+                    className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
+                    placeholder="/coatings"
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                      Button 1 label
+                    </label>
+                    <input
+                      type="text"
+                      value={homeBtn1Label}
+                      onChange={(e) => setHomeBtn1Label(e.target.value)}
+                      className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
+                      placeholder="Shop coatings"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                      Button 1 URL
+                    </label>
+                    <input
+                      type="text"
+                      value={homeBtn1Href}
+                      onChange={(e) => setHomeBtn1Href(e.target.value)}
+                      className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
+                      placeholder="/coatings"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                      Button 2 label
+                    </label>
+                    <input
+                      type="text"
+                      value={homeBtn2Label}
+                      onChange={(e) => setHomeBtn2Label(e.target.value)}
+                      className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
+                      placeholder="Learn more"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                      Button 2 URL
+                    </label>
+                    <input
+                      type="text"
+                      value={homeBtn2Href}
+                      onChange={(e) => setHomeBtn2Href(e.target.value)}
+                      className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
+                      placeholder="/all-coatings"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

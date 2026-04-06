@@ -42,6 +42,7 @@ export function Shop() {
     'dashboard',
     'compte',
     'boutique',
+    'all-coatings',
   ]
   const pathSegment = location.pathname !== '/' && !location.pathname.startsWith('/boutique/')
     ? location.pathname.slice(1).split('/')[0] 
@@ -552,7 +553,7 @@ export function Shop() {
                 className="group min-w-0"
               >
                 {/* Image réduite avec coins arrondis */}
-                <div className="aspect-square bg-carbon-800 overflow-hidden rounded-lg mb-3">
+                <div className="aspect-square overflow-hidden rounded-lg mb-3">
                   <img
                     src={product.image}
                     alt={product.name}

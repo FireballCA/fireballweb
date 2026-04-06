@@ -23,7 +23,9 @@ export function Layout() {
   const isStickyNavPage =
     location.pathname.startsWith('/product/') ||
     location.pathname.startsWith('/produit/') ||
-    location.pathname.startsWith('/coating')
+    location.pathname.startsWith('/coating/') ||
+    location.pathname.startsWith('/coatings/') ||
+    location.pathname === '/all-coatings'
 
   const showHeader = !isAccountAuthPage
   const showFooter = !isAnyAccountPage && !isContactPage

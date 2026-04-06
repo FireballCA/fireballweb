@@ -105,7 +105,8 @@ const springArrowEntrance = {
   mass: 0.42,
 }
 
-function CardMagneticCornerArrow({ visible }: { visible: boolean }) {
+/** Flèche coin magnétique (lineup / landing CTA). */
+export function CardMagneticCornerArrow({ visible }: { visible: boolean }) {
   const reduceMotion = useReducedMotion()
   const fieldRef = useRef<HTMLDivElement>(null)
   const mx = useMotionValue(0)

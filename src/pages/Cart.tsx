@@ -12,8 +12,12 @@ import { getFavoriteSlugsResolved } from '@/utils/favorites'
 import { productDetailPath, shopCategoryPath } from '@/constants/paths'
 import { ProductYouMightLikeRail } from '@/components/ProductYouMightLikeRail'
 import { productSectionHeadingClass } from '@/constants/typography'
+import { useClipRevealHover, CLIP_REVEAL_BUTTON_BASE_CLASS } from '@/hooks/useClipRevealHover'
 
 const FREE_SHIPPING_THRESHOLD = 100
+
+/** Même offset vertical qu’au chargement : `Layout` main `pt-20` + padding haut de cette page `lg:pt-44`. */
+const CART_SUMMARY_STICKY_TOP = 'lg:top-[calc(5rem+11rem)]'
 
 function formatXp(xp: number) {
   return Math.max(0, Math.round(xp)).toLocaleString()
@@ -39,6 +43,7 @@ export function Cart() {
   const [productsLoading, setProductsLoading] = useState(true)
   const [allShopProducts, setAllShopProducts] = useState<Product[]>([])
   const [emptyCtaCategoryIndex, setEmptyCtaCategoryIndex] = useState(0)
+  const clipCheckout = useClipRevealHover()
 
   useEffect(() => {
     const {
@@ -231,7 +236,7 @@ export function Cart() {
 
   return (
     <div className="bg-white min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-36 lg:pt-44 pb-12">
         <div className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-10 lg:gap-12 items-start">
           <div className="divide-y divide-carbon-100">
             <section className="py-8 first:pt-0">
@@ -262,7 +267,7 @@ export function Cart() {
                           <div className="min-w-0 flex-1">
                             <Link
                               to={productDetailPath(product.slug)}
-                              className="font-medium text-carbon-900 hover:text-chrome line-clamp-2"
+                              className="font-medium text-carbon-900 hover:text-carbon-600 transition-colors line-clamp-2"
                             >
                               {product.name}
                             </Link>
@@ -363,7 +368,7 @@ export function Cart() {
                       to={productDetailPath(p.slug)}
                       className="group overflow-hidden bg-white"
                     >
-                      <div className="aspect-square bg-carbon-50">
+                      <div className="aspect-square">
                         <img
                           src={p.image}
                           alt=""
@@ -389,7 +394,7 @@ export function Cart() {
 
           </div>
 
-          <aside className="lg:sticky lg:top-24" aria-label="Order summary">
+          <aside className={`lg:sticky ${CART_SUMMARY_STICKY_TOP}`} aria-label="Order summary">
             <div className="bg-white">
               <h2 className={`${productSectionHeadingClass} m-0`}>Your summary</h2>
 
@@ -423,10 +428,33 @@ export function Cart() {
               <button
                 type="button"
                 onClick={handleCheckout}
-                className="w-full py-4 px-6 rounded-full font-medium text-white transition-all duration-300"
-                style={{ backgroundColor: '#000' }}
+                onPointerEnter={clipCheckout.onPointerEnter}
+                onPointerMove={clipCheckout.onPointerMove}
+                onPointerLeave={clipCheckout.onPointerLeave}
+                onFocus={clipCheckout.onFocus}
+                onBlur={clipCheckout.onBlur}
+                style={clipCheckout.cssVars}
+                className={`relative w-full overflow-hidden rounded-full border py-4 px-6 font-medium transition-[border-color,color] duration-500 ease-out outline-none [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:outline-none ${CLIP_REVEAL_BUTTON_BASE_CLASS}`}
               >
-                {t('cart.checkout')}
+                <span
+                  className="pointer-events-none absolute -inset-px z-0 rounded-full"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    clipPath: `circle(${clipCheckout.active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                    WebkitClipPath: `circle(${clipCheckout.active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                    transition:
+                      'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
+                    willChange: 'clip-path',
+                  }}
+                  aria-hidden
+                />
+                <span
+                  className={`relative z-10 block transition-all duration-300 ${
+                    clipCheckout.hover ? 'text-black' : 'text-white'
+                  }`}
+                >
+                  {t('cart.checkout')}
+                </span>
               </button>
 
               <PaymentMethodBadges iconClassName="h-5 w-auto shrink-0" />

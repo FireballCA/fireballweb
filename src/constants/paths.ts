@@ -7,3 +7,11 @@ export function productDetailPath(slug: string) {
 export function shopCategoryPath(categoryId: string) {
   return `/${categoryId}`
 }
+
+/**
+ * Catalogue boutique : catégorie **coatings** → `/coatings` (achat) ; sinon `/boutique/:id`.
+ * La page contenu coatings (liste, détails) est `/all-coatings`.
+ */
+export function shopBrowseCategoryPath(categoryId: string) {
+  return categoryId === 'coatings' ? '/coatings' : `/boutique/${categoryId}`
+}
