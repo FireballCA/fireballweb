@@ -178,7 +178,7 @@ export function ProductYouMightLikeRail({
           {products.map((p) => (
             <div key={p.id} className={cardWidthClass}>
               <Link to={productDetailPath(p.slug)} className="group block">
-                <div className="mb-3 aspect-square overflow-hidden rounded-lg bg-silver/40">
+                <div className="mb-3 aspect-square overflow-hidden rounded-lg">
                   <img
                     src={p.image}
                     alt=""

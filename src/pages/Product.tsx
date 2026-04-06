@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import type { NavigateFunction } from 'react-router-dom'
-import { useEffect, useState, useRef, useMemo } from 'react'
+import { useEffect, useState, useRef, useMemo, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CATEGORIES, PRODUCTS, type Product as LocalProduct } from '@/data/products'
 import { useCart } from '@/context/CartContext'
@@ -16,6 +16,9 @@ import { getProductPageContent } from '@/data/productPageContent'
 import { supabase } from '@/lib/supabase'
 import { AnimatedNumber } from '@/components/ui/animated-number'
 import { FireballLoading } from '@/components/FireballLoading'
+import { useClipRevealHover, CLIP_REVEAL_BUTTON_BASE_CLASS } from '@/hooks/useClipRevealHover'
+
+const FIREBALL_RED = '#B61B1B'
 
 type ProductType = LocalProduct
 
@@ -111,6 +114,10 @@ export function Product() {
   const [productPageSaveError, setProductPageSaveError] = useState('')
   const [whyDraft, setWhyDraft] = useState('')
   const [howToUseDraft, setHowToUseDraft] = useState('')
+
+  const clipAddMain = useClipRevealHover()
+  const clipAddSticky = useClipRevealHover()
+  const clipAddMobile = useClipRevealHover()
 
   const sizeSegmentRef = useRef<HTMLDivElement>(null)
   const sizeGroupRef = useRef<HTMLDivElement>(null)
@@ -596,7 +603,7 @@ export function Product() {
             {/* Main Image - Légèrement réduite */}
             <div
               ref={galleryRef}
-              className="relative aspect-square bg-carbon-50 rounded-lg overflow-hidden group max-w-[90%] mx-auto"
+              className="relative aspect-square rounded-lg overflow-hidden group max-w-[90%] mx-auto"
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
@@ -757,7 +764,7 @@ export function Product() {
                   <button
                     type="button"
                     onClick={() => setSelectedImageIndex(0)}
-                    className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-all flex items-center justify-center bg-carbon-50 ${
+                    className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-all flex items-center justify-center ${
                       selectedImageIndex === 0 && product.video
                         ? 'border-carbon-900 ring-2 ring-carbon-900/20'
                         : 'border-carbon-200 hover:border-carbon-400'
@@ -853,40 +860,51 @@ export function Product() {
                 </span>
               </div>
 
-              {/* Free Shipping Progress */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-carbon-600">
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="20" 
-                    height="20" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                    className="text-[#B61B1B]"
-                  >
-                    <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
-                    <path d="M15 18H9"/>
-                    <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/>
-                    <circle cx="17" cy="18" r="2"/>
-                    <circle cx="7" cy="18" r="2"/>
-                  </svg>
-                  <span>
-                    {displayPrice >= 50 
-                      ? "You're eligible for free shipping!" 
-                      : `Add ${(50 - displayPrice).toFixed(2)} $CA for free shipping`}
+              {/* Free Shipping Progress — même style barre que la page coatings */}
+              <div className="meter text-[11px]">
+                <div className="flex items-center justify-between gap-3 font-bold uppercase leading-snug tracking-normal text-carbon-600">
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-[1.2em] w-[1.2em] shrink-0 text-[#B61B1B]"
+                      aria-hidden
+                    >
+                      <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+                      <path d="M15 18H9" />
+                      <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" />
+                      <circle cx="17" cy="18" r="2" />
+                      <circle cx="7" cy="18" r="2" />
+                    </svg>
+                    {displayPrice >= 50 ? (
+                      <span>You're eligible for free shipping!</span>
+                    ) : (
+                      <span>
+                        Add{' '}
+                        <span className="font-extrabold text-carbon-900">
+                          {(50 - displayPrice).toFixed(2)}
+                        </span>{' '}
+                        $CA for free shipping
+                      </span>
+                    )}
+                  </span>
+                  <span className="shrink-0 tabular-nums text-carbon-500">
+                    {Math.round(Math.min((displayPrice / 50) * 100, 100))}%
                   </span>
                 </div>
-                <div className="w-full h-2 bg-white border border-carbon-200 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full bg-[#B61B1B] rounded-full transition-all duration-1000 ease-out ${
-                      shippingProgressAnimated ? 'opacity-100' : 'opacity-0'
-                    }`}
+                <div className="meter__track" aria-hidden>
+                  <div
+                    className="meter__fill transition-[width] duration-1000 ease-out"
                     style={{
-                      width: shippingProgressAnimated ? `${Math.min((displayPrice / 50) * 100, 100)}%` : '0%'
+                      width: shippingProgressAnimated
+                        ? `${Math.min((displayPrice / 50) * 100, 100)}%`
+                        : '0%',
+                      backgroundColor: FIREBALL_RED,
                     }}
                   />
                 </div>
@@ -1077,30 +1095,85 @@ export function Product() {
 
             {/* CTAs - Empilés verticalement */}
             <div ref={ctaButtonsRef} className="flex flex-col gap-3 pt-4 mb-6">
-              {/* Add to Cart - Noir */}
+              {/* Add to Cart — fond noir + survol type landing (cercle blanc) */}
               <button
                 type="button"
                 onClick={handleAddToCart}
                 disabled={currentVariant && !currentVariant.availableForSale}
-                className="w-full py-4 px-6 rounded-full font-medium text-white transition-all duration-300 overflow-hidden relative"
-                style={{
-                  backgroundColor: currentVariant && !currentVariant.availableForSale
+                onPointerEnter={
+                  currentVariant && !currentVariant.availableForSale
                     ? undefined
-                    : '#000'
+                    : added
+                      ? undefined
+                      : clipAddMain.onPointerEnter
+                }
+                onPointerMove={
+                  currentVariant && !currentVariant.availableForSale
+                    ? undefined
+                    : added
+                      ? undefined
+                      : clipAddMain.onPointerMove
+                }
+                onPointerLeave={
+                  currentVariant && !currentVariant.availableForSale
+                    ? undefined
+                    : added
+                      ? undefined
+                      : clipAddMain.onPointerLeave
+                }
+                onFocus={() => {
+                  if ((!currentVariant || currentVariant.availableForSale) && !added) clipAddMain.onFocus()
                 }}
+                onBlur={() => clipAddMain.onBlur()}
+                className={`relative w-full overflow-hidden rounded-full border py-4 px-6 font-medium transition-[border-color,color] duration-500 ease-out outline-none [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:outline-none ${
+                  currentVariant && !currentVariant.availableForSale
+                    ? 'cursor-not-allowed border-carbon-200 bg-carbon-100 text-carbon-500'
+                    : added
+                      ? 'border-transparent bg-carbon-600 text-white'
+                      : CLIP_REVEAL_BUTTON_BASE_CLASS
+                }`}
+                style={
+                  currentVariant && !currentVariant.availableForSale
+                    ? undefined
+                    : added
+                      ? undefined
+                      : clipAddMain.cssVars
+                }
               >
-                <span className={`block transition-all duration-300 ${
-                  added 
-                    ? '-translate-y-full opacity-0' 
-                    : 'translate-y-0 opacity-100'
-                }`}>
+                {!added && !(currentVariant && !currentVariant.availableForSale) && (
+                  <span
+                    className="pointer-events-none absolute -inset-px z-0 rounded-full"
+                    style={{
+                      backgroundColor: '#ffffff',
+                      clipPath: `circle(${clipAddMain.active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                      WebkitClipPath: `circle(${clipAddMain.active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                      transition:
+                        'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
+                      willChange: 'clip-path',
+                    }}
+                    aria-hidden
+                  />
+                )}
+                <span
+                  className={`relative z-10 block transition-all duration-300 ${
+                    added ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
+                  } ${
+                    currentVariant && !currentVariant.availableForSale
+                      ? ''
+                      : clipAddMain.hover && !added
+                        ? 'text-black'
+                        : added
+                          ? ''
+                          : 'text-white'
+                  }`}
+                >
                   {t('product.addToCart')}
                 </span>
-                <span className={`block absolute inset-0 flex items-center justify-center transition-all duration-300 ${
-                  added 
-                    ? 'translate-y-0 opacity-100' 
-                    : 'translate-y-full opacity-0'
-                }`}>
+                <span
+                  className={`absolute inset-0 z-10 flex items-center justify-center text-white transition-all duration-300 ${
+                    added ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+                  }`}
+                >
                   {t('product.addedToCart')}
                 </span>
               </button>
@@ -1318,27 +1391,78 @@ export function Product() {
               {product.name}
             </h2>
             
-              {/* Bouton Add to cart */}
+              {/* Bouton Add to cart — même effet survol rouge Fireball */}
             <button
               type="button"
               onClick={handleAddToCart}
               disabled={currentVariant && !currentVariant.availableForSale}
-              className={`px-6 py-2.5 rounded-full text-sm font-medium text-white transition-all whitespace-nowrap hover:opacity-90 active:scale-[0.98] ${
-                added
-                  ? 'bg-carbon-600'
-                  : currentVariant && !currentVariant.availableForSale
-                    ? 'bg-carbon-800 cursor-not-allowed text-carbon-500'
-                    : ''
-              }`}
-              style={{ 
-                backgroundColor: added 
-                  ? undefined 
-                  : (currentVariant && !currentVariant.availableForSale 
-                    ? undefined 
-                      : '#000')
+              onPointerEnter={
+                currentVariant && !currentVariant.availableForSale
+                  ? undefined
+                  : added
+                    ? undefined
+                    : clipAddSticky.onPointerEnter
+              }
+              onPointerMove={
+                currentVariant && !currentVariant.availableForSale
+                  ? undefined
+                  : added
+                    ? undefined
+                    : clipAddSticky.onPointerMove
+              }
+              onPointerLeave={
+                currentVariant && !currentVariant.availableForSale
+                  ? undefined
+                  : added
+                    ? undefined
+                    : clipAddSticky.onPointerLeave
+              }
+              onFocus={() => {
+                if ((!currentVariant || currentVariant.availableForSale) && !added) clipAddSticky.onFocus()
               }}
+              onBlur={() => clipAddSticky.onBlur()}
+              className={`relative overflow-hidden rounded-full border px-6 py-2.5 text-sm font-medium whitespace-nowrap outline-none [-webkit-tap-highlight-color:transparent] transition-[border-color,color] duration-500 ease-out focus:outline-none focus-visible:outline-none active:scale-[0.98] ${
+                currentVariant && !currentVariant.availableForSale
+                  ? 'cursor-not-allowed border-carbon-700 bg-carbon-800 text-carbon-500'
+                  : added
+                    ? 'border-transparent bg-carbon-600 text-white'
+                    : CLIP_REVEAL_BUTTON_BASE_CLASS
+              }`}
+              style={
+                currentVariant && !currentVariant.availableForSale
+                  ? undefined
+                  : added
+                    ? undefined
+                    : clipAddSticky.cssVars
+              }
             >
-              {added ? `✓ ${t('product.addedToCart')}` : 'purchase'}
+              {!added && !(currentVariant && !currentVariant.availableForSale) && (
+                <span
+                  className="pointer-events-none absolute -inset-px z-0 rounded-full"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    clipPath: `circle(${clipAddSticky.active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                    WebkitClipPath: `circle(${clipAddSticky.active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                    transition:
+                      'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
+                    willChange: 'clip-path',
+                  }}
+                  aria-hidden
+                />
+              )}
+              <span
+                className={`relative z-10 ${
+                  currentVariant && !currentVariant.availableForSale
+                    ? ''
+                    : added
+                      ? 'text-white'
+                      : clipAddSticky.hover
+                        ? 'text-black'
+                        : 'text-white'
+                }`}
+              >
+                {added ? `✓ ${t('product.addedToCart')}` : t('product.addToCart')}
+              </span>
             </button>
           </div>
         </div>
@@ -1443,13 +1567,73 @@ export function Product() {
             type="button"
             onClick={handleAddToCart}
             disabled={currentVariant && !currentVariant.availableForSale}
-            className={`px-6 py-3 rounded-lg text-sm font-medium text-white transition-all ${
+            onPointerEnter={
               currentVariant && !currentVariant.availableForSale
-                ? 'bg-carbon-300 cursor-not-allowed'
-                : 'bg-carbon-900 hover:bg-carbon-800 active:scale-[0.98]'
+                ? undefined
+                : added
+                  ? undefined
+                  : clipAddMobile.onPointerEnter
+            }
+            onPointerMove={
+              currentVariant && !currentVariant.availableForSale
+                ? undefined
+                : added
+                  ? undefined
+                  : clipAddMobile.onPointerMove
+            }
+            onPointerLeave={
+              currentVariant && !currentVariant.availableForSale
+                ? undefined
+                : added
+                  ? undefined
+                  : clipAddMobile.onPointerLeave
+            }
+            onFocus={() => {
+              if ((!currentVariant || currentVariant.availableForSale) && !added) clipAddMobile.onFocus()
+            }}
+            onBlur={() => clipAddMobile.onBlur()}
+            className={`relative shrink-0 overflow-hidden rounded-full border px-6 py-3 text-sm font-medium outline-none [-webkit-tap-highlight-color:transparent] transition-[border-color,color] duration-500 ease-out focus:outline-none focus-visible:outline-none active:scale-[0.98] ${
+              currentVariant && !currentVariant.availableForSale
+                ? 'cursor-not-allowed border-carbon-200 bg-carbon-200 text-carbon-500'
+                : added
+                  ? 'border-transparent bg-carbon-600 text-white'
+                  : CLIP_REVEAL_BUTTON_BASE_CLASS
             }`}
+            style={
+              currentVariant && !currentVariant.availableForSale
+                ? undefined
+                : added
+                  ? undefined
+                  : clipAddMobile.cssVars
+            }
           >
-            {'purchase'}
+            {!added && !(currentVariant && !currentVariant.availableForSale) && (
+              <span
+                className="pointer-events-none absolute -inset-px z-0 rounded-full"
+                style={{
+                  backgroundColor: '#ffffff',
+                  clipPath: `circle(${clipAddMobile.active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                  WebkitClipPath: `circle(${clipAddMobile.active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                  transition:
+                    'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
+                  willChange: 'clip-path',
+                }}
+                aria-hidden
+              />
+            )}
+            <span
+              className={`relative z-10 ${
+                currentVariant && !currentVariant.availableForSale
+                  ? ''
+                  : added
+                    ? 'text-white'
+                    : clipAddMobile.hover
+                      ? 'text-black'
+                      : 'text-white'
+              }`}
+            >
+              {added ? `✓ ${t('product.addedToCart')}` : t('product.addToCart')}
+            </span>
           </button>
         </div>
       </div>

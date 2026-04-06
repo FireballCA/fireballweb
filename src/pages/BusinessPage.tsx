@@ -88,6 +88,15 @@ type AnnouncementSettings = {
   featured_collection_name: string | null
   featured_collection_description: string | null
   featured_collection_image: string | null
+  home_collection_eyebrow?: string | null
+  home_collection_headline?: string | null
+  home_collection_description?: string | null
+  home_collection_image?: string | null
+  home_collection_href?: string | null
+  home_collection_button1_label?: string | null
+  home_collection_button1_href?: string | null
+  home_collection_button2_label?: string | null
+  home_collection_button2_href?: string | null
 }
 
 type BannerItem = {
@@ -467,6 +476,15 @@ function BusinessAdminAnnouncements() {
   const [featuredName, setFeaturedName] = useState('')
   const [featuredDescription, setFeaturedDescription] = useState('')
   const [featuredImage, setFeaturedImage] = useState('')
+  const [homeEyebrow, setHomeEyebrow] = useState('')
+  const [homeHeadline, setHomeHeadline] = useState('')
+  const [homeDescription, setHomeDescription] = useState('')
+  const [homeImage, setHomeImage] = useState('')
+  const [homeHref, setHomeHref] = useState('')
+  const [homeBtn1Label, setHomeBtn1Label] = useState('')
+  const [homeBtn1Href, setHomeBtn1Href] = useState('')
+  const [homeBtn2Label, setHomeBtn2Label] = useState('')
+  const [homeBtn2Href, setHomeBtn2Href] = useState('')
 
   useEffect(() => {
     let mounted = true
@@ -517,6 +535,15 @@ function BusinessAdminAnnouncements() {
           setFeaturedName(settings.featured_collection_name ?? '')
           setFeaturedDescription(settings.featured_collection_description ?? '')
           setFeaturedImage(settings.featured_collection_image ?? '')
+          setHomeEyebrow(settings.home_collection_eyebrow ?? '')
+          setHomeHeadline(settings.home_collection_headline ?? '')
+          setHomeDescription(settings.home_collection_description ?? '')
+          setHomeImage(settings.home_collection_image ?? '')
+          setHomeHref(settings.home_collection_href ?? '')
+          setHomeBtn1Label(settings.home_collection_button1_label ?? '')
+          setHomeBtn1Href(settings.home_collection_button1_href ?? '')
+          setHomeBtn2Label(settings.home_collection_button2_label ?? '')
+          setHomeBtn2Href(settings.home_collection_button2_href ?? '')
         }
       } catch (e) {
         if (mounted) setError(e instanceof Error ? e.message : 'Failed to load settings.')
@@ -553,6 +580,15 @@ function BusinessAdminAnnouncements() {
         featured_collection_name: featuredName.trim() || null,
         featured_collection_description: featuredDescription.trim() || null,
         featured_collection_image: featuredImage.trim() || null,
+        home_collection_eyebrow: homeEyebrow.trim() || null,
+        home_collection_headline: homeHeadline.trim() || null,
+        home_collection_description: homeDescription.trim() || null,
+        home_collection_image: homeImage.trim() || null,
+        home_collection_href: homeHref.trim() || null,
+        home_collection_button1_label: homeBtn1Label.trim() || null,
+        home_collection_button1_href: homeBtn1Href.trim() || null,
+        home_collection_button2_label: homeBtn2Label.trim() || null,
+        home_collection_button2_href: homeBtn2Href.trim() || null,
       }
 
       const { data: existing, error: existingError } = await supabase
@@ -811,6 +847,95 @@ function BusinessAdminAnnouncements() {
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
                 placeholder="https://..."
               />
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 space-y-3">
+              <p className="text-xs font-semibold text-slate-700">Accueil — bannière plein écran (séparé du menu Shop)</p>
+              <p className="text-[11px] text-slate-500">Texte et boutons en bas à gauche.</p>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Image bannière</label>
+                <input
+                  value={homeImage}
+                  onChange={(e) => setHomeImage(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                  placeholder="/Assets/Coatings/Coatings%20Banner.png"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Surtitre</label>
+                <input
+                  value={homeEyebrow}
+                  onChange={(e) => setHomeEyebrow(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                  placeholder="Surface Technology"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Titre</label>
+                <input
+                  value={homeHeadline}
+                  onChange={(e) => setHomeHeadline(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                  placeholder="Coatings"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Description</label>
+                <textarea
+                  value={homeDescription}
+                  onChange={(e) => setHomeDescription(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400 resize-none"
+                  placeholder="Excellence in every detail"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Lien clic sur l’image</label>
+                <input
+                  value={homeHref}
+                  onChange={(e) => setHomeHref(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                  placeholder="/coatings"
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Bouton 1 — libellé</label>
+                  <input
+                    value={homeBtn1Label}
+                    onChange={(e) => setHomeBtn1Label(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                    placeholder="Shop coatings"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Bouton 1 — URL</label>
+                  <input
+                    value={homeBtn1Href}
+                    onChange={(e) => setHomeBtn1Href(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                    placeholder="/coatings"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Bouton 2 — libellé</label>
+                  <input
+                    value={homeBtn2Label}
+                    onChange={(e) => setHomeBtn2Label(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                    placeholder="Learn more"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Bouton 2 — URL</label>
+                  <input
+                    value={homeBtn2Href}
+                    onChange={(e) => setHomeBtn2Href(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+                    placeholder="/all-coatings"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </section>

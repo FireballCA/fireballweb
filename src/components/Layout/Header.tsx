@@ -9,13 +9,14 @@ import { supabase } from '@/lib/supabase'
 import { isShopPathname } from '@/utils/shopRoutes'
 import { isNavOverFullBleedHero } from '@/utils/navHeroOverlap'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
+import { shopBrowseCategoryPath } from '@/constants/paths'
 
 const CERAMIC_SECTIONS = [
   {
     title: 'Shop Coatings',
     description: 'Explore and compare our full range of high-performance ceramic coatings.',
     links: [
-      { label: 'All Coatings', to: '/coatings' },
+      { label: 'All Coatings', to: '/all-coatings' },
       { label: 'Compare Coatings', to: '/coatings/compare' },
     ],
   },
@@ -133,7 +134,10 @@ export function Header() {
   const isProductPage =
     location.pathname.startsWith('/product/') ||
     location.pathname.startsWith('/produit/')
-  const isCoatingPage = location.pathname.startsWith('/coating')
+  const isCoatingPage =
+    location.pathname.startsWith('/coating/') ||
+    location.pathname.startsWith('/coatings/') ||
+    location.pathname === '/all-coatings'
   const isBusinessPage =
     location.pathname.startsWith('/business') || location.pathname.startsWith('/account/business')
   /**
@@ -624,7 +628,7 @@ export function Header() {
     const categoryEntries: SearchEntry[] = CATEGORIES.map((category) => ({
       id: `category-${category.id}`,
       label: category.name,
-      to: `/boutique/${category.id}`,
+      to: category.id === 'coatings' ? shopBrowseCategoryPath('coatings') : `/boutique/${category.id}`,
       kind: 'Category',
       subtitle: category.description,
       keywords: [category.id, 'categorie', 'category', 'boutique'],

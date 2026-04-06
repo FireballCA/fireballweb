@@ -1,0 +1,201 @@
+/* Slider type « Voyager » — cartes en perspective, fond immersif */
+
+.voyager {
+  position: relative;
+  isolation: isolate;
+  min-height: min(58vh, 560px);
+}
+
+/**
+ * Prochaines images latérales hors écran en taille proche des cartes (3:4) :
+ * le navigateur décode comme pour la carte visible, pas comme un favicon 1×1.
+ */
+.voyager__edgePrefetch {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 360px;
+  height: 480px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  z-index: -1;
+}
+
+.voyager__edgePrefetchImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.voyager__stage {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem 0.75rem 2.5rem;
+  min-height: min(58vh, 560px);
+}
+
+@media (min-width: 768px) {
+  .voyager__stage {
+    padding: 2.5rem 1rem 3rem;
+    gap: 0.75rem;
+  }
+}
+
+.voyager__btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(228 231 236);
+  background: rgba(255, 255, 255, 0.95);
+  color: rgb(23 23 23);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  z-index: 10;
+}
+
+.voyager__btn:hover:not(:disabled) {
+  background: #fff;
+  border-color: rgb(200 204 212);
+}
+
+.voyager__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.voyager__btn:focus-visible {
+  outline: 2px solid rgb(23 23 23);
+  outline-offset: 2px;
+}
+
+.voyager__track {
+  position: relative;
+  flex: 1;
+  max-width: min(100%, 920px);
+  height: min(52vh, 480px);
+  perspective: 1650px;
+  perspective-origin: 50% 45%;
+  transform-style: preserve-3d;
+}
+
+.voyager__card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(42vw, 320px);
+  max-height: 100%;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  /* Réduit le flou subpixel sur les bords en rotation (WebKit) */
+  outline: 1px solid transparent;
+}
+
+@media (min-width: 768px) {
+  .voyager__card {
+    width: min(34vw, 360px);
+  }
+}
+
+.voyager__cardInner {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+  background: #f4f4f5;
+  transform-style: preserve-3d;
+}
+
+.voyager__cardImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.voyager__cardInfo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0.75rem 0.85rem 1rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, transparent 62%);
+}
+
+.voyager__cardTitle {
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  line-height: 1.2;
+}
+
+@media (min-width: 768px) {
+  .voyager__cardTitle {
+    font-size: 0.875rem;
+    letter-spacing: 0.14em;
+  }
+}
+
+.voyager__cardSubtitle {
+  margin-top: 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .voyager__cardSubtitle {
+    font-size: 0.7rem;
+    -webkit-line-clamp: 5;
+  }
+}
+
+.voyager__dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  padding-bottom: 1.25rem;
+  position: relative;
+  z-index: 3;
+}
+
+.voyager__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  border: none;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.voyager__dot[aria-current='true'] {
+  background: rgb(23 23 23);
+  transform: scale(1.2);
+}
+
+.voyager__dot:focus-visible {
+  outline: 2px solid rgb(23 23 23);
+  outline-offset: 2px;
+}
