@@ -5,6 +5,7 @@ import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { MemberStatusHero } from '@/components/MemberStatusHero/MemberStatusHero'
 import { AddVehicleModal } from '@/components/AddVehicleModal'
 import { FireballLoading } from '@/components/FireballLoading'
+import { AccountDashboardSkeleton } from '@/components/ui/AccountDashboardSkeleton'
 import { ProductsPurchasedSheet } from '@/components/ProductsPurchasedSheet'
 import { AdminPanelSheet } from '@/components/AdminPanelSheet'
 import { SettingsSheet } from '@/components/SettingsSheet'
@@ -1134,11 +1135,7 @@ export function AccountDashboard() {
 
   return (
     <section className="relative min-h-screen bg-[#0a0a0a] text-pearl">
-      {(!dashboardDataLoaded || isEnteringDashboard) && (
-        <div className="fixed inset-0 z-[135]">
-          <FireballLoading />
-        </div>
-      )}
+      {(!dashboardDataLoaded || isEnteringDashboard) && <AccountDashboardSkeleton />}
       {showWelcomeScreen && (
         <div className="fixed inset-0 z-[130] bg-black">
           <div className="h-full w-full flex items-center justify-center px-6">

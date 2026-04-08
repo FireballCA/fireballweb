@@ -499,7 +499,7 @@ function CardInner({ slide, fetchPriority }: { slide: VoyagerSlide; fetchPriorit
         alt={slide.title}
         loading="eager"
         decoding="async"
-        fetchPriority={fetchPriority}
+        {...{ fetchpriority: fetchPriority }}
         draggable={false}
       />
       <div className="voyager__cardInfo">

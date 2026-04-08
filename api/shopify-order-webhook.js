@@ -2,11 +2,16 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.SUPABASE_URL || ''
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const shopifyStoreUrl = process.env.SHOPIFY_STORE_URL || process.env.VITE_SHOPIFY_STORE_URL || ''
+const shopifyAdminApiToken = process.env.SHOPIFY_ADMIN_API_TOKEN || ''
+const shopifyApiVersion = process.env.SHOPIFY_ADMIN_API_VERSION || '2024-10'
 
 const supabase =
   supabaseUrl && supabaseServiceKey
     ? createClient(supabaseUrl, supabaseServiceKey)
     : null
+
+const PARTNER_ONLY_TAGS = new Set(['partner-only', 'installer-only', 'installer', 'partner'])
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -56,7 +61,7 @@ export default async function handler(req, res) {
     // 1) Trouver le profil par email
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id,xp,email')
+      .select('id,xp,email,role,partner_status')
       .eq('email', email)
       .maybeSingle()
 
@@ -72,6 +77,46 @@ export default async function handler(req, res) {
 
     const userId = profile.id
     const numericTotal = Number.parseFloat(String(totalPrice ?? '0')) || 0
+    const role = String(profile.role || '').toLowerCase()
+    const partnerStatus = String(profile.partner_status || '').toLowerCase()
+    const isPartner = role === 'partner' || partnerStatus === 'partner'
+
+    // Contrôle serveur additionnel: ordre contenant un produit partner-only pour non-partenaire
+    if (lineItems.length > 0 && shopifyStoreUrl && shopifyAdminApiToken && !isPartner) {
+      const normalizedStoreUrl = shopifyStoreUrl.startsWith('http')
+        ? shopifyStoreUrl
+        : `https://${shopifyStoreUrl}`
+      let hasRestrictedItem = false
+      for (const item of lineItems) {
+        const productId = item?.product_id
+        if (!productId) continue
+        try {
+          const response = await fetch(
+            `${normalizedStoreUrl}/admin/api/${shopifyApiVersion}/products/${productId}.json`,
+            {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Shopify-Access-Token': shopifyAdminApiToken,
+              },
+            },
+          )
+          const json = (await response.json().catch(() => null)) || {}
+          const tagsRaw = String(json?.product?.tags || '')
+          const tags = tagsRaw.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
+          if (tags.some((t) => PARTNER_ONLY_TAGS.has(t))) {
+            hasRestrictedItem = true
+            break
+          }
+        } catch {
+          // Ignore product lookup errors and continue best-effort checks
+        }
+      }
+      if (hasRestrictedItem) {
+        console.warn('[shopify-order-webhook] blocked non-partner restricted order', { orderId, email })
+        return res.status(200).json({ ok: true, blocked: 'partner_required' })
+      }
+    }
 
     // 5 XP par dollar dépensé (arrondi)
     const pointsEarned = Math.max(0, Math.round(numericTotal * 5))

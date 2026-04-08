@@ -38,6 +38,8 @@ import { CompareCoatings } from '@/pages/coatings/CompareCoatings'
 import { CeramicCoating } from '@/pages/coatings/CeramicCoating'
 import { FindInstaller } from '@/pages/coatings/FindInstaller'
 import { HowItWorks } from '@/pages/coatings/HowItWorks'
+import { CATEGORIES } from '@/data/products'
+import { NotFoundPage } from '@/components/NotFoundPage'
 
 function LegacyProduitRedirect() {
   const { slug } = useParams<{ slug: string }>()
@@ -48,6 +50,13 @@ function LegacyProduitRedirect() {
 function LegacyShopCategoryRedirect() {
   const { categoryId } = useParams<{ categoryId: string }>()
   return <Navigate to={`/${categoryId}`} replace />
+}
+
+function CategoryRoute() {
+  const { categoryId } = useParams<{ categoryId: string }>()
+  const isValid = CATEGORIES.some((c) => c.id === categoryId)
+  if (!isValid) return <Navigate to="/404" replace />
+  return <Shop />
 }
 
 function App() {
@@ -66,10 +75,11 @@ function App() {
             <Route path="all-coatings" element={<CeramicCoating />} />
             <Route path="coatings/compare" element={<CompareCoatings />} />
             <Route path="coatings/find-installer" element={<FindInstaller />} />
+            <Route path="find-installer" element={<FindInstaller />} />
             <Route path="coatings/how-it-works" element={<HowItWorks />} />
             <Route path="coatings" element={<Shop />} />
             {/* Routes directes pour les catégories (doivent être après les routes spécifiques) */}
-            <Route path=":categoryId" element={<Shop />} />
+            <Route path=":categoryId" element={<CategoryRoute />} />
             <Route path="about" element={<About />} />
             <Route path="press-kit" element={<PressKit />} />
             <Route path="cart" element={<Cart />} />
@@ -245,6 +255,7 @@ function App() {
             <Route path="dashboard" element={<Navigate to="/account/dashboard" replace />} />
             <Route path="compte" element={<Navigate to="/account" replace />} />
           </Route>
+          <Route path="/404" element={<NotFoundPage />} />
           <Route path="/partner/onboarding" element={<PartnerRoute requireOnboarded={false}><PartnerOnboarding /></PartnerRoute>} />
           <Route path="/partner/dashboard" element={<PartnerRoute requireOnboarded={true}><PartnerDashboardLayout /></PartnerRoute>}>
             <Route index element={<PartnerOverview />} />
@@ -255,6 +266,7 @@ function App() {
             <Route path="certification" element={<PartnerCertification />} />
             <Route path="settings" element={<PartnerSettings />} />
           </Route>
+          <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
       </CartProvider>
     </NotificationsProvider>

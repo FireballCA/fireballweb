@@ -778,7 +778,7 @@ export function Header() {
         {/* Left: Logo + links */}
         <div className="flex items-center gap-10 h-full">
           <Link to="/" className="flex items-center h-12 w-auto select-none">
-            <img src="/LogoFull.avif" alt="Fireball" className="h-6 w-auto object-contain pointer-events-none" draggable={false} />
+            <img id="navbar-logo" src="/LogoFull.avif" alt="Fireball" className="h-6 w-auto object-contain pointer-events-none" draggable={false} />
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1 pt-0.5 group h-full">

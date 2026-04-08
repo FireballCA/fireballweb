@@ -132,7 +132,7 @@ export function EventDetail() {
             className="absolute inset-0 h-full w-full object-cover object-center"
             loading="eager"
             decoding="async"
-            fetchPriority="high"
+            {...{ fetchpriority: 'high' }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/75" aria-hidden />
 

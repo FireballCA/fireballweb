@@ -1,13 +1,27 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { useEffect, useRef, useState } from 'react'
 import { LineupImageTransitionProvider } from '@/context/LineupImageTransitionContext'
 import { Header } from './Header'
 import { Footer } from './Footer'
 import { isShopPathname } from '@/utils/shopRoutes'
+import { IntroOverlay } from '@/components/IntroOverlay'
 
 export function Layout() {
   const location = useLocation()
   const reduceMotion = useReducedMotion()
+  const [showIntro, setShowIntro] = useState(false)
+  const hasShownIntroRef = useRef(false)
+
+  // Intro: afficher une seule fois par chargement d'app (réapparaît après un hard refresh)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!hasShownIntroRef.current && location.pathname === '/' && !reduceMotion) {
+      setShowIntro(true)
+      hasShownIntroRef.current = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const isAccountAuthPage =
     location.pathname === '/compte' ||
     location.pathname === '/account' ||
@@ -50,6 +64,7 @@ export function Layout() {
         .filter(Boolean)
         .join(' ')}
     >
+      {showIntro && <IntroOverlay onDone={() => setShowIntro(false)} />}
       {showHeader && <Header />}
       <main
         className={[

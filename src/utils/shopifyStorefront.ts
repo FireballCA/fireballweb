@@ -34,6 +34,9 @@ async function shopifyFetch<T>(query: string, variables?: Record<string, unknown
   return data.data as T
 }
 
+// Cache mémoire léger pour réduire les latences de navigation
+const productCache = new Map<string, Product>()
+
 function resolveCategoryFromTags(tags: string[]): CategoryId {
   const lower = tags.map((t) => t.toLowerCase().trim())
   
@@ -286,6 +289,10 @@ export async function fetchProductsFromShopify(): Promise<Product[]> {
 export async function fetchProductFromShopifyBySlug(slug: string): Promise<Product | null> {
   if (!slug) return null
 
+  // Retourner depuis le cache si disponible
+  const cached = productCache.get(slug)
+  if (cached) return cached
+
   if (!hasShopifyConfig()) {
     const local = getProductBySlug(slug)
     return local ?? null
@@ -365,17 +372,34 @@ export async function fetchProductFromShopifyBySlug(slug: string): Promise<Produ
 
     if (!data.product) {
       const fallback = getProductBySlug(slug)
+      if (fallback) {
+        productCache.set(slug, fallback)
+      }
       return fallback ?? null
     }
 
-    return mapShopifyProductToLocal(data.product)
+    const mapped = mapShopifyProductToLocal(data.product)
+    productCache.set(slug, mapped)
+    return mapped
   } catch (error) {
     console.error('[Shopify] Failed to load product by slug, using static data:', error)
     const fallback = getProductBySlug(slug)
+    if (fallback) {
+      productCache.set(slug, fallback)
+    }
     return fallback ?? null
   }
 }
 
+export async function prefetchProductBySlug(slug: string): Promise<void> {
+  if (!slug || productCache.has(slug)) return
+  try {
+    const p = await fetchProductFromShopifyBySlug(slug)
+    if (p) productCache.set(slug, p)
+  } catch {
+    /* ignore prefetch failures */
+  }
+}
 /**
  * Construit l'URL de checkout Shopify (cart permalink) à partir des produits du panier.
  * Nécessite que les produits aient un shopifyVariantId (gid) pour fonctionner.

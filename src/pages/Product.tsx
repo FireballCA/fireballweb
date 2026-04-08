@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
+import { useParams, Link, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import type { NavigateFunction } from 'react-router-dom'
 import { useEffect, useState, useRef, useMemo, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -16,6 +16,7 @@ import { getProductPageContent } from '@/data/productPageContent'
 import { supabase } from '@/lib/supabase'
 import { AnimatedNumber } from '@/components/ui/animated-number'
 import { FireballLoading } from '@/components/FireballLoading'
+import { ProductDetailSkeleton } from '@/components/ui/ProductDetailSkeleton'
 import { useClipRevealHover, CLIP_REVEAL_BUTTON_BASE_CLASS } from '@/hooks/useClipRevealHover'
 
 const FIREBALL_RED = '#B61B1B'
@@ -109,6 +110,8 @@ export function Product() {
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isPartner, setIsPartner] = useState(false)
+  const [accessDenied, setAccessDenied] = useState(false)
   const [productPageOverrides, setProductPageOverrides] = useState<ProductPageOverrides>({})
   const [savingProductPage, setSavingProductPage] = useState(false)
   const [productPageSaveError, setProductPageSaveError] = useState('')
@@ -174,7 +177,9 @@ export function Product() {
       const profile = await getCurrentUserProfile()
       if (!mounted) return
       const role = (profile?.role || '').toLowerCase()
+      const partnerStatus = (profile?.partner_status || '').toLowerCase()
       setIsAdmin(role === 'admin')
+      setIsPartner(role === 'partner' || partnerStatus === 'partner')
     })()
     return () => {
       mounted = false
@@ -210,9 +215,18 @@ export function Product() {
         return
       }
       setLoading(true)
+      setAccessDenied(false)
       try {
         const loaded = await fetchProductFromShopifyBySlug(slug)
         if (!cancelled && loaded) {
+          const canAccess = !loaded.partnerOnly || isPartner
+          if (!canAccess) {
+            setProduct(loaded)
+            setRelatedProducts([])
+            setAccessDenied(true)
+            return
+          }
+
           setProduct(loaded)
           // Sélectionner la première variante par défaut
           if (loaded.variants && loaded.variants.length > 0) {
@@ -235,6 +249,7 @@ export function Product() {
             const allProducts = await fetchProductsFromShopify()
             const related = allProducts
               .filter((p) => p.category === loaded.category && p.id !== loaded.id)
+              .filter((p) => !p.partnerOnly || isPartner)
               .slice(0, 10)
             if (!cancelled) {
               setRelatedProducts(related)
@@ -242,7 +257,9 @@ export function Product() {
           } catch (err) {
             const related = PRODUCTS.filter(
               (p) => p.category === loaded.category && p.id !== loaded.id
-            ).slice(0, 10)
+            )
+              .filter((p) => !p.partnerOnly || isPartner)
+              .slice(0, 10)
             if (!cancelled) {
               setRelatedProducts(related)
             }
@@ -258,7 +275,7 @@ export function Product() {
     return () => {
       cancelled = true
     }
-  }, [slug])
+  }, [slug, isPartner])
 
   // Animation de la barre de progression au chargement
   useEffect(() => {
@@ -424,23 +441,28 @@ export function Product() {
   }, [selectedSizeValue, sizeOptions.length])
 
   if (loading) {
-    return (
-      <div className="bg-white min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <FireballLoading fullScreen={false} backgroundClassName="bg-transparent" size={64} />
-          <p className="text-carbon-600 mt-4">{t('product.loading')}</p>
-        </div>
-      </div>
-    )
+    return <ProductDetailSkeleton />
   }
 
   if (!product) {
+    return <Navigate to="/404" replace />
+  }
+
+  if (accessDenied) {
     return (
-      <div className="bg-white min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold text-carbon-900 mb-4">{t('product.notFound')}</h1>
-          <Link to="/boutique" className="text-chrome hover:underline">
-            {t('product.backToShop')}
+      <div className="bg-white min-h-screen flex items-center justify-center px-6">
+        <div className="max-w-xl text-center">
+          <h1 className="text-3xl sm:text-4xl font-semibold text-carbon-900 mb-4">
+            Access restricted
+          </h1>
+          <p className="text-carbon-600 mb-8">
+            This product is reserved for certified Fireball partners. Join Fireball to request access.
+          </p>
+          <Link
+            to="/join-fireball"
+            className="inline-flex items-center justify-center rounded-full bg-carbon-900 px-7 py-3 text-sm font-semibold text-white hover:bg-carbon-800 transition-colors"
+          >
+            Join Fireball
           </Link>
         </div>
       </div>
@@ -479,6 +501,10 @@ export function Product() {
         ...productPageOverrides,
         [slug]: nextForSlug,
       }
+      // UI optimiste: appliquer tout de suite et fermer l'éditeur
+      const prevMap = productPageOverrides
+      setProductPageOverrides(nextMap)
+      setAdminEditorOpen(false)
 
       const { data: existing, error: existingError } = await supabase
         .from('site_settings')
@@ -498,10 +524,14 @@ export function Product() {
 
       const res = await write
       if (res.error) throw res.error
-
-      setProductPageOverrides(nextMap)
-      setAdminEditorOpen(false)
     } catch (e) {
+      // rollback UI optimiste
+      if (slug) {
+        const rollback = { ...productPageOverrides }
+        delete rollback[slug]
+        setProductPageOverrides(rollback)
+      }
+      setAdminEditorOpen(true)
       setProductPageSaveError(e instanceof Error ? e.message : 'Unable to save.')
     } finally {
       setSavingProductPage(false)

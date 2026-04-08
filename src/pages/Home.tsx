@@ -1,9 +1,10 @@
-import { useCallback, useContext, useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
+import { siApple, siGoogle, siAndroid } from 'simple-icons'
 import { ProductCategoryLineup } from '@/components/ProductCategoryLineup'
 import { HomeCollectionSection } from '@/components/HomeCollectionSection'
 import { VoyagerWorldwideScrollSection } from '@/components/VoyagerWorldwideScroll/VoyagerWorldwideScrollSection'
+import WorldMapDemo from '@/components/world-map-demo'
 import { LenisContext } from '@/components/LenisRoot'
 import { FIREBALL_COUNTRY_SLIDES } from '@/data/fireballCountriesSlider'
 import { supabase } from '@/lib/supabase'
@@ -34,8 +35,25 @@ const exploreClipCssVars = {
   '--clip-r': '0px',
 } as CSSProperties
 
+function useCountdown(targetIso: string) {
+  const target = useMemo(() => new Date(targetIso).getTime(), [targetIso])
+  const [, setTick] = useState(0)
+
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((t) => t + 1), 1000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  const diff = Math.max(0, target - Date.now())
+  const totalSec = Math.floor(diff / 1000)
+  const days = Math.floor(totalSec / 86400)
+  const hours = Math.floor((totalSec % 86400) / 3600)
+  const minutes = Math.floor((totalSec % 3600) / 60)
+  const seconds = totalSec % 60
+  return { days, hours, minutes, seconds, expired: diff <= 0 }
+}
+
 export function Home() {
-  const { t } = useTranslation()
   const lenis = useContext(LenisContext)
   const [homeCollection, setHomeCollection] = useState<HomeCollectionResolved>(() =>
     resolveHomeCollection(null),
@@ -43,6 +61,72 @@ export function Home() {
   const [exploreHover, setExploreHover] = useState(false)
   const [exploreFocus, setExploreFocus] = useState(false)
   const exploreActive = exploreHover || exploreFocus
+  const [eventCtaHover, setEventCtaHover] = useState(false)
+  const [eventCtaFocus, setEventCtaFocus] = useState(false)
+  const eventCtaActive = eventCtaHover || eventCtaFocus
+  const [calendarMenuOpen, setCalendarMenuOpen] = useState(false)
+  const calendarMenuRef = useRef<HTMLDivElement>(null)
+  const nextEvent = {
+    title: 'Fireball After Party',
+    location: 'Saint-Hyacinthe, QC',
+    startsAt: '2026-05-16T19:00:00-04:00',
+    href: '/event/fireball-after-party',
+    imageSrc: '/Assets/FireballAfterParty.png',
+  }
+  const countdown = useCountdown(nextEvent.startsAt)
+
+  const eventStart = useMemo(() => new Date(nextEvent.startsAt), [nextEvent.startsAt])
+  const eventEnd = useMemo(() => new Date(eventStart.getTime() + 2 * 60 * 60 * 1000), [eventStart])
+  const toGoogleDate = (d: Date) =>
+    d
+      .toISOString()
+      .replace(/[-:]/g, '')
+      .replace(/\.\d{3}Z$/, 'Z')
+  const googleCalendarUrl = useMemo(() => {
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: nextEvent.title,
+      details: `${nextEvent.title} - Fireball event`,
+      location: nextEvent.location,
+      dates: `${toGoogleDate(eventStart)}/${toGoogleDate(eventEnd)}`,
+    })
+    return `https://calendar.google.com/calendar/render?${params.toString()}`
+  }, [nextEvent.title, nextEvent.location, eventStart, eventEnd])
+  const samsungCalendarUrl = googleCalendarUrl
+  const appleCalendarUrl = useMemo(() => {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const toICSDate = (d: Date) =>
+      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
+    const ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Fireball//Events//EN',
+      'BEGIN:VEVENT',
+      `UID:${toICSDate(eventStart)}-fireball-event@fireball`,
+      `DTSTAMP:${toICSDate(new Date())}`,
+      `DTSTART:${toICSDate(eventStart)}`,
+      `DTEND:${toICSDate(eventEnd)}`,
+      `SUMMARY:${nextEvent.title}`,
+      `LOCATION:${nextEvent.location}`,
+      'DESCRIPTION:Fireball event',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n')
+    return `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`
+  }, [eventStart, eventEnd, nextEvent.title, nextEvent.location])
+
+  useEffect(() => {
+    const onDocClick = (event: MouseEvent) => {
+      if (!calendarMenuRef.current) return
+      if (!calendarMenuRef.current.contains(event.target as Node)) {
+        setCalendarMenuOpen(false)
+      }
+    }
+    if (calendarMenuOpen) {
+      document.addEventListener('mousedown', onDocClick)
+    }
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [calendarMenuOpen])
 
   useEffect(() => {
     const load = async () => {
@@ -120,44 +204,53 @@ export function Home() {
         <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col justify-end px-5 pb-24 pt-16 animate-slide-up sm:px-6 md:pb-28">
           <div className="mx-auto flex w-full max-w-[90rem] flex-col-reverse gap-10 md:flex-row md:items-end md:justify-between md:gap-12">
             <h1 className="max-w-xl self-start text-left font-nav text-4xl font-bold leading-[1.05] tracking-tight text-pearl sm:text-5xl md:max-w-lg md:text-6xl lg:text-7xl">
-              From Detail
-              <br />
-              To Perfection.
+              <span className="hero-ground-line hero-ground-line--clean">
+                <span className="hero-ground-text">From Detail</span>
+              </span>
+              <span className="hero-ground-line hero-ground-line--clean mt-1.5 sm:mt-2">
+                <span className="hero-ground-text hero-ground-text--delay">To Perfection.</span>
+              </span>
             </h1>
             <div className="flex w-full shrink-0 flex-col items-end gap-6 text-right md:w-auto">
-              <p className="max-w-md text-pretty font-light text-silver/80 text-sm leading-relaxed md:text-base lg:text-lg">
-                Crafted for those who demand precision, performance, and flawless results.
-              </p>
-              <button
-                type="button"
-                onClick={scrollToProductLineup}
-                onPointerEnter={onExplorePointerEnter}
-                onPointerMove={onExplorePointerMove}
-                onPointerLeave={onExplorePointerLeave}
-                onFocus={() => setExploreFocus(true)}
-                onBlur={() => setExploreFocus(false)}
-                className="relative inline-flex min-w-[12rem] cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-white/[0.12] bg-transparent px-8 py-2.5 text-center font-nav text-sm font-bold uppercase outline-none [-webkit-tap-highlight-color:transparent] transition-[border-color,color] duration-500 ease-out hover:border-white/25 focus:outline-none focus-visible:outline-none motion-reduce:transition-none"
-                style={exploreClipCssVars}
-              >
-                <span
-                  className="pointer-events-none absolute inset-0 z-0 bg-white"
-                  style={{
-                    clipPath: `circle(${exploreActive ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                    WebkitClipPath: `circle(${exploreActive ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                    transition:
-                      'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
-                    willChange: 'clip-path',
-                  }}
-                  aria-hidden
-                />
-                <span
-                  className={`relative z-10 transition-colors duration-500 motion-reduce:duration-200 ${
-                    exploreActive ? 'text-black' : 'text-pearl'
-                  }`}
-                >
-                  Explore Products
+              <span className="hero-ground-line hero-ground-line--clean">
+                <p className="hero-ground-text hero-ground-text--delay-2 max-w-md text-pretty font-light text-silver/80 text-sm leading-relaxed md:text-base lg:text-lg">
+                  Crafted for those who demand precision, performance, and flawless results.
+                </p>
+              </span>
+              <span className="hero-ground-line hero-ground-line--clean">
+                <span className="hero-ground-text hero-ground-text--delay-3 inline-block">
+                  <button
+                    type="button"
+                    onClick={scrollToProductLineup}
+                    onPointerEnter={onExplorePointerEnter}
+                    onPointerMove={onExplorePointerMove}
+                    onPointerLeave={onExplorePointerLeave}
+                    onFocus={() => setExploreFocus(true)}
+                    onBlur={() => setExploreFocus(false)}
+                    className="relative inline-flex min-w-[12rem] cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-white/[0.12] bg-transparent px-8 py-2.5 text-center font-nav text-sm font-bold uppercase outline-none [-webkit-tap-highlight-color:transparent] transition-[border-color,color] duration-500 ease-out hover:border-white/25 focus:outline-none focus-visible:outline-none motion-reduce:transition-none"
+                    style={exploreClipCssVars}
+                  >
+                    <span
+                      className="pointer-events-none absolute inset-0 z-0 bg-white"
+                      style={{
+                        clipPath: `circle(${exploreActive ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                        WebkitClipPath: `circle(${exploreActive ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                        transition:
+                          'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
+                        willChange: 'clip-path',
+                      }}
+                      aria-hidden
+                    />
+                    <span
+                      className={`relative z-10 transition-colors duration-500 motion-reduce:duration-200 ${
+                        exploreActive ? 'text-black' : 'text-pearl'
+                      }`}
+                    >
+                      Explore Products
+                    </span>
+                  </button>
                 </span>
-              </button>
+              </span>
             </div>
           </div>
         </div>
@@ -183,19 +276,154 @@ export function Home() {
             description="A global network of professionals and enthusiasts using Fireball every day."
           />
 
-          {/* CTA */}
-          <section className="py-24">
-            <div className="max-w-3xl mx-auto px-6 text-center">
-              <h2 className="font-display text-4xl md:text-5xl text-pearl tracking-tight mb-6">
-                {t('home.ctaTitle')}
-              </h2>
-              <p className="text-silver/80 mb-10">{t('home.ctaSubtitle')}</p>
-              <Link
-                to="/boutique"
-                className="inline-block px-8 py-4 border border-chrome text-chrome text-sm uppercase hover:bg-chrome hover:text-carbon-950 transition-colors"
-              >
-                {t('home.ctaButton')}
-              </Link>
+          <section className="bg-white py-16 sm:py-20">
+            <div className="mx-auto max-w-7xl px-4 md:px-6">
+              <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+                <h2 className="font-sans text-2xl font-bold tracking-tight text-carbon-900 md:text-5xl">
+                  Our next events
+                </h2>
+                <div className="flex items-center gap-4 sm:gap-6 text-carbon-900">
+                  {[
+                    { label: 'D', value: countdown.days },
+                    { label: 'H', value: countdown.hours },
+                    { label: 'M', value: countdown.minutes },
+                    { label: 'S', value: countdown.seconds },
+                  ].map((item) => (
+                    <div key={item.label} className="text-center">
+                      <div className="font-nav text-xl sm:text-2xl font-bold tabular-nums">
+                        {String(item.value).padStart(2, '0')}
+                      </div>
+                      <div className="text-[10px] tracking-[0.18em] uppercase text-carbon-500">{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="mx-auto mt-8 max-w-7xl px-4 md:px-6">
+              <div className="overflow-hidden rounded-2xl border border-carbon-200 bg-white">
+                <div className="relative aspect-[16/7] min-h-[260px] sm:min-h-[320px]">
+                  <img
+                    src={nextEvent.imageSrc}
+                    alt={nextEvent.title}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/20 to-black/10" aria-hidden />
+
+                  <div className="absolute inset-x-0 bottom-0 z-10 p-5 sm:p-6">
+                    <h3 className="font-nav text-3xl sm:text-4xl font-bold text-white">{nextEvent.title}</h3>
+                    <p className="mt-1 text-white/80">{nextEvent.location}</p>
+                    <div className="mt-5">
+                      <Link
+                        to={nextEvent.href}
+                        onPointerEnter={(e) => {
+                          setClipRevealVars(e.currentTarget, e.clientX, e.clientY)
+                          setEventCtaHover(true)
+                        }}
+                        onPointerMove={(e) => {
+                          setClipRevealVars(e.currentTarget, e.clientX, e.clientY)
+                        }}
+                        onPointerLeave={(e) => {
+                          setClipRevealVars(e.currentTarget, e.clientX, e.clientY)
+                          setEventCtaHover(false)
+                        }}
+                        onFocus={() => setEventCtaFocus(true)}
+                        onBlur={() => setEventCtaFocus(false)}
+                        className="relative inline-flex items-center justify-center overflow-hidden rounded-full border border-white/30 bg-black/25 px-6 py-2.5 text-sm font-semibold text-white transition-[border-color,color] duration-500 ease-out hover:border-white/45"
+                        style={exploreClipCssVars}
+                      >
+                        <span
+                          className="pointer-events-none absolute inset-0 z-0 bg-white"
+                          style={{
+                            clipPath: `circle(${eventCtaActive ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                            WebkitClipPath: `circle(${eventCtaActive ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
+                            transition:
+                              'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
+                            willChange: 'clip-path',
+                          }}
+                          aria-hidden
+                        />
+                        <span className={`relative z-10 transition-colors duration-500 ${eventCtaActive ? 'text-black' : 'text-white'}`}>
+                          See event details
+                        </span>
+                      </Link>
+                    </div>
+                    <div className="pointer-events-auto absolute right-5 bottom-5 sm:right-6 sm:bottom-6">
+                      <div ref={calendarMenuRef} className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setCalendarMenuOpen((prev) => !prev)}
+                          className="inline-flex items-center gap-2.5 rounded-full border border-[#0485F7] bg-[#0485F7] px-4 py-2 text-xs font-semibold text-white hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
+                        >
+                          <span>Add to calendar</span>
+                        </button>
+
+                        {calendarMenuOpen && (
+                          <div className="absolute right-0 bottom-[calc(100%+0.5rem)] w-[320px] rounded-xl border border-white/20 bg-[#0f1218] p-2 shadow-2xl">
+                            <a
+                              href={appleCalendarUrl}
+                              download="fireball-event.ics"
+                              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                            >
+                              <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
+                                <path fill="currentColor" d={siApple.path} />
+                              </svg>
+                              <span>Open Apple Calendar</span>
+                            </a>
+                            <a
+                              href={googleCalendarUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                            >
+                              <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
+                                <path fill="currentColor" d={siGoogle.path} />
+                              </svg>
+                              <span>Open Google Calendar</span>
+                            </a>
+                            <a
+                              href={samsungCalendarUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                            >
+                              <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
+                                <path fill="currentColor" d={siAndroid.path} />
+                              </svg>
+                              <span>Open Samsung Calendar</span>
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-carbon-950 py-16 sm:py-20">
+            <div className="mx-auto max-w-7xl px-4 md:px-6 text-center">
+              <div className="mx-auto flex max-w-3xl flex-col items-center gap-3">
+                <h2 className="font-sans text-2xl font-bold tracking-tight text-white md:text-5xl">
+                  Find your installer
+                </h2>
+                <p className="text-sm text-silver/70 md:text-base">
+                  Locate a certified Fireball installer near you.
+                </p>
+                <Link
+                  to="/find-installer"
+                  className="mt-2 inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] px-4 py-2 text-xs font-semibold text-white hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
+                >
+                  Find near you
+                </Link>
+              </div>
+            </div>
+            <div className="mx-auto mt-8 max-w-7xl px-4 md:px-6">
+              <div className="overflow-hidden rounded-2xl bg-carbon-900">
+                <div className="h-[360px] w-full p-2 md:h-[460px]">
+                  <WorldMapDemo />
+                </div>
+              </div>
             </div>
           </section>
         </div>
