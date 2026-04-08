@@ -9,9 +9,18 @@ interface MapProps {
   }>
   highlightPoints?: Array<{ lat: number; lng: number; label?: string }>
   lineColor?: string
+	/** Contrôle l'ajustement du conteneur: 'aspect' (par défaut) ou 'fill' pour remplir la hauteur parente */
+	fit?: 'aspect' | 'fill'
+	className?: string
 }
 
-export default function WorldMap({ dots = [], highlightPoints = [], lineColor = '#d9242f' }: MapProps) {
+export default function WorldMap({
+	dots = [],
+	highlightPoints = [],
+	lineColor = '#d9242f',
+	fit = 'aspect',
+	className = '',
+}: MapProps) {
   const svgRef = useRef<SVGSVGElement>(null)
 
   const map = useMemo(() => new DottedMap({ height: 100, grid: 'diagonal' }), [])
@@ -40,7 +49,15 @@ export default function WorldMap({ dots = [], highlightPoints = [], lineColor = 
   }
 
   return (
-    <div className="w-full aspect-[2/1] bg-black rounded-lg relative font-sans">
+		<div
+			className={[
+				'w-full bg-black rounded-lg relative font-sans',
+				fit === 'fill' ? 'h-full' : 'aspect-[2/1]',
+				className,
+			]
+				.filter(Boolean)
+				.join(' ')}
+		>
       <img
         src={`data:image/svg+xml;utf8,${encodeURIComponent(svgMap)}`}
         className="h-full w-full [mask-image:linear-gradient(to_bottom,transparent,white_10%,white_90%,transparent)] pointer-events-none select-none"
