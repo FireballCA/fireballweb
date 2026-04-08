@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCart } from '@/context/CartContext'
-import { buildShopifyCartUrl, fetchProductsFromShopify } from '@/utils/shopifyStorefront'
+import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { supabase } from '@/lib/supabase'
 import { XP_PER_DOLLAR } from '@/utils/supabaseXp'
 import type { Product } from '@/data/products'
@@ -39,6 +39,7 @@ export function Cart() {
 
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [isPartner, setIsPartner] = useState(false)
   const [favoriteSlugs, setFavoriteSlugs] = useState<string[]>([])
   const [productsLoading, setProductsLoading] = useState(true)
   const [allShopProducts, setAllShopProducts] = useState<Product[]>([])
@@ -46,14 +47,30 @@ export function Cart() {
   const clipCheckout = useClipRevealHover()
 
   useEffect(() => {
+    const refreshUserState = async () => {
+      const { data } = await supabase.auth.getUser()
+      const currentUser = data.user
+      setUserId(currentUser?.id ?? null)
+      if (!currentUser?.id) {
+        setIsPartner(false)
+        return
+      }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role,partner_status')
+        .eq('id', currentUser.id)
+        .maybeSingle()
+      const role = String(profile?.role || '').toLowerCase()
+      const partnerStatus = String(profile?.partner_status || '').toLowerCase()
+      setIsPartner(role === 'partner' || partnerStatus === 'partner')
+    }
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id ?? null)
+    } = supabase.auth.onAuthStateChange(() => {
+      void refreshUserState()
     })
-    void supabase.auth.getUser().then(({ data }) => {
-      setUserId(data.user?.id ?? null)
-    })
+    void refreshUserState()
     return () => subscription.unsubscribe()
   }, [])
 
@@ -108,9 +125,10 @@ export function Cart() {
     const source = allShopProducts.length ? allShopProducts : PRODUCTS
     return source
       .filter((p) => p.price > 0 && !cartProductSlugs.has(p.slug))
+      .filter((p) => !p.partnerOnly || isPartner)
       .sort((a, b) => a.price - b.price)
       .slice(0, 10)
-  }, [allShopProducts, cartProductSlugs])
+  }, [allShopProducts, cartProductSlugs, isPartner])
 
   const emptyCtaCategories = useMemo(
     () =>
@@ -133,7 +151,7 @@ export function Cart() {
     return () => window.clearInterval(timer)
   }, [items.length, emptyCtaCategories.length])
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     setCheckoutMessage(null)
 
     if (items.length === 0) {
@@ -141,18 +159,38 @@ export function Cart() {
       return
     }
 
-    const url = buildShopifyCartUrl(
-      items.map(({ product, quantity }) => ({
-        shopifyVariantId: product.shopifyVariantId,
-        quantity,
-      })),
-    )
+    const lines = items.map(({ product, quantity }) => ({
+      shopifyVariantId: product.shopifyVariantId,
+      quantity,
+    }))
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-    if (!url) {
+    const response = await fetch('/api/shopify-secure-cart', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      },
+      body: JSON.stringify({ lines }),
+    })
+    const payload = await response.json().catch(() => null)
+
+    if (!response.ok) {
+      if (payload?.code === 'PARTNER_REQUIRED') {
+        setCheckoutMessage('Access restricted: join Fireball to buy this product.')
+        return
+      }
       setCheckoutMessage(t('cart.checkoutSoon'))
       return
     }
 
+    const url = typeof payload?.checkoutUrl === 'string' ? payload.checkoutUrl : ''
+    if (!url) {
+      setCheckoutMessage(t('cart.checkoutSoon'))
+      return
+    }
     window.location.href = url
   }
 

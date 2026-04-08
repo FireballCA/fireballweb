@@ -92,11 +92,11 @@ export function PressKit() {
                 </div>
 
                 <div className="flex flex-col">
-                  <div className="flex-1 flex items-center justify-center bg-carbon-100 min-h-[160px] px-8 select-none">
+                <div className="flex-1 flex items-center justify-center bg-carbon-100 min-h-[160px] px-8 select-none">
                     <img
                       src="/Assets/BrandKIT/Full Logo/Full Logo/White/RBG (For Digital)/Logo_Reverse.svg"
                       alt="Fireball Logo – reverse for imagery"
-                      className="max-h-20 w-auto pointer-events-none"
+                    className="max-h-20 w-auto pointer-events-none invert"
                     />
                   </div>
                   <div className="flex items-center justify-between px-4 py-3 border-t border-carbon-900/10 text-[11px]">

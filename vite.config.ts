@@ -11,6 +11,8 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
     env.SHOPIFY_STOREFRONT_API_VERSION || env.VITE_SHOPIFY_STOREFRONT_API_VERSION || '2024-10'
   const shopifyAdminApiToken = env.SHOPIFY_ADMIN_API_TOKEN || ''
   const shopifyApiVersion = env.SHOPIFY_ADMIN_API_VERSION || '2024-10'
+  const supabaseUrl = env.SUPABASE_URL || ''
+  const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY || ''
   const resendApiKey = env.RESEND_API_KEY || env.RESEND_KEY || ''
   const cleanInline = (value: unknown): string => String(value || '').replace(/[\r\n]+/g, '').trim()
   const toResendTagToken = (value: unknown, fallback = 'unknown'): string => {
@@ -124,6 +126,149 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
           res.end(
             JSON.stringify({
               error: 'Shopify Storefront proxy failed',
+              details: error instanceof Error ? error.message : 'Unknown error',
+            }),
+          )
+        }
+      })
+
+      server.middlewares.use('/api/shopify-secure-cart', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Method not allowed' }))
+          return
+        }
+
+        if (!shopifyStoreUrl || !shopifyStorefrontToken) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Missing Shopify Storefront server configuration.' }))
+          return
+        }
+
+        try {
+          const body = (await readJsonBody(req)) as { lines?: Array<{ shopifyVariantId?: string; quantity?: number }> }
+          const lines = Array.isArray(body.lines)
+            ? body.lines
+                .map((line) => ({
+                  shopifyVariantId: String(line?.shopifyVariantId || ''),
+                  quantity: Number(line?.quantity || 0),
+                }))
+                .filter((line) => line.shopifyVariantId && Number.isFinite(line.quantity) && line.quantity > 0)
+            : []
+
+          if (!lines.length) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: 'Cart is empty or invalid' }))
+            return
+          }
+
+          let isPartner = false
+          const authHeader = String(req.headers.authorization || '')
+          const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
+          if (token && supabaseUrl && supabaseServiceRoleKey) {
+            const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+              method: 'GET',
+              headers: {
+                apikey: supabaseServiceRoleKey,
+                Authorization: `Bearer ${token}`,
+              },
+            })
+            const userJson = (await userRes.json().catch(() => null)) as any
+            const uid = typeof userJson?.id === 'string' ? userJson.id : ''
+            if (uid) {
+              const profileRes = await fetch(
+                `${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(uid)}&select=role,partner_status&limit=1`,
+                {
+                  method: 'GET',
+                  headers: {
+                    apikey: supabaseServiceRoleKey,
+                    Authorization: `Bearer ${supabaseServiceRoleKey}`,
+                  },
+                },
+              )
+              const profileJson = (await profileRes.json().catch(() => [])) as any[]
+              const profile = Array.isArray(profileJson) ? profileJson[0] : null
+              const role = String(profile?.role || '').toLowerCase()
+              const partnerStatus = String(profile?.partner_status || '').toLowerCase()
+              isPartner = role === 'partner' || partnerStatus === 'partner'
+            }
+          }
+
+          const normalizedStoreUrl = shopifyStoreUrl.startsWith('http')
+            ? shopifyStoreUrl
+            : `https://${shopifyStoreUrl}`
+          const endpoint = `${normalizedStoreUrl}/api/${shopifyStorefrontApiVersion}/graphql.json`
+          const variantQuery = `
+            query VariantAccess($id: ID!) {
+              node(id: $id) {
+                ... on ProductVariant {
+                  id
+                  product { tags }
+                }
+              }
+            }
+          `
+          const restrictedTags = new Set(['partner-only', 'installer-only', 'installer', 'partner'])
+
+          for (const line of lines) {
+            const sfResponse = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Shopify-Storefront-Access-Token': shopifyStorefrontToken,
+              },
+              body: JSON.stringify({ query: variantQuery, variables: { id: line.shopifyVariantId } }),
+            })
+            const payload = (await sfResponse.json().catch(() => null)) as any
+            const tags = Array.isArray(payload?.data?.node?.product?.tags) ? payload.data.node.product.tags : []
+            const isRestricted = tags.some((tag: unknown) =>
+              restrictedTags.has(String(tag || '').toLowerCase().trim()),
+            )
+            if (isRestricted && !isPartner) {
+              res.statusCode = 403
+              res.setHeader('Content-Type', 'application/json')
+              res.end(
+                JSON.stringify({
+                  error: 'Access denied for restricted product',
+                  code: 'PARTNER_REQUIRED',
+                  redirectTo: '/join-fireball',
+                }),
+              )
+              return
+            }
+          }
+
+          const encoded = lines
+            .map((line) => {
+              const numericId = line.shopifyVariantId.split('/').pop()
+              if (!numericId) return null
+              return `${numericId}:${line.quantity}`
+            })
+            .filter(Boolean)
+
+          if (!encoded.length) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: 'No valid Shopify variants in cart' }))
+            return
+          }
+
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              checkoutUrl: `${normalizedStoreUrl.replace(/\/+$/, '')}/cart/${encoded.join(',')}`,
+            }),
+          )
+        } catch (error) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              error: 'Secure checkout validation failed',
               details: error instanceof Error ? error.message : 'Unknown error',
             }),
           )

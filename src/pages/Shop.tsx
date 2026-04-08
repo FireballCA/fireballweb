@@ -2,10 +2,11 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CATEGORIES, type CategoryId, type Product } from '@/data/products'
-import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
+import { fetchProductsFromShopify, prefetchProductBySlug } from '@/utils/shopifyStorefront'
 import { LiquidGlassSelect } from '@/components/LiquidGlassSelect'
 import { getCurrentUserProfile } from '@/utils/supabaseAuth'
 import { FireballLoading } from '@/components/FireballLoading'
+import { ProductCardSkeleton } from '@/components/ui/ProductCardSkeleton'
 
 export function Shop() {
   const { t } = useTranslation()
@@ -481,9 +482,12 @@ export function Shop() {
         )}
 
         {loading ? (
-        <div className="py-24">
-          <FireballLoading fullScreen={false} backgroundClassName="bg-transparent" size={56} />
-          <p className="mt-4 text-center text-carbon-600">{t('shop.loading')}</p>
+        <div className="py-10 sm:py-14">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-8">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
         </div>
       ) : error ? (
         <div className="text-center py-24">
@@ -551,6 +555,9 @@ export function Shop() {
                 key={product.id}
                 to={`/product/${product.slug}`}
                 className="group min-w-0"
+                onMouseEnter={() => { void prefetchProductBySlug(product.slug) }}
+                onFocus={() => { void prefetchProductBySlug(product.slug) }}
+                onClick={() => { void prefetchProductBySlug(product.slug) }}
               >
                 {/* Image réduite avec coins arrondis */}
                 <div className="aspect-square overflow-hidden rounded-lg mb-3">
