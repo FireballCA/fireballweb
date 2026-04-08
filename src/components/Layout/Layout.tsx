@@ -11,16 +11,16 @@ export function Layout() {
   const location = useLocation()
   const reduceMotion = useReducedMotion()
   const [showIntro, setShowIntro] = useState(false)
-  const hasShownIntroRef = useRef(false)
 
-  // Intro: afficher une seule fois par chargement d'app (réapparaît après un hard refresh)
+	// Intro mobile: afficher uniquement sur arrivée/refresh initial sur la landing ('/') et uniquement sur mobile
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (!hasShownIntroRef.current && location.pathname === '/' && !reduceMotion) {
-      setShowIntro(true)
-      hasShownIntroRef.current = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+		const isMobile = window.matchMedia?.('(max-width: 767px)').matches ?? false
+		if (location.pathname === '/' && isMobile && !reduceMotion) {
+			setShowIntro(true)
+		}
+		// Ne pas redéclencher lors des navigations internes
+		// eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const isAccountAuthPage =
     location.pathname === '/compte' ||

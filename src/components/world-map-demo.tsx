@@ -94,8 +94,8 @@ export default function WorldMapDemo() {
   ]
 
   return (
-    <div className="w-full">
-      <WorldMap dots={[]} highlightPoints={installerApproxPoints} lineColor="#d9242f" />
+		<div className="w-full h-full">
+			<WorldMap dots={[]} highlightPoints={installerApproxPoints} lineColor="#d9242f" fit="fill" />
     </div>
   )
 }

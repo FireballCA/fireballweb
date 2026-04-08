@@ -32,55 +32,6 @@ function CtaLink({
   )
 }
 
-/** Même pattern que « Explore Products » (hero) : `button` + clip pour que le cercle suive la souris. */
-function SecondaryClipButton({ href, label }: { href: string; label: string }) {
-  const navigate = useNavigate()
-  const clip = useClipRevealHover()
-  const active = clip.active
-
-  const handleClick = () => {
-    if (isExternalHref(href)) {
-      window.location.assign(href)
-    } else {
-      navigate(href)
-    }
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handleClick}
-      aria-label={label}
-      onPointerEnter={clip.onPointerEnter}
-      onPointerMove={clip.onPointerMove}
-      onPointerLeave={clip.onPointerLeave}
-      onFocus={clip.onFocus}
-      onBlur={clip.onBlur}
-      style={clip.cssVars}
-      className="relative inline-flex min-w-[12rem] cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-white/[0.12] bg-transparent px-8 py-2.5 text-center font-nav text-sm font-bold uppercase outline-none [-webkit-tap-highlight-color:transparent] transition-[border-color,color] duration-500 ease-out hover:border-white/25 focus:outline-none focus-visible:outline-none motion-reduce:transition-none"
-    >
-      <span
-        className="pointer-events-none absolute inset-0 z-0 bg-white"
-        style={{
-          clipPath: `circle(${active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-          WebkitClipPath: `circle(${active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-          transition:
-            'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
-          willChange: 'clip-path',
-        }}
-        aria-hidden
-      />
-      <span
-        className={`relative z-10 transition-colors duration-500 motion-reduce:duration-200 ${
-          active ? 'text-black' : 'text-pearl'
-        }`}
-      >
-        {label}
-      </span>
-    </button>
-  )
-}
-
 type Props = {
   config: HomeCollectionResolved
 }
@@ -89,7 +40,7 @@ export function HomeCollectionSection({ config }: Props) {
   const { eyebrow, headline, description, image, href, button1Label, button1Href, button2Label, button2Href } =
     config
 
-  const showButton2 = Boolean(button2Label?.trim())
+  const primaryHref = (button1Href && button1Href.trim()) || href
 
   return (
     <section
@@ -126,8 +77,13 @@ export function HomeCollectionSection({ config }: Props) {
             {description}
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <SecondaryClipButton href={button1Href} label={button1Label} />
-            {showButton2 ? <SecondaryClipButton href={button2Href} label={button2Label} /> : null}
+            <CtaLink
+              href={primaryHref}
+              className="inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] px-5 py-2 text-xs font-semibold text-white hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
+              aria-label="Explore the Drop"
+            >
+              <span>Explore the Drop</span>
+            </CtaLink>
           </div>
         </div>
       </div>
