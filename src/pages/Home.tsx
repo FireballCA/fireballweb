@@ -310,7 +310,7 @@ export function Home() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/20 to-black/10" aria-hidden />
 
                   <div className="absolute inset-x-0 bottom-0 z-10 p-5 sm:p-6">
-                    <h3 className="font-nav text-3xl sm:text-4xl font-bold text-white">{nextEvent.title}</h3>
+                  <h3 className="font-nav text-4xl sm:text-4xl font-bold text-white">{nextEvent.title}</h3>
                     <p className="mt-1 text-white/80">{nextEvent.location}</p>
                     <div className="mt-5">
                       <Link
@@ -347,12 +347,32 @@ export function Home() {
                         </span>
                       </Link>
                     </div>
-                    <div className="pointer-events-auto absolute right-5 bottom-5 sm:right-6 sm:bottom-6">
+                  <div className="pointer-events-auto absolute right-5 bottom-5 sm:right-6 sm:bottom-6 flex items-center gap-2">
+                    {/* Mobile: bouton rond bleu d'icône calendrier */}
+                    <button
+                      type="button"
+                      onClick={() => setCalendarMenuOpen((prev) => !prev)}
+                      aria-label="Open calendar menu"
+                      className="sm:hidden inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] text-white h-[42px] w-[42px] hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <path d="M8 2v4"/>
+                        <path d="M16 2v4"/>
+                        <rect width="18" height="18" x="3" y="4" rx="2"/>
+                        <path d="M3 10h18"/>
+                        <path d="M8 14h.01"/>
+                        <path d="M12 14h.01"/>
+                        <path d="M16 14h.01"/>
+                        <path d="M8 18h.01"/>
+                        <path d="M12 18h.01"/>
+                        <path d="M16 18h.01"/>
+                      </svg>
+                    </button>
                       <div ref={calendarMenuRef} className="relative">
                         <button
                           type="button"
                           onClick={() => setCalendarMenuOpen((prev) => !prev)}
-                          className="inline-flex items-center gap-2.5 rounded-full border border-[#0485F7] bg-[#0485F7] px-4 py-2 text-xs font-semibold text-white hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
+                        className="hidden sm:inline-flex items-center gap-2.5 rounded-full border border-[#0485F7] bg-[#0485F7] px-4 py-2 text-xs font-semibold text-white hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
                         >
                           <span>Add to calendar</span>
                         </button>
@@ -420,7 +440,7 @@ export function Home() {
             </div>
             <div className="mx-auto mt-8 max-w-7xl px-4 md:px-6">
               <div className="overflow-hidden rounded-2xl bg-carbon-900">
-                <div className="h-[360px] w-full p-2 md:h-[460px]">
+                <div className="h-[240px] w-full p-2 md:h-[460px]">
                   <WorldMapDemo />
                 </div>
               </div>
