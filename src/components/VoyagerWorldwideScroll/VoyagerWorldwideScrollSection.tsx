@@ -10,7 +10,6 @@ import type Lenis from 'lenis'
 import { VoyagerCoatingsSlider, type VoyagerSlide } from '@/components/VoyagerCoatingsSlider/VoyagerCoatingsSlider'
 import { LenisContext } from '@/components/LenisRoot'
 
-const STORAGE_KEY = 'fireball:voyager-parallax-done'
 /** Hauteur de scroll « consommée » pour le chapitre (sticky + parallax + zoom) */
 const CHAPTER_VH = 3.15
 
@@ -47,15 +46,11 @@ export function VoyagerWorldwideScrollSection({
 
   const [parallaxConsumed, setParallaxConsumed] = useState(() => {
     if (typeof window === 'undefined') return true
-    // Désactiver l'effet parallax sur mobile
+    // Mobile: parallax désactivé. Desktop: parallax toujours actif à chaque visite (pas de mémorisation).
     const isMobile = window.matchMedia?.('(max-width: 767px)').matches ?? false
     if (isMobile) return true
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true
-    try {
-      return sessionStorage.getItem(STORAGE_KEY) === '1'
-    } catch {
-      return false
-    }
+    return false
   })
 
   const [activeIndex, setActiveIndex] = useState(0)
@@ -108,18 +103,14 @@ export function VoyagerWorldwideScrollSection({
   }, [lenis, parallaxConsumed, updateProgress])
 
   useEffect(() => {
+    // Sur desktop, on conserve le parallax actif à chaque visite; on ne « consomme » plus la section.
+    // On garde néanmoins l'ajustement du scroll final si besoin lors de la première lecture.
     if (parallaxConsumed || completeRef.current) return
     if (progress < 0.97) return
     const el = wrapperRef.current
     if (!el) return
     completeRef.current = true
     const oldH = el.getBoundingClientRect().height
-    try {
-      sessionStorage.setItem(STORAGE_KEY, '1')
-    } catch {
-      /* ignore */
-    }
-    setParallaxConsumed(true)
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const w2 = wrapperRef.current

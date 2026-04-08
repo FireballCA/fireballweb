@@ -262,6 +262,8 @@ export function VoyagerCoatingsSlider({ slides, className = '', onActiveChange }
         const gpu = { force3D: true, overwrite: 'auto' as const }
 
         if (dir === 'next') {
+          // Empêcher l'image entrante (droite) d'apparaître « déjà là » avant l'anim
+          gsap.set(right, { autoAlpha: 0 })
           tl.to(
             left,
             {
@@ -293,6 +295,7 @@ export function VoyagerCoatingsSlider({ slides, className = '', onActiveChange }
           tl.to(
             right,
             {
+              autoAlpha: 1,
               x: 0,
               rotationY: 0,
               scale: 1,
@@ -306,6 +309,8 @@ export function VoyagerCoatingsSlider({ slides, className = '', onActiveChange }
             0,
           )
         } else {
+          // Empêcher l'image entrante (gauche) d'apparaître « déjà là » avant l'anim
+          gsap.set(left, { autoAlpha: 0 })
           tl.to(
             right,
             {
@@ -337,6 +342,7 @@ export function VoyagerCoatingsSlider({ slides, className = '', onActiveChange }
           tl.to(
             left,
             {
+              autoAlpha: 1,
               x: 0,
               rotationY: 0,
               scale: 1,
