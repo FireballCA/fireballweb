@@ -130,6 +130,27 @@ export function VoyagerWorldwideScrollSection({
   const slide = slides[activeIndex] ?? slides[0]
   const img = slide?.image ?? ''
 
+  // Crossfade desktop: fond change en fondu quand le slide actif change (effet rotation plus fluide).
+  const [bgUrl, setBgUrl] = useState<string>(img)
+  const [prevBgUrl, setPrevBgUrl] = useState<string | null>(null)
+  const [showNewBg, setShowNewBg] = useState(true)
+  useEffect(() => {
+    if (!img) return
+    if (img === bgUrl) return
+    setPrevBgUrl(bgUrl)
+    setBgUrl(img)
+    setShowNewBg(false)
+    // Laisser le temps au DOM de peindre avant de lancer la transition d'opacité
+    const id = requestAnimationFrame(() => setShowNewBg(true))
+    const to = window.setTimeout(() => {
+      setPrevBgUrl(null)
+    }, 380)
+    return () => {
+      cancelAnimationFrame(id)
+      window.clearTimeout(to)
+    }
+  }, [img, bgUrl])
+
   const titleY = -progress * 56
   const subY = -progress * 36
   const sliderY = progress * 28
@@ -203,7 +224,7 @@ export function VoyagerWorldwideScrollSection({
           </div>
         </div>
 
-        {showChapter && img ? (
+        {showChapter && (bgUrl || prevBgUrl) ? (
           <div
             className="pointer-events-none fixed inset-0 z-[24]"
             style={{
@@ -212,17 +233,35 @@ export function VoyagerWorldwideScrollSection({
             }}
             aria-hidden
           >
-            <img
-              src={img}
-              alt=""
-              className="h-full w-full object-cover"
-              style={{
-                transform: `scale(${fsScale})`,
-                transformOrigin: '50% 45%',
-                willChange: 'transform',
-              }}
-              draggable={false}
-            />
+            {/* Ancienne image (au-dessus), qui s'efface */}
+            {prevBgUrl ? (
+              <img
+                src={prevBgUrl}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{
+                  opacity: showNewBg ? 0 : 1,
+                  transition: 'opacity 360ms cubic-bezier(0.22,1,0.36,1)',
+                }}
+                draggable={false}
+              />
+            ) : null}
+            {/* Nouvelle image (en dessous), qui apparaît */}
+            {bgUrl ? (
+              <img
+                src={bgUrl}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{
+                  transform: `scale(${fsScale})`,
+                  transformOrigin: '50% 45%',
+                  willChange: 'transform',
+                  opacity: showNewBg ? 1 : 0,
+                  transition: 'opacity 360ms cubic-bezier(0.22,1,0.36,1)',
+                }}
+                draggable={false}
+              />
+            ) : null}
             <div
               className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent"
               aria-hidden
