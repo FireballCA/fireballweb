@@ -279,7 +279,7 @@ export function Home() {
           <section className="bg-white py-16 sm:py-20">
             <div className="mx-auto max-w-7xl px-4 md:px-6">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-                <h2 className="font-sans text-2xl font-bold tracking-tight text-carbon-900 md:text-5xl">
+                <h2 className="font-sans text-3xl font-bold tracking-tight text-carbon-900 md:text-5xl">
                   Our next events
                 </h2>
                 <div className="flex items-center gap-4 sm:gap-6 text-carbon-900">
@@ -348,27 +348,27 @@ export function Home() {
                       </Link>
                     </div>
                   <div className="pointer-events-auto absolute right-5 bottom-5 sm:right-6 sm:bottom-6 flex items-center gap-2">
-                    {/* Mobile: bouton rond bleu d'icône calendrier */}
-                    <button
-                      type="button"
-                      onClick={() => setCalendarMenuOpen((prev) => !prev)}
-                      aria-label="Open calendar menu"
-                      className="sm:hidden inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] text-white h-[42px] w-[42px] hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <path d="M8 2v4"/>
-                        <path d="M16 2v4"/>
-                        <rect width="18" height="18" x="3" y="4" rx="2"/>
-                        <path d="M3 10h18"/>
-                        <path d="M8 14h.01"/>
-                        <path d="M12 14h.01"/>
-                        <path d="M16 14h.01"/>
-                        <path d="M8 18h.01"/>
-                        <path d="M12 18h.01"/>
-                        <path d="M16 18h.01"/>
-                      </svg>
-                    </button>
-                      <div ref={calendarMenuRef} className="relative">
+                    <div ref={calendarMenuRef} className="relative flex items-center gap-2">
+                      {/* Mobile: bouton rond bleu d'icône calendrier (dans le même conteneur que le menu) */}
+                      <button
+                        type="button"
+                        onClick={() => setCalendarMenuOpen((prev) => !prev)}
+                        aria-label="Open calendar menu"
+                        className="sm:hidden inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] text-white h-[42px] w-[42px] hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M8 2v4"/>
+                          <path d="M16 2v4"/>
+                          <rect width="18" height="18" x="3" y="4" rx="2"/>
+                          <path d="M3 10h18"/>
+                          <path d="M8 14h.01"/>
+                          <path d="M12 14h.01"/>
+                          <path d="M16 14h.01"/>
+                          <path d="M8 18h.01"/>
+                          <path d="M12 18h.01"/>
+                          <path d="M16 18h.01"/>
+                        </svg>
+                      </button>
                         <button
                           type="button"
                           onClick={() => setCalendarMenuOpen((prev) => !prev)}
@@ -378,7 +378,7 @@ export function Home() {
                         </button>
 
                         {calendarMenuOpen && (
-                          <div className="absolute right-0 bottom-[calc(100%+0.5rem)] w-[320px] rounded-xl border border-white/20 bg-[#0f1218] p-2 shadow-2xl">
+                        <div className="absolute right-0 bottom-[calc(100%+0.5rem)] w-[320px] rounded-xl border border-white/20 bg-[#0f1218] p-2 shadow-2xl">
                             <a
                               href={appleCalendarUrl}
                               download="fireball-event.ics"
