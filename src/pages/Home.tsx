@@ -312,7 +312,8 @@ export function Home() {
                   <div className="absolute inset-x-0 bottom-0 z-10 p-5 sm:p-6">
                   <h3 className="font-nav text-4xl sm:text-4xl font-bold text-white">{nextEvent.title}</h3>
                     <p className="mt-1 text-white/80">{nextEvent.location}</p>
-                    <div className="mt-5">
+                  <div className="mt-5">
+                    <div className="inline-flex items-center gap-2 relative">
                       <Link
                         to={nextEvent.href}
                         onPointerEnter={(e) => {
@@ -346,15 +347,26 @@ export function Home() {
                           See event details
                         </span>
                       </Link>
+
+                      {/* Bouton desktop: texte */}
+                      <button
+                        type="button"
+                        onClick={() => setCalendarMenuOpen((prev) => !prev)}
+                        className="hidden sm:inline-flex items-center gap-2.5 rounded-full border border-[#0485F7] bg-[#0485F7] px-4 py-2 text-xs font-semibold text-white hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
+                      >
+                        <span>Add to calendar</span>
+                      </button>
                     </div>
-                  <div className="pointer-events-auto absolute right-5 bottom-5 sm:right-6 sm:bottom-6 flex items-center gap-2">
-                    <div ref={calendarMenuRef} className="relative flex items-center gap-2">
-                      {/* Mobile: bouton rond bleu d'icône calendrier (dans le même conteneur que le menu) */}
+                    </div>
+
+                  {/* Mobile: bouton icône calendrier en coin opposé (droite) avec menu */}
+                  <div className="sm:hidden pointer-events-auto absolute right-5 bottom-5 z-20">
+                    <div ref={calendarMenuRef} className="relative">
                       <button
                         type="button"
                         onClick={() => setCalendarMenuOpen((prev) => !prev)}
                         aria-label="Open calendar menu"
-                        className="sm:hidden inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] text-white h-[42px] w-[42px] hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
+                        className="inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] text-white h-[42px] w-[42px] hover:bg-[#3592F9] hover:border-[#3592F9] shadow-lg transition-colors"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                           <path d="M8 2v4"/>
@@ -369,52 +381,45 @@ export function Home() {
                           <path d="M16 18h.01"/>
                         </svg>
                       </button>
-                        <button
-                          type="button"
-                          onClick={() => setCalendarMenuOpen((prev) => !prev)}
-                        className="hidden sm:inline-flex items-center gap-2.5 rounded-full border border-[#0485F7] bg-[#0485F7] px-4 py-2 text-xs font-semibold text-white hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
-                        >
-                          <span>Add to calendar</span>
-                        </button>
 
-                        {calendarMenuOpen && (
+                      {calendarMenuOpen && (
                         <div className="absolute right-0 bottom-[calc(100%+0.5rem)] w-[320px] rounded-xl border border-white/20 bg-[#0f1218] p-2 shadow-2xl">
-                            <a
-                              href={appleCalendarUrl}
-                              download="fireball-event.ics"
-                              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
-                            >
-                              <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
-                                <path fill="currentColor" d={siApple.path} />
-                              </svg>
-                              <span>Open Apple Calendar</span>
-                            </a>
-                            <a
-                              href={googleCalendarUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
-                            >
-                              <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
-                                <path fill="currentColor" d={siGoogle.path} />
-                              </svg>
-                              <span>Open Google Calendar</span>
-                            </a>
-                            <a
-                              href={samsungCalendarUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
-                            >
-                              <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
-                                <path fill="currentColor" d={siAndroid.path} />
-                              </svg>
-                              <span>Open Samsung Calendar</span>
-                            </a>
-                          </div>
-                        )}
-                      </div>
+                          <a
+                            href={appleCalendarUrl}
+                            download="fireball-event.ics"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                          >
+                            <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
+                              <path fill="currentColor" d={siApple.path} />
+                            </svg>
+                            <span>Open Apple Calendar</span>
+                          </a>
+                          <a
+                            href={googleCalendarUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                          >
+                            <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
+                              <path fill="currentColor" d={siGoogle.path} />
+                            </svg>
+                            <span>Open Google Calendar</span>
+                          </a>
+                          <a
+                            href={samsungCalendarUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                          >
+                            <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
+                              <path fill="currentColor" d={siAndroid.path} />
+                            </svg>
+                            <span>Open Samsung Calendar</span>
+                          </a>
+                        </div>
+                      )}
                     </div>
+                  </div>
                   </div>
                 </div>
               </div>
