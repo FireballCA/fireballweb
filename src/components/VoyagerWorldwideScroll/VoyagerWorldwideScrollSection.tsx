@@ -47,6 +47,9 @@ export function VoyagerWorldwideScrollSection({
 
   const [parallaxConsumed, setParallaxConsumed] = useState(() => {
     if (typeof window === 'undefined') return true
+    // Désactiver l'effet parallax sur mobile
+    const isMobile = window.matchMedia?.('(max-width: 767px)').matches ?? false
+    if (isMobile) return true
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true
     try {
       return sessionStorage.getItem(STORAGE_KEY) === '1'
@@ -176,20 +179,20 @@ export function VoyagerWorldwideScrollSection({
           <div className="mx-auto w-full max-w-7xl px-6">
             <p
               className="mb-2 text-center font-nav text-[11px] font-semibold uppercase tracking-[0.22em] text-carbon-500 md:mb-3 md:text-xs"
-              style={{ transform: `translate3d(0, ${titleY}px, 0)` }}
+              style={showChapter ? { transform: `translate3d(0, ${titleY}px, 0)` } : undefined}
             >
               {eyebrow}
             </p>
             <h2
               id="trusted-worldwide-heading"
               className="text-center font-nav text-3xl font-black uppercase tracking-tight text-carbon-950 sm:text-4xl md:text-5xl"
-              style={{ transform: `translate3d(0, ${titleY * 0.85}px, 0)` }}
+              style={showChapter ? { transform: `translate3d(0, ${titleY * 0.85}px, 0)` } : undefined}
             >
               {heading}
             </h2>
             <p
               className="mx-auto mt-4 max-w-2xl text-center text-base leading-relaxed text-carbon-600 md:mt-5 md:text-lg"
-              style={{ transform: `translate3d(0, ${subY}px, 0)` }}
+              style={showChapter ? { transform: `translate3d(0, ${subY}px, 0)` } : undefined}
             >
               {description}
             </p>
@@ -198,7 +201,7 @@ export function VoyagerWorldwideScrollSection({
           <div
             className="relative z-20 mt-10 flex min-h-0 flex-1 flex-col md:mt-12"
             style={{
-              transform: `translate3d(0, ${sliderY}px, 0)`,
+              transform: showChapter ? `translate3d(0, ${sliderY}px, 0)` : undefined,
               opacity: showChapter ? Math.max(0.35, sliderFade) : 1,
               pointerEvents: showChapter && overlayOpacity > 0.42 ? 'none' : 'auto',
             }}

@@ -5,23 +5,11 @@ import { LineupImageTransitionProvider } from '@/context/LineupImageTransitionCo
 import { Header } from './Header'
 import { Footer } from './Footer'
 import { isShopPathname } from '@/utils/shopRoutes'
-import { IntroOverlay } from '@/components/IntroOverlay'
 
 export function Layout() {
   const location = useLocation()
   const reduceMotion = useReducedMotion()
-  const [showIntro, setShowIntro] = useState(false)
 
-	// Intro mobile: afficher uniquement sur arrivée/refresh initial sur la landing ('/') et uniquement sur mobile
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-		const isMobile = window.matchMedia?.('(max-width: 767px)').matches ?? false
-		if (location.pathname === '/' && isMobile && !reduceMotion) {
-			setShowIntro(true)
-		}
-		// Ne pas redéclencher lors des navigations internes
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
   const isAccountAuthPage =
     location.pathname === '/compte' ||
     location.pathname === '/account' ||
@@ -64,7 +52,6 @@ export function Layout() {
         .filter(Boolean)
         .join(' ')}
     >
-      {showIntro && <IntroOverlay onDone={() => setShowIntro(false)} />}
       {showHeader && <Header />}
       <main
         className={[
