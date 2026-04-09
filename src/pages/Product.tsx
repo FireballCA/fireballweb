@@ -14,7 +14,6 @@ import { FavoritePromptModal } from '@/components/FavoritePromptModal'
 import { productDetailPath, shopCategoryPath } from '@/constants/paths'
 import { getProductPageContent } from '@/data/productPageContent'
 import { supabase } from '@/lib/supabase'
-import { AnimatedNumber } from '@/components/ui/animated-number'
 import { FireballLoading } from '@/components/FireballLoading'
 import { ProductDetailSkeleton } from '@/components/ui/ProductDetailSkeleton'
 import { useClipRevealHover, CLIP_REVEAL_BUTTON_BASE_CLASS } from '@/hooks/useClipRevealHover'
@@ -102,6 +101,7 @@ export function Product() {
   const [openAccordion, setOpenAccordion] = useState<'description' | 'why' | 'howToUse' | null>('description')
   const [adminEditorOpen, setAdminEditorOpen] = useState(false)
   const [showStickyBar, setShowStickyBar] = useState(false)
+  const [showMobileStickyBar, setShowMobileStickyBar] = useState(false)
   const [navbarWidth, setNavbarWidth] = useState(0)
   const [shippingProgressAnimated, setShippingProgressAnimated] = useState(false)
   const galleryRef = useRef<HTMLDivElement>(null)
@@ -369,6 +369,30 @@ export function Product() {
       window.removeEventListener('scroll', handleScroll)
     }
   }, [])
+
+  // Mobile: afficher la barre sticky uniquement quand le CTA principal est hors écran
+  useEffect(() => {
+    const ctaNode = ctaButtonsRef.current
+    if (!ctaNode) {
+      setShowMobileStickyBar(false)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowMobileStickyBar(!entry.isIntersecting)
+      },
+      {
+        threshold: 0.25,
+      },
+    )
+
+    observer.observe(ctaNode)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [product])
 
   // Trouver la variante correspondant aux options sélectionnées
   const currentVariant = product?.variants?.find((v) => {
@@ -1456,7 +1480,7 @@ export function Product() {
                   ? 'cursor-not-allowed border-carbon-700 bg-carbon-800 text-carbon-500'
                   : added
                     ? 'border-transparent bg-carbon-600 text-white'
-                    : CLIP_REVEAL_BUTTON_BASE_CLASS
+                    : 'border-[#0485F7] bg-[#0485F7] text-white hover:border-[#3592F9] hover:bg-[#3592F9]'
               }`}
               style={
                 currentVariant && !currentVariant.availableForSale
@@ -1466,32 +1490,16 @@ export function Product() {
                     : clipAddSticky.cssVars
               }
             >
-              {!added && !(currentVariant && !currentVariant.availableForSale) && (
-                <span
-                  className="pointer-events-none absolute -inset-px z-0 rounded-full"
-                  style={{
-                    backgroundColor: '#ffffff',
-                    clipPath: `circle(${clipAddSticky.active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                    WebkitClipPath: `circle(${clipAddSticky.active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                    transition:
-                      'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
-                    willChange: 'clip-path',
-                  }}
-                  aria-hidden
-                />
-              )}
               <span
                 className={`relative z-10 ${
                   currentVariant && !currentVariant.availableForSale
                     ? ''
                     : added
                       ? 'text-white'
-                      : clipAddSticky.hover
-                        ? 'text-black'
                         : 'text-white'
                 }`}
               >
-                {added ? `✓ ${t('product.addedToCart')}` : t('product.addToCart')}
+                {added ? `✓ ${t('product.addedToCart')}` : 'Purchase'}
               </span>
             </button>
           </div>
@@ -1582,15 +1590,16 @@ export function Product() {
       {favoriteModal}
 
       {/* Sticky Add to Cart Mobile */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-carbon-200 p-4 z-50 shadow-lg">
+      <div
+        className={`lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-carbon-200 p-4 z-50 shadow-lg transform-gpu transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          showMobileStickyBar ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+        }`}
+      >
         <div className="max-w-7xl mx-auto flex gap-3">
           <div className="flex-1">
-            <p className="text-xs text-carbon-500 mb-1">{t('cart.total')}</p>
-            <p className="text-xl font-bold text-carbon-900 flex items-baseline gap-1">
-              <span className="tabular-nums font-mono leading-none">
-                <AnimatedNumber value={displayPrice * quantity} className="leading-none" />
-              </span>
-              <span className="text-xs font-semibold text-carbon-600 leading-none">$CA</span>
+            <p className="text-sm font-semibold text-carbon-900 line-clamp-1">{product.name}</p>
+            <p className="mt-1 text-xs font-medium text-carbon-600">
+              {displayPrice.toFixed(2)} $CA
             </p>
           </div>
           <button
@@ -1627,7 +1636,7 @@ export function Product() {
                 ? 'cursor-not-allowed border-carbon-200 bg-carbon-200 text-carbon-500'
                 : added
                   ? 'border-transparent bg-carbon-600 text-white'
-                  : CLIP_REVEAL_BUTTON_BASE_CLASS
+                  : 'border-[#0485F7] bg-[#0485F7] text-white hover:border-[#3592F9] hover:bg-[#3592F9]'
             }`}
             style={
               currentVariant && !currentVariant.availableForSale
@@ -1637,32 +1646,16 @@ export function Product() {
                   : clipAddMobile.cssVars
             }
           >
-            {!added && !(currentVariant && !currentVariant.availableForSale) && (
-              <span
-                className="pointer-events-none absolute -inset-px z-0 rounded-full"
-                style={{
-                  backgroundColor: '#ffffff',
-                  clipPath: `circle(${clipAddMobile.active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                  WebkitClipPath: `circle(${clipAddMobile.active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                  transition:
-                    'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
-                  willChange: 'clip-path',
-                }}
-                aria-hidden
-              />
-            )}
             <span
               className={`relative z-10 ${
                 currentVariant && !currentVariant.availableForSale
                   ? ''
                   : added
                     ? 'text-white'
-                    : clipAddMobile.hover
-                      ? 'text-black'
                       : 'text-white'
               }`}
             >
-              {added ? `✓ ${t('product.addedToCart')}` : t('product.addToCart')}
+              {added ? `✓ ${t('product.addedToCart')}` : 'Purchase'}
             </span>
           </button>
         </div>

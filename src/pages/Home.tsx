@@ -348,7 +348,12 @@ export function Home() {
                         </span>
                       </Link>
 
-                      {/* Bouton desktop: texte */}
+                    </div>
+                    </div>
+
+                  {/* Bouton calendrier en coin opposé (droite) avec menu */}
+                  <div className="pointer-events-auto absolute right-5 bottom-5 z-20">
+                    <div ref={calendarMenuRef} className="relative">
                       <button
                         type="button"
                         onClick={() => setCalendarMenuOpen((prev) => !prev)}
@@ -356,17 +361,11 @@ export function Home() {
                       >
                         <span>Add to calendar</span>
                       </button>
-                    </div>
-                    </div>
-
-                  {/* Mobile: bouton icône calendrier en coin opposé (droite) avec menu */}
-                  <div className="sm:hidden pointer-events-auto absolute right-5 bottom-5 z-20">
-                    <div ref={calendarMenuRef} className="relative">
                       <button
                         type="button"
                         onClick={() => setCalendarMenuOpen((prev) => !prev)}
                         aria-label="Open calendar menu"
-                        className="inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] text-white h-[42px] w-[42px] hover:bg-[#3592F9] hover:border-[#3592F9] shadow-lg transition-colors"
+                        className="sm:hidden inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] text-white h-[42px] w-[42px] hover:bg-[#3592F9] hover:border-[#3592F9] shadow-lg transition-colors"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                           <path d="M8 2v4"/>
