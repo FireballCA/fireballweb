@@ -66,6 +66,7 @@ export function Home() {
   const eventCtaActive = eventCtaHover || eventCtaFocus
   const [calendarMenuOpen, setCalendarMenuOpen] = useState(false)
   const calendarMenuRef = useRef<HTMLDivElement>(null)
+  const calendarMenuMobileRef = useRef<HTMLDivElement>(null)
   const nextEvent = {
     title: 'Fireball After Party',
     location: 'Saint-Hyacinthe, QC',
@@ -117,8 +118,9 @@ export function Home() {
 
   useEffect(() => {
     const onDocClick = (event: MouseEvent) => {
-      if (!calendarMenuRef.current) return
-      if (!calendarMenuRef.current.contains(event.target as Node)) {
+      const inDesktopMenu = calendarMenuRef.current?.contains(event.target as Node) ?? false
+      const inMobileMenu = calendarMenuMobileRef.current?.contains(event.target as Node) ?? false
+      if (!inDesktopMenu && !inMobileMenu) {
         setCalendarMenuOpen(false)
       }
     }
@@ -351,21 +353,64 @@ export function Home() {
                     </div>
                     </div>
 
-                  {/* Bouton calendrier en coin opposé (droite) avec menu */}
-                  <div className="pointer-events-auto absolute right-5 bottom-5 z-20">
+                  {/* Desktop: bouton texte à droite de l'image */}
+                  <div className="pointer-events-auto absolute right-5 bottom-5 z-20 hidden sm:block">
                     <div ref={calendarMenuRef} className="relative">
                       <button
                         type="button"
                         onClick={() => setCalendarMenuOpen((prev) => !prev)}
-                        className="hidden sm:inline-flex items-center gap-2.5 rounded-full border border-[#0485F7] bg-[#0485F7] px-4 py-2 text-xs font-semibold text-white hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
+                        className="inline-flex items-center gap-2.5 rounded-full border border-[#0485F7] bg-[#0485F7] px-4 py-2 text-xs font-semibold text-white hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
                       >
                         <span>Add to calendar</span>
                       </button>
+
+                      {calendarMenuOpen && (
+                        <div className="absolute right-0 bottom-[calc(100%+0.5rem)] w-[320px] rounded-xl border border-white/20 bg-[#0f1218] p-2 shadow-2xl">
+                          <a
+                            href={appleCalendarUrl}
+                            download="fireball-event.ics"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                          >
+                            <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
+                              <path fill="currentColor" d={siApple.path} />
+                            </svg>
+                            <span>Open Apple Calendar</span>
+                          </a>
+                          <a
+                            href={googleCalendarUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                          >
+                            <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
+                              <path fill="currentColor" d={siGoogle.path} />
+                            </svg>
+                            <span>Open Google Calendar</span>
+                          </a>
+                          <a
+                            href={samsungCalendarUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                          >
+                            <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
+                              <path fill="currentColor" d={siAndroid.path} />
+                            </svg>
+                            <span>Open Samsung Calendar</span>
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mobile: bouton icône à droite de l'image */}
+                  <div className="pointer-events-auto absolute right-5 bottom-5 z-30 sm:hidden">
+                    <div ref={calendarMenuMobileRef} className="relative">
                       <button
                         type="button"
                         onClick={() => setCalendarMenuOpen((prev) => !prev)}
                         aria-label="Open calendar menu"
-                        className="sm:hidden inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] text-white h-[42px] w-[42px] hover:bg-[#3592F9] hover:border-[#3592F9] shadow-lg transition-colors"
+                        className="inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] text-white h-[42px] w-[42px] hover:bg-[#3592F9] hover:border-[#3592F9] shadow-lg transition-colors"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                           <path d="M8 2v4"/>

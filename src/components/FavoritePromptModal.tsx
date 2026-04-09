@@ -21,8 +21,8 @@ export function FavoritePromptModal({ open, onClose, onContinue, onSignIn }: Pro
         onClick={onClose}
         aria-label="Close"
       />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-carbon-200 bg-white p-6 shadow-2xl">
-        <h2 id="favorite-prompt-title" className="font-display text-xl font-bold text-carbon-900">
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-carbon-200 bg-white p-6 shadow-2xl font-sans">
+        <h2 id="favorite-prompt-title" className="text-xl font-bold text-carbon-900">
           Save to favorites?
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-carbon-600">
