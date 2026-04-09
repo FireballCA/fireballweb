@@ -106,6 +106,7 @@ export function Product() {
   const [shippingProgressAnimated, setShippingProgressAnimated] = useState(false)
   const galleryRef = useRef<HTMLDivElement>(null)
   const ctaButtonsRef = useRef<HTMLDivElement>(null)
+  const addToCartMainButtonRef = useRef<HTMLButtonElement>(null)
   const navbarRef = useRef<HTMLDivElement>(null)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
@@ -370,29 +371,45 @@ export function Product() {
     }
   }, [])
 
-  // Mobile: afficher la barre sticky uniquement quand le CTA principal est hors écran
+  // Mobile: afficher la barre sticky uniquement quand le vrai bouton Add to Cart sort de l'écran
   useEffect(() => {
-    const ctaNode = ctaButtonsRef.current
-    if (!ctaNode) {
-      setShowMobileStickyBar(false)
-      return
+    const updateMobileStickyVisibility = () => {
+      if (window.innerWidth >= 1024) {
+        setShowMobileStickyBar(false)
+        return
+      }
+
+      const mainAddToCartButton = addToCartMainButtonRef.current
+      if (!mainAddToCartButton) {
+        setShowMobileStickyBar(false)
+        return
+      }
+
+      const rect = mainAddToCartButton.getBoundingClientRect()
+      // Afficher uniquement après avoir dépassé le bouton (quand il est sorti par le haut).
+      setShowMobileStickyBar(rect.bottom < 0)
     }
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setShowMobileStickyBar(!entry.isIntersecting)
-      },
-      {
-        threshold: 0.25,
-      },
-    )
+    let rafId: number | null = null
+    const onScrollOrResize = () => {
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId)
+      }
+      rafId = window.requestAnimationFrame(updateMobileStickyVisibility)
+    }
 
-    observer.observe(ctaNode)
+    window.addEventListener('scroll', onScrollOrResize, { passive: true })
+    window.addEventListener('resize', onScrollOrResize)
+    onScrollOrResize()
 
     return () => {
-      observer.disconnect()
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId)
+      }
+      window.removeEventListener('scroll', onScrollOrResize)
+      window.removeEventListener('resize', onScrollOrResize)
     }
-  }, [product])
+  }, [product, added])
 
   // Trouver la variante correspondant aux options sélectionnées
   const currentVariant = product?.variants?.find((v) => {
@@ -1151,6 +1168,7 @@ export function Product() {
             <div ref={ctaButtonsRef} className="flex flex-col gap-3 pt-4 mb-6">
               {/* Add to Cart — fond noir + survol type landing (cercle blanc) */}
               <button
+                ref={addToCartMainButtonRef}
                 type="button"
                 onClick={handleAddToCart}
                 disabled={currentVariant && !currentVariant.availableForSale}
