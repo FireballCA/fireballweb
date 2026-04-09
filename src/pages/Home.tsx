@@ -353,8 +353,8 @@ export function Home() {
                     </div>
                     </div>
 
-                  {/* Desktop: bouton texte à droite de l'image */}
-                  <div className="pointer-events-auto absolute right-5 bottom-5 z-20 hidden sm:block">
+                  {/* Desktop large: bouton texte à droite de l'image */}
+                  <div className="pointer-events-auto absolute right-5 bottom-5 z-20 hidden lg:block">
                     <div ref={calendarMenuRef} className="relative">
                       <button
                         type="button"
@@ -403,8 +403,8 @@ export function Home() {
                     </div>
                   </div>
 
-                  {/* Mobile: bouton icône à droite de l'image */}
-                  <div className="pointer-events-auto absolute right-5 bottom-5 z-30 sm:hidden">
+                  {/* Mobile + tablette: bouton icône à droite de l'image */}
+                  <div className="pointer-events-auto absolute right-5 bottom-5 z-30 lg:hidden">
                     <div ref={calendarMenuMobileRef} className="relative">
                       <button
                         type="button"
