@@ -386,17 +386,7 @@ export function Cart() {
             <section className="py-8">
               <h2 className={productSectionHeadingClass}>Favorites</h2>
 
-              {!userId ? (
-                <div className="mt-4 px-0 py-2 text-center sm:text-left">
-                  <p className="text-sm text-carbon-700">Want to see your favorites?</p>
-                  <Link
-                    to="/account?tab=login"
-                    className="mt-3 inline-block text-sm font-bold text-carbon-900 underline underline-offset-2"
-                  >
-                    Sign in
-                  </Link>
-                </div>
-              ) : favoriteProducts.length === 0 ? (
+              {favoriteProducts.length === 0 ? (
                 <p className="mt-4 text-sm text-carbon-600">No saved favorites yet.</p>
               ) : (
                 <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -425,7 +415,18 @@ export function Cart() {
                   ))}
                 </div>
               )}
-              {productsLoading && userId && (
+              {!userId && (
+                <div className="mt-4 px-0 py-1 text-center sm:text-left">
+                  <p className="text-xs text-carbon-600">Favorites are saved locally on this device.</p>
+                  <Link
+                    to="/account?tab=login"
+                    className="mt-2 inline-block text-xs font-semibold text-carbon-900 underline underline-offset-2"
+                  >
+                    Sign in to sync across devices
+                  </Link>
+                </div>
+              )}
+              {productsLoading && (
                 <p className="mt-2 text-xs text-carbon-500">Loading favorites…</p>
               )}
             </section>

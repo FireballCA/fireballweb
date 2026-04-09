@@ -39,7 +39,7 @@ export function FavoritePromptModal({ open, onClose, onContinue, onSignIn }: Pro
           <button
             type="button"
             onClick={onSignIn}
-            className="rounded-full bg-[#B61B1B] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
+            className="rounded-full border border-[#0485F7] bg-[#0485F7] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:border-[#3592F9] hover:bg-[#3592F9]"
           >
             Sign in
           </button>
