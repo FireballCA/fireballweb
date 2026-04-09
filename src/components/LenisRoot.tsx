@@ -8,6 +8,15 @@ export function LenisRoot({ children }: { children: ReactNode }) {
   const [lenis, setLenis] = useState<Lenis | null>(null)
 
   useEffect(() => {
+    // Safari mobile est sensible aux boucles de smooth-scroll (risque de crash/reload).
+    const ua = navigator.userAgent
+    const isIOS = /iPad|iPhone|iPod/.test(ua)
+    const isSafari = /^((?!chrome|android).)*safari/i.test(ua)
+    if (isIOS && isSafari) {
+      setLenis(null)
+      return
+    }
+
     const instance = new Lenis(lenisExoticsStyleOptions)
     setLenis(instance)
     return () => {
