@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
 
 export function NotFoundPage() {
   return (
@@ -42,18 +43,9 @@ export function NotFoundPage() {
             </svg>
             Need help? Contact our team
           </Link>
-          <Link
-            to="/"
-            className="group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-white/20 px-7 py-3 text-sm font-semibold text-white transition-colors duration-500"
-          >
-            <span
-              className="pointer-events-none absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-              aria-hidden
-            />
-            <span className="relative z-10 transition-colors duration-500 group-hover:text-black">
-              Return home
-            </span>
-          </Link>
+          <SecondaryClipButton to="/" idleTextClass="text-white" hoverTextClass="text-black">
+            Return home
+          </SecondaryClipButton>
         </div>
       </div>
     </div>

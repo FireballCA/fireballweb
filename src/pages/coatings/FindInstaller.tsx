@@ -1,44 +1,18 @@
 import { Link } from 'react-router-dom'
-import { useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent as ReactPointerEvent, type WheelEvent } from 'react'
+import { useMemo, useRef, useState, type FormEvent, type WheelEvent } from 'react'
 import Map, { Marker, Popup, type MapRef } from 'react-map-gl/maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
 import { STOCKIST_LOCATIONS } from '@/data/stockists'
-
-const locateClipCssVars = {
-  '--clip-x': '50%',
-  '--clip-y': '50%',
-  '--clip-r': '0px',
-} as CSSProperties
-
-function setClipRevealVars(el: HTMLElement, clientX: number, clientY: number) {
-  const rect = el.getBoundingClientRect()
-  const w = rect.width || 1
-  const h = rect.height || 1
-  const localX = clientX - rect.left
-  const localY = clientY - rect.top
-  const x = (localX / w) * 100
-  const y = (localY / h) * 100
-  const d1 = Math.hypot(localX, localY)
-  const d2 = Math.hypot(w - localX, localY)
-  const d3 = Math.hypot(localX, h - localY)
-  const d4 = Math.hypot(w - localX, h - localY)
-  const r = Math.max(d1, d2, d3, d4)
-  el.style.setProperty('--clip-x', `${x}%`)
-  el.style.setProperty('--clip-y', `${y}%`)
-  el.style.setProperty('--clip-r', `${r}px`)
-}
 
 export function FindInstaller() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchError, setSearchError] = useState<string | null>(null)
   const [isSearching, setIsSearching] = useState(false)
-  const [locateHover, setLocateHover] = useState(false)
-  const [locateFocus, setLocateFocus] = useState(false)
   const mapRef = useRef<MapRef | null>(null)
   const installers = useMemo(() => STOCKIST_LOCATIONS, [])
   const activeInstaller = installers.find((i) => i.id === activeId) ?? null
-  const locateActive = locateHover || locateFocus
 
   const preventPageScrollOnMapWheel = (e: WheelEvent<HTMLDivElement>) => {
     // Keep wheel interaction inside the map (zoom) without scrolling the page.
@@ -125,40 +99,15 @@ export function FindInstaller() {
                 {isSearching ? 'Searching...' : 'Search'}
               </button>
             </form>
-            <button
+            <SecondaryClipButton
               type="button"
               onClick={handleLocateMe}
-              onPointerEnter={(e: ReactPointerEvent<HTMLButtonElement>) => {
-                setClipRevealVars(e.currentTarget, e.clientX, e.clientY)
-                setLocateHover(true)
-              }}
-              onPointerMove={(e: ReactPointerEvent<HTMLButtonElement>) => {
-                setClipRevealVars(e.currentTarget, e.clientX, e.clientY)
-              }}
-              onPointerLeave={(e: ReactPointerEvent<HTMLButtonElement>) => {
-                setClipRevealVars(e.currentTarget, e.clientX, e.clientY)
-                setLocateHover(false)
-              }}
-              onFocus={() => setLocateFocus(true)}
-              onBlur={() => setLocateFocus(false)}
-              className="relative inline-flex h-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-transparent px-4 text-xs font-semibold text-white transition-[border-color,color] duration-500 ease-out hover:border-white/45"
-              style={locateClipCssVars}
+              className="h-10 shrink-0"
+              idleTextClass="text-white"
+              hoverTextClass="text-black"
             >
-              <span
-                className="pointer-events-none absolute inset-0 z-0 bg-white"
-                style={{
-                  clipPath: `circle(${locateActive ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                  WebkitClipPath: `circle(${locateActive ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                  transition:
-                    'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
-                  willChange: 'clip-path',
-                }}
-                aria-hidden
-              />
-              <span className={`relative z-10 transition-colors duration-500 ${locateActive ? 'text-black' : 'text-white'}`}>
-                Locate me
-              </span>
-            </button>
+              Locate me
+            </SecondaryClipButton>
           </div>
           {searchError && <p className="mb-2 px-2 text-xs text-red-300">{searchError}</p>}
           <div

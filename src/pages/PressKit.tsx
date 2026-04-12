@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
+import { cn } from '@/lib/utils'
 
 export function PressKit() {
   const [copiedHex, setCopiedHex] = useState<string | null>(null)
@@ -92,16 +94,24 @@ export function PressKit() {
                 </div>
 
                 <div className="flex flex-col">
-                <div className="flex-1 flex items-center justify-center bg-carbon-100 min-h-[160px] px-8 select-none">
+                  <div className="flex-1 flex items-center justify-center bg-black min-h-[160px] px-8 select-none">
                     <img
-                      src="/Assets/BrandKIT/Full Logo/Full Logo/White/RBG (For Digital)/Logo_Reverse.svg"
-                      alt="Fireball Logo – reverse for imagery"
-                    className="max-h-20 w-auto pointer-events-none invert"
+                      src="/LogoFull.avif"
+                      alt="Fireball Logo – full-color primary lockup"
+                      className="h-10 w-auto max-h-20 object-contain pointer-events-none md:h-12"
+                      draggable={false}
                     />
                   </div>
-                  <div className="flex items-center justify-between px-4 py-3 border-t border-carbon-900/10 text-[11px]">
-                    <span className="text-carbon-600">Reverse on imagery</span>
-                    <span className="font-mono text-[10px] text-carbon-400">SVG · PNG</span>
+                  <div className="border-t border-carbon-900/10 bg-black px-4 py-3 text-left">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <p className="text-[11px] text-white/70">Full-color lockup</p>
+                        <p className="text-[10px] leading-snug text-white/45">
+                          This is the standard primary logo — the same full-color mark as the default Fireball lockup. Use it on dark or busy imagery; there is no separate “reverse” file.
+                        </p>
+                      </div>
+                      <span className="font-mono text-[10px] text-white/30 shrink-0 sm:pt-0.5">AVIF · SVG · PNG</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -365,34 +375,25 @@ export function PressKit() {
             </p>
           </header>
 
-          <div className="grid md:grid-cols-3 border border-white/10 mb-10">
-            {[
-              { bg: 'bg-black', label: 'Primary academy logo' },
-              { bg: 'bg-[#24356E]', label: 'On Dark Nappa' },
-              { bg: 'bg-transparent', label: 'Transparent' },
-            ].map((item) => (
-              <div key={item.label} className="border-b md:border-b-0 md:border-r last:border-r-0 border-white/10 flex flex-col select-none">
-                <div className={`flex-1 flex items-center justify-center px-8 py-12 min-h-[160px] ${item.bg}`}>
-                  <img
-                    src="/Assets/BrandKIT/Academy/Fireball Academy.png"
-                    alt="Fireball Academy"
-                    className="max-h-20 w-auto pointer-events-none"
-                  />
-                </div>
-                <div className="flex items-center justify-between px-4 py-3 border-t border-white/10 text-[11px] bg-black">
-                  <span className="text-white/60">{item.label}</span>
-                  <span className="font-mono text-[10px] text-white/30">PNG · Transparent</span>
-                </div>
-              </div>
-            ))}
+          <div className="max-w-xl border border-white/10 mb-10">
+            <div className="flex items-center justify-center bg-black px-8 py-12 min-h-[160px] select-none">
+              <img
+                src="/Assets/BrandKIT/Academy/Fireball Academy.png"
+                alt="Fireball Academy"
+                className="max-h-20 w-auto pointer-events-none"
+              />
+            </div>
+            <div className="flex items-center justify-between px-4 py-3 border-t border-white/10 text-[11px] bg-black">
+              <span className="text-white/60">Fireball Academy</span>
+              <span className="font-mono text-[10px] text-white/30">PNG</span>
+            </div>
           </div>
 
-          <div className="grid md:grid-cols-4 border border-white/10">
+          <div className="grid md:grid-cols-3 border border-white/10">
             {[
               { name: 'Nappa Blue', hex: '#1266F0' },
               { name: 'Dark Nappa', hex: '#24356E' },
               { name: 'Fireball Red', hex: '#9C1B30' },
-              { name: 'Black', hex: '#000000' },
             ].map((c) => (
               <div key={c.name} className="border-b md:border-b-0 md:border-r last:border-r-0 border-white/10 presskit-colour-card">
                 <div className="h-24 cursor-pointer" style={{ background: c.hex }} onClick={() => handleCopyHex(c.hex)} />
@@ -461,11 +462,8 @@ export function PressKit() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <a
-              href="#"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-md bg-carbon-900 text-white text-xs font-semibold uppercase tracking-[0.18em] hover:bg-red-700 transition-colors"
-            >
-              Download ZIP
+            <a href="#" className={cn('inline-flex', appleButtonVisualClassName)}>
+              Download
             </a>
           </div>
         </div>

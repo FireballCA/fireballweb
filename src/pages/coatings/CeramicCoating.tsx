@@ -1,12 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
-} from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Product } from '@/data/products'
 import {
@@ -14,6 +6,7 @@ import {
   COATING_SECTION_IMAGES,
   type GaugeKey,
 } from '@/data/ceramicCoatingSections'
+import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { shopBrowseCategoryPath } from '@/constants/paths'
 
@@ -124,57 +117,6 @@ function PerformanceBlock({ gauges }: { gauges: Record<GaugeKey, number> }) {
 
 export function CeramicCoating() {
   const [products, setProducts] = useState<Product[]>([])
-  const [secondaryHover, setSecondaryHover] = useState(false)
-
-  const secondaryLinkCssVars = useMemo(
-    () =>
-      ({
-        '--clip-x': '50%',
-        '--clip-y': '50%',
-        '--clip-r': '0px',
-      }) as CSSProperties,
-    [],
-  )
-
-  const setSecondaryClipVars = useCallback((el: HTMLAnchorElement, clientX: number, clientY: number) => {
-    const rect = el.getBoundingClientRect()
-    const w = rect.width || 1
-    const h = rect.height || 1
-    const localX = clientX - rect.left
-    const localY = clientY - rect.top
-    const x = (localX / w) * 100
-    const y = (localY / h) * 100
-    const r = Math.max(
-      Math.hypot(localX, localY),
-      Math.hypot(w - localX, localY),
-      Math.hypot(localX, h - localY),
-      Math.hypot(w - localX, h - localY),
-    )
-    el.style.setProperty('--clip-x', `${x}%`)
-    el.style.setProperty('--clip-y', `${y}%`)
-    el.style.setProperty('--clip-r', `${r}px`)
-  }, [])
-
-  const onSecondaryPointerEnter = useCallback(
-    (e: ReactPointerEvent<HTMLAnchorElement>) => {
-      setSecondaryClipVars(e.currentTarget, e.clientX, e.clientY)
-      setSecondaryHover(true)
-    },
-    [setSecondaryClipVars],
-  )
-  const onSecondaryPointerMove = useCallback(
-    (e: ReactPointerEvent<HTMLAnchorElement>) => {
-      setSecondaryClipVars(e.currentTarget, e.clientX, e.clientY)
-    },
-    [setSecondaryClipVars],
-  )
-  const onSecondaryPointerLeave = useCallback(
-    (e: ReactPointerEvent<HTMLAnchorElement>) => {
-      setSecondaryClipVars(e.currentTarget, e.clientX, e.clientY)
-      setSecondaryHover(false)
-    },
-    [setSecondaryClipVars],
-  )
 
   useEffect(() => {
     let cancelled = false
@@ -244,33 +186,9 @@ export function CeramicCoating() {
                 >
                   Shop all coatings
                 </Link>
-                <Link
-                  to="/coatings/compare"
-                  className="relative inline-flex items-center justify-center overflow-hidden rounded-xl border border-white/25 bg-white/5 px-8 py-2.5 text-center font-nav text-sm font-bold uppercase backdrop-blur-sm transition-[border-color,color] duration-500 ease-out hover:border-white/40 motion-reduce:transition-none"
-                  style={secondaryLinkCssVars}
-                  onPointerEnter={onSecondaryPointerEnter}
-                  onPointerMove={onSecondaryPointerMove}
-                  onPointerLeave={onSecondaryPointerLeave}
-                >
-                  <span
-                    className="pointer-events-none absolute inset-0 z-0 bg-white"
-                    style={{
-                      clipPath: `circle(${secondaryHover ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                      WebkitClipPath: `circle(${secondaryHover ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                      transition:
-                        'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
-                      willChange: 'clip-path',
-                    }}
-                    aria-hidden
-                  />
-                  <span
-                    className={`relative z-10 transition-colors duration-500 motion-reduce:duration-200 ${
-                      secondaryHover ? 'text-carbon-950' : 'text-white'
-                    }`}
-                  >
-                    Compare
-                  </span>
-                </Link>
+                <SecondaryClipButton to="/coatings/compare" idleTextClass="text-white" hoverTextClass="text-black">
+                  Compare
+                </SecondaryClipButton>
               </div>
             </div>
           </div>

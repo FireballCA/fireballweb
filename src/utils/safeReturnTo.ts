@@ -14,6 +14,14 @@ export function getSafeReturnToPath(raw: string | null | undefined): string | nu
   if (path.includes('://') || path.includes('@')) return null
 
   const pathOnly = path.split('?')[0].split('#')[0]
+  const queryPart = path.includes('?') ? path.split('?')[1].split('#')[0] : ''
+
+  if (pathOnly === '/academy') {
+    if (!queryPart) return '/academy'
+    const params = new URLSearchParams(queryPart)
+    if (params.get('joinTraining') === '1') return '/academy?joinTraining=1'
+    return '/academy'
+  }
 
   if (pathOnly === '/account/company' || pathOnly === '/contact') return pathOnly
   if (pathOnly === '/boutique') return pathOnly

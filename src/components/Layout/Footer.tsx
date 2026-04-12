@@ -145,7 +145,7 @@ export function Footer() {
         <div className="pt-8 border-t border-carbon-700">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-xs text-silver/50 font-sans">
-              © {currentYear} Fireball Canada. All rights reserved.
+              © {currentYear} Fireball Canada. All rights reserved. · built with ❤️ by RFX studio.
             </p>
             <p className="text-xs text-silver/50 font-sans italic">
               Engineered for protection.

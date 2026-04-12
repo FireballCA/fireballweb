@@ -44,6 +44,11 @@ export function useClipRevealHover() {
     setClipRevealVars(e.currentTarget, e.clientX, e.clientY)
     setHover(false)
   }, [])
+  /** À appeler après une animation qui désactive temporairement les pointer handlers (sinon hover reste « collé »). */
+  const reset = useCallback(() => {
+    setHover(false)
+    setFocus(false)
+  }, [])
   return {
     active,
     hover,
@@ -53,5 +58,6 @@ export function useClipRevealHover() {
     onPointerLeave,
     onFocus: () => setFocus(true),
     onBlur: () => setFocus(false),
+    reset,
   }
 }
