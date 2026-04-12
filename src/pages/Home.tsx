@@ -177,13 +177,13 @@ export function Home() {
               </span>
               <span className="hero-ground-line hero-ground-line--clean">
                 <span className="hero-ground-text hero-ground-text--delay-3 inline-block">
-                  <SecondaryClipButton
+                  <button
                     type="button"
                     onClick={scrollToProductLineup}
-                    className="min-w-[12rem] cursor-pointer"
+                    className={cn('inline-flex cursor-pointer whitespace-nowrap', appleButtonVisualClassName)}
                   >
                     Explore Products
-                  </SecondaryClipButton>
+                  </button>
                 </span>
               </span>
             </div>

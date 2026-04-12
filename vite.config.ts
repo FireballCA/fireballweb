@@ -838,11 +838,31 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
 export default defineConfig(({ mode }) => ({
   plugins: [react(), shopifyCustomerApiPlugin(mode)],
   resolve: {
-    alias: { '@': path.resolve(__dirname, 'src') },
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+      /** Deux entrées distinctes vers des .ts : un seul fichier .ts pour tout le préfixe faisait résoudre …/index.js sous ce chemin (ENOENT). */
+      'use-sync-external-store/shim/index.js': path.resolve(
+        __dirname,
+        'src/shims/use-sync-external-store-shim/index.ts',
+      ),
+      'use-sync-external-store/shim/with-selector.js': path.resolve(
+        __dirname,
+        'src/shims/use-sync-external-store-shim/with-selector.ts',
+      ),
+    },
   },
   optimizeDeps: {
     exclude: ['lenis'],
-    include: ['three', 'three-globe', '@react-three/fiber', '@react-three/drei', 'react-router-dom'],
+    include: [
+      'three',
+      'three-globe',
+      '@react-three/fiber',
+      '@react-three/drei',
+      'react-router-dom',
+      /** CJS → ESM : évite erreurs d’export sur useSyncExternalStore (react-aria / HeroUI). */
+      'use-sync-external-store/shim',
+      'use-sync-external-store',
+    ],
   },
   server: {
     watch: {
