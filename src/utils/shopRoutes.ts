@@ -11,6 +11,7 @@ const NON_CATEGORY_ROUTE_SEGMENTS = new Set([
   'academy',
   'event',
   'join-fireball',
+  'join-club',
   'account',
   'partner',
   'dashboard',

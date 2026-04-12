@@ -140,6 +140,7 @@ export function Header() {
     location.pathname === '/all-coatings'
   const isBusinessPage =
     location.pathname.startsWith('/business') || location.pathname.startsWith('/account/business')
+  const isJoinClubPage = location.pathname === '/join-club'
   /**
    * Fond plein dès le haut (même logique que le footer) : tout sauf accueil / about où le hero
    * passe sous la navbar fixe (transparence → opaque au scroll).
@@ -323,7 +324,7 @@ export function Header() {
 
   // Banner behavior: hide on scroll down, show on scroll up
   useEffect(() => {
-    if (!bannerActive) return
+    if (!bannerActive || isJoinClubPage) return
 
     lastBannerScrollYRef.current = window.scrollY || window.pageYOffset || 0
     let raf: number | null = null
@@ -357,7 +358,7 @@ export function Header() {
       window.removeEventListener('scroll', onScroll)
       if (raf != null) cancelAnimationFrame(raf)
     }
-  }, [bannerActive, bannerHidden])
+  }, [bannerActive, bannerHidden, isJoinClubPage])
 
   useEffect(() => {
     let cancelled = false
@@ -706,14 +707,14 @@ export function Header() {
     <>
       {/* Banner + Navbar: move as ONE block (no gap, smoother) */}
       <div
-        className={`${isProductPage || isCoatingPage ? '' : 'fixed'} top-0 left-0 right-0 ${
+        className={`${isProductPage || isCoatingPage || isJoinClubPage ? '' : 'fixed'} top-0 left-0 right-0 ${
           isMobileMenuMounted ? 'z-[10010]' : 'z-[120]'
         } transition-transform duration-300 ease-out will-change-transform`}
         style={{
           transform:
-            bannerActive && bannerHidden && bannerHeightPx > 0
-              ? `translateY(-${bannerHeightPx}px)`
-              : 'translateY(0)',
+            isJoinClubPage || !(bannerActive && bannerHidden && bannerHeightPx > 0)
+              ? 'translateY(0)'
+              : `translateY(-${bannerHeightPx}px)`,
         }}
       >
         {/* Navbar Banner */}

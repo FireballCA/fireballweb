@@ -1,14 +1,34 @@
+import { useCallback, useContext, type MouseEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
+import { LenisContext } from '@/components/LenisRoot'
+import { cn } from '@/lib/utils'
 
 export function CarClub() {
   const { t } = useTranslation()
+  const lenis = useContext(LenisContext)
+
+  const scrollToMembershipCards = useCallback(
+    (e: MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault()
+      const el = document.getElementById('membership')
+      if (!el) return
+      if (lenis) {
+        lenis.scrollTo(el, { offset: -96, duration: 1.15 })
+      } else {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    },
+    [lenis],
+  )
 
   const ignitionFeatures = t('carClub.ignitionFeatures', { returnObjects: true }) as string[]
   const apexFeatures = t('carClub.apexFeatures', { returnObjects: true }) as string[]
 
   return (
     <div className="bg-black text-white">
-      <section className="relative -mt-20 h-[88vh] min-h-[620px] max-h-[980px] overflow-hidden bg-black">
+      <section className="relative -mt-20 flex h-[88vh] min-h-[680px] max-h-[980px] flex-col overflow-hidden bg-black">
         <div className="absolute inset-0 flex items-start justify-center pt-8 md:pt-12">
           <div className="relative w-[min(920px,68vw)] min-w-[420px]">
             <img
@@ -28,35 +48,43 @@ export function CarClub() {
         <div className="absolute inset-y-0 right-0 w-1/2 bg-[linear-gradient(to_left,#000_0%,#000_60%,transparent_100%)]" />
         <div className="absolute inset-x-0 bottom-0 h-64 bg-[linear-gradient(to_bottom,rgba(0,0,0,0)_0%,rgba(0,0,0,0.45)_52%,#000_100%)]" />
 
-        <div className="relative z-10 mx-auto flex h-full w-full max-w-7xl items-end justify-center px-6 pb-14 md:px-10 md:pb-20">
-          <div className="max-w-5xl text-center">
-            <h1 className="text-[clamp(2.8rem,8.5vw,7.2rem)] font-black uppercase tracking-[-0.02em] leading-[0.9] text-white [text-shadow:0_10px_24px_rgba(0,0,0,0.45)] [-webkit-text-stroke:0.35px_rgba(255,255,255,0.35)]">
+        <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col justify-end px-5 pb-32 pt-16 sm:px-6 md:pb-36">
+          <div className="mx-auto flex w-full max-w-[90rem] flex-col-reverse gap-10 md:flex-row md:items-end md:justify-between md:gap-12">
+            <h1 className="max-w-xl shrink-0 self-start pb-[0.15em] text-left font-nav text-4xl font-bold leading-[1.2] tracking-tight sm:text-5xl sm:leading-[1.18] md:max-w-lg md:text-6xl md:leading-[1.16] lg:text-7xl lg:leading-[1.14] bg-gradient-to-r from-[#d4d4d4] via-[#7a7a7a] to-[#1a1a1a] bg-clip-text text-transparent [-webkit-text-fill-color:transparent]">
               {t('carClub.heroTitle')}
             </h1>
-            <p className="mx-auto mt-4 max-w-3xl text-sm text-white/80 md:text-base">
-              {t('carClub.heroSubtitle')}
-            </p>
-            <div className="mt-9">
-              <a
-                href="#membership"
-                className="inline-block px-8 py-3.5 font-nav font-bold text-sm uppercase rounded-lg text-white transition-colors duration-200 hover:opacity-90"
-                style={{ backgroundColor: '#B61B1B' }}
-              >
-                {t('carClub.exploreMembership')}
-              </a>
+            <div className="flex w-full shrink-0 flex-col items-end gap-6 text-right md:w-auto">
+              <p className="max-w-md text-pretty text-sm font-light leading-relaxed text-silver/80 md:text-base lg:text-lg">
+                {t('carClub.heroSubtitle')}
+              </p>
+              <div className="flex flex-col items-end gap-1.5">
+                <a
+                  href="#membership"
+                  onClick={scrollToMembershipCards}
+                  className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
+                >
+                  {t('carClub.exploreMembership')}
+                </a>
+                <p className="text-[11px] leading-tight text-silver/45">{t('carClub.heroPriceHint')}</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="membership" className="bg-black pb-24 pt-16 md:pt-20">
+      <section id="membership" className="scroll-mt-24 bg-black pb-24 pt-16 md:pt-20">
         <div className="mx-auto max-w-7xl px-6 md:px-10">
           <div className="flex justify-center pointer-events-none select-none">
             <p className="text-center text-[clamp(4rem,14vw,10rem)] font-black uppercase leading-[0.74] scale-y-[1.2] tracking-[-0.05em] bg-gradient-to-b from-white/[0.2] via-white/[0.08] to-transparent bg-clip-text text-transparent">
               MEMBERSHIP
             </p>
           </div>
-          <h2 className="mt-3 text-4xl font-black tracking-tight md:text-6xl text-center">{t('carClub.membershipTitle')}</h2>
+          <h2 className="mt-3 text-center font-nav text-4xl font-bold tracking-tight text-white md:text-6xl">
+            <span className="block text-balance">{t('carClub.membershipTitleLead')}</span>
+            <span className="mt-2 block bg-gradient-to-r from-[#d4d4d4] via-[#7a7a7a] to-[#1a1a1a] bg-clip-text text-transparent [-webkit-text-fill-color:transparent]">
+              {t('carClub.membershipTitleHighlight')}
+            </span>
+          </h2>
 
           <div className="grid md:grid-cols-2 gap-12 lg:gap-16 mt-12 mb-20">
             {/* CARTE GAUCHE — IGNITION MEMBER */}
@@ -68,7 +96,7 @@ export function CarClub() {
                 draggable={false}
               />
               <span className="text-xs font-nav font-bold uppercase tracking-widest text-white/50 mb-2">{t('carClub.coreAccess')}</span>
-              <h3 className="font-display text-3xl text-white tracking-tight mb-1">{t('carClub.ignitionMember')}</h3>
+              <h3 className="font-nav text-3xl font-bold text-white tracking-tight mb-1">{t('carClub.ignitionMember')}</h3>
               <p className="text-white/90 font-semibold text-lg mb-2">{t('carClub.ignitionPrice')}</p>
               <p className="text-white/70 text-sm max-w-sm mb-6">
                 {t('carClub.ignitionDesc')}
@@ -87,7 +115,7 @@ export function CarClub() {
               <a
                 href="#"
                 onClick={(e) => e.preventDefault()}
-                className="inline-block px-6 py-3 font-nav font-bold text-sm uppercase rounded-lg border-2 border-white text-white hover:bg-white hover:text-black transition-all duration-300"
+                className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
               >
                 {t('carClub.joinIgnition')}
               </a>
@@ -102,7 +130,7 @@ export function CarClub() {
                 draggable={false}
               />
               <span className="text-xs font-nav font-bold uppercase tracking-widest text-apex mb-2">{t('carClub.eliteTier')}</span>
-              <h3 className="font-display text-3xl text-white tracking-tight mb-1">{t('carClub.apexMember')}</h3>
+              <h3 className="font-nav text-3xl font-bold text-white tracking-tight mb-1">{t('carClub.apexMember')}</h3>
               <p className="text-white/90 font-semibold text-lg mb-2">{t('carClub.apexPrice')}</p>
               <p className="text-white/70 text-sm max-w-sm mb-6">
                 {t('carClub.apexDesc')}
@@ -118,20 +146,18 @@ export function CarClub() {
                   </div>
                 ))}
               </div>
-              <a
-                href="#"
-                onClick={(e) => e.preventDefault()}
-                className="inline-block px-6 py-3 font-nav font-bold text-sm uppercase rounded-lg text-white transition-colors duration-200 hover:opacity-90"
-                style={{ backgroundColor: '#B61B1B' }}
+              <Link
+                to="/join-club?tier=apex"
+                className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
               >
                 {t('carClub.upgradeToApex')}
-              </a>
+              </Link>
             </div>
           </div>
 
           {/* VALUE JUSTIFICATION */}
           <div className="border-t border-white/20 pt-16 pb-16">
-            <h3 className="text-2xl md:text-4xl font-black text-white tracking-tight text-center max-w-3xl mx-auto">
+            <h3 className="mx-auto max-w-3xl text-center font-nav text-2xl font-bold tracking-tight text-white md:text-4xl">
               {t('carClub.privilegeTitle')}
             </h3>
             <p className="mt-6 text-white/80 text-center max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
@@ -143,28 +169,26 @@ export function CarClub() {
 
           {/* FINAL CTA */}
           <div className="border-t border-white/20 pt-16 pb-8">
-            <h3 className="text-2xl md:text-4xl font-black text-white tracking-tight text-center">
+            <h3 className="text-center font-nav text-2xl font-bold tracking-tight text-white md:text-4xl">
               Join the Fireball Inner Circle
             </h3>
             <p className="mt-4 text-white/80 text-center max-w-xl mx-auto text-sm md:text-base">
               {t('carClub.joinCircleDesc')}
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a
-                href="#"
-                onClick={(e) => e.preventDefault()}
+              <Link
+                to="/join-club?tier=apex"
                 className="inline-block px-8 py-3.5 font-nav font-bold text-sm uppercase rounded-lg text-white transition-colors duration-200 hover:opacity-90"
                 style={{ backgroundColor: '#B61B1B' }}
               >
                 Become an Apex Member
-              </a>
-              <a
-                href="#"
-                onClick={(e) => e.preventDefault()}
+              </Link>
+              <Link
+                to="/join-club?tier=ignition"
                 className="inline-block px-8 py-3.5 font-nav font-bold text-sm uppercase rounded-lg border-2 border-white/60 text-white hover:border-white hover:bg-white/10 transition-all duration-300"
               >
                 {t('carClub.startIgnition')}
-              </a>
+              </Link>
             </div>
           </div>
         </div>

@@ -19,6 +19,7 @@ export function Layout() {
     location.pathname.startsWith('/account') ||
     location.pathname.startsWith('/business')
   const isContactPage = location.pathname === '/contact'
+  const isJoinClubPage = location.pathname === '/join-club'
   const isShopPage = isShopPathname(location.pathname)
 
   /** Même logique que Header : navbar sticky dans le flux — pas de pt sur main (évite double bande noire). */
@@ -37,11 +38,13 @@ export function Layout() {
       ? ''
       : isStickyNavPage
         ? ''
-        : isShopPage
-          ? 'pt-16'
-          : isContactPage
-            ? 'lg:pt-20'
-            : 'pt-20'
+        : isJoinClubPage
+          ? ''
+          : isShopPage
+            ? 'pt-16'
+            : isContactPage
+              ? 'lg:pt-20'
+              : 'pt-20'
 
   return (
     <div
