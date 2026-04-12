@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import type { UserProfile } from '@/utils/supabaseAuth'
 import { LenisContext } from '@/components/LenisRoot'
+import { AppleButton } from '@/components/ui/AppleButton'
 
 const CONTACT_DRAFT_KEY = 'fireball_contact_form_draft'
 
@@ -255,23 +256,13 @@ export function Contact() {
               />
             </div>
             <div className="shrink-0 pt-0.5 lg:pt-0">
-              <button
+              <AppleButton
                 type="submit"
                 disabled={!name.trim() || !email.trim() || !subject.trim() || !message.trim()}
-                className="group inline-flex items-center gap-1.5 text-xs font-medium text-carbon-700 transition-colors duration-200 hover:text-carbon-900 disabled:cursor-not-allowed disabled:text-carbon-400 disabled:hover:text-carbon-400"
+                className="disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-[#0485F7] disabled:hover:bg-[#0485F7]"
               >
                 Send message
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 640 640"
-                  className="h-[14px] w-[14px] shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
-                >
-                  <path
-                    fill="currentColor"
-                    d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z"
-                  />
-                </svg>
-              </button>
+              </AppleButton>
               <p className="mt-1.5 text-[10px] text-carbon-500 lg:mt-3 lg:text-xs">
                 We usually reply within 24–48 hours.
               </p>

@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { siApple, siGoogle, siAndroid } from 'simple-icons'
 import { ProductCategoryLineup } from '@/components/ProductCategoryLineup'
@@ -6,34 +6,13 @@ import { HomeCollectionSection } from '@/components/HomeCollectionSection'
 import { VoyagerWorldwideScrollSection } from '@/components/VoyagerWorldwideScroll/VoyagerWorldwideScrollSection'
 import WorldMapDemo from '@/components/world-map-demo'
 import { LenisContext } from '@/components/LenisRoot'
+import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
+import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
+import { cn } from '@/lib/utils'
 import { FIREBALL_COUNTRY_SLIDES } from '@/data/fireballCountriesSlider'
 import { supabase } from '@/lib/supabase'
 import { resolveHomeCollection } from '@/utils/homeCollectionSettings'
 import type { HomeCollectionResolved } from '@/constants/homeCollection'
-
-function setClipRevealVars(el: HTMLElement, clientX: number, clientY: number) {
-  const rect = el.getBoundingClientRect()
-  const w = rect.width || 1
-  const h = rect.height || 1
-  const localX = clientX - rect.left
-  const localY = clientY - rect.top
-  const x = (localX / w) * 100
-  const y = (localY / h) * 100
-  const d1 = Math.hypot(localX, localY)
-  const d2 = Math.hypot(w - localX, localY)
-  const d3 = Math.hypot(localX, h - localY)
-  const d4 = Math.hypot(w - localX, h - localY)
-  const r = Math.max(d1, d2, d3, d4)
-  el.style.setProperty('--clip-x', `${x}%`)
-  el.style.setProperty('--clip-y', `${y}%`)
-  el.style.setProperty('--clip-r', `${r}px`)
-}
-
-const exploreClipCssVars = {
-  '--clip-x': '50%',
-  '--clip-y': '50%',
-  '--clip-r': '0px',
-} as CSSProperties
 
 function useCountdown(targetIso: string) {
   const target = useMemo(() => new Date(targetIso).getTime(), [targetIso])
@@ -58,12 +37,6 @@ export function Home() {
   const [homeCollection, setHomeCollection] = useState<HomeCollectionResolved>(() =>
     resolveHomeCollection(null),
   )
-  const [exploreHover, setExploreHover] = useState(false)
-  const [exploreFocus, setExploreFocus] = useState(false)
-  const exploreActive = exploreHover || exploreFocus
-  const [eventCtaHover, setEventCtaHover] = useState(false)
-  const [eventCtaFocus, setEventCtaFocus] = useState(false)
-  const eventCtaActive = eventCtaHover || eventCtaFocus
   const [calendarMenuOpen, setCalendarMenuOpen] = useState(false)
   const calendarMenuRef = useRef<HTMLDivElement>(null)
   const nextEvent = {
@@ -168,20 +141,6 @@ export function Home() {
     }
   }, [lenis])
 
-  const onExplorePointerEnter = useCallback((e: ReactPointerEvent<HTMLButtonElement>) => {
-    setClipRevealVars(e.currentTarget, e.clientX, e.clientY)
-    setExploreHover(true)
-  }, [])
-
-  const onExplorePointerMove = useCallback((e: ReactPointerEvent<HTMLButtonElement>) => {
-    setClipRevealVars(e.currentTarget, e.clientX, e.clientY)
-  }, [])
-
-  const onExplorePointerLeave = useCallback((e: ReactPointerEvent<HTMLButtonElement>) => {
-    setClipRevealVars(e.currentTarget, e.clientX, e.clientY)
-    setExploreHover(false)
-  }, [])
-
   return (
     <div className="relative">
       {/* Hero pinned: video + hero content stay fixed, only lower sections scroll over it */}
@@ -218,36 +177,13 @@ export function Home() {
               </span>
               <span className="hero-ground-line hero-ground-line--clean">
                 <span className="hero-ground-text hero-ground-text--delay-3 inline-block">
-                  <button
+                  <SecondaryClipButton
                     type="button"
                     onClick={scrollToProductLineup}
-                    onPointerEnter={onExplorePointerEnter}
-                    onPointerMove={onExplorePointerMove}
-                    onPointerLeave={onExplorePointerLeave}
-                    onFocus={() => setExploreFocus(true)}
-                    onBlur={() => setExploreFocus(false)}
-                    className="relative inline-flex min-w-[12rem] cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-white/[0.12] bg-transparent px-8 py-2.5 text-center font-nav text-sm font-bold uppercase outline-none [-webkit-tap-highlight-color:transparent] transition-[border-color,color] duration-500 ease-out hover:border-white/25 focus:outline-none focus-visible:outline-none motion-reduce:transition-none"
-                    style={exploreClipCssVars}
+                    className="min-w-[12rem] cursor-pointer"
                   >
-                    <span
-                      className="pointer-events-none absolute inset-0 z-0 bg-white"
-                      style={{
-                        clipPath: `circle(${exploreActive ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                        WebkitClipPath: `circle(${exploreActive ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                        transition:
-                          'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
-                        willChange: 'clip-path',
-                      }}
-                      aria-hidden
-                    />
-                    <span
-                      className={`relative z-10 transition-colors duration-500 motion-reduce:duration-200 ${
-                        exploreActive ? 'text-black' : 'text-pearl'
-                      }`}
-                    >
-                      Explore Products
-                    </span>
-                  </button>
+                    Explore Products
+                  </SecondaryClipButton>
                 </span>
               </span>
             </div>
@@ -313,39 +249,9 @@ export function Home() {
                     <p className="mt-1 text-white/80">{nextEvent.location}</p>
                   <div className="mt-5">
                     <div className="flex w-full items-center gap-2 relative">
-                      <Link
-                        to={nextEvent.href}
-                        onPointerEnter={(e) => {
-                          setClipRevealVars(e.currentTarget, e.clientX, e.clientY)
-                          setEventCtaHover(true)
-                        }}
-                        onPointerMove={(e) => {
-                          setClipRevealVars(e.currentTarget, e.clientX, e.clientY)
-                        }}
-                        onPointerLeave={(e) => {
-                          setClipRevealVars(e.currentTarget, e.clientX, e.clientY)
-                          setEventCtaHover(false)
-                        }}
-                        onFocus={() => setEventCtaFocus(true)}
-                        onBlur={() => setEventCtaFocus(false)}
-                        className="relative inline-flex items-center justify-center overflow-hidden rounded-full border border-white/30 bg-black/25 px-6 py-2.5 text-sm font-semibold text-white transition-[border-color,color] duration-500 ease-out hover:border-white/45"
-                        style={exploreClipCssVars}
-                      >
-                        <span
-                          className="pointer-events-none absolute inset-0 z-0 bg-white"
-                          style={{
-                            clipPath: `circle(${eventCtaActive ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                            WebkitClipPath: `circle(${eventCtaActive ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                            transition:
-                              'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
-                            willChange: 'clip-path',
-                          }}
-                          aria-hidden
-                        />
-                        <span className={`relative z-10 transition-colors duration-500 ${eventCtaActive ? 'text-black' : 'text-white'}`}>
-                          See event details
-                        </span>
-                      </Link>
+                      <SecondaryClipButton to={nextEvent.href} idleTextClass="text-white" hoverTextClass="text-black">
+                        See event details
+                      </SecondaryClipButton>
                       <div ref={calendarMenuRef} className="relative pointer-events-auto sm:ml-auto">
                         <button
                           type="button"
@@ -370,7 +276,7 @@ export function Home() {
                         <button
                           type="button"
                           onClick={() => setCalendarMenuOpen((prev) => !prev)}
-                          className="hidden sm:inline-flex items-center gap-2.5 rounded-full border border-[#0485F7] bg-[#0485F7] px-4 py-2 text-xs font-semibold text-white hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
+                          className={cn('hidden sm:inline-flex', appleButtonVisualClassName)}
                         >
                           <span>Add to calendar</span>
                         </button>
@@ -431,7 +337,7 @@ export function Home() {
                 </p>
                 <Link
                   to="/find-installer"
-                  className="mt-2 inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] px-4 py-2 text-xs font-semibold text-white hover:bg-[#3592F9] hover:border-[#3592F9] transition-colors"
+                  className={cn('mt-2 inline-flex', appleButtonVisualClassName)}
                 >
                   Find near you
                 </Link>

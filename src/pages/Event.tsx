@@ -1,37 +1,7 @@
-import {
-  useCallback,
-  useContext,
-  useState,
-  type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
-} from 'react'
+import { useCallback, useContext } from 'react'
 import { Link } from 'react-router-dom'
 import { LenisContext } from '@/components/LenisRoot'
-
-function setLearnClipVars(el: HTMLAnchorElement, clientX: number, clientY: number) {
-  const rect = el.getBoundingClientRect()
-  const w = rect.width || 1
-  const h = rect.height || 1
-  const localX = clientX - rect.left
-  const localY = clientY - rect.top
-  const x = (localX / w) * 100
-  const y = (localY / h) * 100
-
-  const d1 = Math.hypot(localX, localY)
-  const d2 = Math.hypot(w - localX, localY)
-  const d3 = Math.hypot(localX, h - localY)
-  const d4 = Math.hypot(w - localX, h - localY)
-  const r = Math.max(d1, d2, d3, d4)
-  el.style.setProperty('--clip-x', `${x}%`)
-  el.style.setProperty('--clip-y', `${y}%`)
-  el.style.setProperty('--clip-r', `${r}px`)
-}
-
-const learnLinkCssVars = {
-  '--clip-x': '50%',
-  '--clip-y': '50%',
-  '--clip-r': '0px',
-} as CSSProperties
+import { AppleButton } from '@/components/ui/AppleButton'
 
 function GpsIcon({ className }: { className?: string }) {
   return (
@@ -125,21 +95,6 @@ const eventMetaPillClass =
 
 export function Event() {
   const lenis = useContext(LenisContext)
-  const [learnHover, setLearnHover] = useState(false)
-
-  const onLearnPointerEnter = useCallback((e: ReactPointerEvent<HTMLAnchorElement>) => {
-    setLearnClipVars(e.currentTarget, e.clientX, e.clientY)
-    setLearnHover(true)
-  }, [])
-
-  const onLearnPointerMove = useCallback((e: ReactPointerEvent<HTMLAnchorElement>) => {
-    setLearnClipVars(e.currentTarget, e.clientX, e.clientY)
-  }, [])
-
-  const onLearnPointerLeave = useCallback((e: ReactPointerEvent<HTMLAnchorElement>) => {
-    setLearnClipVars(e.currentTarget, e.clientX, e.clientY)
-    setLearnHover(false)
-  }, [])
 
   const scrollToUpcoming = useCallback(() => {
     const el = document.getElementById('upcoming-events')
@@ -176,67 +131,17 @@ export function Event() {
         <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col pt-20">
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-0 pb-8 text-center md:pb-10">
             <p className="font-nav text-[11px] font-bold uppercase tracking-[0.35em] text-pearl/75 md:text-xs">
-              UPCOMING EVENTS
+              2026
             </p>
-            <h1 className="mt-4 font-nav text-4xl font-black uppercase leading-[1.02] tracking-tight text-pearl md:text-5xl lg:text-6xl xl:text-7xl">
-              2026 CALENDAR
+            <h1 className="mt-4 font-nav text-4xl font-black leading-[1.02] tracking-tight text-pearl md:text-5xl lg:text-6xl xl:text-7xl">
+              Events lineup
             </h1>
 
-            <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:mt-10 sm:flex-row sm:items-center sm:justify-center sm:gap-4">
-              <a
-                href="#request-invitation"
-                className="inline-flex items-center justify-center rounded-xl bg-black px-6 py-2.5 text-center font-nav text-sm font-bold uppercase text-white transition-opacity hover:opacity-90 md:px-8"
-              >
-                Request your invitation
-              </a>
-              <a
-                href="#learn-more"
-                className="relative inline-flex items-center justify-center overflow-hidden rounded-xl border border-white/[0.12] bg-transparent px-6 py-2.5 text-center font-nav text-sm font-bold uppercase transition-[border-color,color] duration-500 ease-out hover:border-white/25 motion-reduce:transition-none md:px-8"
-                style={learnLinkCssVars}
-                onPointerEnter={onLearnPointerEnter}
-                onPointerMove={onLearnPointerMove}
-                onPointerLeave={onLearnPointerLeave}
-              >
-                <span
-                  className="pointer-events-none absolute inset-0 z-0 bg-white"
-                  style={{
-                    clipPath: `circle(${learnHover ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                    WebkitClipPath: `circle(${learnHover ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                    transition:
-                      'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
-                    willChange: 'clip-path',
-                  }}
-                  aria-hidden
-                />
-                <span
-                  className={`relative z-10 transition-colors duration-500 motion-reduce:duration-200 ${
-                    learnHover ? 'text-black' : 'text-pearl'
-                  }`}
-                >
-                  Learn more
-                </span>
-              </a>
+            <div className="mt-10 flex justify-center sm:mt-10">
+              <AppleButton type="button" onClick={scrollToUpcoming}>
+                See future events
+              </AppleButton>
             </div>
-          </div>
-
-          <div className="relative z-10 flex shrink-0 justify-center pb-8 md:pb-10">
-            <button
-              type="button"
-              onClick={scrollToUpcoming}
-              className="group flex flex-col items-center gap-2 font-nav text-[11px] font-bold uppercase tracking-[0.28em] text-pearl/80 transition-colors hover:text-white"
-            >
-              <span>View upcoming events</span>
-              <svg
-                className="h-5 w-5 transition-transform duration-300 group-hover:translate-y-1"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
           </div>
         </div>
       </section>
