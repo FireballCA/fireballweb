@@ -481,6 +481,19 @@ export function Product() {
     }
   }, [selectedSizeValue, sizeOptions.length])
 
+  /** Après « Added » : reset clip — doit rester avant tout return (règles des Hooks). */
+  useEffect(() => {
+    clipAddMain.reset()
+    clipAddSticky.reset()
+    clipAddMobile.reset()
+    const el = addToCartMainButtonRef.current
+    if (el) {
+      el.style.removeProperty('--clip-x')
+      el.style.removeProperty('--clip-y')
+      el.style.removeProperty('--clip-r')
+    }
+  }, [added])
+
   if (loading) {
     return <ProductDetailSkeleton />
   }
@@ -609,19 +622,6 @@ export function Product() {
     setAdded(true)
     setTimeout(() => setAdded(false), 3000)
   }
-
-  /** Après « Added » : les pointer handlers sont coupés pendant l’état succès, donc hover/focus clip reste bloqué sans reset. */
-  useEffect(() => {
-    clipAddMain.reset()
-    clipAddSticky.reset()
-    clipAddMobile.reset()
-    const el = addToCartMainButtonRef.current
-    if (el) {
-      el.style.removeProperty('--clip-x')
-      el.style.removeProperty('--clip-y')
-      el.style.removeProperty('--clip-r')
-    }
-  }, [added]) // réinitialise clip quand « added » change (handlers désactivés pendant le succès)
 
   const handleOptionChange = (optionName: string, value: string) => {
     const newOptions = { ...selectedOptions, [optionName]: value }

@@ -24,11 +24,11 @@ export function getSafeReturnToPath(raw: string | null | undefined): string | nu
   }
 
   if (pathOnly === '/account/company' || pathOnly === '/contact' || pathOnly === '/join-club') return pathOnly
-  if (pathOnly === '/boutique') return pathOnly
-  if (/^\/boutique\/[a-zA-Z0-9_-]+$/.test(pathOnly)) return pathOnly
-  if (/^\/product\/[a-zA-Z0-9\-_%]+$/.test(pathOnly)) return pathOnly
-  if (/^\/produit\/[a-zA-Z0-9\-_%]+$/.test(pathOnly))
-    return pathOnly.replace(/^\/produit\//, '/product/')
+  if (pathOnly === '/shop') return pathOnly
+  if (/^\/shop\/[a-zA-Z0-9_-]+$/.test(pathOnly)) return pathOnly
+  if (/^\/products\/[a-zA-Z0-9\-_%]+$/.test(pathOnly)) return pathOnly
+  if (/^\/product\/[a-zA-Z0-9\-_%]+$/.test(pathOnly))
+    return pathOnly.replace(/^\/product\//, '/products/')
 
   return null
 }

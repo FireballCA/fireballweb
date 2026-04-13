@@ -11,11 +11,9 @@ export function Layout() {
   const reduceMotion = useReducedMotion()
 
   const isAccountAuthPage =
-    location.pathname === '/compte' ||
     location.pathname === '/account' ||
     location.pathname === '/account/register'
   const isAnyAccountPage =
-    location.pathname === '/compte' ||
     location.pathname.startsWith('/account') ||
     location.pathname.startsWith('/business')
   const isContactPage = location.pathname === '/contact'
@@ -24,8 +22,8 @@ export function Layout() {
 
   /** Même logique que Header : navbar sticky dans le flux — pas de pt sur main (évite double bande noire). */
   const isStickyNavPage =
+    location.pathname.startsWith('/products/') ||
     location.pathname.startsWith('/product/') ||
-    location.pathname.startsWith('/produit/') ||
     location.pathname.startsWith('/coating/') ||
     location.pathname.startsWith('/coatings/') ||
     location.pathname === '/all-coatings'

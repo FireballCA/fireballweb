@@ -1715,7 +1715,7 @@ export function AccountDashboard() {
                           Your Fireball purchases will appear here.
                         </p>
                         <Link
-                          to="/boutique"
+                          to="/shop"
                           className="group mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-[#5c5c5e] hover:text-[#111111] transition-colors duration-200"
                         >
                           Browse the shop
@@ -1871,7 +1871,7 @@ export function AccountDashboard() {
                               </p>
                             </div>
                             <Link
-                              to="/boutique"
+                              to="/shop"
                               className="group/shop mt-6 inline-flex items-center gap-1.5 text-xs font-medium text-[#5c5c5e] hover:text-[#111111] transition-colors duration-200"
                             >
                               Browse the shop

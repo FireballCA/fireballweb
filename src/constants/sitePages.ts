@@ -10,7 +10,7 @@ export type SitePage = {
  */
 export const SITE_PAGES: SitePage[] = [
   { label: 'Home', to: '/', keywords: ['accueil', 'landing'] },
-  { label: 'Shop', to: '/boutique', keywords: ['boutique', 'store', 'products'] },
+  { label: 'Shop', to: '/shop', keywords: ['store', 'products'] },
   { label: 'About', to: '/about', keywords: ['company', 'brand'] },
   { label: 'Contact', to: '/contact', keywords: ['support'] },
   { label: 'Events', to: '/event', keywords: ['event'] },

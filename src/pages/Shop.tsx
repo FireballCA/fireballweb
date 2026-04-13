@@ -25,13 +25,12 @@ export function Shop() {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [isPartner, setIsPartner] = useState(false)
 
-  // Détecter la catégorie depuis l'URL (support /boutique/category et /category)
+  // Détecter la catégorie depuis l'URL (support /shop/category et /category)
   // Liste des routes qui ne sont pas des catégories
   const nonCategoryRoutes = [
-    'produit',
+    'products',
     'product',
     'about',
-    'panier',
     'cart',
     'car-club',
     'contact',
@@ -41,11 +40,10 @@ export function Shop() {
     'account',
     'partner',
     'dashboard',
-    'compte',
-    'boutique',
+    'shop',
     'all-coatings',
   ]
-  const pathSegment = location.pathname !== '/' && !location.pathname.startsWith('/boutique/')
+  const pathSegment = location.pathname !== '/' && !location.pathname.startsWith('/shop/')
     ? location.pathname.slice(1).split('/')[0] 
     : undefined
   const pathCategoryId = pathSegment && !nonCategoryRoutes.includes(pathSegment) && CATEGORIES.some(c => c.id === pathSegment)

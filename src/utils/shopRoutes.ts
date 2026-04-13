@@ -2,9 +2,7 @@ import { CATEGORIES } from '@/data/products'
 
 /** Aligné sur Shop.tsx — segments racine qui ne sont pas une catégorie boutique */
 const NON_CATEGORY_ROUTE_SEGMENTS = new Set([
-  'produit',
   'about',
-  'panier',
   'car-club',
   'contact',
   'legal',
@@ -15,15 +13,14 @@ const NON_CATEGORY_ROUTE_SEGMENTS = new Set([
   'account',
   'partner',
   'dashboard',
-  'compte',
-  'boutique',
   'shop',
+  'products',
   'all-coatings',
 ])
 
-/** Pages liste produits / boutique (/boutique, /boutique/:cat, /coatings seul, /:categoryId) */
+/** Pages liste produits / shop (/shop, /shop/:cat, /coatings seul, /:categoryId) */
 export function isShopPathname(pathname: string): boolean {
-  if (pathname.startsWith('/boutique')) return true
+  if (pathname.startsWith('/shop')) return true
   if (pathname === '/coatings') return true
   const seg = pathname.split('/').filter(Boolean)[0]
   if (!seg) return false

@@ -1015,7 +1015,7 @@ function BusinessAdminAnnouncements() {
                   const categoryOptions = CATEGORIES.map((c) => ({
                     kind: 'Category' as const,
                     label: c.name,
-                    to: `/boutique/${c.id}`,
+                    to: `/shop/${c.id}`,
                     keywords: [c.id, c.description],
                   }))
                   const base =
