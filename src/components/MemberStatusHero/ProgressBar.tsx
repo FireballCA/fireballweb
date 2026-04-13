@@ -12,13 +12,13 @@ export function ProgressBar({ currentXp, targetXp }: ProgressBarProps) {
       {/* XP Number + Label */}
       <div className="flex items-start">
         <span
-          className="text-[#F4F4F4] font-inter leading-[1.2]"
+          className="text-carbon-900 font-inter leading-[1.2]"
           style={{ fontSize: 110, fontWeight: 400 }}
         >
           {currentXp.toLocaleString()}
         </span>
         <span
-          className="text-white font-inter mt-1"
+          className="text-carbon-700 font-inter mt-1"
           style={{ fontSize: 18, fontWeight: 400, lineHeight: '22px' }}
         >
           XP
@@ -27,9 +27,9 @@ export function ProgressBar({ currentXp, targetXp }: ProgressBarProps) {
 
       {/* Progress bar */}
       <div className="w-full mt-2">
-        <div className="h-[5px] w-full bg-[#484848] rounded-[20px] overflow-hidden">
+        <div className="h-[5px] w-full bg-neutral-300 rounded-[20px] overflow-hidden">
           <div
-            className="h-full bg-white rounded-[20px] transition-all duration-500"
+            className="h-full bg-carbon-900 rounded-[20px] transition-all duration-500"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -37,10 +37,10 @@ export function ProgressBar({ currentXp, targetXp }: ProgressBarProps) {
 
       {/* Counters */}
       <div className="w-full flex items-center justify-between mt-2">
-        <span className="text-white font-inter" style={{ fontSize: 16, fontWeight: 400, lineHeight: '20px' }}>
+        <span className="text-carbon-800 font-inter" style={{ fontSize: 16, fontWeight: 400, lineHeight: '20px' }}>
           {currentXp.toLocaleString()}/{targetXp.toLocaleString()}
         </span>
-        <span className="text-[#484848] font-inter" style={{ fontSize: 16, fontWeight: 400, lineHeight: '20px' }}>
+        <span className="text-carbon-500 font-inter" style={{ fontSize: 16, fontWeight: 400, lineHeight: '20px' }}>
           {xpToGo.toLocaleString()} XP to go
         </span>
       </div>

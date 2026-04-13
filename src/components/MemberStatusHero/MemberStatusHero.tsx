@@ -44,13 +44,13 @@ export function MemberStatusHero({
   const normalizedPartnerStatus = String(partnerStatus || '').trim().toLowerCase()
 
   return (
-    <section className="relative w-full min-h-[88vh] bg-[#0A0A0A] overflow-hidden">
+    <section className="relative w-full min-h-[88vh] bg-white overflow-hidden">
       {/* ── Desktop layout ── */}
       <div className="hidden lg:flex flex-col h-full relative z-10 px-16">
         {/* Header row — Name left, icons right */}
         <div className="pt-8 shrink-0 flex items-center justify-between">
           <h1
-            className="text-white"
+            className="text-carbon-900"
             style={{ fontSize: 40, fontWeight: 400, lineHeight: '50px' }}
           >
             {userName}
@@ -76,7 +76,7 @@ export function MemberStatusHero({
             {/* Right: Tier Benefits — tops aligned with Quick Links */}
             <div className="flex flex-col items-end">
               <p
-                className="text-white text-[13px] leading-[16px] uppercase tracking-[0.1em] mb-3"
+                className="text-carbon-600 text-[13px] leading-[16px] uppercase tracking-[0.1em] mb-3"
                 style={{ fontWeight: 400 }}
               >
                 {tier} BENEFITS
@@ -85,10 +85,10 @@ export function MemberStatusHero({
                 {benefits.map((benefit, index) => (
                   <div
                     key={index}
-                    className="h-[34px] text-white font-inter text-[13px] leading-[16px] px-3 text-left flex items-center gap-2.5 w-[240px] rounded-[6px]"
-                    style={{ background: 'rgba(46, 46, 46, 0.7)', fontWeight: 400 }}
+                    className="h-[34px] text-carbon-900 font-inter text-[13px] leading-[16px] px-3 text-left flex items-center gap-2.5 w-[240px] rounded-[6px]"
+                    style={{ background: 'rgba(229, 231, 235, 0.9)', fontWeight: 400 }}
                   >
-                    <span className="font-inter text-[16px] leading-[20px] text-white select-none" style={{ fontWeight: 400 }}>+</span>
+                    <span className="font-inter text-[16px] leading-[20px] text-carbon-700 select-none" style={{ fontWeight: 400 }}>+</span>
                     <span>{benefit.text}</span>
                   </div>
                 ))}
@@ -101,7 +101,7 @@ export function MemberStatusHero({
       {/* Manage Business — desktop only */}
       <Link
         to={normalizedPartnerStatus === 'partner' ? '/business' : '/account/company'}
-        className="hidden lg:flex items-center justify-between absolute z-20 text-white text-[13px] leading-[16px] px-3 h-[34px] rounded-[6px] w-[240px] transition-colors hover:brightness-125"
+        className="hidden lg:flex items-center justify-between absolute z-20 text-white text-[13px] leading-[16px] px-3 h-[34px] rounded-[6px] w-[240px] transition-colors hover:brightness-110"
         style={{
           background: '#96182c',
           fontWeight: 400,
@@ -119,7 +119,7 @@ export function MemberStatusHero({
       <div className="lg:hidden relative z-10 px-6 md:px-12 pt-8 pb-16 flex flex-col gap-10">
         <div className="flex items-center justify-between">
           <h1
-            className="text-white"
+            className="text-carbon-900"
             style={{ fontSize: 'clamp(24px, 5.5vw, 40px)', fontWeight: 400, lineHeight: '1.2' }}
           >
             {userName}
@@ -138,17 +138,17 @@ export function MemberStatusHero({
         />
 
         <div>
-          <p className="text-white text-[13px] leading-[16px] uppercase tracking-[0.1em] mb-3" style={{ fontWeight: 400 }}>
+          <p className="text-carbon-600 text-[13px] leading-[16px] uppercase tracking-[0.1em] mb-3" style={{ fontWeight: 400 }}>
             {tier} BENEFITS
           </p>
           <div className="flex flex-col gap-2">
             {benefits.map((benefit, index) => (
               <div
                 key={index}
-                className="h-[34px] text-white font-inter text-[13px] leading-[16px] px-3 text-left flex items-center gap-2.5 w-[240px] rounded-[6px]"
-                style={{ background: 'rgba(46, 46, 46, 0.7)', fontWeight: 400 }}
+                className="h-[34px] text-carbon-900 font-inter text-[13px] leading-[16px] px-3 text-left flex items-center gap-2.5 w-[240px] rounded-[6px]"
+                style={{ background: 'rgba(229, 231, 235, 0.9)', fontWeight: 400 }}
               >
-                <span className="font-inter text-[16px] leading-[20px] text-white select-none" style={{ fontWeight: 400 }}>+</span>
+                <span className="font-inter text-[16px] leading-[20px] text-carbon-700 select-none" style={{ fontWeight: 400 }}>+</span>
                 <span>{benefit.text}</span>
               </div>
             ))}

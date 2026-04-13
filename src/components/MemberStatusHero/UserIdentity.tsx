@@ -18,12 +18,12 @@ export function UserIdentity({
   onSettingsClick,
 }: UserIdentityProps) {
   const buttonClass =
-    'h-[34px] text-white text-[13px] leading-[16px] text-left px-3 rounded-[6px] w-[240px] flex items-center justify-between transition-colors hover:brightness-125'
+    'h-[34px] text-carbon-900 text-[13px] leading-[16px] text-left px-3 rounded-[6px] w-[240px] flex items-center justify-between transition-colors hover:brightness-95'
 
   return (
     <div>
       <p
-        className="text-white text-[13px] leading-[16px] uppercase tracking-[0.1em] mb-3"
+        className="text-carbon-600 text-[13px] leading-[16px] uppercase tracking-[0.1em] mb-3"
         style={{ fontWeight: 400 }}
       >
         QUICK LINKS
@@ -32,7 +32,7 @@ export function UserIdentity({
         <button
           type="button"
           className={buttonClass}
-          style={{ background: 'rgba(44, 44, 46, 0.7)', fontWeight: 400 }}
+          style={{ background: 'rgba(229, 231, 235, 0.9)', fontWeight: 400 }}
         >
           <span>Track your order</span>
           <ArrowIcon />
@@ -41,7 +41,7 @@ export function UserIdentity({
           type="button"
           onClick={onProductsPurchasedClick}
           className={buttonClass}
-          style={{ background: 'rgba(44, 44, 46, 0.7)', fontWeight: 400 }}
+          style={{ background: 'rgba(229, 231, 235, 0.9)', fontWeight: 400 }}
         >
           <span>Products purchased</span>
           <ArrowIcon />
@@ -49,7 +49,7 @@ export function UserIdentity({
         <Link
           to="/account/company"
           className={buttonClass}
-          style={{ background: 'rgba(44, 44, 46, 0.7)', fontWeight: 400 }}
+          style={{ background: 'rgba(229, 231, 235, 0.9)', fontWeight: 400 }}
         >
           <span>Become certified</span>
           <ArrowIcon />
@@ -57,7 +57,7 @@ export function UserIdentity({
         <Link
           to="/account/settings"
           className={buttonClass}
-          style={{ background: 'rgba(44, 44, 46, 0.7)', fontWeight: 400 }}
+          style={{ background: 'rgba(229, 231, 235, 0.9)', fontWeight: 400 }}
         >
           <span>Settings</span>
           <ArrowIcon />
