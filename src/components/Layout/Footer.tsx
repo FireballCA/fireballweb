@@ -54,7 +54,7 @@ export function Footer() {
             </h3>
             <ul className="space-y-3">
               <li>
-                <Link to="/boutique" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                <Link to="/shop" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
                   Products
                   <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
                 </Link>
@@ -68,12 +68,6 @@ export function Footer() {
               <li>
                 <Link to="/academy" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
                   Academy
-                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
-                </Link>
-              </li>
-              <li>
-                <Link to="/coating/typhon" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
-                  Protection services
                   <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
                 </Link>
               </li>

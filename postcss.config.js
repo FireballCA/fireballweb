@@ -1,4 +1,6 @@
-/** Tailwind v4 est géré par @tailwindcss/vite — PostCSS reste pour d’éventuels plugins tiers. */
+/** Tailwind v4 : plugin PostCSS officiel (évite l’erreur @layer base / @tailwind base). */
 export default {
-  plugins: {},
+  plugins: {
+    '@tailwindcss/postcss': {},
+  },
 }

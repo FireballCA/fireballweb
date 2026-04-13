@@ -35,7 +35,6 @@ import { PartnerWarranties } from '@/pages/partner/PartnerWarranties'
 import { PartnerCertification } from '@/pages/partner/PartnerCertification'
 import { PartnerSettings } from '@/pages/partner/PartnerSettings'
 import { PartnerStatistics } from '@/pages/partner/PartnerStatistics'
-import { Typhon } from '@/pages/coating/Typhon'
 import { CompareCoatings } from '@/pages/coatings/CompareCoatings'
 import { CeramicCoating } from '@/pages/coatings/CeramicCoating'
 import { FindInstaller } from '@/pages/coatings/FindInstaller'
@@ -43,15 +42,9 @@ import { HowItWorks } from '@/pages/coatings/HowItWorks'
 import { CATEGORIES } from '@/data/products'
 import { NotFoundPage } from '@/components/NotFoundPage'
 
-function LegacyProduitRedirect() {
+function LegacyProductRedirect() {
   const { slug } = useParams<{ slug: string }>()
-  return <Navigate to={`/product/${slug}`} replace />
-}
-
-/** Anciennes URLs `/shop/:cat` → `/:cat` (ex. `/shop/coatings` → `/coatings`). */
-function LegacyShopCategoryRedirect() {
-  const { categoryId } = useParams<{ categoryId: string }>()
-  return <Navigate to={`/${categoryId}`} replace />
+  return <Navigate to={`/products/${slug}`} replace />
 }
 
 function CategoryRoute() {
@@ -68,12 +61,10 @@ function App() {
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
-            <Route path="boutique" element={<Shop />} />
-            <Route path="boutique/:categoryId" element={<Shop />} />
-            <Route path="shop" element={<Navigate to="/boutique" replace />} />
-            <Route path="shop/:categoryId" element={<LegacyShopCategoryRedirect />} />
-            <Route path="product/:slug" element={<Product />} />
-            <Route path="produit/:slug" element={<LegacyProduitRedirect />} />
+            <Route path="shop" element={<Shop />} />
+            <Route path="shop/:categoryId" element={<Shop />} />
+            <Route path="products/:slug" element={<Product />} />
+            <Route path="product/:slug" element={<LegacyProductRedirect />} />
             <Route path="all-coatings" element={<CeramicCoating />} />
             <Route path="coatings/compare" element={<CompareCoatings />} />
             <Route path="coatings/find-installer" element={<FindInstaller />} />
@@ -85,7 +76,6 @@ function App() {
             <Route path="about" element={<About />} />
             <Route path="press-kit" element={<PressKit />} />
             <Route path="cart" element={<Cart />} />
-            <Route path="panier" element={<Navigate to="/cart" replace />} />
             <Route path="car-club" element={<CarClub />} />
             <Route path="event/:eventSlug" element={<EventDetail />} />
             <Route path="event" element={<Event />} />
@@ -93,7 +83,6 @@ function App() {
             <Route path="legal" element={<Legal />} />
             <Route path="academy/training-thank-you" element={<TrainingRegistrationThankYou />} />
             <Route path="academy" element={<Academy />} />
-            <Route path="coating/typhon" element={<Typhon />} />
             <Route path="join-fireball" element={<JoinFireball />} />
             <Route path="join-club" element={<JoinClub />} />
             <Route path="join" element={<PartnerCompany />} />
@@ -257,7 +246,6 @@ function App() {
               element={<PartnerCompany />}
             />
             <Route path="dashboard" element={<Navigate to="/account/dashboard" replace />} />
-            <Route path="compte" element={<Navigate to="/account" replace />} />
           </Route>
           <Route path="/404" element={<NotFoundPage />} />
           <Route path="/partner/onboarding" element={<PartnerRoute requireOnboarded={false}><PartnerOnboarding /></PartnerRoute>} />

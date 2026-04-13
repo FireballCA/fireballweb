@@ -1,6 +1,23 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
+/* Compat visuelle Tailwind v3 -> v4 :
+   - bordures par défaut plus foncées en v4
+   - curseur bouton moins explicite
+*/
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: rgb(229 229 229);
+  }
+
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+}
+
 @layer utilities {
   .animate-spin-slow {
     animation: spin 1.6s linear infinite;

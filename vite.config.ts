@@ -1,6 +1,5 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 function shopifyCustomerApiPlugin(mode: string): Plugin {
@@ -360,8 +359,14 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
 
             const result = await response.json()
             const userErrors = result?.data?.customerCreate?.userErrors || []
+            const isAlreadyExistsError = Array.isArray(userErrors)
+              ? userErrors.some((e: any) => {
+                  const msg = String(e?.message || '').toLowerCase()
+                  return msg.includes('taken') || msg.includes('already exists') || msg.includes('has already been taken')
+                })
+              : false
 
-            if (!response.ok || result?.errors?.length || userErrors.length) {
+            if (!response.ok || result?.errors?.length || (userErrors.length && !isAlreadyExistsError)) {
               res.statusCode = 400
               res.setHeader('Content-Type', 'application/json')
               res.end(
@@ -371,6 +376,48 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
                 }),
               )
               return
+            }
+
+            // Cas fréquent: email déjà existant côté Shopify.
+            // On retourne success=true avec le customer existant pour éviter un 400 inutile côté front.
+            if (isAlreadyExistsError) {
+              const lookupQuery = `
+                query customersByEmail($query: String!) {
+                  customers(first: 1, query: $query) {
+                    edges {
+                      node {
+                        id
+                        email
+                      }
+                    }
+                  }
+                }
+              `
+              const lookupResponse = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Shopify-Access-Token': shopifyAdminApiToken,
+                },
+                body: JSON.stringify({
+                  query: lookupQuery,
+                  variables: { query: `email:${email}` },
+                }),
+              })
+              const lookupResult = (await lookupResponse.json().catch(() => null)) as any
+              const existingCustomer = lookupResult?.data?.customers?.edges?.[0]?.node || null
+              if (existingCustomer?.id) {
+                res.statusCode = 200
+                res.setHeader('Content-Type', 'application/json')
+                res.end(
+                  JSON.stringify({
+                    success: true,
+                    customer: existingCustomer,
+                    reusedExisting: true,
+                  }),
+                )
+                return
+              }
             }
 
             res.statusCode = 200
@@ -837,7 +884,8 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
 }
 
 export default defineConfig(({ mode }) => ({
-  plugins: [tailwindcss(), react(), shopifyCustomerApiPlugin(mode)],
+  /** Tailwind v4 est appliqué via postcss.config.js + @tailwindcss/postcss (pas @tailwindcss/vite, évite conflit @layer). */
+  plugins: [react(), shopifyCustomerApiPlugin(mode)],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

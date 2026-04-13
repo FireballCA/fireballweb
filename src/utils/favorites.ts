@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 
 const LOCAL_KEY = 'fireball_wishlist_slugs'
+let favoriteColumnUnavailable = false
 
 export function readLocalFavoriteSlugs(): string[] {
   try {
@@ -22,6 +23,7 @@ export async function getFavoriteSlugsFromProfile(): Promise<string[] | null> {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return null
+  if (favoriteColumnUnavailable) return readLocalFavoriteSlugs()
 
   const { data, error } = await supabase
     .from('profiles')
@@ -30,6 +32,10 @@ export async function getFavoriteSlugsFromProfile(): Promise<string[] | null> {
     .maybeSingle()
 
   if (error) {
+    if (error.message?.includes('favorite_product_slugs does not exist')) {
+      favoriteColumnUnavailable = true
+      return readLocalFavoriteSlugs()
+    }
     console.warn('favorites: profile read failed', error.message)
     return []
   }
@@ -46,6 +52,10 @@ export async function saveFavoriteSlugsToProfile(slugs: string[]): Promise<boole
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return false
+  if (favoriteColumnUnavailable) {
+    writeLocalFavoriteSlugs(slugs)
+    return true
+  }
 
   const { error } = await supabase
     .from('profiles')
@@ -53,6 +63,11 @@ export async function saveFavoriteSlugsToProfile(slugs: string[]): Promise<boole
     .eq('id', user.id)
 
   if (error) {
+    if (error.message?.includes('favorite_product_slugs does not exist')) {
+      favoriteColumnUnavailable = true
+      writeLocalFavoriteSlugs(slugs)
+      return true
+    }
     console.warn('favorites: profile update failed', error.message)
     return false
   }

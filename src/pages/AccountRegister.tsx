@@ -211,7 +211,10 @@ export function AccountRegister() {
           .eq('id', authData.user.id)
       }
 
-      if (returnToPath?.startsWith('/product/') || returnToPath?.startsWith('/produit/')) {
+      if (
+        returnToPath?.startsWith('/products/') ||
+        returnToPath?.startsWith('/product/')
+      ) {
         navigate('/account/dashboard', {
           replace: true,
           state: {

@@ -132,8 +132,8 @@ export function Header() {
   const isContactPage = location.pathname === '/contact'
   const isShopPage = isShopPathname(location.pathname)
   const isProductPage =
-    location.pathname.startsWith('/product/') ||
-    location.pathname.startsWith('/produit/')
+    location.pathname.startsWith('/products/') ||
+    location.pathname.startsWith('/product/')
   const isCoatingPage =
     location.pathname.startsWith('/coating/') ||
     location.pathname.startsWith('/coatings/') ||
@@ -614,7 +614,7 @@ export function Header() {
 
   const searchEntries = useMemo<SearchEntry[]>(() => {
     const pageEntries: SearchEntry[] = [
-      { id: 'page-boutique', label: 'Shop', to: '/boutique', kind: 'Page', keywords: ['boutique', 'products', 'store'] },
+      { id: 'page-shop', label: 'Shop', to: '/shop', kind: 'Page', keywords: ['products', 'store'] },
       { id: 'page-car-club', label: 'Car club', to: '/car-club', kind: 'Page', keywords: ['club'] },
       { id: 'page-event', label: 'Events', to: '/event', kind: 'Page', keywords: ['events'] },
       { id: 'page-academy', label: 'Academy', to: '/academy', kind: 'Page', keywords: ['formation'] },
@@ -623,23 +623,23 @@ export function Header() {
       { id: 'page-about', label: 'About us', to: '/about', kind: 'Page', keywords: ['a propos', 'brand'] },
       { id: 'page-legal', label: 'Legal', to: '/legal', kind: 'Page', keywords: ['mentions', 'terms'] },
       { id: 'page-press-kit', label: 'Press kit', to: '/press-kit', kind: 'Page', keywords: ['media', 'presse'] },
-      { id: 'page-cart', label: 'Cart', to: '/panier', kind: 'Page', keywords: ['panier', 'checkout'] },
+      { id: 'page-cart', label: 'Cart', to: '/cart', kind: 'Page', keywords: ['checkout'] },
     ]
 
     const categoryEntries: SearchEntry[] = CATEGORIES.map((category) => ({
       id: `category-${category.id}`,
       label: category.name,
-      to: category.id === 'coatings' ? shopBrowseCategoryPath('coatings') : `/boutique/${category.id}`,
+      to: category.id === 'coatings' ? shopBrowseCategoryPath('coatings') : `/shop/${category.id}`,
       kind: 'Category',
       subtitle: category.description,
-      keywords: [category.id, 'categorie', 'category', 'boutique'],
+      keywords: [category.id, 'category', 'shop'],
     }))
 
     const categoryById = new Map(CATEGORIES.map((category) => [category.id, category.name]))
     const productEntries: SearchEntry[] = searchableProducts.map((product) => ({
       id: `product-${product.slug}`,
       label: product.name,
-      to: `/produit/${product.slug}`,
+      to: `/products/${product.slug}`,
       kind: 'Product',
       subtitle: categoryById.get(product.category) ?? product.category,
       keywords: [product.shortDesc, product.category, product.badge ?? ''],
@@ -651,7 +651,7 @@ export function Header() {
   const popularSearches = useMemo(
     () =>
       searchEntries.filter((entry) =>
-        ['page-boutique', 'category-revetements', 'page-car-club', 'page-academy'].includes(entry.id)
+        ['page-shop', 'category-revetements', 'page-car-club', 'page-academy'].includes(entry.id)
       ),
     [searchEntries]
   )
@@ -944,7 +944,7 @@ export function Header() {
                             {featuredDescription}
                           </p>
                           <Link
-                            to="/boutique"
+                            to="/shop"
                             className="inline-flex items-center gap-0.5 text-sm font-nav font-bold text-blue-600 hover:text-blue-700 underline transition-colors"
                             onClick={() => setShopOpen(false)}
                           >

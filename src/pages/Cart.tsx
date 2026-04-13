@@ -143,6 +143,50 @@ export function Cart() {
   const emptyCtaCategory = emptyCtaCategories[emptyCtaCategoryIndex] ?? emptyCtaCategories[0]
   const emptyCtaButtonWidth = `${Math.max(16, 6 + (emptyCtaCategory?.name.length ?? 4))}ch`
 
+  const favoritesSection = (
+    <section className="py-8">
+      <h2 className={productSectionHeadingClass}>Favorites</h2>
+
+      {favoriteProducts.length === 0 ? (
+        <p className="mt-4 text-sm text-carbon-600">No saved favorites yet.</p>
+      ) : (
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {favoriteProducts.map((p) => (
+            <article key={p.id} className="overflow-hidden bg-white">
+              <Link to={productDetailPath(p.slug)} className="group block">
+                <div className="aspect-square">
+                  <img src={p.image} alt="" className="w-full h-full object-cover group-hover:opacity-95" />
+                </div>
+                <div className="p-2">
+                  <p className="text-xs font-medium text-carbon-900 line-clamp-2 leading-snug">{p.name}</p>
+                  <p className="text-[11px] text-carbon-600 mt-1 tabular-nums">{formatMoney(p.price)}</p>
+                </div>
+              </Link>
+              <div className="px-2 pb-2">
+                <button
+                  type="button"
+                  onClick={() => addToCart(p, 1)}
+                  className="w-full rounded-full border border-carbon-300 px-3 py-1.5 text-[11px] font-semibold text-carbon-900 transition-colors hover:bg-carbon-50"
+                >
+                  Add to cart
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+      {!userId && (
+        <div className="mt-4 px-0 py-1 text-center sm:text-left">
+          <p className="text-xs text-carbon-600">Favorites are saved locally on this device.</p>
+          <Link to="/account?tab=login" className="mt-2 inline-block text-xs font-semibold text-carbon-900 underline underline-offset-2">
+            Sign in to sync across devices
+          </Link>
+        </div>
+      )}
+      {productsLoading && <p className="mt-2 text-xs text-carbon-500">Loading favorites…</p>}
+    </section>
+  )
+
   useEffect(() => {
     if (items.length > 0 || emptyCtaCategories.length <= 1) return
     const timer = window.setInterval(() => {
@@ -233,7 +277,7 @@ export function Cart() {
           <div className="text-center">
             <h1 className="font-sans font-bold text-4xl text-carbon-900 mb-8">{t('cart.empty')}</h1>
             <Link
-              to={emptyCtaCategory ? shopCategoryPath(emptyCtaCategory.id) : '/boutique'}
+              to={emptyCtaCategory ? shopCategoryPath(emptyCtaCategory.id) : '/shop'}
               className="inline-flex items-center justify-center rounded-full bg-black px-8 py-4 font-medium text-white transition-[width] duration-500 ease-out"
               style={{ width: emptyCtaButtonWidth }}
             >
@@ -267,6 +311,8 @@ export function Cart() {
             <p className="text-base font-semibold text-carbon-900">Our payments partners</p>
             <PaymentMethodBadges className="mt-4" iconClassName="h-8 w-auto shrink-0" />
           </section>
+
+          {favoritesSection}
         </div>
       </div>
     )
@@ -383,53 +429,7 @@ export function Cart() {
               </Link>
             </section>
 
-            <section className="py-8">
-              <h2 className={productSectionHeadingClass}>Favorites</h2>
-
-              {favoriteProducts.length === 0 ? (
-                <p className="mt-4 text-sm text-carbon-600">No saved favorites yet.</p>
-              ) : (
-                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {favoriteProducts.map((p) => (
-                    <Link
-                      key={p.id}
-                      to={productDetailPath(p.slug)}
-                      className="group overflow-hidden bg-white"
-                    >
-                      <div className="aspect-square">
-                        <img
-                          src={p.image}
-                          alt=""
-                          className="w-full h-full object-cover group-hover:opacity-95"
-                        />
-                      </div>
-                      <div className="p-2">
-                        <p className="text-xs font-medium text-carbon-900 line-clamp-2 leading-snug">
-                          {p.name}
-                        </p>
-                        <p className="text-[11px] text-carbon-600 mt-1 tabular-nums">
-                          {formatMoney(p.price)}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-              {!userId && (
-                <div className="mt-4 px-0 py-1 text-center sm:text-left">
-                  <p className="text-xs text-carbon-600">Favorites are saved locally on this device.</p>
-                  <Link
-                    to="/account?tab=login"
-                    className="mt-2 inline-block text-xs font-semibold text-carbon-900 underline underline-offset-2"
-                  >
-                    Sign in to sync across devices
-                  </Link>
-                </div>
-              )}
-              {productsLoading && (
-                <p className="mt-2 text-xs text-carbon-500">Loading favorites…</p>
-              )}
-            </section>
+            {favoritesSection}
 
           </div>
 
