@@ -36,6 +36,8 @@ export function Layout() {
       ? ''
       : isStickyNavPage
         ? ''
+        : isAnyAccountPage
+          ? ''
         : isJoinClubPage
           ? ''
           : isShopPage

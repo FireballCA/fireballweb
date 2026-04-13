@@ -707,7 +707,7 @@ export function Header() {
     <>
       {/* Banner + Navbar: move as ONE block (no gap, smoother) */}
       <div
-        className={`${isProductPage || isCoatingPage || isJoinClubPage ? '' : 'fixed'} top-0 left-0 right-0 ${
+        className={`${isProductPage || isCoatingPage || isJoinClubPage ? '' : 'sticky'} top-0 left-0 right-0 ${
           isMobileMenuMounted ? 'z-[10010]' : 'z-[120]'
         } transition-transform duration-300 ease-out will-change-transform`}
         style={{

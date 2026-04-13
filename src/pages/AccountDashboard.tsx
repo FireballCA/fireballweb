@@ -10,6 +10,7 @@ import { ProductsPurchasedSheet } from '@/components/ProductsPurchasedSheet'
 import { AdminPanelSheet } from '@/components/AdminPanelSheet'
 import { SettingsSheet } from '@/components/SettingsSheet'
 import { Footer } from '@/components/Layout/Footer'
+import { appleButtonClassName } from '@/components/ui/AppleButton'
 import {
   fetchGarageVehicles,
   createGarageVehicle,
@@ -1090,6 +1091,26 @@ export function AccountDashboard() {
   const visiblePrimary = hasFourOrMoreOrders ? (displayOrders[ordersCarouselIndex] ?? null) : (displayOrders[0] ?? null)
   const visibleSecond = hasFourOrMoreOrders ? (displayOrders[ordersCarouselIndex + 1] ?? null) : (displayOrders[1] ?? null)
   const visibleThird = hasFourOrMoreOrders ? (displayOrders[ordersCarouselIndex + 2] ?? null) : (displayOrders[2] ?? null)
+
+  const ordersSummaryPreview = displayOrders[0] ?? null
+  const summaryFirstLine = ordersSummaryPreview?.lineItems?.[0]
+  const summaryOrderTitle = summaryFirstLine?.title ?? ordersSummaryPreview?.name ?? 'Order'
+  const summaryQty = summaryFirstLine?.quantity ?? 1
+  const summaryLineUnit =
+    typeof summaryFirstLine?.price === 'number' ? summaryFirstLine.price : undefined
+  const summaryThumb = summaryFirstLine?.imageUrl || ordersSummaryPreview?.imageUrl
+  const summaryTotal = ordersSummaryPreview?.totalPrice ?? 0
+  const summaryCurrency = ordersSummaryPreview?.currency || 'CAD'
+  const summaryTotalLabel = `${summaryTotal.toFixed(2)}$ ${summaryCurrency}`
+  const summaryLinePriceLabel =
+    summaryLineUnit !== undefined ? `${summaryLineUnit.toFixed(2)}$` : undefined
+  const summaryXp =
+    ordersSummaryPreview &&
+    typeof ordersSummaryPreview.pointsEarned === 'number' &&
+    Number.isFinite(ordersSummaryPreview.pointsEarned)
+      ? ordersSummaryPreview.pointsEarned
+      : null
+
   useEffect(() => {
     setOrdersCarouselIndex((i) => Math.min(i, carouselMaxIndex))
   }, [carouselMaxIndex, displayOrders.length])
@@ -1134,14 +1155,14 @@ export function AccountDashboard() {
   ])
 
   return (
-    <section className="relative min-h-screen bg-[#0a0a0a] text-pearl">
+    <section className="relative min-h-screen bg-white text-carbon-900">
       {(!dashboardDataLoaded || isEnteringDashboard) && <AccountDashboardSkeleton />}
       {showWelcomeScreen && (
-        <div className="fixed inset-0 z-[130] bg-black">
+        <div className="fixed inset-0 z-[130] bg-white">
           <div className="h-full w-full flex items-center justify-center px-6">
             <div className="text-center">
               <h1
-                className="font-nav font-bold text-5xl md:text-6xl text-white"
+                className="font-nav font-bold text-5xl md:text-6xl text-carbon-900"
                 style={{
                   clipPath: welcomeLineVisible ? 'inset(0 0 0 0)' : 'inset(0 100% 0 0)',
                   transform: welcomeLineVisible ? 'translateX(0)' : 'translateX(-22px)',
@@ -1153,7 +1174,7 @@ export function AccountDashboard() {
                 Welcome, {firstName}.
               </h1>
               <p
-                className={`mt-7 text-[11px] md:text-xs font-nav font-bold uppercase tracking-[0.14em] text-silver/90 transition-all duration-[1400ms] ease-out ${
+                className={`mt-7 text-[11px] md:text-xs font-nav font-bold uppercase tracking-[0.14em] text-carbon-500 transition-all duration-[1400ms] ease-out ${
                   subtitleVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
                 }`}
               >
@@ -1173,7 +1194,7 @@ export function AccountDashboard() {
                     setIsEnteringDashboard(false)
                   }, 400)
                 }}
-                className={`mt-10 inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 px-5 py-2.5 text-sm font-nav font-bold text-white transition-all duration-700 hover:bg-white/20 ${
+                className={`mt-10 inline-flex items-center justify-center rounded-xl border border-carbon-300 bg-white px-5 py-2.5 text-sm font-nav font-bold text-carbon-900 transition-all duration-700 hover:bg-carbon-50 ${
                   enterButtonVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
                 }`}
               >
@@ -1185,7 +1206,7 @@ export function AccountDashboard() {
       )}
 
       {showDashboard && (
-        <div className="w-full relative bg-[#0a0a0a]">
+        <div className="w-full relative bg-white">
           {latestNotification && !notificationDismissed && (
             <div className="pointer-events-none fixed top-[92px] md:top-[96px] left-0 right-0 z-[90] flex justify-center">
               <div className="pointer-events-auto max-w-3xl w-full mx-4 rounded-[24px] bg-white backdrop-blur-2xl shadow-[0_22px_55px_rgba(0,0,0,0.55)] px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center gap-3 sm:gap-4">
@@ -1356,12 +1377,103 @@ export function AccountDashboard() {
               </div>
             }
           />
-          <div className="w-full flex justify-center relative z-20" style={{ marginTop: '-40px' }}>
-            <svg viewBox="0 0 361 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="block w-[95vw] h-[10px] opacity-80" preserveAspectRatio="none">
-              <path d="M0 10C0 4.47715 4.47715 0 10 0H351C356.523 0 361 4.47715 361 10H0Z" fill="#000000" fillOpacity="0.25" />
-              <path d="M0 10C0 4.47715 4.47715 0 10 0H351C356.523 0 361 4.47715 361 10H0Z" fill="#000000" fillOpacity="0.8" />
-            </svg>
-          </div>
+          <section className="w-full min-h-[90vh] bg-white relative z-20 px-6 md:px-12 lg:px-16 py-10 md:py-14" aria-label="Account actions section">
+            <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-5 lg:grid-cols-[1fr_1fr]">
+              <article className="rounded-2xl bg-[#F3F3F3] px-6 py-6 md:px-8 md:py-8">
+                <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Orders</p>
+                {displayOrders.length === 0 ? (
+                  <div className="mt-7 flex flex-col items-center text-center">
+                    <div className="mb-5 flex h-28 w-28 items-center justify-center rounded-full bg-[#E7E7E7] text-4xl text-[#8E8E8E]">
+                      <span aria-hidden>🧥</span>
+                    </div>
+                    <p className="max-w-[320px] text-sm leading-6 text-[#4A4A4A]">
+                      You haven&apos;t made any orders yet. When you make an order it&apos;ll show up here.
+                    </p>
+                    <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                      <Link to="/#product-lineup" className={appleButtonClassName}>
+                        Explore products
+                      </Link>
+                    </div>
+                  </div>
+                ) : ordersSummaryPreview ? (
+                  <div className="mt-6 rounded-2xl border border-[#E2E2E2] bg-white p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-[#171717]">
+                          Order {formatOrderRef(ordersSummaryPreview.orderNumber)}
+                        </p>
+                        <p className="mt-1 text-xs text-[#6B6B6B]">
+                          {ordersSummaryPreview.date
+                            ? `Placed on ${ordersSummaryPreview.date}`
+                            : 'Date unavailable'}
+                        </p>
+                      </div>
+                      <span className="inline-flex items-center rounded-full bg-[#E8F5EC] px-2.5 py-1 text-[11px] font-semibold text-[#1F7A3E]">
+                        Completed
+                      </span>
+                    </div>
+
+                    <div className="mt-4 flex items-center gap-3 rounded-xl bg-[#F7F7F7] p-3">
+                      {summaryThumb ? (
+                        <img
+                          src={summaryThumb}
+                          alt=""
+                          className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-[#E9E9E9] text-xl text-[#7B7B7B]"
+                          aria-hidden
+                        >
+                          🧴
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-[#171717]">{summaryOrderTitle}</p>
+                        <p className="mt-0.5 text-xs text-[#6B6B6B]">
+                          Qty {summaryQty}
+                          {summaryLinePriceLabel ? ` · ${summaryLinePriceLabel}` : ''}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-start justify-between border-t border-[#E8E8E8] pt-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#6B6B6B]">Total</p>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-[#171717]">{summaryTotalLabel}</p>
+                        <p className="mt-0.5 text-xs text-[#6B6B6B]">
+                          {summaryXp !== null ? `+${summaryXp} XP` : 'XP —'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </article>
+
+              <div className="flex flex-col gap-5">
+                <article className="flex items-center justify-between rounded-[2px] bg-[#F3F3F3] px-6 py-6">
+                  <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Address Book</p>
+                  <span className="text-xl text-[#8A8A8A]" aria-hidden>›</span>
+                </article>
+                <article className="flex items-center justify-between rounded-[2px] bg-[#F3F3F3] px-6 py-6">
+                  <div>
+                    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Returns</p>
+                    <p className="mt-2 text-sm text-[#4A4A4A]">Quick, easy and simple returns with Happy Returns.</p>
+                  </div>
+                  <span className="text-xl text-[#8A8A8A]" aria-hidden>›</span>
+                </article>
+                <article className="flex items-center justify-between rounded-[2px] bg-[#F3F3F3] px-6 py-6">
+                  <div>
+                    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Refer a Friend</p>
+                    <p className="mt-2 text-sm text-[#4A4A4A]">
+                      Introduce your friends and give them £10 off, and to say thanks we&apos;ll give you £10 off your next order too.
+                    </p>
+                  </div>
+                  <span className="text-xl text-[#8A8A8A]" aria-hidden>›</span>
+                </article>
+              </div>
+            </div>
+          </section>
           <div 
             className="w-full min-w-full bg-[#0A0A0A] relative z-20 overflow-hidden px-6 md:px-12 lg:px-16 pt-12 pb-16 md:pb-24 lg:pb-32 min-h-[960px] lg:min-h-[1200px]"
             style={{ borderRadius: '45px 45px 45px 45px' }}
