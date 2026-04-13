@@ -23,7 +23,7 @@ export function getSafeReturnToPath(raw: string | null | undefined): string | nu
     return '/academy'
   }
 
-  if (pathOnly === '/account/company' || pathOnly === '/contact') return pathOnly
+  if (pathOnly === '/account/company' || pathOnly === '/contact' || pathOnly === '/join-club') return pathOnly
   if (pathOnly === '/boutique') return pathOnly
   if (/^\/boutique\/[a-zA-Z0-9_-]+$/.test(pathOnly)) return pathOnly
   if (/^\/product\/[a-zA-Z0-9\-_%]+$/.test(pathOnly)) return pathOnly
