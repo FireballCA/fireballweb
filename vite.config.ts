@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 function shopifyCustomerApiPlugin(mode: string): Plugin {
@@ -836,7 +837,7 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
 }
 
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), shopifyCustomerApiPlugin(mode)],
+  plugins: [tailwindcss(), react(), shopifyCustomerApiPlugin(mode)],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
