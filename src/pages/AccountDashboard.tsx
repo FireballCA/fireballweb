@@ -294,9 +294,9 @@ const XP_TIERS = [
     colorClass: 'text-sky-300',
     headerLabel: 'TIER 2',
     benefits: [
-      { text: 'Enhanced member recognition' },
-      { text: 'Priority access to selected drops' },
-      { text: 'Improved member-only pricing windows' },
+      { text: '10$ Rewards' },
+      { text: 'Early access to select offers' },
+      { text: 'Priority email support' },
     ],
   },
   {
@@ -307,9 +307,11 @@ const XP_TIERS = [
     colorClass: 'text-zinc-100',
     headerLabel: 'TIER 3',
     benefits: [
-      { text: 'High-tier member status' },
-      { text: 'Invitations to selected private events' },
-      { text: 'Access to advanced care recommendations' },
+      { text: '15$ Rewards' },
+      { text: 'Access to exclusive products' },
+      { text: 'Early access to new releases' },
+      { text: 'Occasional bonus rewards' },
+      { text: 'Fireball Partnership' },
     ],
   },
   {
@@ -320,9 +322,10 @@ const XP_TIERS = [
     colorClass: 'text-purple-300',
     headerLabel: 'TIER 4',
     benefits: [
-      { text: 'Elite recognition across Fireball network' },
-      { text: 'Priority access to limited technologies' },
-      { text: 'Elevated support and guidance' },
+      { text: '20$ Rewards' },
+      { text: 'Priority access to limited drops' },
+      { text: 'Exclusive member offers' },
+      { text: 'Special event access' },
     ],
   },
   {
@@ -333,9 +336,11 @@ const XP_TIERS = [
     colorClass: 'text-amber-300',
     headerLabel: 'TIER 5',
     benefits: [
-      { text: 'Top tier within Fireball membership' },
-      { text: 'First access to the rarest drops' },
-      { text: 'Invite-only experiences and privileges' },
+      { text: '30$ Rewards' },
+      { text: 'VIP-only products & drops' },
+      { text: 'Maximum priority access' },
+      { text: 'Annual exclusive reward' },
+      { text: 'Top-tier member status' },
     ],
   },
 ] as const
@@ -1255,6 +1260,7 @@ export function AccountDashboard() {
             onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}
             onAdminPanelClick={() => setAdminPanelOpen(true)}
             onSettingsClick={() => setSettingsOpen(true)}
+            walletBalanceLabel="0.00 $"
             headerRight={
               <div ref={notificationsMenuRef} className="flex items-center gap-6">
                 <button

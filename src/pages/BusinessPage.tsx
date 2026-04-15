@@ -9,10 +9,10 @@ import {
   IconSettings,
   IconShieldLock,
   IconChevronRight,
-  IconBell,
 } from '@tabler/icons-react'
-import { AdminPanelContent } from '@/components/AdminPanelSheet'
 import { BusinessClientsPage } from '@/pages/business/BusinessClientsPage'
+import { AdminPanelContent } from '@/components/AdminPanelSheet'
+import { AdminConfigurationPage } from '@/components/business/admin/AdminPages'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { supabase } from '@/lib/supabase'
 import { FireballLoading } from '@/components/FireballLoading'
@@ -1277,61 +1277,52 @@ function BusinessAdminProductPages() {
 
 export function BusinessPage() {
   const location = useLocation()
-  const [view, setView] = useState<View>('loading')
+  const initialCacheRef = useRef<BusinessCacheSnapshot | null>(
+    getClientCache<BusinessCacheSnapshot>(BUSINESS_CACHE_KEY),
+  )
+  const initialCache = initialCacheRef.current
+
+  const [view, setView] = useState<View>(initialCache?.view ?? 'loading')
   const [timeRange, setTimeRange] = useState<TimeRange>('12m')
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [userDisplayName, setUserDisplayName] = useState('')
-  const [companyName, setCompanyName] = useState('')
+  const [isAdmin, setIsAdmin] = useState(Boolean(initialCache?.isAdmin))
+  const [userDisplayName, setUserDisplayName] = useState(initialCache?.userDisplayName ?? '')
+  const [companyName, setCompanyName] = useState(initialCache?.companyName ?? '')
   const [stats, setStats] = useState({ clients: 0, vehicles: 0, warranties: 0 })
-  const [clients, setClients] = useState<ClientRow[]>([])
-  const [vehicles, setVehicles] = useState<VehicleRow[]>([])
-  const [warranties, setWarranties] = useState<WarrantyRow[]>([])
+  const [clients, setClients] = useState<ClientRow[]>(
+    Array.isArray(initialCache?.clients) ? initialCache.clients : [],
+  )
+  const [vehicles, setVehicles] = useState<VehicleRow[]>(
+    Array.isArray(initialCache?.vehicles) ? initialCache.vehicles : [],
+  )
+  const [warranties, setWarranties] = useState<WarrantyRow[]>(
+    Array.isArray(initialCache?.warranties) ? initialCache.warranties : [],
+  )
   const isAdminPath =
     location.pathname.includes('/business/admin') || location.pathname.includes('/account/business/admin')
   const isClientsPath =
     location.pathname.includes('/business/clients') || location.pathname.includes('/account/business/clients')
   const adminSection = location.pathname.includes('/admin/partners')
     ? 'partners'
-    : location.pathname.includes('/admin/notifications')
-      ? 'notifications'
-      : location.pathname.includes('/admin/announcements')
-        ? 'announcements'
-        : location.pathname.includes('/admin/products')
-          ? 'products'
+    : location.pathname.includes('/admin/configuration') ||
+        location.pathname.includes('/admin/notifications') ||
+        location.pathname.includes('/admin/announcements') ||
+        location.pathname.includes('/admin/products')
+      ? 'configuration'
           : 'stats'
 
-  const [companyNameInput, setCompanyNameInput] = useState('')
-  const [companyLogo, setCompanyLogo] = useState('')
-  const [companyAddress, setCompanyAddress] = useState('')
-  const [phone, setPhone] = useState('')
-  const [website, setWebsite] = useState('')
-  const [description, setDescription] = useState('')
+  const [companyNameInput, setCompanyNameInput] = useState(initialCache?.companyNameInput ?? '')
+  const [companyLogo, setCompanyLogo] = useState(initialCache?.companyLogo ?? '')
+  const [companyAddress, setCompanyAddress] = useState(initialCache?.companyAddress ?? '')
+  const [phone, setPhone] = useState(initialCache?.phone ?? '')
+  const [website, setWebsite] = useState(initialCache?.website ?? '')
+  const [description, setDescription] = useState(initialCache?.description ?? '')
   const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState('')
   const [showQuickActions, setShowQuickActions] = useState(true)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
-  useEffect(() => {
-    const cached = getClientCache<BusinessCacheSnapshot>(BUSINESS_CACHE_KEY)
-    if (!cached) return
-    setView(cached.view ?? 'loading')
-    setIsAdmin(Boolean(cached.isAdmin))
-    setUserDisplayName(cached.userDisplayName ?? '')
-    setCompanyName(cached.companyName ?? '')
-    setCompanyNameInput(cached.companyNameInput ?? '')
-    setCompanyLogo(cached.companyLogo ?? '')
-    setCompanyAddress(cached.companyAddress ?? '')
-    setPhone(cached.phone ?? '')
-    setWebsite(cached.website ?? '')
-    setDescription(cached.description ?? '')
-    setClients(Array.isArray(cached.clients) ? cached.clients : [])
-    setVehicles(Array.isArray(cached.vehicles) ? cached.vehicles : [])
-    setWarranties(Array.isArray(cached.warranties) ? cached.warranties : [])
-  }, [])
-
-  // Safety net: ensure we never keep the document locked (overflow hidden) when navigating into Business.
-  // Some pages (contact/event driven/account modals) temporarily lock scroll and a buggy cleanup can
-  // leave the app in a state where wheel/touchpad scrolling feels "dead".
+  // Verrouille le scroll global de la page Business :
+  // seule la zone interne (business-scroll) doit scroller.
   useEffect(() => {
     const html = document.documentElement
     const body = document.body
@@ -1343,10 +1334,10 @@ export function BusinessPage() {
       bodyTouchAction: body.style.touchAction,
     }
 
-    html.style.overflow = ''
-    body.style.overflow = ''
-    html.style.overscrollBehavior = ''
-    body.style.overscrollBehavior = ''
+    html.style.overflow = 'hidden'
+    body.style.overflow = 'hidden'
+    html.style.overscrollBehavior = 'none'
+    body.style.overscrollBehavior = 'none'
     body.style.touchAction = 'auto'
 
     return () => {
@@ -1979,9 +1970,7 @@ export function BusinessPage() {
     ? [
         { label: 'Stats', href: '/business/admin/stats', icon: <IconChartBar className="h-4 w-4 shrink-0 text-red-400" /> },
         { label: 'Partners', href: '/business/admin/partners', icon: <IconUsers className="h-4 w-4 shrink-0 text-red-400" /> },
-        { label: 'Notifications', href: '/business/admin/notifications', icon: <IconBell className="h-4 w-4 shrink-0 text-red-400" /> },
-        { label: 'Announcements', href: '/business/admin/announcements', icon: <IconBell className="h-4 w-4 shrink-0 text-red-400" /> },
-        { label: 'Configuration produits', href: '/business/admin/products', icon: <IconSettings className="h-4 w-4 shrink-0 text-red-400" /> },
+        { label: 'Configuration', href: '/business/admin/configuration', icon: <IconSettings className="h-4 w-4 shrink-0 text-red-400" /> },
       ]
     : []
   const backLink = {
@@ -1994,7 +1983,7 @@ export function BusinessPage() {
   return (
     <div
       className={cn(
-        'business-layout flex w-full flex-1 overflow-hidden',
+        'business-layout flex w-full flex-1 min-h-0 overflow-hidden',
         'h-[calc(100vh-5rem)] min-h-[calc(100vh-5rem)] bg-white'
       )}
     >
@@ -2064,23 +2053,28 @@ export function BusinessPage() {
 
       {/* Main content area */}
       <div className="flex flex-1 min-h-0 bg-white">
-        <div className="flex h-full min-h-full w-full flex-1 p-4 md:p-6">
-          <div
-            ref={scrollContainerRef}
-            data-no-smooth-scroll
-            className="business-scroll relative z-10 flex flex-1 flex-col gap-6 rounded-3xl border border-slate-100 bg-white p-6 pb-6 md:p-10 md:pb-10 overflow-auto shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
-          >
+        <div className="flex h-full min-h-0 w-full flex-1 p-4 md:p-6">
+          <section className="relative z-10 flex min-h-0 flex-1 flex-col">
+            <div
+              ref={scrollContainerRef}
+              data-no-smooth-scroll
+              data-lenis-prevent
+              className="business-scroll flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto overflow-x-hidden rounded-[20px] border border-slate-100 bg-white p-6 pb-6 shadow-[0_18px_40px_rgba(15,23,42,0.12)] md:p-10 md:pb-10"
+            >
             {isAdminPath ? (
               !isAdmin ? (
                 <Navigate to="/business" replace />
               ) : (
                 <div className="flex flex-col gap-6">
-                  {adminSection === 'announcements' ? (
-                    <BusinessAdminAnnouncements />
-                  ) : adminSection === 'products' ? (
-                    <BusinessAdminProductPages />
+                  {adminSection === 'configuration' ? (
+                    <AdminConfigurationPage
+                      announcementsContent={<BusinessAdminAnnouncements />}
+                      productsContent={<BusinessAdminProductPages />}
+                    />
+                  ) : adminSection === 'partners' ? (
+                    <AdminPanelContent section="partners" />
                   ) : (
-                    <AdminPanelContent section={adminSection} />
+                    <AdminPanelContent section="stats" />
                   )}
                 </div>
               )
@@ -2676,8 +2670,9 @@ export function BusinessPage() {
               </div>
             )}
 
-            {/* Quick actions bar removed (per request) */}
-          </div>
+              {/* Quick actions bar removed (per request) */}
+            </div>
+          </section>
         </div>
       </div>
     </div>

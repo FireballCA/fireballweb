@@ -284,8 +284,9 @@ export function Home() {
                         {calendarMenuOpen && (
                           <div className="absolute right-0 bottom-[calc(100%+0.5rem)] w-[320px] rounded-xl border border-white/20 bg-[#0f1218] p-2 shadow-2xl">
                             <a
-                              href={appleCalendarUrl}
-                              download="fireball-event.ics"
+                              href={googleCalendarUrl}
+                              target="_blank"
+                              rel="noreferrer"
                               className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
                             >
                               <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>

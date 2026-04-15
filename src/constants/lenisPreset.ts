@@ -16,4 +16,12 @@ export const lenisExoticsStyleOptions: LenisOptions = {
   wheelMultiplier: 0.72,
   touchMultiplier: 1.5,
   infinite: false,
+  prevent: (node) => {
+    if (!(node instanceof HTMLElement)) return false
+    return Boolean(
+      node.closest('[data-lenis-prevent]') ||
+      node.closest('.business-scroll') ||
+      node.closest('.business-layout'),
+    )
+  },
 }

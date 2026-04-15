@@ -186,52 +186,44 @@ function App() {
               }
             />
             <Route
-              path="account/business/admin/notifications"
+              path="account/business/admin/configuration"
               element={
                 <ProtectedRoute>
                   <BusinessPage />
                 </ProtectedRoute>
               }
+            />
+            <Route
+              path="business/admin/configuration"
+              element={
+                <ProtectedRoute>
+                  <BusinessPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="account/business/admin/notifications"
+              element={<Navigate to="/account/business/admin/configuration" replace />}
             />
             <Route
               path="business/admin/notifications"
-              element={
-                <ProtectedRoute>
-                  <BusinessPage />
-                </ProtectedRoute>
-              }
+              element={<Navigate to="/business/admin/configuration" replace />}
             />
             <Route
               path="account/business/admin/announcements"
-              element={
-                <ProtectedRoute>
-                  <BusinessPage />
-                </ProtectedRoute>
-              }
+              element={<Navigate to="/account/business/admin/configuration" replace />}
             />
             <Route
               path="business/admin/announcements"
-              element={
-                <ProtectedRoute>
-                  <BusinessPage />
-                </ProtectedRoute>
-              }
+              element={<Navigate to="/business/admin/configuration" replace />}
             />
             <Route
               path="account/business/admin/products"
-              element={
-                <ProtectedRoute>
-                  <BusinessPage />
-                </ProtectedRoute>
-              }
+              element={<Navigate to="/account/business/admin/configuration" replace />}
             />
             <Route
               path="business/admin/products"
-              element={
-                <ProtectedRoute>
-                  <BusinessPage />
-                </ProtectedRoute>
-              }
+              element={<Navigate to="/business/admin/configuration" replace />}
             />
             <Route
               path="account/manage-partners"
