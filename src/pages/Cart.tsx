@@ -166,7 +166,7 @@ export function Cart() {
                 <button
                   type="button"
                   onClick={() => addToCart(p, 1)}
-                  className="w-full rounded-full border border-carbon-300 px-3 py-1.5 text-[11px] font-semibold text-carbon-900 transition-colors hover:bg-carbon-50"
+                  className="w-full rounded-full border border-black bg-black px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-carbon-800"
                 >
                   Add to cart
                 </button>

@@ -44,14 +44,8 @@ export function VoyagerWorldwideScrollSection({
   const reduceMotion =
     typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
-  const [parallaxConsumed, setParallaxConsumed] = useState(() => {
-    if (typeof window === 'undefined') return true
-    // Mobile: parallax désactivé. Desktop: parallax toujours actif à chaque visite (pas de mémorisation).
-    const isMobile = window.matchMedia?.('(max-width: 767px)').matches ?? false
-    if (isMobile) return true
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true
-    return false
-  })
+  // Parallax désactivé pour la section "Trusted Worldwide" (rendu statique).
+  const [parallaxConsumed] = useState(true)
 
   const [activeIndex, setActiveIndex] = useState(0)
   const [progress, setProgress] = useState(0)
