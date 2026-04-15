@@ -17,6 +17,13 @@ export function Layout() {
     location.pathname.startsWith('/account') ||
     location.pathname.startsWith('/business')
   const isContactPage = location.pathname === '/contact'
+  const isCompanyInfoPage =
+    location.pathname === '/contact' ||
+    location.pathname === '/press-kit' ||
+    location.pathname === '/about' ||
+    location.pathname === '/legal' ||
+    location.pathname === '/cart' ||
+    location.pathname === '/academy/training-thank-you'
   const isJoinClubPage = location.pathname === '/join-club'
   const isShopPage = isShopPathname(location.pathname)
 
@@ -38,7 +45,7 @@ export function Layout() {
         ? ''
         : isAnyAccountPage
           ? ''
-        : isJoinClubPage
+        : isJoinClubPage || isCompanyInfoPage
           ? ''
           : isShopPage
             ? 'pt-16'

@@ -413,7 +413,7 @@ export const Card = ({ card }: { card: AppleCarouselCard }) => {
   const [focused, setFocused] = useState(false)
   const [pullPx, setPullPx] = useState(basePx)
 
-  const active = (hovered || focused) && !reduceMotion
+  const active = hovered || focused
 
   const goToCategory = () => {
     void navigate(card.to, { state: { pageTransition: reduceMotion ? undefined : 'slideUp' } })
@@ -477,7 +477,11 @@ export const Card = ({ card }: { card: AppleCarouselCard }) => {
         width: hoverWidth,
         marginLeft,
       }}
-      transition={{ ...springSmooth, layout: springLayout }}
+      transition={
+        reduceMotion
+          ? { duration: 0.01, layout: { duration: 0.01 } }
+          : { ...springSmooth, layout: springLayout }
+      }
     >
       <motion.div
         data-lineup-card

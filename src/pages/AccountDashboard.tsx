@@ -1,10 +1,9 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { MemberStatusHero } from '@/components/MemberStatusHero/MemberStatusHero'
 import { AddVehicleModal } from '@/components/AddVehicleModal'
-import { FireballLoading } from '@/components/FireballLoading'
 import { AccountDashboardSkeleton } from '@/components/ui/AccountDashboardSkeleton'
 import { ProductsPurchasedSheet } from '@/components/ProductsPurchasedSheet'
 import { AdminPanelSheet } from '@/components/AdminPanelSheet'
@@ -53,7 +52,6 @@ interface Order {
   pointsEarned?: number
 }
 
-type ProtectionStatus = 'green' | 'yellow' | 'red'
 type SubscriptionTier = 'none' | 'ignition' | 'apex'
 type UserRole = 'member' | 'partner' | 'admin'
 
@@ -62,6 +60,12 @@ interface DashboardNotification {
   title: string | null
   message: string
   created_at: string
+}
+
+type LeaderboardEntry = {
+  id: string
+  label: string
+  xp: number
 }
 
 type DashboardCacheSnapshot = {
@@ -246,38 +250,6 @@ function getLineItemsFromPurchase(purchase: any): OrderLineItem[] {
   } catch {
     return []
   }
-}
-
-function GarageEmptyStateSvg() {
-  return (
-    <svg width="171" height="216" viewBox="0 0 171 216" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[170px] h-auto">
-      <rect x="0.48" y="0.48" width="169.4" height="214.43" fill="#111214" stroke="#2C3138" strokeWidth="0.95" />
-      <path d="M56.91 31.41H110.21C111.536 31.41 112.808 31.9368 113.746 32.8745C114.683 33.8122 115.21 35.084 115.21 36.41V99.82C115.21 101.146 114.683 102.418 113.746 103.356C112.808 104.293 111.536 104.82 110.21 104.82H50.08C48.754 104.82 47.4822 104.293 46.5445 103.356C45.6069 102.418 45.08 101.146 45.08 99.82V43.36L56.91 31.41Z" fill="#17191D" stroke="#5D6572" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M45.08 43.36H54.77C55.3386 43.3574 55.8829 43.1297 56.2839 42.7268C56.6849 42.3239 56.91 41.7785 56.91 41.21V31.41L45.08 43.36Z" fill="#17191D" stroke="#5D6572" strokeLinecap="round" strokeLinejoin="round"/>
-      <rect x="56.51" y="48.54" width="62.02" height="19.29" rx="3.83" fill="#111214" stroke="#5D6572" />
-      <rect x="56.51" y="69.92" width="62.02" height="19.29" rx="3.83" fill="#111214" stroke="#5D6572" />
-      <rect x="56.51" y="91.31" width="62.02" height="19.29" rx="3.83" fill="#111214" stroke="#5D6572" />
-      <circle cx="67.07" cy="58.21" r="3.34" fill="#5D6572"/>
-      <circle cx="77.57" cy="58.21" r="3.34" fill="#5D6572"/>
-      <circle cx="88.06" cy="58.21" r="3.34" fill="#5D6572"/>
-      <circle cx="67.07" cy="79.6" r="3.34" fill="#5D6572"/>
-      <circle cx="77.57" cy="79.6" r="3.34" fill="#5D6572"/>
-      <circle cx="88.06" cy="79.6" r="3.34" fill="#5D6572"/>
-      <circle cx="67.07" cy="100.98" r="3.34" fill="#5D6572"/>
-      <circle cx="77.57" cy="100.98" r="3.34" fill="#5D6572"/>
-      <circle cx="88.06" cy="100.98" r="3.34" fill="#5D6572"/>
-      <circle cx="119.62" cy="52.17" r="20.73" fill="#17191D" stroke="#5D6572" />
-      <path d="M134.34 67.21L139.86 72.73" stroke="#5D6572" strokeLinecap="round" strokeLinejoin="round"/>
-      <rect x="137.82" y="69.69" width="21.8" height="7.2" rx="3.6" transform="rotate(43.7 137.82 69.69)" fill="#17191D" stroke="#5D6572"/>
-      <path d="M57 157.5H113" stroke="#2C3138"/>
-      <text x="85.5" y="176" textAnchor="middle" fill="#7E8794" fontSize="11" fontFamily="SF Pro, system-ui, sans-serif" fontWeight="600">
-        NO VEHICLES YET
-      </text>
-      <text x="85.5" y="191" textAnchor="middle" fill="#616A77" fontSize="9" fontFamily="SF Pro, system-ui, sans-serif">
-        Add your first car to start tracking
-      </text>
-    </svg>
-  )
 }
 
 function OrdersEmptyStateSvg() {
@@ -600,9 +572,11 @@ export function AccountDashboard() {
   const [productsPurchasedOpen, setProductsPurchasedOpen] = useState(false)
   const [adminPanelOpen, setAdminPanelOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false)
+  const [trophyOpen, setTrophyOpen] = useState(false)
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([])
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
-  const [vehiclePhotos, setVehiclePhotos] = useState<Record<string, string>>({})
-  const [garageCarouselIndex, setGarageCarouselIndex] = useState(0)
   const [settingsVehicle, setSettingsVehicle] = useState<Vehicle | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [orderDetailsOrder, setOrderDetailsOrder] = useState<Order | null>(null)
@@ -902,45 +876,81 @@ export function AccountDashboard() {
     checkAuthAndLoadProfile()
   }, [pageState, navigate])
 
+  useEffect(() => {
+    if (!leaderboardOpen && !trophyOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setLeaderboardOpen(false)
+        setTrophyOpen(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [leaderboardOpen, trophyOpen])
+
+  useEffect(() => {
+    if (!leaderboardOpen) return
+    let cancelled = false
+    const loadLeaderboard = async () => {
+      setLeaderboardLoading(true)
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id,first_name,last_name,xp')
+          .order('xp', { ascending: false })
+          .limit(200)
+
+        if (error) {
+          console.warn('Failed to load leaderboard:', error.message)
+          if (!cancelled) setLeaderboardEntries([])
+          return
+        }
+
+        const entries: LeaderboardEntry[] = (data ?? [])
+          .map((row: any) => {
+            const first = String(row?.first_name || '').trim()
+            const last = String(row?.last_name || '').trim()
+            const id = String(row?.id || '')
+            const xpValue = typeof row?.xp === 'number' ? row.xp : 0
+            const label =
+              first && last
+                ? `${first} ${last.charAt(0).toUpperCase()}.`
+                : first || last || 'Member'
+            return { id, label, xp: xpValue }
+          })
+          .filter((entry) => entry.id)
+
+        if (!cancelled) setLeaderboardEntries(entries)
+      } finally {
+        if (!cancelled) setLeaderboardLoading(false)
+      }
+    }
+    void loadLeaderboard()
+    return () => {
+      cancelled = true
+    }
+  }, [leaderboardOpen])
+
+  useEffect(() => {
+    if (!leaderboardOpen && !trophyOpen) return
+    const html = document.documentElement
+    const body = document.body
+    const prevHtmlOverflow = html.style.overflow
+    const prevBodyOverflow = body.style.overflow
+    html.style.overflow = 'hidden'
+    body.style.overflow = 'hidden'
+    return () => {
+      html.style.overflow = prevHtmlOverflow
+      body.style.overflow = prevBodyOverflow
+    }
+  }, [leaderboardOpen, trophyOpen])
+
   const showWelcomeScreen = welcomeName !== null && !showDashboard
   const nameParts = (welcomeName ?? '').trim().split(/\s+/).filter(Boolean)
   const firstName = (nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : nameParts[0]) || 'Member'
 
   const { current: currentTier, next: nextTier } = getTierForXp(xp)
   const targetXp = nextTier ? nextTier.minXp : Math.max(currentTier.minXp || 1, xp || 1)
-
-  // Calculer le statut de protection en fonction de la date
-  const getProtectionStatus = (protectionDate: Date): ProtectionStatus => {
-    const now = new Date()
-    const diffTime = now.getTime() - protectionDate.getTime()
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-    
-    // Supposons que la protection dure 6 mois (180 jours)
-    const protectionDuration = 180
-    const daysRemaining = protectionDuration - diffDays
-    
-    if (daysRemaining > 90) {
-      return 'green' // Plus de 3 mois restants
-    } else if (daysRemaining > 30) {
-      return 'yellow' // Moins de 3 mois mais plus de 1 mois
-    } else {
-      return 'red' // Moins de 1 mois
-    }
-  }
-
-  const formatDate = (date: Date): string => {
-    return date.toLocaleDateString('fr-FR', { 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric' 
-    })
-  }
-
-  const statusColors = {
-    green: '#10B981', // Vert
-    yellow: '#F59E0B', // Jaune
-    red: '#EF4444', // Rouge
-  }
 
   const normalizeSubscriptionTier = (tier?: string | null): SubscriptionTier => {
     const value = String(tier || '').trim().toLowerCase()
@@ -1051,37 +1061,6 @@ export function AccountDashboard() {
     }
   }
 
-  const subscriptionLabel = {
-    none: 'None',
-    ignition: 'Ignition',
-    apex: 'Apex',
-  } as const
-
-  const subscriptionColorClass = {
-    none: 'text-white/55',
-    ignition: 'text-sky-400',
-    apex: 'text-red-400',
-  } as const
-
-  const apexBenefits = [
-    'Unlock $100 in premium products',
-    'Highest member discount tier',
-    'Priority support and concierge access',
-    'Early access to exclusive drops',
-    'Premium partner perks across Fireball network',
-  ]
-
-  const upcomingServices = [
-    'Ceramic Protection Inspection',
-    'Seasonal Surface Decontamination',
-    'Premium Interior Detail Session',
-  ]
-
-  const certifiedPartners = [
-    { name: 'Fireball Laval Studio', city: 'Laval, QC' },
-    { name: 'Apex Detailing Montreal', city: 'Montreal, QC' },
-    { name: 'North Shore Fireball Hub', city: 'Boisbriand, QC' },
-  ]
   const displayOrders = useMemo(() => [...orders], [orders])
   const hasTwoOrders = displayOrders.length >= 2
   const hasThreeOrders = displayOrders.length >= 3
@@ -1110,6 +1089,8 @@ export function AccountDashboard() {
     Number.isFinite(ordersSummaryPreview.pointsEarned)
       ? ordersSummaryPreview.pointsEarned
       : null
+  const personalLeaderboardIndex = leaderboardEntries.findIndex((entry) => entry.id === currentUserId)
+  const personalLeaderboardRank = personalLeaderboardIndex >= 0 ? personalLeaderboardIndex + 1 : null
 
   useEffect(() => {
     setOrdersCarouselIndex((i) => Math.min(i, carouselMaxIndex))
@@ -1452,16 +1433,30 @@ export function AccountDashboard() {
 
               <div className="flex flex-col gap-5">
                 <article className="flex items-center justify-between rounded-[2px] bg-[#F3F3F3] px-6 py-6">
-                  <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Address Book</p>
-                  <span className="text-xl text-[#8A8A8A]" aria-hidden>›</span>
-                </article>
-                <article className="flex items-center justify-between rounded-[2px] bg-[#F3F3F3] px-6 py-6">
                   <div>
-                    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Returns</p>
-                    <p className="mt-2 text-sm text-[#4A4A4A]">Quick, easy and simple returns with Happy Returns.</p>
+                    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">My garage</p>
+                    <p className="mt-2 text-sm text-[#4A4A4A]">Manage your vehicles and protection history.</p>
+                  </div>
+                </article>
+                <button
+                  type="button"
+                  onClick={() => setLeaderboardOpen(true)}
+                  className="flex items-center justify-between rounded-[2px] bg-[#F3F3F3] px-6 py-6 text-left transition-colors hover:bg-[#ECECEC]"
+                >
+                  <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Leaderboard</p>
+                  <span className="text-xl text-[#8A8A8A]" aria-hidden>›</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTrophyOpen(true)}
+                  className="flex items-center justify-between rounded-[2px] bg-[#F3F3F3] px-6 py-6 text-left transition-colors hover:bg-[#ECECEC]"
+                >
+                  <div>
+                    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Trophy</p>
+                    <p className="mt-2 text-sm text-[#4A4A4A]">See your rewards, milestones and achievements.</p>
                   </div>
                   <span className="text-xl text-[#8A8A8A]" aria-hidden>›</span>
-                </article>
+                </button>
                 <article className="flex items-center justify-between rounded-[2px] bg-[#F3F3F3] px-6 py-6">
                   <div>
                     <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Refer a Friend</p>
@@ -1474,667 +1469,123 @@ export function AccountDashboard() {
               </div>
             </div>
           </section>
-          <div 
-            className="w-full min-w-full bg-[#0A0A0A] relative z-20 overflow-hidden px-6 md:px-12 lg:px-16 pt-12 pb-16 md:pb-24 lg:pb-32 min-h-[960px] lg:min-h-[1200px]"
-            style={{ borderRadius: '45px 45px 45px 45px' }}
-          >
-              {/* Section My Garage (standalone) */}
-              <div className="w-full">
-                <div className="flex flex-col items-start gap-4">
-                  <h2
-                    className="text-white font-bold whitespace-nowrap"
-                    style={{
-                      fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                      fontSize: 46,
-                      lineHeight: '54px',
-                      letterSpacing: '0.4px',
-                    }}
-                  >
-                    My Garage
-                  </h2>
-                  <p
-                    className="font-bold whitespace-nowrap"
-                    style={{
-                      fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                      fontSize: 46,
-                      lineHeight: '54px',
-                      letterSpacing: '0.2px',
-                      color: '#83868B',
-                    }}
-                  >
-                    Your vehicles. <span className="text-white">All in one place.</span>
-                  </p>
-                </div>
-
-                {/* Vehicle carousel ou empty state */}
-                {vehicles.length === 0 ? (
-                  <div className="mt-8 relative min-h-[280px] lg:min-h-[320px] w-full">
-                    <div className="flex flex-col items-start gap-2 max-w-[375px]">
-                      <h3
-                        className="text-white font-bold"
-                        style={{
-                          fontFamily: 'SF Pro, sans-serif',
-                          fontSize: 28,
-                          lineHeight: '34px',
-                          letterSpacing: '0.38px',
-                        }}
-                      >
-                        Your garage is empty
-                      </h3>
-                      <p
-                        className="text-white/60"
-                        style={{
-                          fontFamily: 'SF Pro, sans-serif',
-                          fontWeight: 400,
-                          fontSize: 17,
-                          lineHeight: '22px',
-                          letterSpacing: '-0.43px',
-                        }}
-                      >
-                        Track your vehicles, services and Fireball protection history.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setCarModalOpen(true)}
-                        className="group mt-2 inline-flex items-center gap-1.5 font-medium transition-colors duration-200 hover:opacity-95"
-                        style={{
-                          fontSize: 12,
-                          lineHeight: '16px',
-                          color: '#FF6363',
-                        }}
-                      >
-                        Add new car
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" className="shrink-0 w-[14px] h-[14px] transition-transform duration-200 group-hover:translate-x-0.5" style={{ color: '#FF6363' }}>
-                          <path fill="currentColor" d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z" />
-                        </svg>
-                      </button>
-                    </div>
-                    <div className="absolute right-0 bottom-8 lg:bottom-10 flex flex-col items-end w-full lg:w-auto mt-10 lg:mt-0">
-                      <GarageEmptyStateSvg />
-                    </div>
-                  </div>
-                ) : (
-                <div className="mt-8 flex items-center gap-3 w-full">
-                {vehicles.length > 2 && (
+          {leaderboardOpen && createPortal(
+            <div className="fixed inset-0 z-[10040] flex items-center justify-center p-4 md:p-6" role="dialog" aria-modal="true">
+              <button
+                type="button"
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                aria-label="Close leaderboard"
+                onClick={() => setLeaderboardOpen(false)}
+              />
+              <div className="relative z-10 flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+                <div className="flex items-start justify-between gap-4">
+                  <h3 className="p-6 text-3xl font-bold text-carbon-900 md:px-10 md:pt-8 md:text-5xl">Leaderboard</h3>
                   <button
                     type="button"
-                    onClick={() => setGarageCarouselIndex((i) => Math.max(0, i - 1))}
-                    disabled={garageCarouselIndex === 0}
-                    className="shrink-0 w-10 h-10 rounded-full border border-white/30 bg-white/10 flex items-center justify-center text-white disabled:opacity-40 disabled:cursor-not-allowed"
-                    aria-label="Previous vehicles"
+                    className="mr-6 mt-6 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E8E8E8] text-[#5C5C5C] transition-colors duration-200 hover:bg-[#DADADA] hover:text-[#4A4A4A] md:mr-8"
+                    onClick={() => setLeaderboardOpen(false)}
+                    aria-label="Fermer"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                )}
-                <div className="flex flex-wrap gap-5 min-w-0 justify-start">
-                {(vehicles.length > 2 ? vehicles.slice(garageCarouselIndex, garageCarouselIndex + 2) : vehicles).map((vehicle) => {
-                  const protectionStatus = getProtectionStatus(vehicle.ceramicProtectionDate)
-                  const isActive = protectionStatus === 'green' || protectionStatus === 'yellow'
-                  return (
-                    <article
-                      key={vehicle.id}
-                      className="relative w-[358px] h-[410px] flex-none rounded-[34px] overflow-hidden"
-                      style={{
-                        background: 'rgba(30, 30, 30, 0.75)',
-                        backdropFilter: 'blur(40px)',
-                      }}
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="shrink-0"
+                      aria-hidden
                     >
-                      {/* Image - 358×236, top */}
-                      <div
-                        className="absolute left-0 top-0 w-full h-[236px] bg-cover bg-center bg-no-repeat bg-neutral-800"
-                        style={{
-                          backgroundImage: vehiclePhotos[vehicle.id]
-                            ? `url(${vehiclePhotos[vehicle.id]})`
-                            : 'url(/Assets/DoubleCards.png)',
-                        }}
-                      />
-
-                      {/* Upload photo for banner */}
-                      <input
-                        id={`vehicle-photo-${vehicle.id}`}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0]
-                          if (!file) return
-                          const url = URL.createObjectURL(file)
-                          setVehiclePhotos((prev) => ({ ...prev, [vehicle.id]: url }))
-                        }}
-                      />
-                      <label
-                        htmlFor={`vehicle-photo-${vehicle.id}`}
-                        className="absolute z-10 flex items-center justify-center cursor-pointer whitespace-nowrap px-2 py-1.5"
-                        style={{
-                          left: 12,
-                          top: 12,
-                          minHeight: 28,
-                          background: 'rgba(120, 120, 120, 0.2)',
-                          borderRadius: 9999,
-                          fontFamily:
-                            'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                          fontWeight: 590,
-                          fontSize: 11,
-                          lineHeight: '13px',
-                          letterSpacing: '0.06px',
-                          color: '#FFFFFF',
-                        }}
-                      >
-                        {vehiclePhotos[vehicle.id] ? 'Change Photo' : 'Add Photo'}
-                      </label>
-
-                      {/* Trailing Button (Settings) - plus petit, dans le coin haut droit */}
-                      <div
-                        className="absolute flex flex-row justify-center items-center isolate"
-                        style={{
-                          width: 36,
-                          height: 36,
-                          right: 16,
-                          top: 16,
-                          borderRadius: 296,
-                        }}
-                      >
-                        <div
-                          className="absolute inset-0 rounded-full"
-                          style={{
-                            background: '#0088FF',
-                            zIndex: 0,
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setSettingsVehicle(vehicle)}
-                          className="relative z-10 w-9 h-9 rounded-full flex items-center justify-center text-white"
-                          aria-label="Vehicle settings"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="lucide lucide-settings-2"
-                          >
-                            <path d="M14 17H5" />
-                            <path d="M19 7h-9" />
-                            <circle cx="17" cy="17" r="3" />
-                            <circle cx="7" cy="7" r="3" />
-                            <circle cx="7" cy="7" r="3" />
-                          </svg>
-                        </button>
-                      </div>
-
-                      {/* Name + Desc. - left 24px, top 261px */}
-                      <div
-                        className="absolute flex flex-col items-start gap-1"
-                        style={{ left: 24, right: 24, top: 262 }}
-                      >
-                        <p
-                          className="font-bold text-white truncate max-w-[178px]"
-                          style={{
-                            fontFamily: 'SF Pro Display, sans-serif',
-                            fontSize: 22,
-                            lineHeight: '28px',
-                            letterSpacing: '0.35px',
-                          }}
-                        >
-                          {vehicle.brand} {vehicle.model} {vehicle.year}
-                        </p>
-                        <p
-                          className="text-white/90 max-w-[178px] line-clamp-2"
-                          style={{
-                            fontFamily: 'SF Pro Text, sans-serif',
-                            fontWeight: 400,
-                            fontSize: 12,
-                            lineHeight: '16px',
-                          }}
-                        >
-                          Ceramic protection:{' '}
-                          <span style={{ color: isActive ? '#30D158' : '#FF453A', fontWeight: 600 }}>
-                            {isActive ? 'Active' : 'Inactive'}
-                          </span>
-                          . Completed the {formatDate(vehicle.ceramicProtectionDate)}
-                        </p>
-                      </div>
-
-                      {/* Separator - bottom 67.5px */}
-                      <div
-                        className="absolute left-6 right-6 h-px"
-                        style={{
-                          bottom: 67.5,
-                          background: 'rgba(84, 84, 88, 0.65)',
-                        }}
-                      />
-
-                      {/* Bottom row: Done at (left) + See details (right), aligned */}
-                      <div
-                        className="absolute left-6 right-6 flex flex-row items-center justify-between"
-                        style={{ bottom: 18 }}
-                      >
-                        <span
-                          className="text-xs text-white/70"
-                          style={{ fontSize: 12, lineHeight: '16px' }}
-                        >
-                          Done at: {vehicle.protectionShop || 'Not specified'}
-                        </span>
-                        <a
-                          href="#"
-                          onClick={(event) => {
-                            event.preventDefault()
-                            setSettingsVehicle(vehicle)
-                          }}
-                          className="flex flex-row items-center gap-1.5"
-                        >
-                          <span
-                            className="font-medium"
-                            style={{
-                              fontSize: 12,
-                              lineHeight: '16px',
-                              color: 'rgba(235, 235, 245, 0.6)',
-                            }}
-                          >
-                            See details
-                          </span>
-                        <svg
-                          width="4.83"
-                          height="8.09"
-                          viewBox="0 0 6 8"
-                          fill="none"
-                          className="shrink-0"
-                          style={{ color: 'rgba(235, 235, 245, 0.6)' }}
-                        >
-                          <path
-                            d="M1 1l4 3-4 3"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                        </a>
-                      </div>
-                    </article>
-                  )
-                })}
-                </div>
-                {vehicles.length > 2 && (
-                  <button
-                    type="button"
-                    onClick={() => setGarageCarouselIndex((i) => Math.min(vehicles.length - 2, i + 1))}
-                    disabled={garageCarouselIndex >= vehicles.length - 2}
-                    className="shrink-0 w-10 h-10 rounded-full border border-white/30 bg-white/10 flex items-center justify-center text-white disabled:opacity-40 disabled:cursor-not-allowed"
-                    aria-label="Next vehicles"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                )}
-                </div>
-                )}
-              </div>
-
-              {/* Section My Orders */}
-              <section className="mt-20 -mx-6 md:-mx-12 lg:-mx-16 min-h-[90vh] bg-white py-14 md:py-20">
-                <div className="mx-auto flex h-full w-full max-w-[1400px] flex-col px-6 md:px-12 lg:pl-[176px] lg:pr-16 xl:pl-[188px] xl:pr-16">
-                  <div className="flex flex-wrap items-end justify-between gap-3">
-                    <p
-                      className="font-bold text-[#111111]"
-                      style={{
-                        fontFamily: 'SF Pro, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-                        fontSize: 52,
-                        lineHeight: '60px',
-                        letterSpacing: '0.4px',
-                      }}
-                    >
-                      Where every order lives.
-                    </p>
-                    {displayOrders.length > 0 && (
-                      <a
-                        href="#"
-                        onClick={(e) => e.preventDefault()}
-                        className="group/journal flex shrink-0 items-center gap-1.5 text-xs font-medium text-[#c73659] hover:text-[#a82d4a] transition-colors duration-200 pb-1"
-                      >
-                        <span>Open FIREBALL journal</span>
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 640 640"
-                          className="h-3.5 w-3.5 transition-transform duration-200 group-hover/journal:translate-x-0.5"
-                        >
-                          <path fill="currentColor" d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z" />
-                        </svg>
-                      </a>
-                    )}
-                  </div>
-
-                  <div
-                    className={`mt-10 flex-1 min-w-0 ${
-                      displayOrders.length === 0
-                        ? 'rounded-[36px] bg-[#f5f5f7] px-6 py-8 md:px-10 md:py-10'
-                        : ''
-                    }`}
-                  >
-                    {displayOrders.length === 0 ? (
-                      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-                        <OrdersEmptyStateSvg />
-                        <p className="mt-6 text-[#6E7075] text-sm">
-                          Your Fireball purchases will appear here.
-                        </p>
-                        <Link
-                          to="/shop"
-                          className="group mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-[#5c5c5e] hover:text-[#111111] transition-colors duration-200"
-                        >
-                          Browse the shop
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" className="shrink-0 h-[14px] w-[14px] transition-transform duration-200 group-hover:translate-x-0.5">
-                            <path fill="currentColor" d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z" />
-                          </svg>
-                        </Link>
-                      </div>
-                    ) : (
-                      <div
-                        className={`grid grid-cols-1 gap-6 sm:gap-8 w-full overflow-visible ${
-                          hasTwoOrders
-                            ? 'lg:grid-cols-[minmax(260px,1fr)_minmax(260px,1fr)_minmax(260px,1fr)] lg:gap-8'
-                            : 'lg:grid-cols-[minmax(260px,1fr)_minmax(280px,2fr)] lg:gap-8'
-                        }`}
-                      >
-                        {/* Carte 1 : Last commands */}
-                        <div className="relative min-h-[320px] lg:min-h-[420px] overflow-hidden rounded-[24px] bg-[#E3E5EA] px-5 py-5 md:px-6 md:py-6 lg:min-w-0">
-                          <div
-                            className="pointer-events-none absolute inset-0 bg-cover bg-top bg-no-repeat"
-                            style={{
-                              backgroundImage: visiblePrimary?.imageUrl ? `url(${visiblePrimary.imageUrl})` : 'none',
-                            }}
-                          />
-                          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(227,229,234,0)_20%,rgba(227,229,234,0.68)_58%,#E3E5EA_84%,#E3E5EA_100%)]" />
-                          <div className="relative z-10 flex min-h-[280px] lg:min-h-[380px] flex-col">
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="text-[15px] font-semibold tracking-[-0.24px] text-[#111111]">
-                                {(!hasFourOrMoreOrders || ordersCarouselIndex === 0) ? 'Last commands' : 'Previous order'}
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => setOrderDetailsOrder(visiblePrimary ?? null)}
-                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#2a2a2a]"
-                                aria-label="Voir les détails de la commande"
-                              >
-                                <span className="text-lg leading-none">+</span>
-                              </button>
-                            </div>
-                            <div className="mt-auto">
-                              <div className="flex items-start gap-2">
-                                <p className="text-[#111111] text-[28px] leading-[34px] tracking-[-0.4px] font-semibold">
-                                  {(visiblePrimary?.totalPrice ?? 0).toFixed(2)}
-                                </p>
-                                <span className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#111111]/80">
-                                  {visiblePrimary?.currency || 'CAD'}
-                                </span>
-                              </div>
-                              <div className="mt-2 flex items-center justify-between text-xs font-medium text-[#6E7075]">
-                                <span>{visiblePrimary?.date || '-'}</span>
-                                <span>{formatOrderRef(visiblePrimary?.orderNumber)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Carte 2 */}
-                        {hasTwoOrders && (
-                          <div className="relative min-h-[320px] lg:min-h-[420px] overflow-hidden rounded-[24px] bg-[#E3E5EA] px-5 py-5 md:px-6 md:py-6 lg:min-w-0">
-                            <div
-                              className="pointer-events-none absolute inset-0 bg-cover bg-top bg-no-repeat"
-                              style={{
-                                backgroundImage: visibleSecond?.imageUrl ? `url(${visibleSecond.imageUrl})` : 'none',
-                              }}
-                            />
-                            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(227,229,234,0)_20%,rgba(227,229,234,0.68)_58%,#E3E5EA_84%,#E3E5EA_100%)]" />
-                            <div className="relative z-10 flex min-h-[280px] lg:min-h-[380px] flex-col">
-                              <div className="flex items-start justify-between gap-2">
-                                <p className="text-[15px] font-semibold tracking-[-0.24px] text-[#111111]">
-                                  Previous order
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={() => setOrderDetailsOrder(visibleSecond!)}
-                                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#2a2a2a]"
-                                  aria-label="Voir les détails de la commande"
-                                >
-                                  <span className="text-lg leading-none">+</span>
-                                </button>
-                              </div>
-                              <div className="mt-auto">
-                                <div className="flex items-start gap-2">
-                                  <p className="text-[#111111] text-[28px] leading-[34px] tracking-[-0.4px] font-semibold">
-                                    {(visibleSecond?.totalPrice ?? 0).toFixed(2)}
-                                  </p>
-                                  <span className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#111111]/80">
-                                    {visibleSecond?.currency || 'CAD'}
-                                  </span>
-                                </div>
-                                <div className="mt-2 flex items-center justify-between text-xs font-medium text-[#6E7075]">
-                                  <span>{visibleSecond?.date || '-'}</span>
-                                  <span>{formatOrderRef(visibleSecond?.orderNumber)}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Carte 3 (seulement si 3 commandes, pas de Add another) */}
-                        {hasThreeOrders && (
-                          <div className="relative min-h-[320px] lg:min-h-[420px] overflow-hidden rounded-[24px] bg-[#E3E5EA] px-5 py-5 md:px-6 md:py-6 lg:min-w-0">
-                            <div
-                              className="pointer-events-none absolute inset-0 bg-cover bg-top bg-no-repeat"
-                              style={{
-                                backgroundImage: visibleThird?.imageUrl ? `url(${visibleThird.imageUrl})` : 'none',
-                              }}
-                            />
-                            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(227,229,234,0)_20%,rgba(227,229,234,0.68)_58%,#E3E5EA_84%,#E3E5EA_100%)]" />
-                            <div className="relative z-10 flex min-h-[280px] lg:min-h-[380px] flex-col">
-                              <div className="flex items-start justify-between gap-2">
-                                <p className="text-[15px] font-semibold tracking-[-0.24px] text-[#111111]">
-                                  Previous order
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={() => setOrderDetailsOrder(visibleThird!)}
-                                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#2a2a2a]"
-                                  aria-label="Voir les détails de la commande"
-                                >
-                                  <span className="text-lg leading-none">+</span>
-                                </button>
-                              </div>
-                              <div className="mt-auto">
-                                <div className="flex items-start gap-2">
-                                  <p className="text-[#111111] text-[28px] leading-[34px] tracking-[-0.4px] font-semibold">
-                                    {(visibleThird?.totalPrice ?? 0).toFixed(2)}
-                                  </p>
-                                  <span className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#111111]/80">
-                                    {visibleThird?.currency || 'CAD'}
-                                  </span>
-                                </div>
-                                <div className="mt-2 flex items-center justify-between text-xs font-medium text-[#6E7075]">
-                                  <span>{visibleThird?.date || '-'}</span>
-                                  <span>{formatOrderRef(visibleThird?.orderNumber)}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Add another Fireball product (seulement si 1 ou 2 commandes) */}
-                        {showAddAnotherBlock && (
-                          <div className="min-h-[320px] lg:min-h-[420px] rounded-[24px] bg-[#E3E5EA] px-5 py-5 md:px-6 md:py-6 flex flex-col justify-between min-[1400px]:mr-[calc(-50vw+700px)] min-[1400px]:w-[calc(100%+50vw-700px)] lg:min-w-0">
-                            <div>
-                              <p className="text-[11px] uppercase tracking-[0.16em] text-[#8A8C91]">
-                                Keep shopping
-                              </p>
-                              <h3 className="mt-2 text-[#111111] text-2xl font-semibold leading-tight">
-                                Add another Fireball product
-                              </h3>
-                              <p className="mt-3 max-w-xl text-sm text-[#6E7075]">
-                                Discover coatings, maintenance and accessories for your next order.
-                              </p>
-                            </div>
-                            <Link
-                              to="/shop"
-                              className="group/shop mt-6 inline-flex items-center gap-1.5 text-xs font-medium text-[#5c5c5e] hover:text-[#111111] transition-colors duration-200"
-                            >
-                              Browse the shop
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 640 640"
-                                className="shrink-0 h-[14px] w-[14px] transition-transform duration-200 group-hover/shop:translate-x-0.5"
-                              >
-                                <path fill="currentColor" d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z" />
-                              </svg>
-                            </Link>
-                          </div>
-                        )}
-                        {hasFourOrMoreOrders && (
-                          <>
-                            <div className="hidden lg:block lg:col-span-2" />
-                            <div className="mt-4 flex items-center gap-3 lg:justify-end">
-                              <button
-                                type="button"
-                                onClick={() => setOrdersCarouselIndex((i) => Math.max(0, i - 1))}
-                                disabled={ordersCarouselIndex === 0}
-                                className="flex h-10 w-10 items-center justify-center rounded-full border border-[#111111]/25 bg-white text-[#111111] transition hover:bg-[#f5f5f7] disabled:opacity-40 disabled:pointer-events-none"
-                                aria-label="Commandes précédentes"
-                              >
-                                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                                </svg>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setOrdersCarouselIndex((i) => Math.min(carouselMaxIndex, i + 1))}
-                                disabled={ordersCarouselIndex >= carouselMaxIndex}
-                                className="flex h-10 w-10 items-center justify-center rounded-full border border-[#111111]/25 bg-white text-[#111111] transition hover:bg-[#f5f5f7] disabled:opacity-40 disabled:pointer-events-none"
-                                aria-label="Commandes suivantes"
-                              >
-                                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                                </svg>
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-            <div className="w-full bg-[#0a0a0a] pt-24 pb-24">
-            <div className="relative max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16">
-              <p className="text-center text-xs md:text-sm text-white/55">
-                Your current subscription :{' '}
-                <span className={`font-semibold ${subscriptionColorClass[subscriptionTier]}`}>
-                  {subscriptionLabel[subscriptionTier]}
-                </span>
-              </p>
-              <h3 className="relative z-10 text-center text-white text-4xl md:text-6xl font-black tracking-tight">
-                MEMBERSHIP
-              </h3>
-              <div className="-mt-3 md:-mt-4 flex justify-center pointer-events-none select-none">
-                <p className="text-center text-[clamp(6rem,20vw,14rem)] font-black uppercase leading-[0.74] scale-y-[1.2] tracking-[-0.05em] bg-gradient-to-b from-white/[0.2] via-white/[0.08] to-transparent bg-clip-text text-transparent">
-                  APEX
-                </p>
-              </div>
-
-              <div className="hidden lg:block pointer-events-none absolute -left-28 top-[34px] z-0">
-                <img
-                  src="/Assets/DoubleCards.png"
-                  alt="Club Member cards"
-                  draggable={false}
-                  className="w-[900px] max-w-none object-contain rotate-[8deg] opacity-100 drop-shadow-[0_22px_35px_rgba(0,0,0,0.45)] select-none"
-                />
-              </div>
-
-              <div className="mt-8 lg:hidden flex items-center justify-center pointer-events-none">
-                <img
-                  src="/Assets/DoubleCards.png"
-                  alt="Club Member cards"
-                  draggable={false}
-                  className="w-full max-w-[520px] object-contain rotate-[8deg] opacity-100 drop-shadow-[0_22px_35px_rgba(0,0,0,0.45)] select-none"
-                />
-              </div>
-
-              <div className="mt-10 lg:mt-16 w-full lg:max-w-[620px] lg:ml-auto relative z-10">
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">APEX BENEFITS</p>
-                <div className="mt-4 flex flex-col gap-2.5">
-                  {apexBenefits.map((benefit) => (
-                    <div
-                      key={benefit}
-                      className="bg-[#252525] border border-white/10 text-white px-3.5 py-2.5 rounded-[8px] text-xs flex items-center gap-2 w-full"
-                    >
-                      <span className="text-red-400 text-sm select-none">+</span>
-                      <span>{benefit}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-5 flex justify-end">
-                  <a
-                    href="#"
-                    onClick={(e) => e.preventDefault()}
-                    className="inline-flex items-center gap-2 text-sm font-nav text-white/80 hover:text-white transition-colors"
-                  >
-                    <span>Join club</span>
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <path
+                        d="M18 6L6 18M6 6l12 12"
+                        stroke="currentColor"
+                        strokeWidth="1.75"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M7 17L17 7M9 7h8v8"
                       />
                     </svg>
-                  </a>
+                  </button>
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-24 md:px-10">
+                  {leaderboardLoading ? (
+                    <p className="text-sm text-carbon-600">Chargement du leaderboard...</p>
+                  ) : leaderboardEntries.length === 0 ? (
+                    <p className="text-sm text-carbon-600">Aucun score disponible.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {leaderboardEntries.map((entry, idx) => (
+                        <div
+                          key={entry.id}
+                          className="flex items-center justify-between rounded-xl border border-carbon-200 bg-carbon-50 px-4 py-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="w-8 text-sm font-semibold text-carbon-500">#{idx + 1}</span>
+                            <span className="text-sm font-semibold text-carbon-900">{entry.label}</span>
+                          </div>
+                          <span className="text-sm font-semibold text-carbon-700">{entry.xp.toLocaleString()} XP</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="absolute inset-x-0 bottom-0 border-t border-carbon-200 bg-white/85 px-6 py-4 backdrop-blur-md md:px-10">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs uppercase tracking-[0.12em] text-carbon-500">
+                      {personalLeaderboardRank ? `#${personalLeaderboardRank}` : '--'}
+                    </div>
+                    <div className="text-sm font-semibold text-carbon-900">{fullName || 'Member'}</div>
+                    <div className="text-sm font-semibold text-carbon-700">{xp.toLocaleString()} XP</div>
+                  </div>
                 </div>
               </div>
-
-              <div className="mt-20 relative z-10">
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">
-                  UPCOMING SERVICES
-                </p>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {upcomingServices.map((service) => (
-                    <article
-                      key={service}
-                      className="rounded-xl border border-white/10 bg-[#252525] px-4 py-4 text-white text-sm"
+            </div>,
+            document.body,
+          )}
+          {trophyOpen && createPortal(
+            <div className="fixed inset-0 z-[10040] flex items-center justify-center p-4 md:p-6" role="dialog" aria-modal="true">
+              <button
+                type="button"
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                aria-label="Close trophy"
+                onClick={() => setTrophyOpen(false)}
+              />
+              <div className="relative z-10 flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+                <div className="flex items-start justify-between gap-4">
+                  <h3 className="p-6 text-3xl font-bold text-carbon-900 md:px-10 md:pt-8 md:text-5xl">Trophy</h3>
+                  <button
+                    type="button"
+                    className="mr-6 mt-6 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E8E8E8] text-[#5C5C5C] transition-colors duration-200 hover:bg-[#DADADA] hover:text-[#4A4A4A] md:mr-8"
+                    onClick={() => setTrophyOpen(false)}
+                    aria-label="Fermer"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="shrink-0"
+                      aria-hidden
                     >
-                      {service}
-                    </article>
-                  ))}
+                      <path
+                        d="M18 6L6 18M6 6l12 12"
+                        stroke="currentColor"
+                        strokeWidth="1.75"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 md:px-10">
+                  <div className="mt-2 rounded-2xl border border-carbon-200 bg-carbon-50 p-6 text-carbon-700 md:p-8">
+                  Trophy content coming soon.
+                  </div>
                 </div>
               </div>
-
-              <div id="certified-fireball-partners" className="mt-16 relative z-10 scroll-mt-28">
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/60">
-                  CERTIFIED FIREBALL PARTNERS
-                </p>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {certifiedPartners.map((partner) => (
-                    <article
-                      key={partner.name}
-                      className="rounded-xl border border-white/10 bg-[#252525] px-4 py-4"
-                    >
-                      <p className="text-white text-sm font-semibold">{partner.name}</p>
-                      <p className="mt-1 text-xs text-white/65">{partner.city}</p>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="h-px w-full bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-            <Footer />
-          </div>
-        </div>
+            </div>,
+            document.body,
+          )}
+          <Footer />
       </div>
       )}
 
