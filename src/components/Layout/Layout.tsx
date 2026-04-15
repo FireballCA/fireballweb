@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { LineupImageTransitionProvider } from '@/context/LineupImageTransitionContext'
+import { CookieConsentModal } from '@/components/CookieConsentModal'
 import { Header } from './Header'
 import { Footer } from './Footer'
 import { isShopPathname } from '@/utils/shopRoutes'
@@ -97,6 +98,7 @@ export function Layout() {
         </LineupImageTransitionProvider>
       </main>
       {showFooter && <Footer />}
+      <CookieConsentModal />
     </div>
   )
 }

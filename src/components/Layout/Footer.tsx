@@ -125,12 +125,6 @@ export function Footer() {
                   <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
                 </Link>
               </li>
-              <li>
-                <Link to="/legal" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
-                  Cookies
-                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
-                </Link>
-              </li>
             </ul>
           </div>
         </div>

@@ -26,6 +26,7 @@ const SEARCH_SUGGESTIONS: SearchSuggestion[] = [
   { section: 'Notifications', subsection: 'Push notifications', description: 'Browser notifications for updates' },
   { section: 'Connected Accounts', subsection: 'Google', description: 'Manage Google account connection' },
   { section: 'Connected Accounts', subsection: 'Email', description: 'Manage email account connection' },
+  { section: 'Cookie Preferences', subsection: 'Consent', description: 'Manage your cookie consent choices' },
   { section: 'Installer Status', subsection: 'Status', description: 'View your installer certification status' },
   { section: 'Installer Status', subsection: 'Company', description: 'View your company information' },
   { section: 'Danger Zone', subsection: 'Delete Account', description: 'Permanently delete your account' },
@@ -41,6 +42,8 @@ export function AccountSettings() {
   const [showUnsavedModal, setShowUnsavedModal] = useState(false)
   const [unsavedChanges, setUnsavedChanges] = useState<UnsavedChanges | null>(null)
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
 
@@ -77,6 +80,8 @@ export function AccountSettings() {
   const [savingNotifications, setSavingNotifications] = useState(false)
   const [notificationsError, setNotificationsError] = useState<string | null>(null)
   const [notificationsSuccess, setNotificationsSuccess] = useState<string | null>(null)
+  const [performanceCookies, setPerformanceCookies] = useState(true)
+  const [thirdPartyCookies, setThirdPartyCookies] = useState(false)
 
   // Connected Accounts state
   const [googleConnected, setGoogleConnected] = useState(false)
@@ -156,6 +161,7 @@ export function AccountSettings() {
       'Profile': 'profile-section',
       'Security': 'security-section',
       'Notifications': 'notifications-section',
+      'Cookie Preferences': 'cookie-settings-section',
       'Connected Accounts': 'connected-accounts-section',
       'Installer Status': 'installer-status-section',
       'Danger Zone': 'danger-zone-section',
@@ -581,10 +587,7 @@ export function AccountSettings() {
   }
 
   const handleDeleteAccount = async () => {
-    if (!confirm('Are you sure you want to delete your account? This action is irreversible.')) {
-      return
-    }
-
+    setDeletingAccount(true)
     try {
       const {
         data: { user },
@@ -598,19 +601,22 @@ export function AccountSettings() {
     } catch (e) {
       console.error('Error deleting account:', e)
       alert('Error deleting account.')
+    } finally {
+      setDeletingAccount(false)
+      setShowDeleteModal(false)
     }
   }
 
   if (loading) {
     return (
-      <section className="relative min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
-        <div className="text-white/60">Loading…</div>
+      <section className="relative min-h-screen bg-white text-carbon-900 flex items-center justify-center">
+        <div className="text-carbon-500">Loading…</div>
       </section>
     )
   }
 
   return (
-    <section className="relative min-h-screen bg-[#0a0a0a] text-white">
+    <section className="relative min-h-screen bg-white text-carbon-900">
 
       {/* Unsaved Changes Modal */}
       {showUnsavedModal && unsavedChanges && (
@@ -655,19 +661,71 @@ export function AccountSettings() {
         </div>
       )}
 
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center p-4 bg-black/50">
+          <div className="w-full max-w-[500px] rounded-[24px] bg-[#ececec] p-6 shadow-[0_14px_36px_rgba(0,0,0,0.28)]">
+            <div className="mb-4 flex items-start justify-between">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#f8d8dd] text-[#ff3b45]">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 8v5" />
+                  <path d="M12 16h.01" />
+                </svg>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#d8d8da] text-[#6c6c71] transition-colors hover:bg-[#cfd0d3]"
+                aria-label="Close delete account popup"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <h3 className="text-[28px] leading-[1.1] font-semibold tracking-tight text-[#252528]">
+              Delete your account?
+            </h3>
+            <p className="mt-3 text-[17px] leading-[1.5] font-normal text-[#6c6c71]">
+              This will permanently delete your account and remove all your data from our servers. This action is irreversible.
+            </p>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="inline-flex items-center justify-center rounded-full bg-[#dcdcdf] px-6 py-2.5 text-base font-medium leading-none text-[#4a4a4f] transition-colors hover:bg-[#d2d3d6]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+                className="inline-flex items-center justify-center rounded-full bg-[#ff3b45] px-6 py-2.5 text-base font-semibold leading-none text-white transition-colors hover:bg-[#ff2d3a] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {deletingAccount ? 'Deleting...' : 'Delete Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="relative z-10 max-w-[1000px] mx-auto px-6 md:px-10 lg:px-16 py-12">
         {/* Fixed Header Section */}
-        <div className="mb-12 text-left">
+        <div className="mb-12 text-center">
           {/* Title */}
           <div className="mb-6">
-            <h1 className="text-3xl md:text-4xl lg:text-[40px] font-semibold tracking-[-0.03em]" style={{ color: '#FDFDFD' }}>
+            <h1 className="text-3xl md:text-4xl lg:text-[40px] font-semibold tracking-[-0.03em]" style={{ color: '#111111' }}>
               Account Settings
             </h1>
           </div>
 
           {/* Description and Search */}
-          <div className="flex flex-col items-start gap-4 mb-8">
-            <p className="text-sm text-white/65 max-w-xl">
+          <div className="flex flex-col items-center gap-4 mb-8">
+            <p className="text-sm text-carbon-600 max-w-xl">
               Settings and preference for your application.
             </p>
             <div className="relative w-full max-w-md">
@@ -678,10 +736,10 @@ export function AccountSettings() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => searchQuery && setShowSuggestions(true)}
                 placeholder="Search settings..."
-                className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                className="w-full rounded-lg border border-carbon-200 bg-white px-4 py-2.5 text-sm text-carbon-900 placeholder:text-carbon-400 focus:outline-none focus:border-carbon-400"
               />
               <svg
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-carbon-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -691,21 +749,21 @@ export function AccountSettings() {
               {showSuggestions && searchSuggestions.length > 0 && (
                 <div
                   ref={suggestionsRef}
-                  className="absolute top-full left-0 right-0 mt-2 rounded-lg border border-white/10 bg-black/90 backdrop-blur-xl shadow-xl z-50 max-h-64 overflow-y-auto"
+                  className="absolute top-full left-0 right-0 mt-2 rounded-lg border border-carbon-200 bg-white shadow-xl z-50 max-h-64 overflow-y-auto"
                 >
                   {searchSuggestions.map((suggestion, index) => (
                     <button
                       key={index}
                       type="button"
                       onClick={() => handleSuggestionClick(suggestion)}
-                      className="w-full text-left px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-b-0"
+                      className="w-full text-left px-4 py-3 hover:bg-carbon-50 transition-colors border-b border-carbon-100 last:border-b-0"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
-                          <p className="text-sm text-white/90 font-medium">{suggestion.subsection}</p>
-                          <p className="text-xs text-white/55 mt-0.5">{suggestion.description}</p>
+                          <p className="text-sm text-carbon-900 font-medium">{suggestion.subsection}</p>
+                          <p className="text-xs text-carbon-600 mt-0.5">{suggestion.description}</p>
                         </div>
-                        <span className="text-xs text-white/40">{suggestion.section}</span>
+                        <span className="text-xs text-carbon-500">{suggestion.section}</span>
                       </div>
                     </button>
                   ))}
@@ -714,41 +772,13 @@ export function AccountSettings() {
             </div>
           </div>
 
-          {/* Business Management Block (Fixed) */}
-          <div className="rounded-2xl border border-white/5 px-5 md:px-7 py-6 mb-8 mx-auto max-w-2xl bg-transparent">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-white/90 mb-1">
-                  Are you a business owner?
-                </p>
-                <p className="text-[11px] text-white/55">
-                  Submit your application and start scaling your business
-                </p>
-              </div>
-              <Link
-                to="/account/company"
-                onClick={(e) => {
-                  if (!checkUnsavedChanges('/account/company')) {
-                    e.preventDefault()
-                  }
-                }}
-                className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-medium text-white whitespace-nowrap hover:opacity-90 active:scale-[0.98] transition-all"
-                style={{ backgroundColor: '#9C1B30' }}
-              >
-                Manage my business
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-          </div>
         </div>
 
         {/* All Settings in One Block - Centered */}
         <div className="max-w-3xl mx-auto space-y-12">
           {/* Profile Section */}
           <div id="profile-section">
-            <h2 className="text-xl font-semibold text-white mb-6 text-left">Profile</h2>
+            <h2 className="text-xl font-semibold text-carbon-900 mb-6 text-left">Profile</h2>
             <form onSubmit={handleSaveProfile} className="space-y-6">
               {profileError && (
                 <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[13px] text-red-100">
@@ -765,8 +795,8 @@ export function AccountSettings() {
                 {/* Name */}
                 <div className="flex items-start gap-8">
                   <div className="w-48 text-left">
-                    <label className="text-sm text-white/90 font-medium">Name</label>
-                    <p className="text-[11px] text-white/55 mt-1">
+                    <label className="text-sm text-carbon-900 font-medium">Name</label>
+                    <p className="text-[11px] text-carbon-600 mt-1">
                       Update your first and last name
                     </p>
                   </div>
@@ -774,13 +804,13 @@ export function AccountSettings() {
                     <input
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                      className="w-full rounded-lg border border-carbon-200 bg-white px-3.5 py-2.5 text-sm text-carbon-900 placeholder:text-carbon-400 focus:outline-none focus:border-carbon-400"
                       placeholder="First name"
                     />
                     <input
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                      className="w-full rounded-lg border border-carbon-200 bg-white px-3.5 py-2.5 text-sm text-carbon-900 placeholder:text-carbon-400 focus:outline-none focus:border-carbon-400"
                       placeholder="Last name"
                     />
                   </div>
@@ -791,7 +821,7 @@ export function AccountSettings() {
                 <button
                   type="submit"
                   disabled={savingProfile || !hasProfileChanges}
-                  className={`group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#9C1B30] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                  className={`group inline-flex items-center gap-2 text-sm font-medium text-carbon-900 hover:text-[#9C1B30] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                     !hasProfileChanges ? 'opacity-0 pointer-events-none' : 'opacity-100'
                   }`}
                 >
@@ -806,7 +836,7 @@ export function AccountSettings() {
 
           {/* Security Section */}
           <div id="security-section">
-            <h2 className="text-xl font-semibold text-white mb-6 text-left">Security</h2>
+            <h2 className="text-xl font-semibold text-carbon-900 mb-6 text-left">Security</h2>
             <form onSubmit={handleSaveSecurity} className="space-y-6">
               {securityError && (
                 <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[13px] text-red-100">
@@ -823,8 +853,8 @@ export function AccountSettings() {
                 {/* Email */}
                 <div className="flex items-center gap-8">
                   <div className="w-48 text-left">
-                    <label className="text-sm text-white/90 font-medium">Email</label>
-                    <p className="text-[11px] text-white/55 mt-1">
+                    <label className="text-sm text-carbon-900 font-medium">Email</label>
+                    <p className="text-[11px] text-carbon-600 mt-1">
                       Change your email address
                     </p>
                   </div>
@@ -832,7 +862,7 @@ export function AccountSettings() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                    className="flex-1 rounded-lg border border-carbon-200 bg-white px-3.5 py-2.5 text-sm text-carbon-900 placeholder:text-carbon-400 focus:outline-none focus:border-carbon-400"
                     placeholder="Email address"
                   />
                 </div>
@@ -843,8 +873,8 @@ export function AccountSettings() {
                 {/* Password */}
                 <div className="flex items-start gap-8">
                   <div className="w-48 text-left">
-                    <label className="text-sm text-white/90 font-medium">Password</label>
-                    <p className="text-[11px] text-white/55 mt-1">
+                    <label className="text-sm text-carbon-900 font-medium">Password</label>
+                    <p className="text-[11px] text-carbon-600 mt-1">
                       Update your account password
                     </p>
                   </div>
@@ -853,21 +883,21 @@ export function AccountSettings() {
                       type="password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                      className="w-full rounded-lg border border-carbon-200 bg-white px-3.5 py-2.5 text-sm text-carbon-900 placeholder:text-carbon-400 focus:outline-none focus:border-carbon-400"
                       placeholder="Current password"
                     />
                     <input
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                      className="w-full rounded-lg border border-carbon-200 bg-white px-3.5 py-2.5 text-sm text-carbon-900 placeholder:text-carbon-400 focus:outline-none focus:border-carbon-400"
                       placeholder="New password (min. 6 characters)"
                     />
                     <input
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                      className="w-full rounded-lg border border-carbon-200 bg-white px-3.5 py-2.5 text-sm text-carbon-900 placeholder:text-carbon-400 focus:outline-none focus:border-carbon-400"
                       placeholder="Confirm new password"
                     />
                   </div>
@@ -878,7 +908,7 @@ export function AccountSettings() {
                 <button
                   type="submit"
                   disabled={savingSecurity || !hasSecurityChanges}
-                  className={`group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#9C1B30] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                  className={`group inline-flex items-center gap-2 text-sm font-medium text-carbon-900 hover:text-[#9C1B30] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                     !hasSecurityChanges ? 'opacity-0 pointer-events-none' : 'opacity-100'
                   }`}
                 >
@@ -893,7 +923,7 @@ export function AccountSettings() {
 
           {/* Notifications Section */}
           <div id="notifications-section">
-            <h2 className="text-xl font-semibold text-white mb-6 text-left">Notifications</h2>
+            <h2 className="text-xl font-semibold text-carbon-900 mb-6 text-left">Notifications</h2>
             <div className="space-y-6">
               {notificationsError && (
                 <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[13px] text-red-100">
@@ -910,8 +940,8 @@ export function AccountSettings() {
                 {/* Order Emails */}
                 <div className="flex items-center gap-8">
                   <div className="w-48 text-left">
-                    <p className="text-sm text-white/90 font-medium">Order updates</p>
-                    <p className="text-[11px] text-white/55 mt-1">
+                    <p className="text-sm text-carbon-900 font-medium">Order updates</p>
+                    <p className="text-[11px] text-carbon-600 mt-1">
                       Emails about your purchases and orders
                     </p>
                   </div>
@@ -919,7 +949,7 @@ export function AccountSettings() {
                     type="button"
                     onClick={() => setOrderEmails((v) => !v)}
                     className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
-                      orderEmails ? 'bg-emerald-500' : 'bg-white/[0.25]'
+                      orderEmails ? 'bg-emerald-500' : 'bg-[#9CA3AF]'
                     }`}
                   >
                     <span
@@ -936,8 +966,8 @@ export function AccountSettings() {
                 {/* Marketing Emails */}
                 <div className="flex items-center gap-8">
                   <div className="w-48 text-left">
-                    <p className="text-sm text-white/90 font-medium">News & drops</p>
-                    <p className="text-[11px] text-white/55 mt-1">
+                    <p className="text-sm text-carbon-900 font-medium">News & drops</p>
+                    <p className="text-[11px] text-carbon-600 mt-1">
                       Product launches and promotions
                     </p>
                   </div>
@@ -945,7 +975,7 @@ export function AccountSettings() {
                     type="button"
                     onClick={() => setMarketingEmails((v) => !v)}
                     className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
-                      marketingEmails ? 'bg-emerald-500' : 'bg-white/[0.25]'
+                      marketingEmails ? 'bg-emerald-500' : 'bg-[#9CA3AF]'
                     }`}
                   >
                     <span
@@ -962,8 +992,8 @@ export function AccountSettings() {
                 {/* Push Notifications */}
                 <div className="flex items-center gap-8">
                   <div className="w-48 text-left">
-                    <p className="text-sm text-white/90 font-medium">Push notifications</p>
-                    <p className="text-[11px] text-white/55 mt-1">
+                    <p className="text-sm text-carbon-900 font-medium">Push notifications</p>
+                    <p className="text-[11px] text-carbon-600 mt-1">
                       Browser notifications for updates
                     </p>
                   </div>
@@ -971,7 +1001,7 @@ export function AccountSettings() {
                     type="button"
                     onClick={() => setPushNotifications((v) => !v)}
                     className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
-                      pushNotifications ? 'bg-emerald-500' : 'bg-white/[0.25]'
+                      pushNotifications ? 'bg-emerald-500' : 'bg-[#9CA3AF]'
                     }`}
                   >
                     <span
@@ -988,7 +1018,7 @@ export function AccountSettings() {
                   type="button"
                   onClick={handleSaveNotifications}
                   disabled={savingNotifications || !hasNotificationsChanges}
-                  className={`group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#9C1B30] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                  className={`group inline-flex items-center gap-2 text-sm font-medium text-carbon-900 hover:text-[#9C1B30] transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                     !hasNotificationsChanges ? 'opacity-0 pointer-events-none' : 'opacity-100'
                   }`}
                 >
@@ -1001,9 +1031,80 @@ export function AccountSettings() {
             </div>
           </div>
 
+          {/* Cookie Preferences Section */}
+          <div id="cookie-settings-section">
+            <h2 className="text-xl font-semibold text-carbon-900 mb-6 text-left">Cookie Preferences</h2>
+            <div className="space-y-6">
+              <div className="flex items-center gap-8">
+                <div className="w-48 text-left">
+                  <p className="text-sm text-carbon-900 font-medium">Strictly Necessary</p>
+                  <p className="text-[11px] text-carbon-600 mt-1">
+                    Required for core functionality (cannot be disabled)
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled
+                  className="w-10 h-6 rounded-full flex items-center px-1 bg-emerald-500 cursor-not-allowed opacity-80"
+                  aria-label="Strictly Necessary cookies enabled"
+                >
+                  <span className="w-4 h-4 bg-white rounded-full shadow-sm transform translate-x-4" />
+                </button>
+              </div>
+
+              <div className="h-px bg-carbon-200" />
+
+              <div className="flex items-center gap-8">
+                <div className="w-48 text-left">
+                  <p className="text-sm text-carbon-900 font-medium">Performance</p>
+                  <p className="text-[11px] text-carbon-600 mt-1">
+                    Help us improve speed and overall experience
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPerformanceCookies((v) => !v)}
+                  className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
+                    performanceCookies ? 'bg-emerald-500' : 'bg-[#9CA3AF]'
+                  }`}
+                >
+                  <span
+                    className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${
+                      performanceCookies ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="h-px bg-carbon-200" />
+
+              <div className="flex items-center gap-8">
+                <div className="w-48 text-left">
+                  <p className="text-sm text-carbon-900 font-medium">Third Party Content</p>
+                  <p className="text-[11px] text-carbon-600 mt-1">
+                    Enable external embeds and third-party content
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setThirdPartyCookies((v) => !v)}
+                  className={`w-10 h-6 rounded-full flex items-center px-1 transition-colors ${
+                    thirdPartyCookies ? 'bg-emerald-500' : 'bg-[#9CA3AF]'
+                  }`}
+                >
+                  <span
+                    className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform ${
+                      thirdPartyCookies ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Connected Accounts Section */}
           <div id="connected-accounts-section">
-            <h2 className="text-xl font-semibold text-white mb-6 text-left">Connected Accounts</h2>
+            <h2 className="text-xl font-semibold text-carbon-900 mb-6 text-left">Connected Accounts</h2>
             <div className="space-y-6">
               {passwordError && (
                 <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[13px] text-red-100">
@@ -1041,8 +1142,8 @@ export function AccountSettings() {
                       </svg>
                     </div>
                     <div className="text-left">
-                      <p className="text-sm text-white/90 font-medium">Google</p>
-                      <p className="text-[11px] text-white/55 mt-0.5">
+                      <p className="text-sm text-carbon-900 font-medium">Google</p>
+                      <p className="text-[11px] text-carbon-600 mt-0.5">
                         Manage Google account connection
                       </p>
                     </div>
@@ -1051,7 +1152,7 @@ export function AccountSettings() {
                     type="button"
                     onClick={handleGoogleConnect}
                     className={`relative inline-flex items-center w-11 h-6 rounded-full transition-colors ${
-                      googleConnected ? 'bg-emerald-500' : 'bg-white/[0.25]'
+                      googleConnected ? 'bg-emerald-500' : 'bg-[#9CA3AF]'
                     }`}
                   >
                     <span
@@ -1074,8 +1175,8 @@ export function AccountSettings() {
                       </svg>
                     </div>
                     <div className="text-left">
-                      <p className="text-sm text-white/90 font-medium">Email</p>
-                      <p className="text-[11px] text-white/55 mt-0.5">
+                      <p className="text-sm text-carbon-900 font-medium">Email</p>
+                      <p className="text-[11px] text-carbon-600 mt-0.5">
                         {hasPassword ? 'Email account is connected' : 'Set a password for your account'}
                       </p>
                     </div>
@@ -1097,21 +1198,21 @@ export function AccountSettings() {
                           type="password"
                           value={passwordForGoogleAccount}
                           onChange={(e) => setPasswordForGoogleAccount(e.target.value)}
-                          className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                          className="w-full rounded-lg border border-carbon-200 bg-white px-3.5 py-2.5 text-sm text-carbon-900 placeholder:text-carbon-400 focus:outline-none focus:border-carbon-400"
                           placeholder="Set password (min. 6 characters)"
                         />
                         <input
                           type="password"
                           value={confirmPasswordForGoogleAccount}
                           onChange={(e) => setConfirmPasswordForGoogleAccount(e.target.value)}
-                          className="w-full rounded-lg border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+                          className="w-full rounded-lg border border-carbon-200 bg-white px-3.5 py-2.5 text-sm text-carbon-900 placeholder:text-carbon-400 focus:outline-none focus:border-carbon-400"
                           placeholder="Confirm password"
                         />
                         <button
                           type="button"
                           onClick={handleSetPasswordForGoogleAccount}
                           disabled={settingPassword || !passwordForGoogleAccount || passwordForGoogleAccount.length < 6}
-                          className="group inline-flex items-center gap-2 text-sm font-medium text-white hover:text-[#9C1B30] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                          className="group inline-flex items-center gap-2 text-sm font-medium text-carbon-900 hover:text-[#9C1B30] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                           Set password
                           <svg className="w-4 h-4 transform -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1134,12 +1235,12 @@ export function AccountSettings() {
           {/* Installer Status Section */}
           {isInstaller && (
             <div id="installer-status-section">
-              <h2 className="text-xl font-semibold text-white mb-6 text-left">Installer Status</h2>
+              <h2 className="text-xl font-semibold text-carbon-900 mb-6 text-left">Installer Status</h2>
               <div className="space-y-6">
                 <div className="flex items-center gap-8">
                   <div className="w-48 text-left">
-                    <p className="text-sm text-white/90 font-medium">Status</p>
-                    <p className="text-[11px] text-white/55 mt-1">
+                    <p className="text-sm text-carbon-900 font-medium">Status</p>
+                    <p className="text-[11px] text-carbon-600 mt-1">
                       View your installer certification status
                     </p>
                   </div>
@@ -1159,13 +1260,13 @@ export function AccountSettings() {
                     <div className="h-px bg-white/10" />
                     <div className="flex items-center gap-8">
                       <div className="w-48 text-left">
-                        <p className="text-sm text-white/90 font-medium">Company</p>
-                        <p className="text-[11px] text-white/55 mt-1">
+                        <p className="text-sm text-carbon-900 font-medium">Company</p>
+                        <p className="text-[11px] text-carbon-600 mt-1">
                           View your company information
                         </p>
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm text-white/70">{companyName}</p>
+                        <p className="text-sm text-carbon-700">{companyName}</p>
                       </div>
                     </div>
                   </>
@@ -1178,20 +1279,20 @@ export function AccountSettings() {
 
           {/* Danger Zone Section */}
           <div id="danger-zone-section">
-            <h2 className="text-xl font-semibold text-white mb-6 text-left">Danger Zone</h2>
+            <h2 className="text-xl font-semibold text-carbon-900 mb-6 text-left">Danger Zone</h2>
             <div className="space-y-6">
               <div className="flex items-center gap-8">
                 <div className="w-48 text-left">
-                  <p className="text-sm text-white/90 font-medium">Delete Account</p>
-                  <p className="text-[11px] text-white/55 mt-1">
+                  <p className="text-sm text-carbon-900 font-medium">Delete Account</p>
+                  <p className="text-[11px] text-carbon-600 mt-1">
                     Permanently delete your account
                   </p>
                 </div>
                   <div className="flex-1">
                     <button
                       type="button"
-                      onClick={handleDeleteAccount}
-                      className="inline-flex items-center justify-center rounded-xl border border-red-500/50 bg-red-500/20 px-4 py-2.5 text-[12px] font-nav font-bold uppercase tracking-[0.18em] text-red-300 hover:bg-red-500/30 transition-colors"
+                      onClick={() => setShowDeleteModal(true)}
+                      className="inline-flex items-center justify-center rounded-full bg-[#ff3b45] px-6 py-2.5 text-sm font-semibold leading-none text-white transition-colors hover:bg-[#ff2d3a]"
                     >
                       Delete Account
                     </button>
