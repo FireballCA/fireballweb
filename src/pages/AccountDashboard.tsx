@@ -1479,67 +1479,94 @@ export function AccountDashboard() {
             <div className="fixed inset-0 z-[10040] flex items-center justify-center p-4 md:p-6" role="dialog" aria-modal="true">
               <button
                 type="button"
-                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/50"
                 aria-label="Close leaderboard"
                 onClick={() => setLeaderboardOpen(false)}
               />
-              <div className="relative z-10 flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
-                <div className="flex items-start justify-between gap-4">
-                  <h3 className="p-6 text-3xl font-bold text-carbon-900 md:px-10 md:pt-8 md:text-5xl">Leaderboard</h3>
-                  <button
-                    type="button"
-                    className="mr-6 mt-6 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E8E8E8] text-[#5C5C5C] transition-colors duration-200 hover:bg-[#DADADA] hover:text-[#4A4A4A] md:mr-8"
-                    onClick={() => setLeaderboardOpen(false)}
-                    aria-label="Fermer"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="shrink-0"
-                      aria-hidden
-                    >
-                      <path
-                        d="M18 6L6 18M6 6l12 12"
+              <div className="relative z-10 flex max-h-[88vh] w-full max-w-[640px] flex-col overflow-hidden rounded-[22px] bg-[#ececec] p-0 shadow-[0_10px_28px_rgba(0,0,0,0.18)]">
+                <div className="p-6 sm:p-7">
+                  <div className="mb-4 flex items-start justify-between">
+                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#dedee0] text-[#2e2e30]">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
                         stroke="currentColor"
-                        strokeWidth="1.75"
+                        strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
+                        className="h-5 w-5"
+                        aria-hidden
+                      >
+                        <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978" />
+                        <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978" />
+                        <path d="M18 9h1.5a1 1 0 0 0 0-5H18" />
+                        <path d="M4 22h16" />
+                        <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z" />
+                        <path d="M6 9H4.5a1 1 0 0 1 0-5H6" />
+                      </svg>
+                    </div>
+                    <button
+                      type="button"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#d8d8da] text-[#6c6c71] transition-colors hover:bg-[#cfd0d3]"
+                      onClick={() => setLeaderboardOpen(false)}
+                      aria-label="Fermer"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                      >
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <p className="text-[clamp(22px,4vw,30px)] leading-[1.05] font-semibold tracking-tight text-[#252528]">
+                    Leaderboard
+                  </p>
+                  <p className="mt-3 text-[13px] leading-[1.45] text-[#6c6c71]">
+                    See the ranking of Fireball members and track your current position.
+                  </p>
                 </div>
-                <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-24 md:px-10">
+                <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-24 sm:px-7">
                   {leaderboardLoading ? (
-                    <p className="text-sm text-carbon-600">Chargement du leaderboard...</p>
+                    <p className="text-sm text-[#6c6c71]">Chargement du leaderboard...</p>
                   ) : leaderboardEntries.length === 0 ? (
-                    <p className="text-sm text-carbon-600">Aucun score disponible.</p>
+                    <p className="text-sm text-[#6c6c71]">Aucun score disponible.</p>
                   ) : (
                     <div className="space-y-2">
                       {leaderboardEntries.map((entry, idx) => (
                         <div
                           key={entry.id}
-                          className="flex items-center justify-between rounded-xl border border-carbon-200 bg-carbon-50 px-4 py-3"
+                          className="flex items-center justify-between rounded-2xl border border-[#dddddf] bg-[#f7f7f8] px-4 py-3"
                         >
                           <div className="flex items-center gap-3">
-                            <span className="w-8 text-sm font-semibold text-carbon-500">#{idx + 1}</span>
-                            <span className="text-sm font-semibold text-carbon-900">{entry.label}</span>
+                            <span className="w-8 text-sm font-semibold text-[#7a7a80]">#{idx + 1}</span>
+                            <span className="text-sm font-semibold text-[#252528]">{entry.label}</span>
                           </div>
-                          <span className="text-sm font-semibold text-carbon-700">{entry.xp.toLocaleString()} XP</span>
+                          <span className="text-sm font-semibold text-[#4a4a4f]">{entry.xp.toLocaleString()} XP</span>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-                <div className="absolute inset-x-0 bottom-0 border-t border-carbon-200 bg-white/85 px-6 py-4 backdrop-blur-md md:px-10">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs uppercase tracking-[0.12em] text-carbon-500">
+                <div className="absolute inset-x-0 bottom-0 border-t border-[#d9d9dc] bg-[#ececec]/90 px-6 py-4 backdrop-blur-md sm:px-7">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs uppercase tracking-[0.12em] text-[#7a7a80]">
                       {personalLeaderboardRank ? `#${personalLeaderboardRank}` : '--'}
                     </div>
-                    <div className="text-sm font-semibold text-carbon-900">{fullName || 'Member'}</div>
-                    <div className="text-sm font-semibold text-carbon-700">{xp.toLocaleString()} XP</div>
+                    <div className="truncate text-sm font-semibold text-[#252528]">{fullName || 'Member'}</div>
+                    <div className="text-sm font-semibold text-[#4a4a4f]">{xp.toLocaleString()} XP</div>
                   </div>
                 </div>
               </div>
@@ -1550,41 +1577,64 @@ export function AccountDashboard() {
             <div className="fixed inset-0 z-[10040] flex items-center justify-center p-4 md:p-6" role="dialog" aria-modal="true">
               <button
                 type="button"
-                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/50"
                 aria-label="Close trophy"
                 onClick={() => setTrophyOpen(false)}
               />
-              <div className="relative z-10 flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
-                <div className="flex items-start justify-between gap-4">
-                  <h3 className="p-6 text-3xl font-bold text-carbon-900 md:px-10 md:pt-8 md:text-5xl">Trophy</h3>
-                  <button
-                    type="button"
-                    className="mr-6 mt-6 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E8E8E8] text-[#5C5C5C] transition-colors duration-200 hover:bg-[#DADADA] hover:text-[#4A4A4A] md:mr-8"
-                    onClick={() => setTrophyOpen(false)}
-                    aria-label="Fermer"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="shrink-0"
-                      aria-hidden
-                    >
-                      <path
-                        d="M18 6L6 18M6 6l12 12"
+              <div className="relative z-10 flex max-h-[88vh] w-full max-w-[520px] flex-col overflow-hidden rounded-[22px] bg-[#ececec] p-0 shadow-[0_10px_28px_rgba(0,0,0,0.18)]">
+                <div className="p-6 sm:p-7">
+                  <div className="mb-4 flex items-start justify-between">
+                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#dedee0] text-[#2e2e30]">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
                         stroke="currentColor"
-                        strokeWidth="1.75"
+                        strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
+                        className="h-5 w-5"
+                        aria-hidden
+                      >
+                        <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" />
+                        <circle cx="12" cy="8" r="6" />
+                      </svg>
+                    </div>
+                    <button
+                      type="button"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#d8d8da] text-[#6c6c71] transition-colors hover:bg-[#cfd0d3]"
+                      onClick={() => setTrophyOpen(false)}
+                      aria-label="Fermer"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                      >
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <p className="text-[clamp(22px,4vw,30px)] leading-[1.05] font-semibold tracking-tight text-[#252528]">
+                    Trophy
+                  </p>
+                  <p className="mt-3 text-[13px] leading-[1.45] text-[#6c6c71]">
+                    See your rewards, milestones and achievements.
+                  </p>
                 </div>
-                <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 md:px-10">
-                  <div className="mt-2 rounded-2xl border border-carbon-200 bg-carbon-50 p-6 text-carbon-700 md:p-8">
-                  Trophy content coming soon.
+                <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 sm:px-7">
+                  <div className="rounded-2xl border border-[#dddddf] bg-[#f7f7f8] p-6 text-[#4a4a4f] md:p-8">
+                    Trophy content coming soon.
                   </div>
                 </div>
               </div>
