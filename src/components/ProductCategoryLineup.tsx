@@ -12,6 +12,12 @@ const LINEUP_IMAGES = [
   'https://images.unsplash.com/photo-1507131561656-3a6ace29fe0f?q=80&w=1200&auto=format&fit=crop',
 ] as const
 
+const CATEGORY_IMAGE_OVERRIDES: Partial<Record<ShopNavCategoryId, string>> = {
+  coatings: '/Assets/category/Coating.jpg',
+  washing: '/Assets/category/Washing.png',
+  waxes: '/Assets/category/Wax.jpg',
+}
+
 /** Même ordre que le menu Shop : 8 catégories. */
 const LINEUP_COPY: Record<ShopNavCategoryId, { label: string; headline: string }> = {
   coatings: { label: 'CERAMIC COATINGS', headline: 'Unmatched Protection' },
@@ -29,13 +35,14 @@ export function ProductCategoryLineup() {
     () =>
       SHOP_NAV_CATEGORY_IDS.map((id, i) => {
         const copy = LINEUP_COPY[id]
+        const src = CATEGORY_IMAGE_OVERRIDES[id] ?? LINEUP_IMAGES[i % LINEUP_IMAGES.length] ?? LINEUP_IMAGES[0]
         return (
           <Card
             key={id}
             card={{
               category: copy.label,
               title: copy.headline,
-              src: LINEUP_IMAGES[i % LINEUP_IMAGES.length] ?? LINEUP_IMAGES[0],
+              src,
               to: shopCategoryPath(id),
             }}
           />
