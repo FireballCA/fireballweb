@@ -7,27 +7,16 @@ import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { generatePreviewStripeOrderId, sendTrainingRegistrationEmail } from '@/utils/trainingRegistrationEmail'
 import { getCurrentUserProfile, type UserProfile } from '@/utils/supabaseAuth'
+import {
+  DEFAULT_TRAINING_SESSION_OPTIONS,
+  resolveTrainingSessionOptions,
+  type TrainingSessionOption,
+} from '@/constants/trainingSessions'
 
 /** Doit correspondre à la validation dans `getSafeReturnToPath`. */
 export const ACADEMY_TRAINING_RETURN_PATH = '/academy?joinTraining=1'
 
-export const TRAINING_SESSION_OPTIONS: { id: string; label: string; hint?: string }[] = [
-  {
-    id: 'may-2026-sh',
-    label: 'May 15–16, 2026',
-    hint: 'Saint-Hyacinthe, QC — hands-on + certification',
-  },
-  {
-    id: 'jun-2026-sh',
-    label: 'June 12–13, 2026',
-    hint: 'Saint-Hyacinthe, QC — hands-on + certification',
-  },
-  {
-    id: 'sep-2026-sh',
-    label: 'September 18–19, 2026',
-    hint: 'Saint-Hyacinthe, QC — hands-on + certification',
-  },
-]
+export const TRAINING_SESSION_OPTIONS: TrainingSessionOption[] = DEFAULT_TRAINING_SESSION_OPTIONS
 
 /** Prix de base de la formation (CAD), avant taxes et rabais. */
 export const TRAINING_BASE_PRICE_CAD = 999
@@ -56,6 +45,9 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
   const [step, setStep] = useState<Step>(1)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [selectedSessionId, setSelectedSessionId] = useState<string>('')
+  const [trainingSessions, setTrainingSessions] = useState<TrainingSessionOption[]>(
+    DEFAULT_TRAINING_SESSION_OPTIONS,
+  )
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -90,6 +82,19 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
       sub.subscription.unsubscribe()
     }
   }, [open, refreshProfile])
+
+  useEffect(() => {
+    if (!open) return
+    const loadSessions = async () => {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'training_sessions')
+        .maybeSingle()
+      setTrainingSessions(resolveTrainingSessionOptions(data?.value))
+    }
+    void loadSessions()
+  }, [open])
 
   useEffect(() => {
     if (!open || !profile) return
@@ -176,7 +181,7 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
 
   const canGoToNextStep = formValid && !!profile
 
-  const selectedSession = TRAINING_SESSION_OPTIONS.find((o) => o.id === selectedSessionId)
+  const selectedSession = trainingSessions.find((o) => o.id === selectedSessionId)
 
   const formatCad = (amount: number) =>
     new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(amount)
@@ -318,7 +323,7 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
               <fieldset className="mt-8">
                 <legend className="text-xs font-semibold uppercase tracking-wider text-carbon-500">Training date</legend>
                 <div className="mt-3 divide-y divide-carbon-200 overflow-hidden rounded-lg border border-carbon-200">
-                  {TRAINING_SESSION_OPTIONS.map((opt) => {
+                  {trainingSessions.map((opt) => {
                     const inputId = `${baseId}-session-${opt.id}`
                     return (
                       <label
