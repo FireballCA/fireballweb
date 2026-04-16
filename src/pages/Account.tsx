@@ -59,7 +59,7 @@ export function Account() {
   const returnToPath = getSafeReturnToPath(returnToParam)
 
   useEffect(() => {
-    document.title = 'Account | Fireball Canada'
+    document.title = 'Account - Fireball Canada'
 
     const previousBodyOverflow = document.body.style.overflow
     const previousBodyHeight = document.body.style.height

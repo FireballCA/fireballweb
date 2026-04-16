@@ -4,10 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 import { LenisContext } from '@/components/LenisRoot'
 import { cn } from '@/lib/utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 export function CarClub() {
   const { t } = useTranslation()
   const lenis = useContext(LenisContext)
+  usePageTitle('Car Club - Fireball Canada')
 
   const scrollToMembershipCards = useCallback(
     (e: MouseEvent<HTMLAnchorElement>) => {

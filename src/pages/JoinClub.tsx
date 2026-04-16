@@ -13,6 +13,7 @@ import {
   JOIN_CLUB_WIZARD_PLACEHOLDER,
 } from '@/constants/joinClubAssets'
 import { isAuthenticated } from '@/utils/supabaseAuth'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 type ClubTier = 'ignition' | 'apex'
 
@@ -116,6 +117,7 @@ export function JoinClub() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
+  usePageTitle('Join the Club - Fireball Canada')
   const [authReady, setAuthReady] = useState(false)
   /** `null` = étape 1 : pas encore de carte choisie (image d’accueil, pas les visuels membership). */
   const [selectedTier, setSelectedTier] = useState<ClubTier | null>(null)

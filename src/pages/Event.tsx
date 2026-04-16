@@ -8,6 +8,7 @@ import {
   resolveSiteEventConfigs,
   type SiteEventConfig,
 } from '@/constants/siteEventConfigs'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 function GpsIcon({ className }: { className?: string }) {
   return (
@@ -60,6 +61,8 @@ const eventMetaPillClass =
 export function Event() {
   const lenis = useContext(LenisContext)
   const [events, setEvents] = useState<SiteEventConfig[]>(DEFAULT_SITE_EVENT_CONFIGS)
+
+  usePageTitle('Events - Fireball Canada')
 
   useEffect(() => {
     const load = async () => {

@@ -4,6 +4,7 @@ import { ReserveYourSpot } from '@/components/events/ReserveYourSpot'
 import { WhatToExpect } from '@/components/events/WhatToExpect'
 import { supabase } from '@/lib/supabase'
 import { resolveSiteEventConfigs } from '@/constants/siteEventConfigs'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 /** Scales down font size so the title stays on one line within its container */
 function HeroSingleLineTitle({ text, className }: { text: string; className?: string }) {
@@ -112,6 +113,12 @@ export function EventDetail() {
     startAt: string
   } | null>(null)
   const [loaded, setLoaded] = useState(false)
+
+  usePageTitle(
+    resolved?.heroTitle
+      ? `${resolved.heroTitle} - Fireball Events`
+      : 'Event - Fireball Events',
+  )
 
   useEffect(() => {
     const load = async () => {

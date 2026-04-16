@@ -13,6 +13,7 @@ import { Cart } from '@/pages/Cart'
 import { Account } from '@/pages/Account'
 import { AccountRegister } from '@/pages/AccountRegister'
 import { AccountDashboard } from '@/pages/AccountDashboard'
+import { AccountOrders } from '@/pages/AccountOrders'
 import { AccountSettings } from '@/pages/AccountSettings'
 import { BusinessPage } from '@/pages/BusinessPage'
 import { ManagePartners } from '@/pages/ManagePartners'
@@ -95,6 +96,14 @@ function App() {
                   <AccountDashboard />
                 </ProtectedRoute>
               } 
+            />
+            <Route
+              path="account/orders"
+              element={
+                <ProtectedRoute>
+                  <AccountOrders />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="account/settings"

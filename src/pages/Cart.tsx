@@ -13,6 +13,7 @@ import { productDetailPath, shopCategoryPath } from '@/constants/paths'
 import { ProductYouMightLikeRail } from '@/components/ProductYouMightLikeRail'
 import { productSectionHeadingClass } from '@/constants/typography'
 import { useClipRevealHover, CLIP_REVEAL_BUTTON_BASE_CLASS } from '@/hooks/useClipRevealHover'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const FREE_SHIPPING_THRESHOLD = 100
 
@@ -36,6 +37,8 @@ type EmptyCartFeature = {
 export function Cart() {
   const { t } = useTranslation()
   const { items, removeFromCart, updateQuantity, totalPrice, addToCart } = useCart()
+
+  usePageTitle('Cart - Fireball Canada')
 
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)

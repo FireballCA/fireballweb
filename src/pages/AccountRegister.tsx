@@ -69,7 +69,7 @@ export function AccountRegister() {
   const returnToPath = getSafeReturnToPath(returnToParam)
 
   useEffect(() => {
-    document.title = 'Create Account | Fireball Canada'
+    document.title = 'Create Account - Fireball Canada'
 
     const previousBodyOverflow = document.body.style.overflow
     const previousBodyHeight = document.body.style.height

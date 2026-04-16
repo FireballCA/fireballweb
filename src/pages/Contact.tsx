@@ -4,6 +4,7 @@ import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import type { UserProfile } from '@/utils/supabaseAuth'
 import { LenisContext } from '@/components/LenisRoot'
 import { AppleButton } from '@/components/ui/AppleButton'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const CONTACT_DRAFT_KEY = 'fireball_contact_form_draft'
 
@@ -16,6 +17,8 @@ export function Contact() {
   const [email, setEmail] = useState('')
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
+
+  usePageTitle('Contact - Fireball Canada')
 
   useEffect(() => {
     const load = async () => {
