@@ -284,7 +284,7 @@ export function Home() {
                         {calendarMenuOpen && (
                           <div className="absolute right-0 bottom-[calc(100%+0.5rem)] w-[320px] rounded-xl border border-white/20 bg-[#0f1218] p-2 shadow-2xl">
                             <a
-                              href={googleCalendarUrl}
+                              href={appleCalendarUrl}
                               target="_blank"
                               rel="noreferrer"
                               className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
