@@ -10,7 +10,7 @@ import {
   IconShieldLock,
   IconChevronRight,
 } from '@tabler/icons-react'
-import { Calendar } from '@heroui/react'
+import { DateField, DateRangePicker, RangeCalendar } from '@heroui/react'
 import { parseDate as parseCalendarDate, type DateValue } from '@internationalized/date'
 import { AnimatePresence, motion } from 'motion/react'
 import { BusinessClientsPage } from '@/pages/business/BusinessClientsPage'
@@ -1515,12 +1515,8 @@ function toTrainingId(label: string): string {
 
 function BusinessAdminTrainings() {
   const [sessions, setSessions] = useState<TrainingSessionOption[]>(DEFAULT_TRAINING_SESSION_OPTIONS)
-  const [labelInput, setLabelInput] = useState('')
   const [hintInput, setHintInput] = useState('')
   const [trainingRange, setTrainingRange] = useState<{ start: DateValue; end: DateValue } | null>(null)
-  const [trainingPickerOpen, setTrainingPickerOpen] = useState(false)
-  const [trainingDraftStart, setTrainingDraftStart] = useState<DateValue | null>(null)
-  const trainingPickerRef = useRef<HTMLDivElement | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -1581,12 +1577,12 @@ function BusinessAdminTrainings() {
   }
 
   const addSession = async () => {
-    const label = labelInput.trim()
     const hint = hintInput.trim()
-    if (!label) {
-      setError('Training label is required.')
+    if (!trainingRange?.start || !trainingRange?.end) {
+      setError('Please select training dates.')
       return
     }
+    const label = formatTrainingRangeLabel(trainingRange.start, trainingRange.end)
     const baseId = toTrainingId(label)
     let id = baseId
     let n = 2
@@ -1596,10 +1592,8 @@ function BusinessAdminTrainings() {
     }
     const next = [...sessions, { id, label, hint: hint || undefined }]
     await persist(next)
-    setLabelInput('')
     setHintInput('')
     setTrainingRange(null)
-    setTrainingPickerOpen(false)
   }
 
   const formatTrainingRangeLabel = (start: DateValue, end: DateValue) => {
@@ -1612,35 +1606,10 @@ function BusinessAdminTrainings() {
     return startDay === endDay ? `${month} ${startDay}, ${year}` : `${month} ${startDay}-${endDay}, ${year}`
   }
 
-  const handleTrainingDatePick = (picked: DateValue) => {
-    if (!trainingDraftStart) {
-      setTrainingDraftStart(picked)
-      setTrainingRange({ start: picked, end: picked })
-      return
-    }
-    const start = trainingDraftStart.toString() <= picked.toString() ? trainingDraftStart : picked
-    const end = trainingDraftStart.toString() <= picked.toString() ? picked : trainingDraftStart
-    setTrainingRange({ start, end })
-    setLabelInput(formatTrainingRangeLabel(start, end))
-    setTrainingDraftStart(null)
-    setTrainingPickerOpen(false)
-  }
-
   const removeSession = async (id: string) => {
     const next = sessions.filter((s) => s.id !== id)
     await persist(next.length ? next : [])
   }
-
-  useEffect(() => {
-    if (!trainingPickerOpen) return
-    const onDocMouseDown = (event: MouseEvent) => {
-      if (!trainingPickerRef.current?.contains(event.target as Node)) {
-        setTrainingPickerOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onDocMouseDown)
-    return () => document.removeEventListener('mousedown', onDocMouseDown)
-  }, [trainingPickerOpen])
 
   return (
     <div className="flex flex-col gap-5">
@@ -1669,50 +1638,56 @@ function BusinessAdminTrainings() {
 
       <section className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
         <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-3">Create training</p>
-        <div className="mb-3" ref={trainingPickerRef}>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Training dates</p>
-          <button
-            type="button"
-            onClick={() => {
-              setTrainingPickerOpen((v) => !v)
-              setTrainingDraftStart(null)
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <p className="shrink-0 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Training dates</p>
+          <div className="min-w-0 flex-1 basis-[min(100%,18rem)] max-w-md">
+          <DateRangePicker
+            aria-label="Choose training dates"
+            className="fb-admin-date-range w-full gap-1.5"
+            granularity="day"
+            value={trainingRange}
+            onChange={(next) => {
+              setTrainingRange(next)
             }}
-            className="flex w-full max-w-md items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
           >
-            <span>{labelInput || 'May 15-16, 2026'}</span>
-            <span className="text-slate-500">▾</span>
-          </button>
-          {trainingPickerOpen && (
-            <div className="z-[300] mt-2 max-w-md rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_18px_45px_rgba(15,23,42,0.18)]">
-              <Calendar
-                aria-label="Choose training dates"
-                value={trainingRange?.end ?? undefined}
-                onChange={handleTrainingDatePick}
-                className="w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
-              >
-                <Calendar.Header className="pb-3">
-                  <Calendar.Heading className="text-sm font-semibold text-slate-700" />
-                  <Calendar.NavButton slot="previous" className="text-slate-600" />
-                  <Calendar.NavButton slot="next" className="text-slate-600" />
-                </Calendar.Header>
-                <Calendar.Grid>
-                  <Calendar.GridHeader>
-                    {(day) => <Calendar.HeaderCell className="text-xs text-slate-500">{day}</Calendar.HeaderCell>}
-                  </Calendar.GridHeader>
-                  <Calendar.GridBody>{(date) => <Calendar.Cell date={date} />}</Calendar.GridBody>
-                </Calendar.Grid>
-              </Calendar>
-            </div>
-          )}
+            <DateField.Group className="w-full" fullWidth variant="secondary">
+              <DateField.InputContainer>
+                <DateField.Input slot="start">
+                  {(segment) => <DateField.Segment segment={segment} />}
+                </DateField.Input>
+                <DateRangePicker.RangeSeparator />
+                <DateField.Input slot="end">
+                  {(segment) => <DateField.Segment segment={segment} />}
+                </DateField.Input>
+              </DateField.InputContainer>
+              <DateField.Suffix>
+                <DateRangePicker.Trigger>
+                  <DateRangePicker.TriggerIndicator />
+                </DateRangePicker.Trigger>
+              </DateField.Suffix>
+            </DateField.Group>
+            <DateRangePicker.Popover placement="bottom start">
+              <RangeCalendar aria-label="Choose training dates" className="fb-range-calendar">
+                <RangeCalendar.Header>
+                  <RangeCalendar.YearPickerTrigger>
+                    <RangeCalendar.YearPickerTriggerHeading />
+                    <RangeCalendar.YearPickerTriggerIndicator />
+                  </RangeCalendar.YearPickerTrigger>
+                  <RangeCalendar.NavButton slot="previous" />
+                  <RangeCalendar.NavButton slot="next" />
+                </RangeCalendar.Header>
+                <RangeCalendar.Grid>
+                  <RangeCalendar.GridHeader>
+                    {(day) => <RangeCalendar.HeaderCell>{day}</RangeCalendar.HeaderCell>}
+                  </RangeCalendar.GridHeader>
+                  <RangeCalendar.GridBody>{(date) => <RangeCalendar.Cell date={date} />}</RangeCalendar.GridBody>
+                </RangeCalendar.Grid>
+              </RangeCalendar>
+            </DateRangePicker.Popover>
+          </DateRangePicker>
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input
-            type="text"
-            value={labelInput}
-            onChange={(e) => setLabelInput(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-400"
-            placeholder="May 15-16, 2026"
-          />
+        <div className="max-w-md">
           <input
             type="text"
             value={hintInput}
@@ -1768,10 +1743,6 @@ function BusinessAdminEvents() {
   const [imageUploading, setImageUploading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [eventPickerOpen, setEventPickerOpen] = useState(false)
-  const [eventDraftStart, setEventDraftStart] = useState<DateValue | null>(null)
-  const eventPickerRef = useRef<HTMLDivElement | null>(null)
-
   useEffect(() => {
     let mounted = true
     const load = async () => {
@@ -1815,36 +1786,6 @@ function BusinessAdminEvents() {
     const dateLine = startDay === endDay ? `${monthLabel} ${startDay}, ${year}` : `${monthLabel} ${startDay}-${endDay}, ${year}`
     return { monthLabel, dayLabel, dateLine }
   }
-
-  const handleEventDatePick = (picked: DateValue) => {
-    if (!eventDraftStart) {
-      setEventDraftStart(picked)
-      return
-    }
-    const start = eventDraftStart.toString() <= picked.toString() ? eventDraftStart : picked
-    const end = eventDraftStart.toString() <= picked.toString() ? picked : eventDraftStart
-    const { monthLabel, dayLabel, dateLine } = formatRangeMeta(start, end)
-    upsertSelected({
-      monthFull: monthLabel,
-      day: dayLabel,
-      dateLine,
-      startAt: `${start.toString()}T10:00:00-04:00`,
-      endAt: `${end.toString()}T20:00:00-04:00`,
-    })
-    setEventDraftStart(null)
-    setEventPickerOpen(false)
-  }
-
-  useEffect(() => {
-    if (!eventPickerOpen) return
-    const onDocMouseDown = (event: MouseEvent) => {
-      if (!eventPickerRef.current?.contains(event.target as Node)) {
-        setEventPickerOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onDocMouseDown)
-    return () => document.removeEventListener('mousedown', onDocMouseDown)
-  }, [eventPickerOpen])
 
   const persist = async (nextEvents: SiteEventConfig[]) => {
     setSaving(true)
@@ -2014,41 +1955,62 @@ function BusinessAdminEvents() {
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
             <input value={selected.title} onChange={(e) => upsertSelected({ title: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Title" />
             <input value={selected.slug} onChange={(e) => upsertSelected({ slug: e.target.value, ctaHref: `/event/${e.target.value}` })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Slug" />
-            <div className="md:col-span-2" ref={eventPickerRef}>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Event dates</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setEventPickerOpen((v) => !v)
-                  setEventDraftStart(null)
+            <div className="md:col-span-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <p className="shrink-0 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Event dates</p>
+              <div className="min-w-0 flex-1 basis-[min(100%,18rem)] max-w-md">
+              <DateRangePicker
+                aria-label="Choose event dates"
+                className="fb-admin-date-range w-full gap-1.5"
+                granularity="day"
+                value={selectedRange}
+                onChange={(next) => {
+                  if (!next?.start || !next?.end) return
+                  const { monthLabel, dayLabel, dateLine } = formatRangeMeta(next.start, next.end)
+                  upsertSelected({
+                    monthFull: monthLabel,
+                    day: dayLabel,
+                    dateLine,
+                    startAt: `${next.start.toString()}T10:00:00-04:00`,
+                    endAt: `${next.end.toString()}T20:00:00-04:00`,
+                  })
                 }}
-                className="flex w-full max-w-md items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
               >
-                <span>{selected?.dateLine || 'Select event date range'}</span>
-                <span className="text-slate-500">▾</span>
-              </button>
-              {eventPickerOpen && (
-                <div className="z-[300] mt-2 max-w-md rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_18px_45px_rgba(15,23,42,0.18)]">
-                  <Calendar
-                    aria-label="Choose event dates"
-                    value={selectedRange?.end ?? undefined}
-                    onChange={handleEventDatePick}
-                    className="w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
-                  >
-                    <Calendar.Header className="pb-3">
-                      <Calendar.Heading className="text-sm font-semibold text-slate-700" />
-                      <Calendar.NavButton slot="previous" className="text-slate-600" />
-                      <Calendar.NavButton slot="next" className="text-slate-600" />
-                    </Calendar.Header>
-                    <Calendar.Grid>
-                      <Calendar.GridHeader>
-                        {(day) => <Calendar.HeaderCell className="text-xs text-slate-500">{day}</Calendar.HeaderCell>}
-                      </Calendar.GridHeader>
-                      <Calendar.GridBody>{(date) => <Calendar.Cell date={date} />}</Calendar.GridBody>
-                    </Calendar.Grid>
-                  </Calendar>
-                </div>
-              )}
+                <DateField.Group className="w-full" fullWidth variant="secondary">
+                  <DateField.InputContainer>
+                    <DateField.Input slot="start">
+                      {(segment) => <DateField.Segment segment={segment} />}
+                    </DateField.Input>
+                    <DateRangePicker.RangeSeparator />
+                    <DateField.Input slot="end">
+                      {(segment) => <DateField.Segment segment={segment} />}
+                    </DateField.Input>
+                  </DateField.InputContainer>
+                  <DateField.Suffix>
+                    <DateRangePicker.Trigger>
+                      <DateRangePicker.TriggerIndicator />
+                    </DateRangePicker.Trigger>
+                  </DateField.Suffix>
+                </DateField.Group>
+                <DateRangePicker.Popover placement="bottom start">
+                  <RangeCalendar aria-label="Choose event dates" className="fb-range-calendar">
+                    <RangeCalendar.Header>
+                      <RangeCalendar.YearPickerTrigger>
+                        <RangeCalendar.YearPickerTriggerHeading />
+                        <RangeCalendar.YearPickerTriggerIndicator />
+                      </RangeCalendar.YearPickerTrigger>
+                      <RangeCalendar.NavButton slot="previous" />
+                      <RangeCalendar.NavButton slot="next" />
+                    </RangeCalendar.Header>
+                    <RangeCalendar.Grid>
+                      <RangeCalendar.GridHeader>
+                        {(day) => <RangeCalendar.HeaderCell>{day}</RangeCalendar.HeaderCell>}
+                      </RangeCalendar.GridHeader>
+                      <RangeCalendar.GridBody>{(date) => <RangeCalendar.Cell date={date} />}</RangeCalendar.GridBody>
+                    </RangeCalendar.Grid>
+                  </RangeCalendar>
+                </DateRangePicker.Popover>
+              </DateRangePicker>
+              </div>
             </div>
             <input value={selected.day} onChange={(e) => upsertSelected({ day: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Day (auto: 13-15)" />
             <input value={selected.monthFull} onChange={(e) => upsertSelected({ monthFull: e.target.value.toUpperCase() })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Month (auto: MAY)" />
@@ -2068,7 +2030,6 @@ function BusinessAdminEvents() {
             </div>
             <input value={selected.ctaLabel} onChange={(e) => upsertSelected({ ctaLabel: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="CTA label" />
             <input value={selected.ctaHref} onChange={(e) => upsertSelected({ ctaHref: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="/event/slug or https://..." />
-            <input value={selected.dateLine || ''} onChange={(e) => upsertSelected({ dateLine: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Date line (auto from picker)" />
             <input value={selected.startAt || ''} onChange={(e) => upsertSelected({ startAt: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Start ISO (auto from picker)" />
             <textarea value={selected.description} onChange={(e) => upsertSelected({ description: e.target.value })} className="md:col-span-2 min-h-[90px] rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Description" />
           </div>
