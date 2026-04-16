@@ -1,4 +1,7 @@
+import { usePageTitle } from '@/hooks/usePageTitle'
+
 export function Legal() {
+  usePageTitle('Legal - Fireball Canada')
   return (
     <div className="bg-white min-h-screen">
       <div className="max-w-4xl mx-auto px-6 py-16 md:py-24">

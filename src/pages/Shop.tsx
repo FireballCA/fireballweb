@@ -7,6 +7,7 @@ import { LiquidGlassSelect } from '@/components/LiquidGlassSelect'
 import { getCurrentUserProfile } from '@/utils/supabaseAuth'
 import { FireballLoading } from '@/components/FireballLoading'
 import { ProductCardSkeleton } from '@/components/ui/ProductCardSkeleton'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 export function Shop() {
   const { t } = useTranslation()
@@ -57,6 +58,12 @@ export function Shop() {
     : []
   const minPrice = categoryProducts.length > 0 ? Math.min(...categoryProducts.map((p) => p.price)) : 0
   const maxPrice = categoryProducts.length > 0 ? Math.max(...categoryProducts.map((p) => p.price)) : 1000
+
+  const categoryLabel =
+    detectedCategoryId && CATEGORIES.find((c) => c.id === detectedCategoryId)?.name
+  usePageTitle(
+    categoryLabel ? `${categoryLabel} - Shop - Fireball Canada` : 'Shop - Fireball Canada',
+  )
 
   // Initialiser et corriger le priceRange avec les valeurs réelles
   useEffect(() => {

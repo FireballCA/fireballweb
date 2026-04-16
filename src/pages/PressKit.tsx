@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 import { cn } from '@/lib/utils'
 
 export function PressKit() {
   const [copiedHex, setCopiedHex] = useState<string | null>(null)
+  usePageTitle('Brand Assets - Fireball Canada')
 
   const handleCopyHex = (hex: string) => {
     if (navigator && navigator.clipboard) {
@@ -103,13 +105,8 @@ export function PressKit() {
                     />
                   </div>
                   <div className="border-t border-carbon-900/10 bg-black px-4 py-3 text-left">
-                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <p className="text-[11px] text-white/70">Full-color lockup</p>
-                        <p className="text-[10px] leading-snug text-white/45">
-                          This is the standard primary logo — the same full-color mark as the default Fireball lockup. Use it on dark or busy imagery; there is no separate “reverse” file.
-                        </p>
-                      </div>
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                      <p className="text-[11px] text-white/70">Full-color lockup</p>
                       <span className="font-mono text-[10px] text-white/30 shrink-0 sm:pt-0.5">AVIF · SVG · PNG</span>
                     </div>
                   </div>

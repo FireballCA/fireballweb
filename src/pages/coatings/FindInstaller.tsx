@@ -1,16 +1,34 @@
 import { Link } from 'react-router-dom'
-import { useMemo, useRef, useState, type FormEvent, type WheelEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type WheelEvent } from 'react'
 import Map, { Marker, Popup, type MapRef } from 'react-map-gl/maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
 import { STOCKIST_LOCATIONS } from '@/data/stockists'
+import {
+  findNearestStockist,
+  PHOTON_BBOX_CANADA,
+  searchPhotonPlaces,
+  type PhotonPlace,
+} from '@/utils/photonGeocode'
+
+const photonCanadaOpts = {
+  bbox: PHOTON_BBOX_CANADA,
+  minQueryLength: 1 as const,
+  canadaOnly: true as const,
+}
 
 export function FindInstaller() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchError, setSearchError] = useState<string | null>(null)
+  const [searchSuccess, setSearchSuccess] = useState<string | null>(null)
+  const [searchHint, setSearchHint] = useState<string | null>(null)
+  const [suggestions, setSuggestions] = useState<PhotonPlace[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [selectedPlace, setSelectedPlace] = useState<PhotonPlace | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const mapRef = useRef<MapRef | null>(null)
+  const searchWrapRef = useRef<HTMLDivElement | null>(null)
   const installers = useMemo(() => STOCKIST_LOCATIONS, [])
   const activeInstaller = installers.find((i) => i.id === activeId) ?? null
 
@@ -23,11 +41,50 @@ export function FindInstaller() {
     mapRef.current?.flyTo({ center: [lng, lat], zoom, duration: 1100 })
   }
 
+  const formatDistanceEn = (km: number) =>
+    km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
+
+  const focusNearestToPoint = (lat: number, lng: number) => {
+    const nearest = findNearestStockist(lat, lng, installers)
+    if (!nearest) return
+    setActiveId(nearest.stockist.id)
+    focusMapOn(nearest.stockist.lng, nearest.stockist.lat, 14)
+    setSearchSuccess(
+      `The closest certified installer is about ${formatDistanceEn(nearest.distanceKm)} away.`,
+    )
+    setSearchHint(null)
+    setSearchError(null)
+  }
+
+  /** Autocomplete addresses / cities (Photon). */
+  useEffect(() => {
+    const q = searchQuery.trim()
+    if (q.length < 1) {
+      setSuggestions([])
+      return
+    }
+    const id = window.setTimeout(() => {
+      void searchPhotonPlaces(q, 8, photonCanadaOpts).then((places) => {
+        setSuggestions(places)
+      })
+    }, 280)
+    return () => window.clearTimeout(id)
+  }, [searchQuery])
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      const el = searchWrapRef.current
+      if (el && !el.contains(e.target as Node)) setShowSuggestions(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [])
+
   const handleLocateMe = () => {
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        focusMapOn(position.coords.longitude, position.coords.latitude, 10)
+        focusMapOn(position.coords.longitude, position.coords.latitude, 13)
       },
       () => {
         setSearchError('Unable to retrieve your location.')
@@ -36,12 +93,29 @@ export function FindInstaller() {
     )
   }
 
+  const handlePickSuggestion = (place: PhotonPlace) => {
+    setSearchQuery(place.label)
+    setSelectedPlace(place)
+    setShowSuggestions(false)
+    setSuggestions([])
+    focusNearestToPoint(place.lat, place.lng)
+  }
+
   const handleSearch = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const query = searchQuery.trim()
     if (!query) return
     setIsSearching(true)
     setSearchError(null)
+    setSearchSuccess(null)
+    setSearchHint(null)
+
+    if (selectedPlace && query === selectedPlace.label) {
+      focusNearestToPoint(selectedPlace.lat, selectedPlace.lng)
+      setIsSearching(false)
+      return
+    }
+
     const normalized = query.toLowerCase()
     const match = installers.find((installer) =>
       [
@@ -55,13 +129,23 @@ export function FindInstaller() {
         .toLowerCase()
         .includes(normalized),
     )
-    if (!match) {
-      setSearchError('No installer found for this search.')
+    if (match) {
+      setActiveId(match.id)
+      focusMapOn(match.lng, match.lat, 14)
+      setSelectedPlace(null)
       setIsSearching(false)
       return
     }
-    setActiveId(match.id)
-    focusMapOn(match.lng, match.lat, 10)
+
+    const places = await searchPhotonPlaces(query, 8, photonCanadaOpts)
+    if (places.length === 0) {
+      setSearchHint('We could not find that location. Try a city name or pick a suggestion from the list.')
+      setIsSearching(false)
+      return
+    }
+    const place = places[0]!
+    setSelectedPlace(place)
+    focusNearestToPoint(place.lat, place.lng)
     setIsSearching(false)
   }
 
@@ -84,13 +168,51 @@ export function FindInstaller() {
         <div className="mt-10 overflow-hidden rounded-2xl bg-carbon-900 p-2">
           <div className="mb-3 flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between">
             <form onSubmit={handleSearch} className="flex w-full max-w-xl items-center gap-2">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by postal code, city or address"
-                className="h-10 w-full rounded-full border border-white/15 bg-black/35 px-4 text-sm text-white placeholder:text-white/45"
-              />
+              <div ref={searchWrapRef} className="relative w-full">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setSearchQuery(v)
+                    setShowSuggestions(true)
+                    if (selectedPlace && v.trim() !== selectedPlace.label) {
+                      setSelectedPlace(null)
+                    }
+                  }}
+                  onFocus={() => {
+                    if (suggestions.length > 0) setShowSuggestions(true)
+                  }}
+                  autoComplete="off"
+                  role="combobox"
+                  aria-expanded={showSuggestions && suggestions.length > 0}
+                  aria-autocomplete="list"
+                  placeholder="Search by postal code, city or address"
+                  className="h-10 w-full rounded-full border border-white/15 bg-black/35 px-4 text-sm text-white placeholder:text-white/45"
+                />
+                {showSuggestions && suggestions.length > 0 && (
+                  <ul
+                    role="listbox"
+                    className="absolute left-0 right-0 top-[calc(100%+6px)] z-[60] max-h-56 overflow-auto rounded-xl border border-white/15 bg-carbon-950 py-1 text-left text-sm shadow-xl"
+                  >
+                    {suggestions.map((place, i) => (
+                      <li key={`${place.label}-${place.lat}-${place.lng}-${i}`}>
+                        <button
+                          type="button"
+                          role="option"
+                          className="w-full px-3 py-2 text-left text-white/90 hover:bg-white/10"
+                          onMouseDown={(ev) => {
+                            ev.preventDefault()
+                            handlePickSuggestion(place)
+                          }}
+                        >
+                          {place.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <button
                 type="submit"
                 disabled={isSearching}
@@ -109,6 +231,10 @@ export function FindInstaller() {
               Locate me
             </SecondaryClipButton>
           </div>
+          {searchSuccess && (
+            <p className="mb-2 px-2 text-xs font-medium text-emerald-400">{searchSuccess}</p>
+          )}
+          {searchHint && <p className="mb-2 px-2 text-xs text-silver/60">{searchHint}</p>}
           {searchError && <p className="mb-2 px-2 text-xs text-red-300">{searchError}</p>}
           <div
             className="find-installer-map h-[360px] w-full overflow-hidden rounded-xl md:h-[520px]"
@@ -119,7 +245,7 @@ export function FindInstaller() {
               initialViewState={{ longitude: -40, latitude: 35, zoom: 1.45 }}
               mapStyle="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
               minZoom={1}
-              maxZoom={10}
+              maxZoom={18}
               renderWorldCopies={false}
               attributionControl={false}
               onClick={() => setActiveId(null)}

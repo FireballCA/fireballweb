@@ -20,6 +20,8 @@ import { ensureShopifyCustomerForProfile } from '@/utils/shopifySync'
 import { getSafeReturnToPath } from '@/utils/safeReturnTo'
 import { supabase } from '@/lib/supabase'
 import { getClientCache, setClientCache } from '@/utils/clientCache'
+import { SHOPIFY_SHOP_APP_URL } from '@/constants/shopifyShopApp'
+import { fetchCustomerOrders, formatOrderRef, type CustomerOrder as Order } from '@/utils/customerOrders'
 
 interface Vehicle {
   id: string
@@ -29,27 +31,6 @@ interface Vehicle {
   ceramicProtectionDate: Date // Date de complétion de la protection
   protectionShop?: string
   protectionProduct?: string
-}
-
-interface OrderLineItem {
-  title: string
-  price: number
-  quantity: number
-  imageUrl?: string
-}
-
-interface Order {
-  id: string
-  shopifyOrderId?: string
-  name: string
-  date?: string
-  description?: string
-  imageUrl?: string
-  orderNumber?: string
-  totalPrice?: number
-  currency?: string
-  lineItems?: OrderLineItem[]
-  pointsEarned?: number
 }
 
 type SubscriptionTier = 'none' | 'ignition' | 'apex'
@@ -87,170 +68,6 @@ type DashboardCacheSnapshot = {
 
 const ACCOUNT_DASHBOARD_CACHE_KEY = 'account_dashboard_snapshot_v1'
 const ACCOUNT_DASHBOARD_CACHE_TTL_MS = 1000 * 60 * 8
-
-function formatOrderRef(orderNumber?: string | null): string {
-  if (!orderNumber) return '-'
-  // Utiliser directement le numéro de commande tel qu'il est stocké dans la base
-  const raw = String(orderNumber).trim()
-  // Si c'est déjà au format "#1066", on garde tel quel, sinon on extrait les chiffres
-  if (raw.startsWith('#')) {
-    return raw
-  }
-  const digits = raw.replace(/\D+/g, '')
-  return digits ? `#${digits.padStart(5, '0')}` : raw
-}
-
-function getImageFromPurchaseRow(purchase: any): string | null {
-  const direct =
-    purchase?.image_url ||
-    purchase?.product_image_url ||
-    purchase?.first_product_image_url ||
-    purchase?.first_item_image_url ||
-    purchase?.featured_image ||
-    null
-
-  if (typeof direct === 'string' && direct.trim()) return direct.trim()
-
-  const lineItemsRaw = purchase?.line_items || purchase?.items || purchase?.products || null
-  if (lineItemsRaw) {
-    try {
-      const parsed = typeof lineItemsRaw === 'string' ? JSON.parse(lineItemsRaw) : lineItemsRaw
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const first = parsed[0]
-        const fromItem =
-          first?.image_url ||
-          first?.product_image_url ||
-          first?.image ||
-          first?.featured_image ||
-          first?.image?.src ||
-          first?.featured_image?.src ||
-          null
-        if (typeof fromItem === 'string' && fromItem.trim()) return fromItem.trim()
-      }
-    } catch {
-      // Ignore malformed JSON stored in optional metadata fields.
-    }
-  }
-
-  return null
-}
-
-function getFirstPurchaseItemFromPayload(payload: any): any | null {
-  if (!payload) return null
-
-  if (Array.isArray(payload)) {
-    const firstObject = payload.find((item) => item && typeof item === 'object')
-    return firstObject || null
-  }
-
-  if (typeof payload !== 'object') return null
-
-  const lineItems =
-    (payload as any).line_items ||
-    (payload as any).items ||
-    (payload as any).products ||
-    null
-
-  if (Array.isArray(lineItems) && lineItems.length > 0) {
-    const firstObject = lineItems.find((item) => item && typeof item === 'object')
-    if (firstObject) return firstObject
-  }
-
-  return null
-}
-
-function getTitleFromPurchaseRow(purchase: any): string | null {
-  const directTitle =
-    purchase?.product_title ||
-    purchase?.first_product_title ||
-    purchase?.title ||
-    purchase?.name ||
-    null
-
-  if (typeof directTitle === 'string' && directTitle.trim()) return directTitle.trim()
-
-  const payloadCandidates = [
-    purchase?.line_items,
-    purchase?.items,
-    purchase?.products,
-    purchase?.raw_payload,
-    purchase?.payload,
-    purchase?.shopify_payload,
-    purchase?.order_payload,
-    purchase?.metadata,
-    purchase?.raw_order,
-  ]
-
-  for (const candidate of payloadCandidates) {
-    if (!candidate) continue
-    let parsed: any = candidate
-    if (typeof candidate === 'string') {
-      try {
-        parsed = JSON.parse(candidate)
-      } catch {
-        continue
-      }
-    }
-    const firstItem = getFirstPurchaseItemFromPayload(parsed)
-    if (!firstItem) continue
-    const title = firstItem?.product_title || firstItem?.title || firstItem?.name || null
-    if (typeof title === 'string' && title.trim()) return title.trim()
-  }
-
-  return null
-}
-
-function getLineItemsFromPurchase(purchase: any): OrderLineItem[] {
-  const lineItemsRaw =
-    purchase?.line_items ||
-    purchase?.items ||
-    purchase?.products ||
-    (purchase?.raw_payload && (() => {
-      try {
-        const p = typeof purchase.raw_payload === 'string' ? JSON.parse(purchase.raw_payload) : purchase.raw_payload
-        return p?.line_items || p?.items || p?.products || null
-      } catch {
-        return null
-      }
-    })()) ||
-    null
-
-  if (!lineItemsRaw) return []
-
-  try {
-    const parsed = typeof lineItemsRaw === 'string' ? JSON.parse(lineItemsRaw) : lineItemsRaw
-    if (!Array.isArray(parsed)) return []
-
-    return parsed
-      .filter((item: any) => item && typeof item === 'object')
-      .map((item: any) => {
-        const price =
-          typeof item?.price === 'number'
-            ? item.price
-            : Number.parseFloat(String(item?.price ?? item?.original_unit_price ?? 0)) || 0
-        const qty = Math.max(1, Number(item?.quantity) || 1)
-        const img =
-          item?.image_url ||
-          item?.product_image_url ||
-          item?.image?.src ||
-          item?.featured_image?.src ||
-          item?.image ||
-          item?.featured_image ||
-          null
-        return {
-          title:
-            typeof (item?.product_title ?? item?.title ?? item?.name) === 'string'
-              ? (item.product_title ?? item.title ?? item.name).trim()
-              : 'Product',
-          price,
-          quantity: qty,
-          imageUrl: typeof img === 'string' && img.trim() ? img.trim() : undefined,
-        }
-      })
-  } catch {
-    return []
-  }
-}
 
 function OrdersEmptyStateSvg() {
   return (
@@ -749,104 +566,12 @@ export function AccountDashboard() {
       )
 
       // Charger les commandes Shopify/Supabase pour la section My Orders
-      if (currentUserId || true) {
-        try {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser()
-          const userId = user?.id
-
-          if (userId) {
-            const { data: purchases, error: purchasesError } = await supabase
-              .from('purchases')
-              .select('*')
-              .eq('user_id', userId)
-              .order('placed_at', { ascending: false })
-
-            if (purchasesError) {
-              console.warn('Failed to load purchases for dashboard cards', purchasesError.message)
-              setOrders([])
-            } else {
-              const mappedOrders: Order[] = (purchases || []).map((purchase: any) => {
-                const placedAt = purchase?.placed_at ? new Date(purchase.placed_at) : null
-                const formattedDate =
-                  placedAt && !Number.isNaN(placedAt.getTime())
-                    ? placedAt.toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })
-                    : undefined
-                const extractedProductTitle = getTitleFromPurchaseRow(purchase)
-
-                const purchaseImage = getImageFromPurchaseRow(purchase)
-
-                const lineItems = getLineItemsFromPurchase(purchase)
-                const pointsEarned =
-                  typeof purchase?.points_earned === 'number'
-                    ? purchase.points_earned
-                    : typeof purchase?.xp_earned === 'number'
-                      ? purchase.xp_earned
-                      : undefined
-
-                return {
-                  id: String(purchase.id),
-                  shopifyOrderId: purchase?.shopify_order_id ? String(purchase.shopify_order_id) : undefined,
-                  orderNumber: purchase?.order_number ? String(purchase.order_number) : undefined,
-                  name: extractedProductTitle || (purchase?.order_number ? String(purchase.order_number) : 'Order'),
-                  date: formattedDate,
-                  description: 'Product ordered via Fireball store.',
-                  imageUrl: purchaseImage || '',
-                  totalPrice:
-                    typeof purchase?.total_price === 'number'
-                      ? purchase.total_price
-                      : Number.parseFloat(String(purchase?.total_price ?? '0')) || 0,
-                  currency: purchase?.currency ? String(purchase.currency).toUpperCase() : 'CAD',
-                  lineItems: lineItems.length > 0 ? lineItems : undefined,
-                  pointsEarned,
-                }
-              })
-
-              const shopifyOrderIds = mappedOrders
-                .map((order) => order.shopifyOrderId)
-                .filter((id): id is string => Boolean(id))
-
-              if (shopifyOrderIds.length > 0) {
-                try {
-                  const previewResponse = await fetch('/api/shopify-order-preview', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orderIds: shopifyOrderIds }),
-                  })
-                  const previewJson = await previewResponse.json().catch(() => null)
-                  const previews = (previewJson && typeof previewJson === 'object' ? (previewJson as any).previews : {}) || {}
-
-                  const ordersWithPreview = mappedOrders.map((order) => {
-                    const preview = order.shopifyOrderId ? previews[order.shopifyOrderId] : null
-                    if (!preview) {
-                      return {
-                        ...order,
-                        imageUrl: '',
-                      }
-                    }
-                    return {
-                      ...order,
-                      name: preview.productTitle || order.name,
-                      imageUrl: preview.imageUrl || order.imageUrl || '',
-                      currency: preview.currency || order.currency,
-                    }
-                  })
-                  setOrders(ordersWithPreview)
-                } catch {
-                  setOrders(mappedOrders)
-                }
-              } else {
-                setOrders(mappedOrders)
-              }
-            }
-          } else {
-            setOrders([])
-          }
-        } catch (ordersError) {
-          console.error('Error loading dashboard orders:', ordersError)
-          setOrders([])
-        }
+      try {
+        const loadedOrders = await fetchCustomerOrders()
+        setOrders(loadedOrders)
+      } catch (ordersError) {
+        console.error('Error loading dashboard orders:', ordersError)
+        setOrders([])
       }
 
       setDashboardDataLoaded(true)
@@ -1367,7 +1092,17 @@ export function AccountDashboard() {
           <section className="w-full min-h-[90vh] bg-white relative z-20 px-6 md:px-12 lg:px-16 py-10 md:py-14" aria-label="Account actions section">
             <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-5 lg:grid-cols-[1fr_1fr]">
               <article className="rounded-2xl bg-[#F3F3F3] px-6 py-6 md:px-8 md:py-8">
-                <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Orders</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Orders</p>
+                  <a
+                    href={SHOPIFY_SHOP_APP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 text-sm font-semibold text-[#0485F7] transition-colors hover:text-[#0366c7] hover:underline"
+                  >
+                    See past orders
+                  </a>
+                </div>
                 {displayOrders.length === 0 ? (
                   <div className="mt-7 flex flex-col items-center text-center">
                     <div className="mb-5 flex h-28 w-28 items-center justify-center rounded-full bg-[#E7E7E7] text-4xl text-[#8E8E8E]">
@@ -1463,15 +1198,6 @@ export function AccountDashboard() {
                   </div>
                   <span className="text-xl text-[#8A8A8A]" aria-hidden>›</span>
                 </button>
-                <article className="flex items-center justify-between rounded-[2px] bg-[#F3F3F3] px-6 py-6">
-                  <div>
-                    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Refer a Friend</p>
-                    <p className="mt-2 text-sm text-[#4A4A4A]">
-                      Introduce your friends and give them £10 off, and to say thanks we&apos;ll give you £10 off your next order too.
-                    </p>
-                  </div>
-                  <span className="text-xl text-[#8A8A8A]" aria-hidden>›</span>
-                </article>
               </div>
             </div>
           </section>

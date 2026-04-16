@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabase'
 import { FireballLoading } from '@/components/FireballLoading'
 import { ProductDetailSkeleton } from '@/components/ui/ProductDetailSkeleton'
 import { useClipRevealHover, CLIP_REVEAL_BUTTON_BASE_CLASS } from '@/hooks/useClipRevealHover'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const FIREBALL_RED = '#B61B1B'
 
@@ -137,6 +138,8 @@ export function Product() {
     if (typeof window === 'undefined') return path
     return `${window.location.origin}${path}`
   }, [slug])
+
+  usePageTitle(product ? `Buy ${product.name} - Fireball Canada` : 'Product - Fireball Canada')
 
   useEffect(() => {
     if (!slug) return
@@ -774,26 +777,6 @@ export function Product() {
                           {t('product.shareSystem')}
                         </button>
                       )}
-                      <a
-                        role="menuitem"
-                        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productShareUrl)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => setShareOpen(false)}
-                        className="block w-full px-3 py-2 text-sm text-carbon-800 hover:bg-carbon-50"
-                      >
-                        Facebook
-                      </a>
-                      <a
-                        role="menuitem"
-                        href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(productShareUrl)}&text=${encodeURIComponent(product.name)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => setShareOpen(false)}
-                        className="block w-full px-3 py-2 text-sm text-carbon-800 hover:bg-carbon-50"
-                      >
-                        X (Twitter)
-                      </a>
                     </div>
                   )}
                 </div>

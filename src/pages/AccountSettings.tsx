@@ -244,7 +244,7 @@ export function AccountSettings() {
   }
 
   useEffect(() => {
-    document.title = 'Account Settings | Fireball Canada'
+    document.title = 'Account Settings - Fireball Canada'
 
     let cancelled = false
 

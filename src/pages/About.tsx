@@ -1,9 +1,12 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { IconArrowUpRight } from '@tabler/icons-react'
 import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 import { cn } from '@/lib/utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 export function About() {
+  usePageTitle('About - Fireball Canada')
   useEffect(() => {
     if (typeof window === 'undefined') {
       return () => {
@@ -267,8 +270,17 @@ export function About() {
             <div className="president-content">
               <h3 className="president-title reveal reveal-delay-1">Meet Fireball Canada President</h3>
               <p className="president-bio reveal reveal-delay-2">
-                Jean-Michel Bergeron is a Quebec entrepreneur specializing in automotive detailing. Currently president of Fireball Canada, he is also the founder of Passion Detailing - an auto
-                detailing shop and boutique in Saint-Hyacinthe, recognized as a Quebec leader in automotive protection (PPF films, nano-ceramic coatings, etc.).
+                Jean-Michel Bergeron is a Quebec entrepreneur specializing in automotive detailing. Currently president of Fireball Canada, he is also the founder of{' '}
+                <a
+                  href="https://passiondetailing.ca"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-semibold underline decoration-white/30 underline-offset-4 transition-colors hover:text-[#0485F7] hover:decoration-[#0485F7]/40"
+                >
+                  Passion Detailing
+                  <IconArrowUpRight className="h-4 w-4" stroke={2} aria-hidden />
+                </a>{' '}
+                - an auto detailing shop and boutique in Saint-Hyacinthe, recognized as a Quebec leader in automotive protection (PPF films, nano-ceramic coatings, etc.).
               </p>
             </div>
           </div>

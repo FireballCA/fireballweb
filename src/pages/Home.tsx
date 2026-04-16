@@ -13,6 +13,7 @@ import { FIREBALL_COUNTRY_SLIDES } from '@/data/fireballCountriesSlider'
 import { supabase } from '@/lib/supabase'
 import { resolveHomeCollection } from '@/utils/homeCollectionSettings'
 import type { HomeCollectionResolved } from '@/constants/homeCollection'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 function useCountdown(targetIso: string) {
   const target = useMemo(() => new Date(targetIso).getTime(), [targetIso])
@@ -47,6 +48,8 @@ export function Home() {
     imageSrc: '/Assets/FireballAfterParty.png',
   }
   const countdown = useCountdown(nextEvent.startsAt)
+
+  usePageTitle('Fireball Canada')
 
   const eventStart = useMemo(() => new Date(nextEvent.startsAt), [nextEvent.startsAt])
   const eventEnd = useMemo(() => new Date(eventStart.getTime() + 2 * 60 * 60 * 1000), [eventStart])

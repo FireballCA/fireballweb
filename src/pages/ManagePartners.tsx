@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUserProfile } from '@/utils/supabaseAuth'
 import { adminAdjustXpByIdentifier } from '@/utils/supabaseXp'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 type CertificationLevel = 'standard' | 'advanced' | 'elite'
 type PartnerActivityStatus = 'active' | 'suspended'
@@ -195,6 +196,8 @@ export function ManagePartners() {
     message: '',
     bannerUrl: '',
   })
+
+  usePageTitle('Partners - Fireball Canada')
 
   useEffect(() => {
     let mounted = true

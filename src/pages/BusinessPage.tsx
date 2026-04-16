@@ -27,6 +27,7 @@ import {
   resolveTrainingSessionOptions,
   type TrainingSessionOption,
 } from '@/constants/trainingSessions'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import {
   DEFAULT_SITE_EVENT_CONFIGS,
   resolveSiteEventConfigs,
@@ -2061,6 +2062,7 @@ export function BusinessPage() {
   const [warranties, setWarranties] = useState<WarrantyRow[]>(
     Array.isArray(initialCache?.warranties) ? initialCache.warranties : [],
   )
+  usePageTitle('Business - Fireball Canada')
   const isAdminPath =
     location.pathname.includes('/business/admin') || location.pathname.includes('/account/business/admin')
   const isClientsPath =

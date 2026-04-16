@@ -141,6 +141,7 @@ export function Header() {
   const isBusinessPage =
     location.pathname.startsWith('/business') || location.pathname.startsWith('/account/business')
   const isJoinClubPage = location.pathname === '/join-club'
+  const isAcademyPage = location.pathname === '/academy'
   /**
    * Fond plein dès le haut (même logique que le footer) : tout sauf accueil / about où le hero
    * passe sous la navbar fixe (transparence → opaque au scroll).
@@ -324,7 +325,7 @@ export function Header() {
 
   // Banner behavior: hide on scroll down, show on scroll up
   useEffect(() => {
-    if (!bannerActive || isJoinClubPage) return
+    if (!bannerActive || isJoinClubPage || isAcademyPage) return
 
     lastBannerScrollYRef.current = window.scrollY || window.pageYOffset || 0
     let raf: number | null = null
@@ -358,7 +359,7 @@ export function Header() {
       window.removeEventListener('scroll', onScroll)
       if (raf != null) cancelAnimationFrame(raf)
     }
-  }, [bannerActive, bannerHidden, isJoinClubPage])
+  }, [bannerActive, bannerHidden, isJoinClubPage, isAcademyPage])
 
   useEffect(() => {
     let cancelled = false
@@ -707,12 +708,15 @@ export function Header() {
     <>
       {/* Banner + Navbar: move as ONE block (no gap, smoother) */}
       <div
-        className={`${isProductPage || isCoatingPage || isJoinClubPage ? '' : 'sticky'} top-0 left-0 right-0 ${
+        id="site-header-stack"
+        className={`${
+          isProductPage || isCoatingPage || isJoinClubPage || isAcademyPage ? '' : 'sticky'
+        } top-0 left-0 right-0 ${
           isMobileMenuMounted ? 'z-[10010]' : 'z-[120]'
         } transition-transform duration-300 ease-out will-change-transform`}
         style={{
           transform:
-            isJoinClubPage || !(bannerActive && bannerHidden && bannerHeightPx > 0)
+            isJoinClubPage || isAcademyPage || !(bannerActive && bannerHidden && bannerHeightPx > 0)
               ? 'translateY(0)'
               : `translateY(-${bannerHeightPx}px)`,
         }}

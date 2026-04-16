@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import {
   JOIN_CLUB_CARD_BACK_PREVIEW_IMAGE_APEX,
@@ -24,6 +25,12 @@ export function MembershipCardBackPreview({ name, tier, className }: MembershipC
   const imageSrc = isApex
     ? JOIN_CLUB_CARD_BACK_PREVIEW_IMAGE_APEX
     : JOIN_CLUB_CARD_BACK_PREVIEW_IMAGE_IGNITION
+
+  /** Pas de texte « dans le vide » : n’afficher nom + image qu’après chargement du dos. */
+  const [imageReady, setImageReady] = useState(false)
+  useEffect(() => {
+    setImageReady(false)
+  }, [imageSrc])
 
   const nameZoneClass = isApex
     ? 'left-[10%] right-[10%] top-[37%] bottom-[50%]'
@@ -62,7 +69,16 @@ export function MembershipCardBackPreview({ name, tier, className }: MembershipC
         <img
           src={imageSrc}
           alt=""
-          className="pointer-events-none block h-full w-full max-h-full max-w-full object-contain object-center mix-blend-multiply"
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
+          onLoad={() => setImageReady(true)}
+          onError={() => setImageReady(true)}
+          className={cn(
+            'pointer-events-none block h-full w-full max-h-full max-w-full object-contain object-center mix-blend-multiply',
+            'transition-opacity duration-150 ease-out',
+            imageReady ? 'opacity-100' : 'opacity-0',
+          )}
           draggable={false}
         />
 
@@ -70,7 +86,10 @@ export function MembershipCardBackPreview({ name, tier, className }: MembershipC
           className={cn(
             'pointer-events-none absolute flex items-center justify-center px-[2%]',
             nameZoneClass,
+            'transition-opacity duration-150 ease-out',
+            imageReady ? 'opacity-100' : 'opacity-0',
           )}
+          aria-hidden={!imageReady}
         >
           <p
             aria-live="polite"

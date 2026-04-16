@@ -1,20 +1,87 @@
-import { useCallback, useContext, useEffect, useRef } from 'react'
+import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { IconCertificate, IconSchool, IconChartBar, IconLock } from '@tabler/icons-react'
 import { LenisContext } from '@/components/LenisRoot'
 import { JoinTrainingEventsModal } from '@/components/JoinTrainingEventsModal'
-import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
+import { AppleButton, appleButtonVisualClassName } from '@/components/ui/AppleButton'
 import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
 import { cn } from '@/lib/utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
+import { supabase } from '@/lib/supabase'
+import {
+  DEFAULT_TRAINING_SESSION_OPTIONS,
+  resolveTrainingSessionOptions,
+  type TrainingSessionOption,
+} from '@/constants/trainingSessions'
+
+/** Affichage court type « May 15-16 » à partir du libellé admin (ex. « May 15-16, 2026 »). */
+function compactTrainingDateLabel(label: string): string {
+  const t = label.trim()
+  if (!t) return ''
+  return t.replace(/,\s*\d{4}\s*$/, '').trim()
+}
+
+/** Même principe que les icônes rondes du leaderboard / trophy (AccountDashboard). */
+const academyFeatureIconCircleClass =
+  'inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-carbon-900'
 
 /** Même hiérarchie typographique que les titres de section sur la landing (Home). */
 const landingSectionTitle = 'font-sans text-3xl font-bold tracking-tight md:text-5xl'
 
 export function Academy() {
   const lenis = useContext(LenisContext)
+  const reduceMotion = useReducedMotion()
   const [searchParams, setSearchParams] = useSearchParams()
   const trainingModalOpen = searchParams.get('joinTraining') === '1'
   const openTrainingModal = () => setSearchParams({ joinTraining: '1' }, { replace: true })
   const closeTrainingModal = () => setSearchParams({}, { replace: true })
+
+  const heroSentinelRef = useRef<HTMLDivElement | null>(null)
+  const [compactNavVisible, setCompactNavVisible] = useState(false)
+  const [trainingSessions, setTrainingSessions] = useState<TrainingSessionOption[]>(
+    DEFAULT_TRAINING_SESSION_OPTIONS,
+  )
+
+  usePageTitle('Academy - Fireball Canada')
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'training_sessions')
+        .maybeSingle()
+      if (!cancelled) setTrainingSessions(resolveTrainingSessionOptions(data?.value))
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    const el = heroSentinelRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        setCompactNavVisible(!entry.isIntersecting)
+      },
+      { threshold: 0, rootMargin: '0px 0px 0px 0px' },
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  const nextTrainingLabel = compactTrainingDateLabel(trainingSessions[0]?.label ?? '')
+  const compactNavTransition = reduceMotion
+    ? { duration: 0.01 }
+    : {
+        duration: 0.5,
+        ease: [0.22, 1, 0.36, 1] as const,
+      }
 
   const scrollToWhatYouLearn = useCallback(() => {
     const el = document.getElementById('what-you-learn')
@@ -29,11 +96,12 @@ export function Academy() {
   const roadmapRef = useRef<HTMLDivElement>(null)
   const roadmapFillRef = useRef<HTMLDivElement>(null)
 
-  const nextEvent = {
-    title: 'Fireball After Party',
-    location: 'Saint-Hyacinthe, QC',
-    imageSrc: '/Assets/FireballAfterParty.png',
-  }
+  const nextTrainingDisplay =
+    nextTrainingLabel.length > 0 ? nextTrainingLabel : trainingSessions[0]?.label?.trim() || '—'
+  const nextTrainingLocation = trainingSessions[0]?.hint?.trim() || ''
+  const upcomingTrainingSessions = trainingSessions.slice(0, 3)
+  const featuredTrainingSession = upcomingTrainingSessions[0] ?? null
+  const secondaryTrainingSessions = upcomingTrainingSessions.slice(1)
 
   useEffect(() => {
     const reveals = document.querySelectorAll<HTMLElement>('.academy-reveal')
@@ -90,8 +158,48 @@ export function Academy() {
 
   return (
     <main className="bg-carbon-950 text-pearl min-h-screen">
+      <AnimatePresence>
+        {compactNavVisible && (
+          <motion.header
+            key="academy-compact-training-bar"
+            role="banner"
+            aria-label="Next training"
+            initial={reduceMotion ? false : { y: -80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={reduceMotion ? undefined : { y: -80, opacity: 0 }}
+            transition={compactNavTransition}
+            className="fixed left-0 right-0 top-0 z-[125] border-b border-neutral-200/90 bg-white/95 shadow-[0_1px_0_rgba(0,0,0,0.04)] backdrop-blur-md supports-[backdrop-filter]:bg-white/85"
+          >
+            <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3.5 md:px-6 md:py-4">
+              <div className="min-w-0 flex-1 pr-2 font-nav text-[13px] font-bold tracking-tight text-carbon-900 md:text-[15px]">
+                <div className="truncate">
+                  <span className="font-semibold text-carbon-700">Next Training :</span>{' '}
+                  <span className="text-carbon-900 text-[14px] md:text-[16px]">
+                    {nextTrainingDisplay}
+                  </span>
+                </div>
+                {nextTrainingLocation && (
+                  <div className="mt-0.5 text-[11px] md:text-[12px] font-medium text-carbon-600 truncate">
+                    {nextTrainingLocation}
+                  </div>
+                )}
+              </div>
+              <div className="shrink-0">
+                <AppleButton
+                  type="button"
+                  className="whitespace-nowrap px-3 py-1.5 text-[10px] font-nav md:text-xs"
+                  onClick={openTrainingModal}
+                >
+                  Secure your spot
+                </AppleButton>
+              </div>
+            </div>
+          </motion.header>
+        )}
+      </AnimatePresence>
+
       <section
-        className="relative -mt-20 flex h-[100dvh] min-h-[100dvh] flex-col overflow-hidden px-6"
+        className="relative -mt-20 flex h-[92dvh] min-h-[92dvh] flex-col overflow-hidden px-6"
         aria-label="Hero"
       >
         <video
@@ -110,7 +218,10 @@ export function Academy() {
         />
 
         <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col pt-20">
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-0 pb-8 text-center md:pb-10 max-w-7xl mx-auto w-full">
+          <div
+            ref={heroSentinelRef}
+            className="flex min-h-0 flex-1 flex-col items-center justify-center px-0 pb-8 text-center md:pb-10 max-w-7xl mx-auto w-full"
+          >
             <h1 className="academy-reveal font-nav text-4xl font-black leading-[1.02] tracking-tight text-pearl md:text-5xl lg:text-6xl xl:text-7xl mb-8 md:mb-10">
               Build your expertise.
             </h1>
@@ -143,37 +254,123 @@ export function Academy() {
 
       <section className="bg-white text-carbon-900 py-24 md:py-32">
         <div className="max-w-7xl mx-auto px-6 md:px-16">
-          <h2 className={cn('academy-reveal text-carbon-900 text-center mb-10 md:mb-16', landingSectionTitle)}>
-            Why the Fireball Academy
+          <h2 className={cn('academy-reveal text-carbon-900 text-left mb-10 md:mb-16', landingSectionTitle)}>
+            Everything you need step on your buisness.
           </h2>
-          <div className="grid md:grid-cols-3 gap-12">
+          <div className="grid gap-6 md:grid-cols-2 md:gap-8">
             {[
               {
-                icon: '🎓',
-                title: 'Hands-on training',
-                body: 'Learn real techniques used by professional installers.',
+                Icon: IconSchool,
+                stat: '100%',
+                statLabel: 'hands-on focus',
+                title: 'Real-world installation training',
+                body:
+                  'Work in a true training environment with professional tools and products — the same techniques Fireball-certified installers use every day across Canada.',
               },
               {
-                icon: '✓',
-                title: 'Certification',
-                body: 'Become a certified Fireball installer.',
+                Icon: IconCertificate,
+                stat: '2×',
+                statLabel: 'stronger positioning',
+                title: 'Certification that opens doors',
+                body:
+                  'Earn recognized Fireball certification and market yourself with confidence: credibility with clients, partners, and your local detailing network.',
               },
-              {
-                icon: '📈',
-                title: 'Business growth',
-                body: 'Develop the skills needed to grow your detailing business.',
-              },
-            ].map((item, idx) => (
-              <div key={idx} className="academy-reveal text-center">
-                <div className="text-5xl mb-6">{item.icon}</div>
-                <h3 className="text-xl font-bold text-carbon-900 mb-4" style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 700 }}>
+            ].map((item, idx) => {
+              const FeatureIcon = item.Icon
+              return (
+              <div
+                key={idx}
+                className="academy-reveal rounded-2xl border border-carbon-900/10 bg-pearl p-6 shadow-sm md:p-7"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <span className={academyFeatureIconCircleClass} aria-hidden>
+                    <FeatureIcon className="h-6 w-6" stroke={1.75} />
+                  </span>
+                  <div className="min-w-0 text-right">
+                    <p
+                      className="font-nav text-3xl font-black tabular-nums tracking-tight text-carbon-900 md:text-4xl"
+                      style={{ fontFamily: "'Roboto', sans-serif" }}
+                    >
+                      {item.stat}
+                    </p>
+                    <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-carbon-500">
+                      {item.statLabel}
+                    </p>
+                  </div>
+                </div>
+                <h3
+                  className="mt-6 text-left text-xl font-bold text-carbon-900 md:text-[1.35rem]"
+                  style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 700 }}
+                >
                   {item.title}
                 </h3>
-                <p className="text-base leading-relaxed text-carbon-600" style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 300 }}>
+                <p
+                  className="mt-3 text-left text-base leading-relaxed text-carbon-600"
+                  style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 300 }}
+                >
                   {item.body}
                 </p>
               </div>
-            ))}
+              )
+            })}
+          </div>
+
+          <div className="mt-6 grid gap-6 md:mt-8 md:grid-cols-2 md:gap-8">
+            {[
+              {
+                Icon: IconLock,
+                stat: '1:1',
+                statLabel: 'exclusive access',
+                title: 'Unlock exclusive Fireball products',
+                body:
+                  'Gain access to pro-only coatings and accessories reserved for trained installers, so your shop can offer protection clients cannot get anywhere else.',
+              },
+              {
+                Icon: IconChartBar,
+                stat: 'ROI',
+                statLabel: 'faster growth',
+                title: 'Built for business outcomes',
+                body:
+                  'Learn how to price, package, and communicate your service so training translates directly into sales and retention.',
+              },
+            ].map((item, idx) => {
+              const FeatureIcon = item.Icon
+              return (
+                <div
+                  key={idx}
+                  className="academy-reveal rounded-2xl border border-carbon-900/10 bg-pearl p-6 shadow-sm md:p-7"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <span className={academyFeatureIconCircleClass} aria-hidden>
+                      <FeatureIcon className="h-6 w-6" stroke={1.75} />
+                    </span>
+                    <div className="min-w-0 text-right">
+                      <p
+                        className="font-nav text-3xl font-black tabular-nums tracking-tight text-carbon-900 md:text-4xl"
+                        style={{ fontFamily: "'Roboto', sans-serif" }}
+                      >
+                        {item.stat}
+                      </p>
+                      <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-carbon-500">
+                        {item.statLabel}
+                      </p>
+                    </div>
+                  </div>
+                  <h3
+                    className="mt-6 text-left text-xl font-bold text-carbon-900 md:text-[1.35rem]"
+                    style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 700 }}
+                  >
+                    {item.title}
+                  </h3>
+                  <p
+                    className="mt-3 text-left text-base leading-relaxed text-carbon-600"
+                    style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 300 }}
+                  >
+                    {item.body}
+                  </p>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -271,34 +468,110 @@ export function Academy() {
       </section>
 
       <section className="bg-white py-16 sm:py-20">
-        <div className="mx-auto max-w-7xl px-4 md:px-6 text-center">
-          <h2 className={cn('text-carbon-900', landingSectionTitle)}>See our next training</h2>
-        </div>
-        <div className="mx-auto mt-8 max-w-7xl px-4 md:px-6">
-          <div className="overflow-hidden rounded-2xl border border-carbon-200 bg-white">
-            <div className="relative aspect-[16/7] min-h-[260px] sm:min-h-[320px]">
-              <img
-                src={nextEvent.imageSrc}
-                alt={nextEvent.title}
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/20 to-black/10" aria-hidden />
+        <div className="mx-auto max-w-7xl px-4 md:px-6">
+          <div className="max-w-3xl text-left">
+            <h2 className={cn('text-carbon-900', landingSectionTitle)}>Our next trainings</h2>
+            <p className="mt-4 text-base leading-relaxed text-carbon-600 md:text-lg">
+              The next available session takes the spotlight first, while upcoming dates stay easy to browse
+              underneath in a cleaner event-list format.
+            </p>
+          </div>
 
-              <div className="absolute inset-x-0 bottom-0 z-10 p-5 sm:p-6">
-                <h3 className="font-nav text-4xl sm:text-4xl font-bold text-white">{nextEvent.title}</h3>
-                <p className="mt-1 text-white/80">{nextEvent.location}</p>
-                <div className="mt-5 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={openTrainingModal}
-                    className={cn('inline-flex', appleButtonVisualClassName)}
-                  >
-                    Apply now
-                  </button>
+          {featuredTrainingSession && (() => {
+            const shortDate = compactTrainingDateLabel(featuredTrainingSession.label) || featuredTrainingSession.label
+            const sessionLocation = featuredTrainingSession.hint?.split(' - ')[0]?.trim() || 'Location coming soon'
+            const sessionMeta =
+              featuredTrainingSession.hint?.split(' - ').slice(1).join(' - ').trim() || 'Hands-on + certification'
+
+            return (
+              <div className="academy-reveal mt-8 overflow-hidden rounded-[2.2rem] border border-carbon-900/10 bg-carbon-950 shadow-[0_22px_60px_rgba(0,0,0,0.18)]">
+                <div className="grid gap-0 lg:grid-cols-[1.1fr_1fr]">
+                  <div className="relative min-h-[280px] overflow-hidden lg:min-h-[420px]">
+                    <img
+                      src="/Assets/FireballAfterParty.png"
+                      alt={shortDate}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent lg:bg-gradient-to-t lg:from-black/55 lg:via-black/20 lg:to-transparent" aria-hidden />
+                    <div className="absolute left-5 top-5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/85 backdrop-blur-md">
+                      Next available session
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col justify-between px-5 py-6 text-left sm:px-7 sm:py-8 lg:px-10 lg:py-10">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
+                        Fireball Academy
+                      </p>
+                      <h3 className="mt-3 font-nav text-3xl font-bold tracking-tight text-white md:text-5xl">
+                        {shortDate}
+                      </h3>
+                      <p className="mt-3 text-lg font-semibold text-white/88">{sessionLocation}</p>
+                      <p className="mt-2 text-sm text-white/55 md:text-base">{sessionMeta}</p>
+                      <p className="mt-6 max-w-xl text-sm leading-relaxed text-white/72 md:text-base">
+                        This is the main session to highlight first: clear date, location, and a stronger premium
+                        presentation so the next training feels like the primary action on the page.
+                      </p>
+                    </div>
+
+                    <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="text-sm text-white/50">Limited seats. Registration handled through the academy flow.</div>
+                      <button
+                        type="button"
+                        onClick={openTrainingModal}
+                        className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
+                      >
+                        Secure your spot
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
+            )
+          })()}
+
+          {secondaryTrainingSessions.length > 0 && (
+            <div className="mt-5 space-y-3">
+              {secondaryTrainingSessions.map((session, idx) => {
+                const shortDate = compactTrainingDateLabel(session.label) || session.label
+                const sessionLocation = session.hint?.split(' - ')[0]?.trim() || 'Location coming soon'
+                const sessionMeta = session.hint?.split(' - ').slice(1).join(' - ').trim() || 'Hands-on + certification'
+
+                return (
+                  <div
+                    key={session.id}
+                    className="academy-reveal rounded-[1.75rem] border border-carbon-900/10 bg-[#f7f7f7] p-4 shadow-[0_10px_35px_rgba(0,0,0,0.05)]"
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                      <div className="min-w-0 flex-1 text-left">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-carbon-500">
+                          Upcoming training {String(idx + 2).padStart(2, '0')}
+                        </p>
+                        <h4 className="mt-1 font-nav text-xl font-bold tracking-tight text-carbon-900 md:text-2xl">
+                          {shortDate}
+                        </h4>
+                        <div className="mt-2 flex flex-col gap-1 text-sm text-carbon-600 md:flex-row md:items-center md:gap-3">
+                          <span className="font-medium text-carbon-900">{sessionLocation}</span>
+                          <span className="text-carbon-400 max-md:hidden">/</span>
+                          <span>{sessionMeta}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center sm:justify-end">
+                        <button
+                          type="button"
+                          onClick={openTrainingModal}
+                          className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
+                        >
+                          View details
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          </div>
+          )}
         </div>
       </section>
 

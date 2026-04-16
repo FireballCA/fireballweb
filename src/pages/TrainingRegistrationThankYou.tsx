@@ -15,7 +15,7 @@ export function TrainingRegistrationThankYou() {
   const state = location.state as TrainingThankYouState | null
 
   useEffect(() => {
-    document.title = 'Registration confirmed | Fireball Academy'
+    document.title = 'Registration confirmed - Fireball Academy'
   }, [])
 
   useEffect(() => {
