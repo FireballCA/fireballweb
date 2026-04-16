@@ -10,6 +10,9 @@ import {
   IconShieldLock,
   IconChevronRight,
 } from '@tabler/icons-react'
+import { Calendar } from '@heroui/react'
+import { parseDate as parseCalendarDate, type DateValue } from '@internationalized/date'
+import { AnimatePresence, motion } from 'motion/react'
 import { BusinessClientsPage } from '@/pages/business/BusinessClientsPage'
 import { AdminPanelContent } from '@/components/AdminPanelSheet'
 import { AdminConfigurationPage } from '@/components/business/admin/AdminPages'
@@ -19,6 +22,16 @@ import { FireballLoading } from '@/components/FireballLoading'
 import { cn } from '@/lib/utils'
 import { SITE_PAGES, type SitePage } from '@/constants/sitePages'
 import { CATEGORIES, PRODUCTS, type Product as LocalProduct } from '@/data/products'
+import {
+  DEFAULT_TRAINING_SESSION_OPTIONS,
+  resolveTrainingSessionOptions,
+  type TrainingSessionOption,
+} from '@/constants/trainingSessions'
+import {
+  DEFAULT_SITE_EVENT_CONFIGS,
+  resolveSiteEventConfigs,
+  type SiteEventConfig,
+} from '@/constants/siteEventConfigs'
 import { getClientCache, setClientCache } from '@/utils/clientCache'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 
@@ -643,13 +656,7 @@ function BusinessAdminAnnouncements() {
         </button>
       </div>
 
-      {loading && (
-        <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
-          <p className="text-sm text-slate-500">Loading…</p>
-        </div>
-      )}
-
-      {!loading && (error || success) && (
+      {(error || success) && (
         <div
           className={cn(
             'rounded-2xl border px-4 py-3 text-sm',
@@ -1063,6 +1070,236 @@ function BusinessAdminAnnouncements() {
   )
 }
 
+type NotificationAudience = 'all' | 'role' | 'users'
+
+function BusinessAdminNotifications() {
+  const [audience, setAudience] = useState<NotificationAudience>('all')
+  const [role, setRole] = useState('partner')
+  const [emailsText, setEmailsText] = useState('')
+  const [title, setTitle] = useState('')
+  const [message, setMessage] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setError('')
+    setSuccess('')
+
+    if (!message.trim()) {
+      setError('Please enter a message.')
+      return
+    }
+    if (audience === 'role' && !role.trim()) {
+      setError('Please specify a role.')
+      return
+    }
+    if (audience === 'users' && !emailsText.trim()) {
+      setError('Please enter at least one email address.')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const { data: authData, error: userError } = await supabase.auth.getUser()
+      const user = authData.user
+      if (userError || !user) {
+        setError('You must be logged in as admin to send notifications.')
+        return
+      }
+
+      const basePayload = {
+        title: title.trim() || null,
+        message: message.trim(),
+        created_by: user.id,
+      }
+
+      if (audience === 'all') {
+        const { error: insertError } = await supabase.from('user_notifications').insert({
+          ...basePayload,
+          target_type: 'all',
+          target_role: null,
+          target_user_id: null,
+        })
+        if (insertError) throw insertError
+      } else if (audience === 'role') {
+        const { error: insertError } = await supabase.from('user_notifications').insert({
+          ...basePayload,
+          target_type: 'role',
+          target_role: role.trim().toLowerCase(),
+          target_user_id: null,
+        })
+        if (insertError) throw insertError
+      } else {
+        const emails = emailsText
+          .split(',')
+          .map((value) => value.trim().toLowerCase())
+          .filter(Boolean)
+
+        if (emails.length === 0) {
+          setError('Please enter at least one valid email address.')
+          return
+        }
+
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id,email')
+          .in('email', emails)
+
+        if (profilesError) throw profilesError
+
+        const rows =
+          (profiles || []).map((profile) => ({
+            ...basePayload,
+            target_type: 'user',
+            target_role: null,
+            target_user_id: profile.id,
+          })) ?? []
+
+        if (!rows.length) {
+          setError('No matching users were found for the provided email addresses.')
+          return
+        }
+
+        const { error: insertError } = await supabase.from('user_notifications').insert(rows)
+        if (insertError) throw insertError
+      }
+
+      setSuccess('Notification has been queued successfully.')
+      setTitle('')
+      setMessage('')
+      setEmailsText('')
+      window.setTimeout(() => setSuccess(''), 2200)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to send notification.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-slate-400">Admin</p>
+          <h2 className="mt-1 text-2xl md:text-3xl font-semibold text-slate-900">Notifications</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Envoie des notifications aux membres, par role, ou a des utilisateurs specifiques.
+          </p>
+        </div>
+      </div>
+
+      {(error || success) && (
+        <div
+          className={cn(
+            'rounded-2xl border px-4 py-3 text-sm',
+            error
+              ? 'border-rose-200 bg-rose-50 text-rose-800'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-800',
+          )}
+        >
+          {error || success}
+        </div>
+      )}
+
+      <section className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="flex-1">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-slate-500 mb-1.5">Audience</p>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { id: 'all', label: 'All members' },
+                  { id: 'role', label: 'By role' },
+                  { id: 'users', label: 'Specific users' },
+                ] as const).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setAudience(item.id)}
+                    className={cn(
+                      'inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-nav uppercase tracking-[0.16em] transition-colors',
+                      audience === item.id
+                        ? 'border-slate-900 bg-slate-900 text-white'
+                        : 'border-slate-200 text-slate-700 hover:bg-slate-50',
+                    )}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {audience === 'role' && (
+              <div className="w-full md:w-56">
+                <label className="block text-[11px] uppercase tracking-[0.16em] text-slate-500 mb-1.5">
+                  Target role
+                </label>
+                <input
+                  type="text"
+                  value={role}
+                  onChange={(event) => setRole(event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-400"
+                  placeholder="e.g. partner, admin"
+                />
+              </div>
+            )}
+
+            {audience === 'users' && (
+              <div className="w-full md:flex-1">
+                <label className="block text-[11px] uppercase tracking-[0.16em] text-slate-500 mb-1.5">
+                  Target users (emails)
+                </label>
+                <input
+                  type="text"
+                  value={emailsText}
+                  onChange={(event) => setEmailsText(event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-400"
+                  placeholder="email1@example.com, email2@example.com"
+                />
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-[11px] uppercase tracking-[0.16em] text-slate-500 mb-1.5">
+              Title (optional)
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-400"
+              placeholder="Maintenance window, new benefit, important update..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] uppercase tracking-[0.16em] text-slate-500 mb-1.5">Message</label>
+            <textarea
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              className="w-full min-h-[100px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 resize-vertical focus:outline-none focus:border-slate-400"
+              placeholder="Write the notification your members will see in their dashboard."
+            />
+          </div>
+
+          <div className="flex items-center justify-end">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex items-center gap-2 rounded-full bg-[#4318FF] text-white px-4 py-2 text-sm font-semibold hover:bg-[#3312C8] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {submitting ? 'Sending...' : 'Send notification'}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  )
+}
+
 function BusinessAdminProductPages() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -1192,13 +1429,7 @@ function BusinessAdminProductPages() {
         </button>
       </div>
 
-      {loading && (
-        <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
-          <p className="text-sm text-slate-500">Loading…</p>
-        </div>
-      )}
-
-      {!loading && (error || success) && (
+      {(error || success) && (
         <div
           className={cn(
             'rounded-2xl border px-4 py-3 text-sm',
@@ -1211,8 +1442,7 @@ function BusinessAdminProductPages() {
         </div>
       )}
 
-      {!loading && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
           <section className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
             <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-3">
               Produit
@@ -1270,7 +1500,580 @@ function BusinessAdminProductPages() {
             </div>
           </section>
         </div>
+    </div>
+  )
+}
+
+function toTrainingId(label: string): string {
+  return (
+    label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || `training-${Date.now()}`
+  )
+}
+
+function BusinessAdminTrainings() {
+  const [sessions, setSessions] = useState<TrainingSessionOption[]>(DEFAULT_TRAINING_SESSION_OPTIONS)
+  const [labelInput, setLabelInput] = useState('')
+  const [hintInput, setHintInput] = useState('')
+  const [trainingRange, setTrainingRange] = useState<{ start: DateValue; end: DateValue } | null>(null)
+  const [trainingPickerOpen, setTrainingPickerOpen] = useState(false)
+  const [trainingDraftStart, setTrainingDraftStart] = useState<DateValue | null>(null)
+  const trainingPickerRef = useRef<HTMLDivElement | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      const { data, error: loadError } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'training_sessions')
+        .maybeSingle()
+
+      if (!mounted) return
+      if (loadError) {
+        setError(loadError.message || 'Failed to load trainings.')
+        return
+      }
+      setSessions(resolveTrainingSessionOptions(data?.value))
+    }
+    void load()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const persist = async (nextSessions: TrainingSessionOption[]) => {
+    setSaving(true)
+    setError('')
+    setSuccess('')
+    try {
+      const { data: existing, error: existingError } = await supabase
+        .from('site_settings')
+        .select('id')
+        .eq('key', 'training_sessions')
+        .maybeSingle()
+      if (existingError) throw existingError
+
+      const write = existing
+        ? supabase
+            .from('site_settings')
+            .update({ value: nextSessions, updated_at: new Date().toISOString() })
+            .eq('key', 'training_sessions')
+        : supabase
+            .from('site_settings')
+            .insert({ key: 'training_sessions', value: nextSessions, updated_at: new Date().toISOString() })
+
+      const result = await write
+      if (result.error) throw result.error
+      setSessions(nextSessions)
+      setSuccess('Saved.')
+      window.setTimeout(() => setSuccess(''), 1800)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save trainings.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const addSession = async () => {
+    const label = labelInput.trim()
+    const hint = hintInput.trim()
+    if (!label) {
+      setError('Training label is required.')
+      return
+    }
+    const baseId = toTrainingId(label)
+    let id = baseId
+    let n = 2
+    while (sessions.some((s) => s.id === id)) {
+      id = `${baseId}-${n}`
+      n += 1
+    }
+    const next = [...sessions, { id, label, hint: hint || undefined }]
+    await persist(next)
+    setLabelInput('')
+    setHintInput('')
+    setTrainingRange(null)
+    setTrainingPickerOpen(false)
+  }
+
+  const formatTrainingRangeLabel = (start: DateValue, end: DateValue) => {
+    const startJs = new Date(`${start.toString()}T12:00:00`)
+    const endJs = new Date(`${end.toString()}T12:00:00`)
+    const month = startJs.toLocaleString('en-US', { month: 'long' })
+    const year = startJs.getFullYear()
+    const startDay = startJs.getDate()
+    const endDay = endJs.getDate()
+    return startDay === endDay ? `${month} ${startDay}, ${year}` : `${month} ${startDay}-${endDay}, ${year}`
+  }
+
+  const handleTrainingDatePick = (picked: DateValue) => {
+    if (!trainingDraftStart) {
+      setTrainingDraftStart(picked)
+      setTrainingRange({ start: picked, end: picked })
+      return
+    }
+    const start = trainingDraftStart.toString() <= picked.toString() ? trainingDraftStart : picked
+    const end = trainingDraftStart.toString() <= picked.toString() ? picked : trainingDraftStart
+    setTrainingRange({ start, end })
+    setLabelInput(formatTrainingRangeLabel(start, end))
+    setTrainingDraftStart(null)
+    setTrainingPickerOpen(false)
+  }
+
+  const removeSession = async (id: string) => {
+    const next = sessions.filter((s) => s.id !== id)
+    await persist(next.length ? next : [])
+  }
+
+  useEffect(() => {
+    if (!trainingPickerOpen) return
+    const onDocMouseDown = (event: MouseEvent) => {
+      if (!trainingPickerRef.current?.contains(event.target as Node)) {
+        setTrainingPickerOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDocMouseDown)
+    return () => document.removeEventListener('mousedown', onDocMouseDown)
+  }, [trainingPickerOpen])
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-slate-400">Admin</p>
+          <h2 className="mt-1 text-2xl md:text-3xl font-semibold text-slate-900">Training sessions</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Add or remove the sessions shown in the academy registration modal.
+          </p>
+        </div>
+      </div>
+
+      {(error || success) && (
+        <div
+          className={cn(
+            'rounded-2xl border px-4 py-3 text-sm',
+            error
+              ? 'border-rose-200 bg-rose-50 text-rose-800'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-800',
+          )}
+        >
+          {error || success}
+        </div>
       )}
+
+      <section className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+        <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-3">Create training</p>
+        <div className="mb-3" ref={trainingPickerRef}>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Training dates</p>
+          <button
+            type="button"
+            onClick={() => {
+              setTrainingPickerOpen((v) => !v)
+              setTrainingDraftStart(null)
+            }}
+            className="flex w-full max-w-md items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+          >
+            <span>{labelInput || 'May 15-16, 2026'}</span>
+            <span className="text-slate-500">▾</span>
+          </button>
+          {trainingPickerOpen && (
+            <div className="z-[300] mt-2 max-w-md rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_18px_45px_rgba(15,23,42,0.18)]">
+              <Calendar
+                aria-label="Choose training dates"
+                value={trainingRange?.end ?? undefined}
+                onChange={handleTrainingDatePick}
+                className="w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
+              >
+                <Calendar.Header className="pb-3">
+                  <Calendar.Heading className="text-sm font-semibold text-slate-700" />
+                  <Calendar.NavButton slot="previous" className="text-slate-600" />
+                  <Calendar.NavButton slot="next" className="text-slate-600" />
+                </Calendar.Header>
+                <Calendar.Grid>
+                  <Calendar.GridHeader>
+                    {(day) => <Calendar.HeaderCell className="text-xs text-slate-500">{day}</Calendar.HeaderCell>}
+                  </Calendar.GridHeader>
+                  <Calendar.GridBody>{(date) => <Calendar.Cell date={date} />}</Calendar.GridBody>
+                </Calendar.Grid>
+              </Calendar>
+            </div>
+          )}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input
+            type="text"
+            value={labelInput}
+            onChange={(e) => setLabelInput(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-400"
+            placeholder="May 15-16, 2026"
+          />
+          <input
+            type="text"
+            value={hintInput}
+            onChange={(e) => setHintInput(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-400"
+            placeholder="Saint-Hyacinthe, QC - hands-on + certification"
+          />
+        </div>
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            onClick={() => void addSession()}
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-full bg-[#4318FF] text-white px-4 py-2 text-sm font-semibold hover:bg-[#3312C8] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Saving...' : 'Add training'}
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+        <p className="text-[11px] font-nav uppercase tracking-[0.16em] text-slate-400 mb-3">Existing trainings</p>
+        <div className="flex flex-col gap-2">
+          {sessions.map((session) => (
+            <article
+              key={session.id}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 flex items-center justify-between gap-3"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-900">{session.label}</p>
+                <p className="text-xs text-slate-500 truncate">{session.hint || 'No location/hint'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void removeSession(session.id)}
+                disabled={saving}
+                className="inline-flex items-center rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                Delete
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function BusinessAdminEvents() {
+  const [events, setEvents] = useState<SiteEventConfig[]>(DEFAULT_SITE_EVENT_CONFIGS)
+  const [selectedId, setSelectedId] = useState<string>(DEFAULT_SITE_EVENT_CONFIGS[0]?.id ?? '')
+  const [saving, setSaving] = useState(false)
+  const [imageUploading, setImageUploading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [eventPickerOpen, setEventPickerOpen] = useState(false)
+  const [eventDraftStart, setEventDraftStart] = useState<DateValue | null>(null)
+  const eventPickerRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      const { data, error: loadError } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'events')
+        .maybeSingle()
+      if (!mounted) return
+      if (loadError) {
+        setError(loadError.message || 'Failed to load events.')
+        return
+      }
+      const resolved = resolveSiteEventConfigs(data?.value)
+      setEvents(resolved)
+      setSelectedId(resolved[0]?.id ?? '')
+    }
+    void load()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const selected = events.find((e) => e.id === selectedId) ?? null
+  const selectedRange =
+    selected?.startAt && selected?.endAt
+      ? {
+          start: parseCalendarDate(selected.startAt.slice(0, 10)),
+          end: parseCalendarDate(selected.endAt.slice(0, 10)),
+        }
+      : null
+
+  const formatRangeMeta = (start: DateValue, end: DateValue) => {
+    const startJs = new Date(`${start.toString()}T12:00:00`)
+    const endJs = new Date(`${end.toString()}T12:00:00`)
+    const monthLabel = startJs.toLocaleString('en-US', { month: 'short' }).toUpperCase()
+    const startDay = startJs.getDate()
+    const endDay = endJs.getDate()
+    const year = startJs.getFullYear()
+    const dayLabel = startDay === endDay ? `${startDay}` : `${startDay}-${endDay}`
+    const dateLine = startDay === endDay ? `${monthLabel} ${startDay}, ${year}` : `${monthLabel} ${startDay}-${endDay}, ${year}`
+    return { monthLabel, dayLabel, dateLine }
+  }
+
+  const handleEventDatePick = (picked: DateValue) => {
+    if (!eventDraftStart) {
+      setEventDraftStart(picked)
+      return
+    }
+    const start = eventDraftStart.toString() <= picked.toString() ? eventDraftStart : picked
+    const end = eventDraftStart.toString() <= picked.toString() ? picked : eventDraftStart
+    const { monthLabel, dayLabel, dateLine } = formatRangeMeta(start, end)
+    upsertSelected({
+      monthFull: monthLabel,
+      day: dayLabel,
+      dateLine,
+      startAt: `${start.toString()}T10:00:00-04:00`,
+      endAt: `${end.toString()}T20:00:00-04:00`,
+    })
+    setEventDraftStart(null)
+    setEventPickerOpen(false)
+  }
+
+  useEffect(() => {
+    if (!eventPickerOpen) return
+    const onDocMouseDown = (event: MouseEvent) => {
+      if (!eventPickerRef.current?.contains(event.target as Node)) {
+        setEventPickerOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDocMouseDown)
+    return () => document.removeEventListener('mousedown', onDocMouseDown)
+  }, [eventPickerOpen])
+
+  const persist = async (nextEvents: SiteEventConfig[]) => {
+    setSaving(true)
+    setError('')
+    setSuccess('')
+    try {
+      const { data: existing, error: existingError } = await supabase
+        .from('site_settings')
+        .select('id')
+        .eq('key', 'events')
+        .maybeSingle()
+      if (existingError) throw existingError
+
+      const write = existing
+        ? supabase
+            .from('site_settings')
+            .update({ value: nextEvents, updated_at: new Date().toISOString() })
+            .eq('key', 'events')
+        : supabase
+            .from('site_settings')
+            .insert({ key: 'events', value: nextEvents, updated_at: new Date().toISOString() })
+      const result = await write
+      if (result.error) throw result.error
+      setEvents(nextEvents)
+      setSuccess('Saved.')
+      window.setTimeout(() => setSuccess(''), 2000)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save events.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const upsertSelected = (patch: Partial<SiteEventConfig>) => {
+    if (!selected) return
+    setEvents((current) => current.map((item) => (item.id === selected.id ? { ...item, ...patch } : item)))
+  }
+
+  const addEvent = () => {
+    const id = `event-${Date.now()}`
+    const slug = `new-event-${events.length + 1}`
+    const next: SiteEventConfig = {
+      id,
+      slug,
+      day: '01',
+      monthFull: 'JAN',
+      title: 'New Event',
+      description: '',
+      cityRegion: '',
+      imageSrc: '',
+      isPrivate: false,
+      ctaLabel: 'See details',
+      ctaHref: `/event/${slug}`,
+      navTitle: 'New Event',
+      heroTitle: 'New Event',
+      dateLine: '',
+      locationLine: '',
+      startAt: new Date().toISOString(),
+      endAt: new Date().toISOString(),
+    }
+    setEvents((current) => [...current, next])
+    setSelectedId(id)
+  }
+
+  const deleteSelected = () => {
+    if (!selected) return
+    const next = events.filter((e) => e.id !== selected.id)
+    setEvents(next)
+    setSelectedId(next[0]?.id ?? '')
+  }
+
+  const handleEventImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !selected) return
+    setError('')
+    setSuccess('')
+    setImageUploading(true)
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+      if (userError || !user) throw new Error('Session expired. Please sign in again.')
+
+      const fileExt = file.name.split('.').pop() || 'jpg'
+      const fileName = `event-${selected.slug || selected.id}-${Date.now()}.${fileExt}`
+      const filePath = `events/${user.id}/${fileName}`
+
+      const { error: uploadError } = await supabase.storage.from('assets').upload(filePath, file, {
+        upsert: true,
+      })
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage.from('assets').getPublicUrl(filePath)
+      if (!data?.publicUrl) throw new Error('Unable to get public URL for image.')
+
+      upsertSelected({ imageSrc: data.publicUrl })
+      setSuccess('Image uploaded. Click "Save events" to persist.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to upload image.')
+    } finally {
+      setImageUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div>
+        <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-slate-400">Admin</p>
+        <h2 className="mt-1 text-2xl md:text-3xl font-semibold text-slate-900">Events</h2>
+        <p className="mt-1 text-sm text-slate-500">Create, edit and delete events for lineup and detail pages.</p>
+      </div>
+
+      {(error || success) && (
+        <div
+          className={cn(
+            'rounded-2xl border px-4 py-3 text-sm',
+            error
+              ? 'border-rose-200 bg-rose-50 text-rose-800'
+              : 'border-emerald-200 bg-emerald-50 text-emerald-800',
+          )}
+        >
+          {error || success}
+        </div>
+      )}
+
+      <section className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={selectedId}
+            onChange={(e) => setSelectedId(e.target.value)}
+            className="min-w-[240px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-400"
+          >
+            {events.map((event) => (
+              <option key={event.id} value={event.id}>
+                {event.title}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={addEvent}
+            className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Add event
+          </button>
+          <button
+            type="button"
+            onClick={deleteSelected}
+            disabled={!selected}
+            className="inline-flex rounded-full border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+          >
+            Delete
+          </button>
+          <button
+            type="button"
+            onClick={() => void persist(events)}
+            disabled={saving}
+            className="ml-auto inline-flex rounded-full bg-[#4318FF] px-4 py-2 text-sm font-semibold text-white hover:bg-[#3312C8] disabled:opacity-60"
+          >
+            {saving ? 'Saving...' : 'Save events'}
+          </button>
+        </div>
+
+        {selected && (
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <input value={selected.title} onChange={(e) => upsertSelected({ title: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Title" />
+            <input value={selected.slug} onChange={(e) => upsertSelected({ slug: e.target.value, ctaHref: `/event/${e.target.value}` })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Slug" />
+            <div className="md:col-span-2" ref={eventPickerRef}>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Event dates</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setEventPickerOpen((v) => !v)
+                  setEventDraftStart(null)
+                }}
+                className="flex w-full max-w-md items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+              >
+                <span>{selected?.dateLine || 'Select event date range'}</span>
+                <span className="text-slate-500">▾</span>
+              </button>
+              {eventPickerOpen && (
+                <div className="z-[300] mt-2 max-w-md rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_18px_45px_rgba(15,23,42,0.18)]">
+                  <Calendar
+                    aria-label="Choose event dates"
+                    value={selectedRange?.end ?? undefined}
+                    onChange={handleEventDatePick}
+                    className="w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
+                  >
+                    <Calendar.Header className="pb-3">
+                      <Calendar.Heading className="text-sm font-semibold text-slate-700" />
+                      <Calendar.NavButton slot="previous" className="text-slate-600" />
+                      <Calendar.NavButton slot="next" className="text-slate-600" />
+                    </Calendar.Header>
+                    <Calendar.Grid>
+                      <Calendar.GridHeader>
+                        {(day) => <Calendar.HeaderCell className="text-xs text-slate-500">{day}</Calendar.HeaderCell>}
+                      </Calendar.GridHeader>
+                      <Calendar.GridBody>{(date) => <Calendar.Cell date={date} />}</Calendar.GridBody>
+                    </Calendar.Grid>
+                  </Calendar>
+                </div>
+              )}
+            </div>
+            <input value={selected.day} onChange={(e) => upsertSelected({ day: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Day (auto: 13-15)" />
+            <input value={selected.monthFull} onChange={(e) => upsertSelected({ monthFull: e.target.value.toUpperCase() })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Month (auto: MAY)" />
+            <input value={selected.cityRegion} onChange={(e) => upsertSelected({ cityRegion: e.target.value, locationLine: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="City/Region" />
+            <input value={selected.imageSrc} onChange={(e) => upsertSelected({ imageSrc: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="/Assets/..." />
+            <div className="md:col-span-2 flex items-center gap-3">
+              <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 cursor-pointer hover:bg-slate-50 transition-colors">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleEventImageUpload}
+                />
+                <span>{imageUploading ? 'Uploading...' : 'Upload image (Supabase)'}</span>
+              </label>
+              {selected.imageSrc ? <span className="text-xs text-slate-500 truncate">Image linked</span> : null}
+            </div>
+            <input value={selected.ctaLabel} onChange={(e) => upsertSelected({ ctaLabel: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="CTA label" />
+            <input value={selected.ctaHref} onChange={(e) => upsertSelected({ ctaHref: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="/event/slug or https://..." />
+            <input value={selected.dateLine || ''} onChange={(e) => upsertSelected({ dateLine: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Date line (auto from picker)" />
+            <input value={selected.startAt || ''} onChange={(e) => upsertSelected({ startAt: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Start ISO (auto from picker)" />
+            <textarea value={selected.description} onChange={(e) => upsertSelected({ description: e.target.value })} className="md:col-span-2 min-h-[90px] rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Description" />
+          </div>
+        )}
+      </section>
     </div>
   )
 }
@@ -1303,12 +2106,15 @@ export function BusinessPage() {
     location.pathname.includes('/business/clients') || location.pathname.includes('/account/business/clients')
   const adminSection = location.pathname.includes('/admin/partners')
     ? 'partners'
-    : location.pathname.includes('/admin/configuration') ||
-        location.pathname.includes('/admin/notifications') ||
-        location.pathname.includes('/admin/announcements') ||
-        location.pathname.includes('/admin/products')
-      ? 'configuration'
-          : 'stats'
+    : location.pathname.includes('/admin/notifications')
+      ? 'notifications'
+      : location.pathname.includes('/admin/announcements')
+        ? 'announcements'
+        : location.pathname.includes('/admin/products')
+          ? 'products'
+          : location.pathname.includes('/admin/configuration')
+            ? 'configuration'
+            : 'stats'
 
   const [companyNameInput, setCompanyNameInput] = useState(initialCache?.companyNameInput ?? '')
   const [companyLogo, setCompanyLogo] = useState(initialCache?.companyLogo ?? '')
@@ -2066,16 +2872,32 @@ export function BusinessPage() {
                 <Navigate to="/business" replace />
               ) : (
                 <div className="flex flex-col gap-6">
-                  {adminSection === 'configuration' ? (
-                    <AdminConfigurationPage
-                      announcementsContent={<BusinessAdminAnnouncements />}
-                      productsContent={<BusinessAdminProductPages />}
-                    />
-                  ) : adminSection === 'partners' ? (
-                    <AdminPanelContent section="partners" />
-                  ) : (
-                    <AdminPanelContent section="stats" />
-                  )}
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={adminSection}
+                      initial={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+                      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      {adminSection === 'partners' ? (
+                        <AdminPanelContent section="partners" />
+                      ) : adminSection === 'configuration' ||
+                        adminSection === 'notifications' ||
+                        adminSection === 'announcements' ||
+                        adminSection === 'products' ? (
+                        <AdminConfigurationPage
+                          notificationsContent={<BusinessAdminNotifications />}
+                          announcementsContent={<BusinessAdminAnnouncements />}
+                          productsContent={<BusinessAdminProductPages />}
+                          trainingsContent={<BusinessAdminTrainings />}
+                          eventsContent={<BusinessAdminEvents />}
+                        />
+                      ) : (
+                        <AdminPanelContent section="stats" />
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
               )
             ) : isClientsPath ? (

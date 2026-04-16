@@ -87,6 +87,26 @@ export function Home() {
     ].join('\r\n')
     return `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`
   }, [eventStart, eventEnd, nextEvent.title, nextEvent.location])
+  const { showAppleCalendar, showSamsungCalendar } = useMemo(() => {
+    if (typeof navigator === 'undefined') {
+      return { showAppleCalendar: true, showSamsungCalendar: true }
+    }
+
+    const ua = navigator.userAgent.toLowerCase()
+    const platform = (navigator.platform || '').toLowerCase()
+    const isAppleDevice =
+      /iphone|ipad|ipod|macintosh|mac os x/.test(ua) || /mac|iphone|ipad|ipod/.test(platform)
+    const isWindowsOrAndroid = /windows|android/.test(ua) || /win/.test(platform)
+
+    if (isAppleDevice) {
+      return { showAppleCalendar: true, showSamsungCalendar: false }
+    }
+    if (isWindowsOrAndroid) {
+      return { showAppleCalendar: false, showSamsungCalendar: true }
+    }
+
+    return { showAppleCalendar: true, showSamsungCalendar: true }
+  }, [])
 
   useEffect(() => {
     const onDocClick = (event: MouseEvent) => {
@@ -282,18 +302,20 @@ export function Home() {
                         </button>
 
                         {calendarMenuOpen && (
-                          <div className="absolute right-0 bottom-[calc(100%+0.5rem)] w-[320px] rounded-xl border border-white/20 bg-[#0f1218] p-2 shadow-2xl">
-                            <a
-                              href={appleCalendarUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
-                            >
-                              <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
-                                <path fill="currentColor" d={siApple.path} />
-                              </svg>
-                              <span>Open Apple Calendar</span>
-                            </a>
+                          <div className="absolute bottom-[calc(100%+0.5rem)] left-1/2 w-[calc(100vw-1.5rem)] max-w-[320px] -translate-x-1/2 rounded-xl border border-white/20 bg-[#0f1218] p-2 shadow-2xl sm:left-auto sm:right-0 sm:w-[320px] sm:translate-x-0">
+                            {showAppleCalendar && (
+                              <a
+                                href={appleCalendarUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                              >
+                                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
+                                  <path fill="currentColor" d={siApple.path} />
+                                </svg>
+                                <span>Open Apple Calendar</span>
+                              </a>
+                            )}
                             <a
                               href={googleCalendarUrl}
                               target="_blank"
@@ -305,17 +327,19 @@ export function Home() {
                               </svg>
                               <span>Open Google Calendar</span>
                             </a>
-                            <a
-                              href={samsungCalendarUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
-                            >
-                              <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
-                                <path fill="currentColor" d={siAndroid.path} />
-                              </svg>
-                              <span>Open Samsung Calendar</span>
-                            </a>
+                            {showSamsungCalendar && (
+                              <a
+                                href={samsungCalendarUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+                              >
+                                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
+                                  <path fill="currentColor" d={siAndroid.path} />
+                                </svg>
+                                <span>Open Samsung Calendar</span>
+                              </a>
+                            )}
                           </div>
                         )}
                       </div>

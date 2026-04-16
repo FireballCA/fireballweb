@@ -2,7 +2,8 @@ import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { Navigate, useParams } from 'react-router-dom'
 import { ReserveYourSpot } from '@/components/events/ReserveYourSpot'
 import { WhatToExpect } from '@/components/events/WhatToExpect'
-import { getSiteEventDetail } from '@/data/siteEvents'
+import { supabase } from '@/lib/supabase'
+import { resolveSiteEventConfigs } from '@/constants/siteEventConfigs'
 
 /** Scales down font size so the title stays on one line within its container */
 function HeroSingleLineTitle({ text, className }: { text: string; className?: string }) {
@@ -101,9 +102,46 @@ function EventCountdown({ targetIso }: { targetIso: string }) {
 
 export function EventDetail() {
   const { eventSlug } = useParams<{ eventSlug: string }>()
-  const data = getSiteEventDetail(eventSlug)
+  const [resolved, setResolved] = useState<{
+    navTitle: string
+    heroTitle: string
+    description: string
+    imageSrc: string
+    dateLine: string
+    locationLine: string
+    startAt: string
+  } | null>(null)
+  const [loaded, setLoaded] = useState(false)
 
-  if (!data) {
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'events')
+        .maybeSingle()
+      const events = resolveSiteEventConfigs(data?.value)
+      const ev = events.find((item) => item.slug === eventSlug)
+      setResolved(
+        ev
+          ? {
+              navTitle: ev.navTitle || ev.title,
+              heroTitle: ev.heroTitle || ev.title,
+              description: ev.description,
+              imageSrc: ev.imageSrc,
+              dateLine: ev.dateLine || '',
+              locationLine: ev.locationLine || ev.cityRegion,
+              startAt: ev.startAt || new Date().toISOString(),
+            }
+          : null,
+      )
+      setLoaded(true)
+    }
+    void load()
+  }, [eventSlug])
+
+  if (!loaded) return null
+  if (!resolved) {
     return <Navigate to="/event" replace />
   }
 
@@ -117,17 +155,17 @@ export function EventDetail() {
         >
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
             <p className="font-nav text-[11px] font-bold uppercase tracking-[0.2em] text-carbon-800">
-              {data.dateLine}
+              {resolved.dateLine}
             </p>
             <p className="text-right font-nav text-[11px] font-bold uppercase tracking-[0.18em] text-carbon-700">
-              {data.locationLine}
+              {resolved.locationLine}
             </p>
           </div>
         </nav>
 
         <header className="relative min-h-0 w-full flex-1 overflow-hidden">
           <img
-            src={data.imageSrc}
+            src={resolved.imageSrc}
             alt=""
             className="absolute inset-0 h-full w-full object-cover object-center"
             loading="eager"
@@ -138,11 +176,11 @@ export function EventDetail() {
 
           <div className="relative z-10 flex h-full min-h-0 flex-col items-center justify-center px-2 py-8 text-center sm:py-12">
             <HeroSingleLineTitle
-              text={data.heroTitle}
+              text={resolved.heroTitle}
               className="font-nav font-bold leading-none tracking-tight text-white"
             />
             <p className="mx-auto mt-6 max-w-2xl px-4 text-sm leading-relaxed text-white/88 sm:mt-8 sm:text-base">
-              {data.description}
+              {resolved.description}
             </p>
           </div>
         </header>
@@ -153,7 +191,7 @@ export function EventDetail() {
         className="w-full border-t border-carbon-700 bg-carbon-900"
         aria-label="Countdown to event"
       >
-        <EventCountdown targetIso={data.startAt} />
+        <EventCountdown targetIso={resolved.startAt} />
       </section>
 
       <WhatToExpect />

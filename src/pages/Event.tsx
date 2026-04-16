@@ -1,7 +1,13 @@
-import { useCallback, useContext } from 'react'
+import { useCallback, useContext, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LenisContext } from '@/components/LenisRoot'
 import { AppleButton } from '@/components/ui/AppleButton'
+import { supabase } from '@/lib/supabase'
+import {
+  DEFAULT_SITE_EVENT_CONFIGS,
+  resolveSiteEventConfigs,
+  type SiteEventConfig,
+} from '@/constants/siteEventConfigs'
 
 function GpsIcon({ className }: { className?: string }) {
   return (
@@ -40,48 +46,6 @@ function ContactLinkArrow({ className }: { className?: string }) {
   )
 }
 
-type CalendarEvent = {
-  id: string
-  day: string
-  monthFull: string
-  title: string
-  description: string
-  cityRegion: string
-  imageSrc: string
-  isPrivate: boolean
-  ctaLabel: string
-  ctaHref: string
-}
-
-const UPCOMING_EVENTS: CalendarEvent[] = [
-  {
-    id: 'driven-show-2026-05-16',
-    day: '16',
-    monthFull: 'MAY',
-    title: 'The Driven Show',
-    description:
-      'Canada’s aftermarket performance showcase in Saint-Hyacinthe — builders, brands, vendors, and show cars in one day.',
-    cityRegion: 'Saint-Hyacinthe, QC',
-    imageSrc: '/Assets/Driven.webp',
-    isPrivate: false,
-    ctaLabel: 'See details',
-    ctaHref: 'https://www.drivenshow.ca/sainthyacinthe/',
-  },
-  {
-    id: 'fireball-after-party-2026-05-16',
-    day: '16',
-    monthFull: 'MAY',
-    title: 'Fireball After Party',
-    description:
-      'Private evening after the show — invitation only. Meet the team, connect with the community, and get details once your spot is confirmed.',
-    cityRegion: 'Saint-Hyacinthe, QC',
-    imageSrc: '/Assets/FireballAfterParty.png',
-    isPrivate: true,
-    ctaLabel: 'RSVP NOW',
-    ctaHref: '/event/fireball-after-party',
-  },
-]
-
 /** Slightly lighter overlay so photos read through; text stays readable */
 const eventCardOverlayBaseClass = 'absolute inset-0 bg-black/42'
 const eventCardOverlayGradientClass =
@@ -95,6 +59,19 @@ const eventMetaPillClass =
 
 export function Event() {
   const lenis = useContext(LenisContext)
+  const [events, setEvents] = useState<SiteEventConfig[]>(DEFAULT_SITE_EVENT_CONFIGS)
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'events')
+        .maybeSingle()
+      setEvents(resolveSiteEventConfigs(data?.value))
+    }
+    void load()
+  }, [])
 
   const scrollToUpcoming = useCallback(() => {
     const el = document.getElementById('upcoming-events')
@@ -163,7 +140,7 @@ export function Event() {
           </div>
 
           <div className="mt-12 space-y-8 md:mt-14 md:space-y-10">
-            {UPCOMING_EVENTS.map((ev, index) => (
+            {events.map((ev, index) => (
               <article
                 key={ev.id}
                 className="relative overflow-hidden rounded-2xl md:rounded-3xl"
