@@ -38,6 +38,32 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
     configuredFromDomain && !PUBLIC_EMAIL_DOMAINS.has(configuredFromDomain)
       ? configuredFromEmail
       : 'Fireball Canada <onboarding@resend.dev>'
+  const isInvalidShopifyToken = (details: unknown): boolean => {
+    const text =
+      typeof details === 'string'
+        ? details
+        : (() => {
+            try {
+              return JSON.stringify(details || {})
+            } catch {
+              return ''
+            }
+          })()
+    return /invalid api key|access token|wrong password|unrecognized login/i.test(text)
+  }
+  const isMissingReadOrdersScope = (details: unknown): boolean => {
+    const text =
+      typeof details === 'string'
+        ? details
+        : (() => {
+            try {
+              return JSON.stringify(details || {})
+            } catch {
+              return ''
+            }
+          })()
+    return /read_orders scope|requires merchant approval/i.test(text)
+  }
 
   const readJsonBody = async (req: any): Promise<Record<string, unknown>> =>
     await new Promise((resolve) => {
@@ -778,6 +804,158 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
           res.statusCode = 200
           res.setHeader('Content-Type', 'application/json')
           res.end(JSON.stringify({ ok: true, previews }))
+        } catch (error) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              error: 'Internal server error',
+              details: error instanceof Error ? error.message : 'Unknown error',
+            }),
+          )
+        }
+      })
+
+      server.middlewares.use('/api/shopify-track-order', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Method not allowed' }))
+          return
+        }
+
+        if (!shopifyStoreUrl || !shopifyAdminApiToken) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              error: 'Missing SHOPIFY_STORE_URL or SHOPIFY_ADMIN_API_TOKEN in server env.',
+            }),
+          )
+          return
+        }
+
+        try {
+          const body = (await readJsonBody(req)) as { orderNumber?: string; email?: string }
+          const rawOrderNumber = String(body.orderNumber || '').trim()
+          const orderNumber = rawOrderNumber
+            ? rawOrderNumber.startsWith('#')
+              ? rawOrderNumber
+              : `#${rawOrderNumber}`
+            : ''
+          const email = String(body.email || '')
+            .trim()
+            .toLowerCase()
+
+          if (!orderNumber || !email) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: 'Missing required fields: orderNumber and email' }))
+            return
+          }
+
+          const normalizedStoreUrl = shopifyStoreUrl.startsWith('http')
+            ? shopifyStoreUrl
+            : `https://${shopifyStoreUrl}`
+          const ordersUrl = `${normalizedStoreUrl}/admin/api/${shopifyApiVersion}/orders.json?status=any&name=${encodeURIComponent(
+            orderNumber,
+          )}&fields=id,name,order_number,email,created_at,financial_status,fulfillment_status,fulfillments,total_price,currency,line_items`
+
+          const orderRes = await fetchShopifyAdminJson(ordersUrl)
+          if (!orderRes.ok) {
+            if (isInvalidShopifyToken(orderRes.data)) {
+              res.statusCode = 500
+              res.setHeader('Content-Type', 'application/json')
+              res.end(
+                JSON.stringify({
+                  error:
+                    'Shopify Admin token is invalid. Update SHOPIFY_ADMIN_API_TOKEN in server environment.',
+                }),
+              )
+              return
+            }
+            if (isMissingReadOrdersScope(orderRes.data)) {
+              res.statusCode = 403
+              res.setHeader('Content-Type', 'application/json')
+              res.end(
+                JSON.stringify({
+                  error:
+                    'Shopify API access is missing read_orders permission. Approve and reinstall your app scopes in Shopify admin.',
+                }),
+              )
+              return
+            }
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(
+              JSON.stringify({
+                error: 'Shopify request failed',
+                details: orderRes.data || null,
+              }),
+            )
+            return
+          }
+
+          const orders = Array.isArray(orderRes.data?.orders) ? orderRes.data.orders : []
+          const order = orders.find((candidate: any) => {
+            const candidateEmail = String(candidate?.email || '')
+              .trim()
+              .toLowerCase()
+            return candidateEmail === email
+          })
+
+          if (!order) {
+            res.statusCode = 404
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: 'Order not found for provided email and order number' }))
+            return
+          }
+
+          const firstLineItem =
+            Array.isArray(order.line_items) && order.line_items.length > 0 ? order.line_items[0] : null
+          const fulfillments = Array.isArray(order.fulfillments) ? order.fulfillments : []
+          const tracking = fulfillments.flatMap((fulfillment: any) => {
+            const company = String(fulfillment?.tracking_company || '').trim() || null
+            const status = String(fulfillment?.shipment_status || '').trim() || null
+
+            if (Array.isArray(fulfillment?.tracking_numbers) && fulfillment.tracking_numbers.length) {
+              return fulfillment.tracking_numbers.map((trackingNumber: unknown, index: number) => ({
+                number: String(trackingNumber || '').trim() || null,
+                url:
+                  Array.isArray(fulfillment?.tracking_urls) && fulfillment.tracking_urls[index]
+                    ? String(fulfillment.tracking_urls[index]).trim()
+                    : null,
+                company,
+                status,
+              }))
+            }
+
+            const singleNumber = String(fulfillment?.tracking_number || '').trim() || null
+            const singleUrl = String(fulfillment?.tracking_url || '').trim() || null
+            if (!singleNumber && !singleUrl) return []
+            return [{ number: singleNumber, url: singleUrl, company, status }]
+          })
+
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              ok: true,
+              order: {
+                id: order.id,
+                name: order.name,
+                orderNumber: order.order_number,
+                email: order.email,
+                createdAt: order.created_at,
+                financialStatus: order.financial_status,
+                fulfillmentStatus: order.fulfillment_status,
+                totalPrice: Number.parseFloat(order.total_price || '0'),
+                currency: order.currency || 'CAD',
+                firstItemTitle: firstLineItem?.title || null,
+              },
+              tracking,
+            }),
+          )
         } catch (error) {
           res.statusCode = 500
           res.setHeader('Content-Type', 'application/json')

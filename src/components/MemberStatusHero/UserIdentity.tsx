@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
+import { SHOPIFY_CUSTOMER_ORDERS_URL } from '@/constants/shopifyShopApp'
 
 interface UserIdentityProps {
   partnerStatus?: string | null
-  onProductsPurchasedClick?: () => void
   onSettingsClick?: () => void
 }
 
@@ -14,7 +14,6 @@ const ArrowIcon = () => (
 
 export function UserIdentity({
   partnerStatus = null,
-  onProductsPurchasedClick,
   onSettingsClick,
 }: UserIdentityProps) {
   const buttonClass =
@@ -29,23 +28,26 @@ export function UserIdentity({
         QUICK LINKS
       </p>
       <div className="flex flex-col gap-2">
-        <button
-          type="button"
+        <a
+          href={SHOPIFY_CUSTOMER_ORDERS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
           className={buttonClass}
           style={{ background: 'rgba(229, 231, 235, 0.9)', fontWeight: 400 }}
         >
           <span>Track your order</span>
           <ArrowIcon />
-        </button>
-        <button
-          type="button"
-          onClick={onProductsPurchasedClick}
+        </a>
+        <a
+          href={SHOPIFY_CUSTOMER_ORDERS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
           className={buttonClass}
           style={{ background: 'rgba(229, 231, 235, 0.9)', fontWeight: 400 }}
         >
           <span>Products purchased</span>
           <ArrowIcon />
-        </button>
+        </a>
         <Link
           to="/account/company"
           className={buttonClass}

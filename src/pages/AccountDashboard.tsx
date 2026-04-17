@@ -5,7 +5,6 @@ import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { MemberStatusHero } from '@/components/MemberStatusHero/MemberStatusHero'
 import { AddVehicleModal } from '@/components/AddVehicleModal'
 import { AccountDashboardSkeleton } from '@/components/ui/AccountDashboardSkeleton'
-import { ProductsPurchasedSheet } from '@/components/ProductsPurchasedSheet'
 import { AdminPanelSheet } from '@/components/AdminPanelSheet'
 import { SettingsSheet } from '@/components/SettingsSheet'
 import { Footer } from '@/components/Layout/Footer'
@@ -20,7 +19,7 @@ import { ensureShopifyCustomerForProfile } from '@/utils/shopifySync'
 import { getSafeReturnToPath } from '@/utils/safeReturnTo'
 import { supabase } from '@/lib/supabase'
 import { getClientCache, setClientCache } from '@/utils/clientCache'
-import { SHOPIFY_SHOP_APP_URL } from '@/constants/shopifyShopApp'
+import { SHOPIFY_CUSTOMER_ORDERS_URL } from '@/constants/shopifyShopApp'
 import { fetchCustomerOrders, formatOrderRef, type CustomerOrder as Order } from '@/utils/customerOrders'
 
 interface Vehicle {
@@ -391,7 +390,6 @@ export function AccountDashboard() {
   const [isEnteringDashboard, setIsEnteringDashboard] = useState(false)
   const [dashboardDataLoaded, setDashboardDataLoaded] = useState(false)
   const [carModalOpen, setCarModalOpen] = useState(false)
-  const [productsPurchasedOpen, setProductsPurchasedOpen] = useState(false)
   const [adminPanelOpen, setAdminPanelOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
@@ -982,7 +980,6 @@ export function AccountDashboard() {
             currentTierColorClass={currentTier.colorClass}
             memberId={memberId}
             barcodeValue={barcodeValue}
-            onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}
             onAdminPanelClick={() => setAdminPanelOpen(true)}
             onSettingsClick={() => setSettingsOpen(true)}
             walletBalanceLabel="0.00 $"
@@ -1095,7 +1092,7 @@ export function AccountDashboard() {
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Orders</p>
                   <a
-                    href={SHOPIFY_SHOP_APP_URL}
+                    href={SHOPIFY_CUSTOMER_ORDERS_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="shrink-0 text-sm font-semibold text-[#0485F7] transition-colors hover:text-[#0366c7] hover:underline"
@@ -1395,7 +1392,6 @@ export function AccountDashboard() {
           ])
         }}
       />
-      <ProductsPurchasedSheet isOpen={productsPurchasedOpen} onClose={() => setProductsPurchasedOpen(false)} />
       {orderDetailsOrder && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50"

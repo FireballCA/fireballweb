@@ -14,6 +14,7 @@ import { Account } from '@/pages/Account'
 import { AccountRegister } from '@/pages/AccountRegister'
 import { AccountDashboard } from '@/pages/AccountDashboard'
 import { AccountOrders } from '@/pages/AccountOrders'
+import { AccountTrackOrder } from '@/pages/AccountTrackOrder'
 import { AccountSettings } from '@/pages/AccountSettings'
 import { BusinessPage } from '@/pages/BusinessPage'
 import { ManagePartners } from '@/pages/ManagePartners'
@@ -102,6 +103,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AccountOrders />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="account/track-order"
+              element={
+                <ProtectedRoute>
+                  <AccountTrackOrder />
                 </ProtectedRoute>
               }
             />

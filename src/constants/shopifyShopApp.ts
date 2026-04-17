@@ -11,3 +11,18 @@ export const SHOPIFY_SHOP_APP_URL = (() => {
   if (raw && /^https?:\/\//i.test(raw)) return raw
   return 'https://shop.app'
 })()
+
+/**
+ * Customer orders page on the Shopify store.
+ * Redirect users here when they want to see full past orders history.
+ */
+export const SHOPIFY_CUSTOMER_ORDERS_URL = (() => {
+  const rawStoreUrl = (import.meta.env.VITE_SHOPIFY_STORE_URL as string | undefined)?.trim()
+  const normalizedStoreUrl = rawStoreUrl
+    ? rawStoreUrl.startsWith('http')
+      ? rawStoreUrl
+      : `https://${rawStoreUrl}`
+    : 'https://fireball-canada.myshopify.com'
+
+  return `${normalizedStoreUrl.replace(/\/+$/, '')}/account/orders`
+})()
