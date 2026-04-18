@@ -6,6 +6,7 @@ import { AppleButton, appleButtonVisualClassName } from '@/components/ui/AppleBu
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { generatePreviewStripeOrderId, sendTrainingRegistrationEmail } from '@/utils/trainingRegistrationEmail'
+import { insertTrainingRequest } from '@/utils/trainingRequests'
 import { getCurrentUserProfile, type UserProfile } from '@/utils/supabaseAuth'
 import {
   DEFAULT_TRAINING_SESSION_OPTIONS,
@@ -26,9 +27,6 @@ export const TRAINING_REGISTRATION_PRICE = `$${TRAINING_BASE_PRICE_CAD.toLocaleS
 
 /** XP affiché pour l’inscription à la formation (placeholder). */
 export const TRAINING_REGISTRATION_XP = 500
-
-/** Taux de taxes estimatif (GST + QST, Québec) — le total définitif est confirmé à la facturation. */
-const ESTIMATED_TAX_RATE = 0.14975
 
 type Step = 1 | 2
 
@@ -52,10 +50,8 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [message, setMessage] = useState('')
-  const [discountCodeInput, setDiscountCodeInput] = useState('')
-  const [appliedDiscountCad, setAppliedDiscountCad] = useState(0)
-  const [discountMessage, setDiscountMessage] = useState<string | null>(null)
-  const [paymentSubmitting, setPaymentSubmitting] = useState(false)
+  const [requestSubmitting, setRequestSubmitting] = useState(false)
+  const [requestSaveError, setRequestSaveError] = useState<string | null>(null)
 
   const returnToQuery = `returnTo=${encodeURIComponent(ACADEMY_TRAINING_RETURN_PATH)}`
   const connectionHref = `/account?${returnToQuery}`
@@ -142,9 +138,7 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
   useEffect(() => {
     if (!open) {
       setStep(1)
-      setDiscountCodeInput('')
-      setAppliedDiscountCad(0)
-      setDiscountMessage(null)
+      setRequestSaveError(null)
     }
   }, [open])
 
@@ -183,52 +177,37 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
 
   const selectedSession = trainingSessions.find((o) => o.id === selectedSessionId)
 
-  const formatCad = (amount: number) =>
-    new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(amount)
-
-  const amountToPayCad = TRAINING_BASE_PRICE_CAD
-  const discountCad = appliedDiscountCad
-  const taxableCad = Math.max(0, amountToPayCad - discountCad)
-  const estimatedTaxesCad = taxableCad * ESTIMATED_TAX_RATE
-  const totalDueCad = taxableCad + estimatedTaxesCad
-
-  const handleApplyDiscount = () => {
-    const code = discountCodeInput.trim().toUpperCase()
-    if (!code) {
-      setDiscountMessage('Please enter a promotional code.')
-      return
-    }
-    // Codes promotionnels : à terme, validation côté serveur. Certaines valeurs peuvent être reconnues en interne.
-    const eligibleCodes: Record<string, number> = { ALLO: Math.round(TRAINING_BASE_PRICE_CAD * 0.1 * 100) / 100 }
-    const amount = eligibleCodes[code]
-    if (amount != null && amount > 0) {
-      setAppliedDiscountCad(amount)
-      setDiscountMessage('Promotional code applied. Your order summary has been updated.')
-    } else {
-      setAppliedDiscountCad(0)
-      setDiscountMessage(
-        'This promotional code is not valid or has expired. You may continue your registration without a promotional code.',
-      )
-    }
-  }
-
-  const handleCompleteRegistration = async () => {
+  const handleSubmitRequest = async () => {
     if (!profile || !email.trim()) return
-    setPaymentSubmitting(true)
+    setRequestSaveError(null)
+    setRequestSubmitting(true)
     try {
-      const orderNumber = generatePreviewStripeOrderId()
-      const totalFormatted = formatCad(totalDueCad)
+      const requestRef = generatePreviewStripeOrderId()
+      const indicativeFeeNote = `${TRAINING_REGISTRATION_PRICE} CAD (before taxes) — invoiced only if your request is approved`
       const sessionLabel = selectedSession
         ? `${selectedSession.label}${selectedSession.hint ? ` — ${selectedSession.hint}` : ''}`
         : 'Fireball Academy training'
       const customerName = name.trim() || greetingFirstName || 'Member'
 
+      const saved = await insertTrainingRequest({
+        userId: profile.id,
+        reference: requestRef,
+        sessionId: selectedSessionId || null,
+        sessionLabel,
+        message: message.trim(),
+        phone: phone.trim(),
+      })
+      if (!saved.ok) {
+        setRequestSaveError(saved.error)
+        return
+      }
+
       const result = await sendTrainingRegistrationEmail({
         to: email.trim(),
         customerName,
-        orderNumber,
+        orderNumber: requestRef,
         sessionLabel,
-        totalFormatted,
+        indicativeFeeNote,
       })
       if (!result.ok) {
         console.warn('Training confirmation email:', result.error)
@@ -237,13 +216,13 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
       navigate('/academy/training-thank-you', {
         replace: true,
         state: {
-          orderNumber,
+          orderNumber: requestRef,
           email: email.trim(),
           customerName,
         },
       })
     } finally {
-      setPaymentSubmitting(false)
+      setRequestSubmitting(false)
     }
   }
 
@@ -270,11 +249,11 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-carbon-200 px-5 py-4 sm:px-7 sm:py-5">
           <div className="min-w-0 pr-2">
             <h2 id={titleId} className="text-xl font-bold tracking-tight text-carbon-900 sm:text-2xl md:text-3xl">
-              {step === 1 ? 'Join next fireball events' : 'Next steps'}
+              {step === 1 ? 'Request a future training session' : 'Review your request'}
             </h2>
             {step === 2 ? (
               <p className="mt-1 text-xs text-carbon-500">
-                Review your order summary, then confirm your registration. You will receive a confirmation email and your order reference on the next screen.
+                No payment is taken here. The Fireball Canada team will review your request and notify you by email if it is approved or declined.
               </p>
             ) : null}
           </div>
@@ -309,18 +288,21 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
               <p className="text-sm leading-relaxed text-carbon-600">
                 {profile ? (
                   <>
-                    Choose your training date and complete the form below. When all required fields are filled, select{' '}
-                    <strong className="font-semibold text-carbon-800">Next steps</strong> to continue.
+                    You are submitting a <strong className="font-semibold text-carbon-800">request</strong> to attend a future Fireball Academy training session — not a live checkout.{' '}
+                    <strong className="font-semibold text-carbon-800">You are not charged today.</strong> Fireball Canada will review your request and{' '}
+                    <strong className="font-semibold text-carbon-800">approve or decline</strong> it. Choose a session, complete the form, then use{' '}
+                    <strong className="font-semibold text-carbon-800">Next steps</strong> to review and send your request.
                   </>
                 ) : (
                   <>
-                    Choose a training date, sign in using <strong className="font-semibold text-carbon-800">Connection</strong>, then complete the form.{' '}
-                    <strong className="font-semibold text-carbon-800">Next steps</strong> becomes available once you are signed in and the form is complete.
+                    Choose a session and sign in with <strong className="font-semibold text-carbon-800">Connection</strong>. This form submits a{' '}
+                    <strong className="font-semibold text-carbon-800">request</strong> for a future training — there is no payment on this screen.{' '}
+                    <strong className="font-semibold text-carbon-800">Next steps</strong> is available once you are signed in and the form is complete.
                   </>
                 )}
               </p>
 
-              <fieldset className="mt-8">
+              <fieldset className="fb-training-session-picker mt-8">
                 <legend className="text-xs font-semibold uppercase tracking-wider text-carbon-500">Training date</legend>
                 <div className="mt-3 divide-y divide-carbon-200 overflow-hidden rounded-lg border border-carbon-200">
                   {trainingSessions.map((opt) => {
@@ -329,7 +311,7 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
                       <label
                         key={opt.id}
                         htmlFor={inputId}
-                        className="flex cursor-pointer items-start gap-3 bg-white px-4 py-3 transition hover:bg-carbon-50 sm:px-5 sm:py-4"
+                        className="flex cursor-pointer items-start gap-3 bg-white px-4 py-3 outline-none transition hover:bg-carbon-50 focus-within:outline-none sm:px-5 sm:py-4"
                       >
                         <input
                           id={inputId}
@@ -338,7 +320,7 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
                           value={opt.id}
                           checked={selectedSessionId === opt.id}
                           onChange={() => setSelectedSessionId(opt.id)}
-                          className="mt-1 h-4 w-4 shrink-0 border-carbon-400 text-[#0485F7] focus:ring-carbon-500"
+                          className="mt-1 h-4 w-4 shrink-0 cursor-pointer border-carbon-300 accent-[#0485F7] shadow-none outline-none ring-0 ring-offset-0 focus:outline-none focus:shadow-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
                         />
                         <span className="min-w-0 flex-1">
                           <span className="block font-semibold text-carbon-900">{opt.label}</span>
@@ -354,7 +336,7 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
                 <div className="mt-10 rounded-xl border border-carbon-200/90 bg-carbon-50/95 px-4 py-4 sm:px-5">
                   <p className="text-sm font-medium text-carbon-900">Account</p>
                   <p className="mt-1 text-sm text-carbon-600">
-                    You are signed in. You may continue with the form below.
+                    You are signed in. Continue with your training request below.
                   </p>
                   <div className="mt-4">
                     <span
@@ -470,98 +452,49 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
             <div className="space-y-6">
               <div className="space-y-3 text-sm leading-relaxed text-carbon-700">
                 <p>
-                  After you confirm your registration, Fireball Canada will send your schedule, preparation instructions, and next steps{' '}
-                  <strong className="font-semibold text-carbon-900">to the email address on file</strong>. Please also check your spam or junk folder.
+                  By submitting, you confirm that you understand this is a <strong className="font-semibold text-carbon-900">request only</strong>.{' '}
+                  Fireball Canada will email you at <strong className="font-semibold text-carbon-900">the address on file</strong> to let you know whether your request is{' '}
+                  <strong className="font-semibold text-carbon-900">approved or declined</strong>. Please check spam or junk folders.
                 </p>
                 <p>
-                  <strong className="font-semibold text-carbon-900">Cancellation and refunds:</strong> Cancellations received at least{' '}
-                  <strong className="font-semibold text-carbon-900">five (5) business days before</strong> the start date of your training session may qualify for a{' '}
-                  <strong className="font-semibold text-carbon-900">full refund without administrative fees</strong>. Cancellations after that period may be subject to fees or conditions as described in your written confirmation.
+                  <strong className="font-semibold text-carbon-900">No payment today.</strong> If your request is approved, we will send instructions and any applicable{' '}
+                  <strong className="font-semibold text-carbon-900">training fee</strong>, taxes, and cancellation or refund terms in writing before you are asked to pay.
+                </p>
+                <p className="text-carbon-600">
+                  <strong className="font-semibold text-carbon-900">XP:</strong> experience points may be credited when your participation is confirmed after approval,{' '}
+                  according to Fireball program rules.
                 </p>
               </div>
 
               {selectedSession ? (
                 <div className="rounded-lg border border-carbon-200 bg-carbon-50/80 px-4 py-3 text-sm text-carbon-800">
-                  <span className="font-medium text-carbon-600">Selected session</span>
+                  <span className="font-medium text-carbon-600">Requested session</span>
                   <p className="mt-1 font-semibold text-carbon-900">{selectedSession.label}</p>
                   {selectedSession.hint ? <p className="text-carbon-600">{selectedSession.hint}</p> : null}
                 </div>
               ) : null}
 
-              <div className="border-t border-carbon-200 pt-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-carbon-700">Training fee</p>
-                    <p className="mt-1.5 text-sm font-medium tabular-nums text-carbon-700">
-                      Earn {TRAINING_REGISTRATION_XP.toLocaleString()}{' '}
-                      <span className="font-bold">XP</span>
-                    </p>
-                  </div>
-                  <p className="text-2xl font-bold tabular-nums tracking-tight text-carbon-900 sm:pt-0.5 sm:text-right">
-                    {TRAINING_REGISTRATION_PRICE}
+              <div className="rounded-xl border border-carbon-200 bg-carbon-50/50 px-4 py-4 sm:px-5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-500">Indicative training fee</p>
+                <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+                  <p className="text-sm text-carbon-700">
+                    Typical program fee (before taxes){' '}
+                    <span className="font-medium tabular-nums text-carbon-900">{TRAINING_REGISTRATION_PRICE}</span>
+                  </p>
+                  <p className="text-xs font-medium text-carbon-600">
+                    +{TRAINING_REGISTRATION_XP.toLocaleString()} XP when eligible
                   </p>
                 </div>
-                <p className="mt-3 text-xs leading-snug text-carbon-500">
-                  Experience points (XP) are credited when your registration is confirmed. Amounts shown below are estimates; final taxes and charges will be confirmed at billing.
+                <p className="mt-3 text-[11px] leading-snug text-carbon-500">
+                  This amount is for planning only. You are not invoiced from this screen. Final pricing and taxes will be confirmed if your request is approved.
                 </p>
-
-                <div className="mt-6 rounded-xl border border-carbon-200 bg-carbon-50/50 px-4 py-4 sm:px-5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-500">Order summary</p>
-                  <dl className="mt-3 space-y-2.5 text-sm">
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-carbon-600">Amount to pay</dt>
-                      <dd className="tabular-nums font-medium text-carbon-900">{formatCad(amountToPayCad)}</dd>
-                    </div>
-                  </dl>
-
-                  <div className="mt-4 border-t border-carbon-200/90 pt-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-500">Promotional code</p>
-                    <p className="mt-1 text-xs text-carbon-500">
-                      If you have a promotional code issued by Fireball Canada, enter it below and select Apply.
-                    </p>
-                    <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-stretch">
-                      <input
-                        type="text"
-                        value={discountCodeInput}
-                        onChange={(e) => setDiscountCodeInput(e.target.value)}
-                        placeholder="Promotional code"
-                        className="min-w-0 flex-1 rounded-lg border border-carbon-700/25 bg-white px-3 py-2 text-sm text-carbon-900 placeholder:text-carbon-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500"
-                        autoComplete="off"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleApplyDiscount}
-                        className="shrink-0 rounded-lg border border-carbon-300 bg-white px-4 py-2 text-xs font-semibold text-carbon-800 transition hover:bg-carbon-100"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                    {discountMessage ? (
-                      <p className="mt-2 text-xs leading-snug text-carbon-600">{discountMessage}</p>
-                    ) : null}
-                    {discountCad > 0 ? (
-                      <div className="mt-3 flex justify-between gap-4 text-sm">
-                        <span className="text-emerald-800">Promotional discount</span>
-                        <span className="tabular-nums font-medium text-emerald-800">−{formatCad(discountCad)}</span>
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <dl className="mt-4 space-y-2 border-t border-carbon-200/90 pt-4 text-sm">
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-carbon-600">Taxes (estimated)</dt>
-                      <dd className="tabular-nums text-carbon-900">{formatCad(estimatedTaxesCad)}</dd>
-                    </div>
-                    <div className="flex justify-between gap-4 border-t border-carbon-200/80 pt-3 text-base font-bold text-carbon-900">
-                      <dt>Total due</dt>
-                      <dd className="tabular-nums">{formatCad(totalDueCad)}</dd>
-                    </div>
-                  </dl>
-                  <p className="mt-3 text-[11px] leading-snug text-carbon-500">
-                    Review your summary, then select Complete registration to confirm. You will receive a confirmation email and an order reference on the next screen. Secure online payment will be invoiced or charged separately when billing is activated.
-                  </p>
-                </div>
               </div>
+
+              {requestSaveError ? (
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+                  {requestSaveError}
+                </p>
+              ) : null}
 
               <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
                 <button
@@ -573,11 +506,11 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
                 </button>
                 <AppleButton
                   type="button"
-                  disabled={!profile || paymentSubmitting}
+                  disabled={!profile || requestSubmitting}
                   className="disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-[#0485F7] disabled:hover:bg-[#0485F7]"
-                  onClick={() => void handleCompleteRegistration()}
+                  onClick={() => void handleSubmitRequest()}
                 >
-                  {paymentSubmitting ? 'Processing…' : 'Complete registration'}
+                  {requestSubmitting ? 'Sending…' : 'Submit my request'}
                 </AppleButton>
               </div>
             </div>

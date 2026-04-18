@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { AdminApplicationsHub } from '@/components/admin/AdminApplicationsHub'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { PRODUCTS, type Product as LocalProduct } from '@/data/products'
 
@@ -37,8 +37,12 @@ export function AdminPanelContent({ section }: { section?: AdminSection }) {
   const showTabs = section == null
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 md:px-10 pt-5 pb-8">
-      <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-6 lg:gap-10">
+    <div className="flex-1 overflow-y-auto px-4 pt-5 pb-8 sm:px-6 md:px-8">
+      <div
+        className={`mx-auto flex w-full flex-col gap-6 lg:flex-row lg:gap-10 ${
+          section === 'partners' ? 'max-w-[1400px]' : 'max-w-6xl'
+        }`}
+      >
         {showTabs && (
           <aside className="w-full lg:w-60 flex-shrink-0">
             <div className="rounded-3xl border border-white/[0.07] bg-white/[0.03] backdrop-blur-sm px-4 py-4 shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
@@ -67,8 +71,8 @@ export function AdminPanelContent({ section }: { section?: AdminSection }) {
                       : 'bg-white/[0.02] text-white/70 border border-white/[0.08] hover:bg-white/[0.08] hover:text-white'
                   }`}
                 >
-                  <span>Partners</span>
-                  <span className="text-[9px] uppercase tracking-[0.18em] text-white/50">Applications</span>
+                  <span>Applications</span>
+                  <span className="text-[9px] uppercase tracking-[0.18em] text-white/50">Training · Partner</span>
                 </button>
                 <button
                   type="button"
@@ -112,7 +116,7 @@ export function AdminPanelContent({ section }: { section?: AdminSection }) {
         )}
         <main className="w-full lg:flex-1 flex flex-col gap-4">
           {effectiveSection === 'stats' && <AdminStatsSection />}
-          {effectiveSection === 'partners' && <AdminPartnersSection />}
+          {effectiveSection === 'partners' && <AdminApplicationsHub />}
           {effectiveSection === 'notifications' && <AdminNotificationsSection />}
           {effectiveSection === 'announcements' && <AdminAnnouncementsSection />}
           {effectiveSection === 'products' && <AdminProductsSection />}
@@ -386,191 +390,6 @@ function AdminStatsSection() {
               Declined {declinedPct}%
             </span>
           </div>
-        </div>
-      )}
-    </section>
-  )
-}
-
-interface PartnerApplicationSummaryRow {
-  id: string
-  company_name: string | null
-  status: 'pending' | 'partner' | 'declined'
-  submitted_at: string | null
-}
-
-function AdminPartnersSection() {
-  const [rows, setRows] = useState<PartnerApplicationSummaryRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [processingId, setProcessingId] = useState<string | null>(null)
-
-  const loadRows = async () => {
-    setError('')
-    setLoading(true)
-    const { data, error: loadError } = await supabase
-      .from('partner_companies')
-      .select('id, company_name, status, submitted_at')
-      .order('submitted_at', { ascending: false })
-
-    if (loadError) {
-      setError(loadError.message || 'Unable to load partner applications.')
-      setLoading(false)
-      return
-    }
-
-    setRows((data || []) as PartnerApplicationSummaryRow[])
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    loadRows()
-  }, [])
-
-  const updateStatus = async (row: PartnerApplicationSummaryRow, nextStatus: 'partner' | 'declined') => {
-    setProcessingId(row.id)
-    setError('')
-    const { error: statusError } = await supabase
-      .from('partner_companies')
-      .update({
-        status: nextStatus,
-        reviewed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', row.id)
-
-    if (statusError) {
-      setError(statusError.message || 'Unable to update this application.')
-      setProcessingId(null)
-      return
-    }
-
-    setRows((current) =>
-      current.map((item) => (item.id === row.id ? { ...item, status: nextStatus } : item)),
-    )
-    setProcessingId(null)
-  }
-
-  const pending = rows.filter((row) => row.status === 'pending')
-  const nonPending = rows.filter((row) => row.status !== 'pending')
-
-  return (
-    <section className="rounded-3xl border border-white/[0.09] bg-white/[0.02] px-5 py-5 shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <div>
-          <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">
-            Partner applications
-          </p>
-          <p className="text-[12px] text-white/60">
-            Review and decide on incoming partner applications directly from this panel.
-          </p>
-        </div>
-        <Link
-          to="/account/manage-partners"
-          className="hidden md:inline-flex items-center gap-2 rounded-full border border-white/[0.3] bg-white/[0.06] px-3 py-1.5 text-[11px] font-nav uppercase tracking-[0.16em] text-white/85 hover:bg-white/[0.14] hover:border-white/60 transition-colors"
-        >
-          <span>Open legacy page</span>
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-            <path d="M7 17L17 7M9 7h8v8" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </Link>
-      </div>
-
-      {error && (
-        <div className="mb-3 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[12px] text-red-200">
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <p className="text-sm text-white/60">Loading applications…</p>
-      ) : rows.length === 0 ? (
-        <p className="text-sm text-white/60">No partner applications found.</p>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {pending.length > 0 && (
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-amber-200/80 mb-2">Pending</p>
-              <div className="flex flex-col gap-2.5">
-                {pending.map((row) => (
-                  <article
-                    key={row.id}
-                    className="rounded-2xl border border-white/[0.12] bg-white/[0.03] px-4 py-3 flex flex-col gap-2"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-white">
-                          {row.company_name || 'Unknown company'}
-                        </p>
-                        {row.submitted_at && (
-                          <p className="text-[11px] text-white/55">
-                            Submitted {new Date(row.submitted_at).toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                      <span className="inline-flex items-center rounded-full border border-amber-400/60 bg-amber-400/15 px-2 py-0.5 text-[10px] font-nav uppercase tracking-[0.16em] text-amber-100">
-                        Pending
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        disabled={processingId === row.id}
-                        onClick={() => updateStatus(row, 'partner')}
-                        className="inline-flex items-center gap-1 rounded-full bg-emerald-500 text-black px-3 py-1.5 text-[11px] font-semibold hover:bg-emerald-400 disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        type="button"
-                        disabled={processingId === row.id}
-                        onClick={() => updateStatus(row, 'declined')}
-                        className="inline-flex items-center gap-1 rounded-full border border-red-500/70 bg-red-500/10 px-3 py-1.5 text-[11px] font-semibold text-red-100 hover:bg-red-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        Decline
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {nonPending.length > 0 && (
-            <div>
-              <p className="mt-4 text-[11px] uppercase tracking-[0.18em] text-white/45 mb-2">
-                Recent decisions
-              </p>
-              <div className="flex flex-col gap-2">
-                {nonPending.slice(0, 5).map((row) => (
-                  <article
-                    key={row.id}
-                    className="rounded-2xl border border-white/[0.08] bg-white/[0.01] px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-white/75"
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-medium text-white">
-                        {row.company_name || 'Unknown company'}
-                      </span>
-                      {row.submitted_at && (
-                        <span className="text-[11px] text-white/50">
-                          Submitted {new Date(row.submitted_at).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-nav uppercase tracking-[0.16em] ${
-                        row.status === 'partner'
-                          ? 'border-emerald-400/60 bg-emerald-400/10 text-emerald-100'
-                          : 'border-red-400/60 bg-red-500/10 text-red-100'
-                      }`}
-                    >
-                      {row.status === 'partner' ? 'Approved' : 'Declined'}
-                    </span>
-                  </article>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </section>

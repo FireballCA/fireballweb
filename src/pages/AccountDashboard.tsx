@@ -19,9 +19,24 @@ import {
 import { ensureShopifyCustomerForProfile } from '@/utils/shopifySync'
 import { getSafeReturnToPath } from '@/utils/safeReturnTo'
 import { supabase } from '@/lib/supabase'
+import { cn } from '@/lib/utils'
 import { getClientCache, setClientCache } from '@/utils/clientCache'
 import { SHOPIFY_CUSTOMER_ORDERS_URL } from '@/constants/shopifyShopApp'
 import { fetchCustomerOrders, formatOrderRef, type CustomerOrder as Order } from '@/utils/customerOrders'
+import {
+  fetchTrainingRequestsForDashboard,
+  pickPrimaryTrainingRequestForDashboard,
+  type TrainingRequestRow,
+  type TrainingRequestStatus,
+} from '@/utils/trainingRequests'
+import { AcademyTrainingTimeline } from '@/components/AcademyTrainingTimeline'
+import { TrainingPaymentDueModal } from '@/components/TrainingPaymentDueModal'
+import { broadcastUnreadNotifications } from '@/utils/inAppNotificationsFlag'
+import { NotificationMessageWithStatusHighlight } from '@/utils/notificationTextHighlight'
+import {
+  loadDismissedNotificationIds,
+  saveDismissedNotificationIds,
+} from '@/utils/dismissedNotificationsStorage'
 
 interface Vehicle {
   id: string
@@ -43,6 +58,26 @@ interface DashboardNotification {
   created_at: string
 }
 
+/**
+ * Aperçu UI : une notif factice si la liste Supabase est vide.
+ * Mettre à `false` pour masquer (ou retirer le bloc une fois satisfait).
+ */
+const SHOW_DEMO_NOTIFICATIONS = import.meta.env.DEV && true
+
+const DEMO_NOTIFICATIONS: DashboardNotification[] = [
+  {
+    id: '__demo_fireball_preview',
+    title: 'Fireball Canada',
+    message:
+      'Notification de démonstration (mode dev) : bandeau bleu, pastille sur la cloche et carte Notifications. Désactivez SHOW_DEMO_NOTIFICATIONS dans AccountDashboard.tsx pour masquer.',
+    created_at: new Date().toISOString(),
+  },
+]
+
+function isDemoNotificationId(id: string): boolean {
+  return id.startsWith('__demo_')
+}
+
 type LeaderboardEntry = {
   id: string
   label: string
@@ -62,12 +97,64 @@ type DashboardCacheSnapshot = {
   orders: Order[]
   notifications: DashboardNotification[]
   latestNotification: DashboardNotification | null
-  notificationDismissed: boolean
   currentUserId: string | null
 }
 
 const ACCOUNT_DASHBOARD_CACHE_KEY = 'account_dashboard_snapshot_v1'
 const ACCOUNT_DASHBOARD_CACHE_TTL_MS = 1000 * 60 * 8
+
+function trainingStatusCopy(status: TrainingRequestStatus): {
+  badge: string
+  badgeClass: string
+  description: string
+} {
+  switch (status) {
+    case 'pending':
+      return {
+        badge: 'Under review',
+        badgeClass: 'bg-amber-100 text-amber-900 ring-1 ring-amber-200/80',
+        description:
+          'Fireball Canada is reviewing your training request. You will be notified by email when a decision is made.',
+      }
+    case 'approved':
+      return {
+        badge: 'Approved',
+        badgeClass: 'bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200/80',
+        description: 'Check your email for next steps. Payment instructions are sent only after approval.',
+      }
+    case 'payment_pending':
+      return {
+        badge: 'Payment due',
+        badgeClass: 'bg-orange-100 text-orange-900 ring-1 ring-orange-200/80',
+        description:
+          'Your seat is reserved pending payment. Check your email and your dashboard for instructions and reference.',
+      }
+    case 'paid':
+      return {
+        badge: 'Paid',
+        badgeClass: 'bg-sky-100 text-sky-900 ring-1 ring-sky-200/80',
+        description: 'Payment received. Our team will follow up with schedule and logistics.',
+      }
+    case 'declined':
+      return {
+        badge: 'Not approved',
+        badgeClass: 'bg-[#F3F3F3] text-[#4A4A4A] ring-1 ring-carbon-200/90',
+        description: 'See the message from our team in your email for details.',
+      }
+    case 'cancelled':
+      return {
+        badge: 'Cancelled',
+        badgeClass: 'bg-carbon-100 text-carbon-600 ring-1 ring-carbon-200/80',
+        description: 'This request is no longer active.',
+      }
+    default:
+      return {
+        badge: 'Closed',
+        badgeClass: 'bg-carbon-100 text-carbon-600',
+        description: '',
+      }
+  }
+}
 
 function OrdersEmptyStateSvg() {
   return (
@@ -392,6 +479,9 @@ export function AccountDashboard() {
   const [dashboardDataLoaded, setDashboardDataLoaded] = useState(false)
   const [carModalOpen, setCarModalOpen] = useState(false)
   const [productsPurchasedOpen, setProductsPurchasedOpen] = useState(false)
+  const [trainingRequests, setTrainingRequests] = useState<TrainingRequestRow[]>([])
+  const [accountEmail, setAccountEmail] = useState<string | null>(null)
+  const [trainingPaymentModalOpen, setTrainingPaymentModalOpen] = useState(false)
   const [adminPanelOpen, setAdminPanelOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
@@ -411,10 +501,23 @@ export function AccountDashboard() {
   const [barcodeValue, setBarcodeValue] = useState<string | null>(null)
   const [latestNotification, setLatestNotification] = useState<DashboardNotification | null>(null)
   const [notifications, setNotifications] = useState<DashboardNotification[]>([])
-  const [notificationDismissed, setNotificationDismissed] = useState(false)
   const [notificationsMenuOpen, setNotificationsMenuOpen] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const notificationsMenuRef = useRef<HTMLDivElement | null>(null)
+  const dashboardNotificationsRef = useRef<HTMLElement | null>(null)
+  const [demoNotificationsDismissed, setDemoNotificationsDismissed] = useState(false)
+  const [slidePillVisible, setSlidePillVisible] = useState(false)
+  const [dismissedNotificationIds, setDismissedNotificationIds] = useState<string[]>([])
+
+  const visibleNotifications = useMemo(() => {
+    const afterDismiss = notifications.filter((n) => !dismissedNotificationIds.includes(n.id))
+    if (SHOW_DEMO_NOTIFICATIONS && afterDismiss.length === 0 && !demoNotificationsDismissed) {
+      return DEMO_NOTIFICATIONS
+    }
+    return afterDismiss
+  }, [notifications, demoNotificationsDismissed, dismissedNotificationIds])
+
+  const notificationCount = visibleNotifications.length
 
   useEffect(() => {
     if (pageState?.fromRegister) return
@@ -433,11 +536,23 @@ export function AccountDashboard() {
     setOrders(Array.isArray(cached.orders) ? cached.orders : [])
     setNotifications(Array.isArray(cached.notifications) ? cached.notifications : [])
     setLatestNotification(cached.latestNotification ?? null)
-    setNotificationDismissed(Boolean(cached.notificationDismissed))
     setCurrentUserId(cached.currentUserId ?? null)
     setShowDashboard(true)
     setDashboardDataLoaded(true)
   }, [pageState?.fromRegister])
+
+  useEffect(() => {
+    if (!currentUserId) {
+      setDismissedNotificationIds([])
+      return
+    }
+    setDismissedNotificationIds(loadDismissedNotificationIds(currentUserId))
+  }, [currentUserId])
+
+  useEffect(() => {
+    const visible = notifications.filter((n) => !dismissedNotificationIds.includes(n.id))
+    setLatestNotification(visible[0] ?? null)
+  }, [notifications, dismissedNotificationIds])
 
   useEffect(() => {
     if (!notificationsMenuOpen) {
@@ -455,7 +570,30 @@ export function AccountDashboard() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [notificationsMenuOpen])
-  
+
+  useEffect(() => {
+    const realVisible = notifications.filter((n) => !dismissedNotificationIds.includes(n.id))
+    if (realVisible.length > 0) setDemoNotificationsDismissed(false)
+  }, [notifications, dismissedNotificationIds])
+
+  useEffect(() => {
+    if (notificationCount === 0) {
+      setSlidePillVisible(false)
+      return
+    }
+    setSlidePillVisible(true)
+    const id = window.setTimeout(() => setSlidePillVisible(false), 5000)
+    return () => window.clearTimeout(id)
+  }, [notificationCount])
+
+  useEffect(() => {
+    broadcastUnreadNotifications(notificationCount > 0)
+  }, [notificationCount])
+
+  const scrollToDashboardNotifications = () => {
+    dashboardNotificationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   useEffect(() => {
     const checkAuthAndLoadProfile = async () => {
       // Vérifier l'authentification Supabase
@@ -511,6 +649,7 @@ export function AccountDashboard() {
       }
 
       setFullName(customerFullName)
+      setAccountEmail(profile?.email?.trim() ?? null)
 
       // Créer un client Shopify si absent (ex. utilisateur connecté via Google OAuth)
       if (profile?.email && !profile.shopify_customer_id) {
@@ -539,13 +678,14 @@ export function AccountDashboard() {
         const userId = user?.id
         if (userId) {
           setCurrentUserId(userId)
+          const dismissed = loadDismissedNotificationIds(userId)
+          setDismissedNotificationIds(dismissed)
           const role: UserRole =
             profile && profile.role ? normalizeUserRole(profile.role) : 'member'
-          const list = await fetchNotificationsForUser(userId, role)
+          const list = await fetchNotificationsForUser(userId, role, 12)
           setNotifications(list)
-          const latest = list[0] ?? null
-          setLatestNotification(latest)
-          setNotificationDismissed(!latest)
+          const trainings = await fetchTrainingRequestsForDashboard(userId)
+          setTrainingRequests(trainings)
         }
       } catch (error) {
         console.error('Error loading dashboard notifications:', error)
@@ -699,6 +839,7 @@ export function AccountDashboard() {
   const fetchNotificationsForUser = async (
     userId: string,
     role: UserRole,
+    perQueryLimit = 8,
   ): Promise<DashboardNotification[]> => {
     try {
       const [allRes, roleRes, userRes] = await Promise.all([
@@ -707,21 +848,21 @@ export function AccountDashboard() {
           .select('id,title,message,created_at,target_type')
           .eq('target_type', 'all')
           .order('created_at', { ascending: false })
-          .limit(5),
+          .limit(perQueryLimit),
         supabase
           .from('user_notifications')
           .select('id,title,message,created_at,target_type,target_role')
           .eq('target_type', 'role')
           .eq('target_role', role)
           .order('created_at', { ascending: false })
-          .limit(5),
+          .limit(perQueryLimit),
         supabase
           .from('user_notifications')
           .select('id,title,message,created_at,target_type,target_user_id')
           .eq('target_type', 'user')
           .eq('target_user_id', userId)
           .order('created_at', { ascending: false })
-          .limit(5),
+          .limit(perQueryLimit),
       ])
 
       const rows: DashboardNotification[] = []
@@ -822,6 +963,47 @@ export function AccountDashboard() {
   const personalLeaderboardIndex = leaderboardEntries.findIndex((entry) => entry.id === currentUserId)
   const personalLeaderboardRank = personalLeaderboardIndex >= 0 ? personalLeaderboardIndex + 1 : null
 
+  const highlightedTrainingRequest = useMemo(
+    () => pickPrimaryTrainingRequestForDashboard(trainingRequests),
+    [trainingRequests],
+  )
+  const paymentDueTrainingRequest = useMemo(() => {
+    const due = trainingRequests.filter((r) => r.status === 'payment_pending')
+    if (!due.length) return null
+    return [...due].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0]
+  }, [trainingRequests])
+
+  useEffect(() => {
+    if (!currentUserId) return
+    const ch = supabase
+      .channel(`training_requests_${currentUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'training_requests',
+          filter: `user_id=eq.${currentUserId}`,
+        },
+        () => {
+          void fetchTrainingRequestsForDashboard(currentUserId).then(setTrainingRequests)
+        },
+      )
+      .subscribe()
+    return () => {
+      void supabase.removeChannel(ch)
+    }
+  }, [currentUserId])
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState !== 'visible' || !currentUserId) return
+      void fetchTrainingRequestsForDashboard(currentUserId).then(setTrainingRequests)
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [currentUserId])
+
   useEffect(() => {
     setOrdersCarouselIndex((i) => Math.min(i, carouselMaxIndex))
   }, [carouselMaxIndex, displayOrders.length])
@@ -842,7 +1024,6 @@ export function AccountDashboard() {
       orders,
       notifications,
       latestNotification,
-      notificationDismissed,
       currentUserId,
     }
     setClientCache(ACCOUNT_DASHBOARD_CACHE_KEY, snapshot, ACCOUNT_DASHBOARD_CACHE_TTL_MS)
@@ -861,7 +1042,6 @@ export function AccountDashboard() {
     orders,
     notifications,
     latestNotification,
-    notificationDismissed,
     currentUserId,
   ])
 
@@ -918,48 +1098,38 @@ export function AccountDashboard() {
 
       {showDashboard && (
         <div className="w-full relative bg-white">
-          {latestNotification && !notificationDismissed && (
-            <div className="pointer-events-none fixed top-[92px] md:top-[96px] left-0 right-0 z-[90] flex justify-center">
-              <div className="pointer-events-auto max-w-3xl w-full mx-4 rounded-[24px] bg-white backdrop-blur-2xl shadow-[0_22px_55px_rgba(0,0,0,0.55)] px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center gap-3 sm:gap-4">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-black">
+          {slidePillVisible && notificationCount > 0 && (
+            <div className="pointer-events-none fixed inset-x-0 top-0 z-[92] flex justify-end px-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-8">
+              <button
+                type="button"
+                onClick={scrollToDashboardNotifications}
+                className="fb-dashboard-notif-slide-pill pointer-events-auto flex max-w-[min(100%,22rem)] items-center gap-2 rounded-full border border-[#0485F7]/25 bg-white px-4 py-2.5 text-left text-[13px] font-medium leading-snug text-[#171717] shadow-[0_10px_36px_rgba(4,133,247,0.2)] transition hover:border-[#0485F7]/40 hover:shadow-[0_12px_40px_rgba(4,133,247,0.28)]"
+                aria-label="View notifications on dashboard"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0485F7]/10 text-[#0485F7]">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
+                    width={24}
+                    height={24}
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth={2}
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="h-5 w-5 text-white"
+                    className="lucide lucide-bell-icon lucide-bell"
+                    aria-hidden
                   >
-                    <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
-                    <rect x="2" y="4" width="20" height="16" rx="2" />
+                    <path d="M10.268 21a2 2 0 0 0 3.464 0" />
+                    <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
                   </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  {latestNotification.title && (
-                    <p className="text-[13px] sm:text-[14px] font-semibold text-[#0B1020] mb-0.5 truncate">
-                      {latestNotification.title}
-                    </p>
-                  )}
-                  <p className="text-[12px] sm:text-[13px] text-[#111827] truncate">
-                    {latestNotification.message}
-                  </p>
-                </div>
-                <div className="ml-2 flex-shrink-0 text-[11px] sm:text-[12px] font-medium text-[#4B5563]">
-                  {formatNotificationTimeAgo(latestNotification.created_at)}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setNotificationDismissed(true)}
-                  className="ml-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/5 text-[#374151] hover:bg-black/10 hover:text-[#111827] transition-colors"
-                  aria-label="Close notification"
-                >
-                  ×
-                </button>
-              </div>
+                </span>
+                <span>
+                  {notificationCount === 1
+                    ? 'You have a new notification'
+                    : `You have ${notificationCount} new notifications`}
+                </span>
+              </button>
             </div>
           )}
           {shopifySyncWarning && (
@@ -987,10 +1157,10 @@ export function AccountDashboard() {
             onSettingsClick={() => setSettingsOpen(true)}
             walletBalanceLabel="0.00 $"
             headerRight={
-              <div ref={notificationsMenuRef} className="flex items-center gap-6">
+              <div ref={notificationsMenuRef} className="flex items-center gap-5">
                 <button
                   type="button"
-                  className="flex items-center justify-center text-white/90 hover:text-white transition-colors"
+                  className="flex items-center justify-center rounded-lg text-carbon-800 transition-colors hover:bg-black/[0.05] hover:text-carbon-900"
                   aria-label="Open membership QR"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
@@ -1004,7 +1174,7 @@ export function AccountDashboard() {
                     <rect x="7" y="7" width="5" height="5" rx="1" />
                   </svg>
                 </button>
-                <div className="relative flex items-center justify-center">
+                <div className="relative flex items-center">
                   <button
                     type="button"
                     onClick={async () => {
@@ -1015,74 +1185,113 @@ export function AccountDashboard() {
                         setNotifications(list)
                       }
                     }}
-                    className="flex items-center justify-center text-white/90 hover:text-white transition-colors"
-                    aria-label="Open notifications"
+                    className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-carbon-800 transition-colors hover:bg-black/[0.06] hover:text-carbon-900"
+                    aria-label={`Open notifications${notificationCount > 0 ? `, ${notificationCount} unread` : ''}`}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width={24}
+                      height={24}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="lucide lucide-bell-icon lucide-bell h-6 w-6 shrink-0"
+                      aria-hidden
+                    >
                       <path d="M10.268 21a2 2 0 0 0 3.464 0" />
                       <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
                     </svg>
+                    {notificationCount > 0 ? (
+                      <span className="absolute -right-1 -top-0.5 flex min-h-[16px] min-w-[16px] items-center justify-center rounded bg-[#E11D48] px-[3px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-white">
+                        {notificationCount > 99 ? '99+' : notificationCount}
+                      </span>
+                    ) : null}
                   </button>
                   {notificationsMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-black/90 border border-white/15 backdrop-blur-2xl shadow-[0_18px_45px_rgba(0,0,0,0.65)] px-3 py-3 z-50">
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <span className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/65">
-                          Notifications
-                        </span>
-                        <button
-                          type="button"
-                          className="text-[11px] text-white/55 hover:text-white/80"
-                          onClick={async () => {
-                            if (!currentUserId) return
-                            const ids = notifications.map((n) => n.id)
-                            if (!ids.length) return
-                            await supabase.from('user_notifications').delete().in('id', ids)
-                            setNotifications([])
-                            setLatestNotification(null)
-                            setNotificationDismissed(true)
-                          }}
-                        >
-                          Clear all
-                        </button>
-                      </div>
-                      {notifications.length === 0 ? (
-                        <p className="text-xs text-white/60">No notifications.</p>
-                      ) : (
-                        <div className="max-h-64 overflow-y-auto flex flex-col gap-2">
-                          {notifications.map((n) => (
-                            <div
-                              key={n.id}
-                              className="group rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2 text-xs text-white/85 flex items-start gap-2"
-                            >
-                              <div className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                {n.title && (
-                                  <p className="font-semibold text-[12px] mb-0.5 truncate">{n.title}</p>
-                                )}
-                                <p className="text-[11px] text-white/75 line-clamp-2">{n.message}</p>
-                                <p className="mt-1 text-[10px] text-white/45">
-                                  {formatNotificationTimeAgo(n.created_at)}
-                                </p>
-                              </div>
-                              <button
-                                type="button"
-                                className="ml-1 text-[11px] text-white/45 hover:text-red-300"
-                                onClick={async () => {
-                                  await supabase.from('user_notifications').delete().eq('id', n.id)
-                                  setNotifications((prev) => prev.filter((x) => x.id !== n.id))
-                                  if (latestNotification?.id === n.id) {
-                                    setLatestNotification(
-                                      (prev) => (prev && prev.id === n.id ? null : prev),
-                                    )
-                                  }
-                                }}
-                              >
-                                Clear
-                              </button>
-                            </div>
-                          ))}
+                    <div className="absolute right-0 top-full z-[100] mt-2 w-[min(100vw-2rem,20rem)] rounded-2xl border border-[#0485F7]/20 bg-white shadow-[0_20px_50px_rgba(4,133,247,0.15)]">
+                      <div className="border-b border-[#0485F7]/10 px-3 py-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-nav font-bold uppercase tracking-[0.14em] text-[#0485F7]">
+                            Notifications
+                          </span>
+                          <button
+                            type="button"
+                            className="text-[11px] font-semibold text-[#6B7280] transition hover:text-[#0485F7]"
+                            onClick={async () => {
+                              const realIds = notifications.map((n) => n.id).filter((id) => !isDemoNotificationId(id))
+                              if (realIds.length === 0 && SHOW_DEMO_NOTIFICATIONS) {
+                                setDemoNotificationsDismissed(true)
+                                return
+                              }
+                              if (realIds.length && currentUserId) {
+                                setDismissedNotificationIds((prev) => {
+                                  const next = [...new Set([...prev, ...realIds])]
+                                  saveDismissedNotificationIds(currentUserId, next)
+                                  return next
+                                })
+                                await supabase.from('user_notifications').delete().in('id', realIds)
+                              }
+                              setNotifications([])
+                            }}
+                          >
+                            Clear all
+                          </button>
                         </div>
-                      )}
+                      </div>
+                      <div className="max-h-64 overflow-y-auto px-2 py-2">
+                        {visibleNotifications.length === 0 ? (
+                          <p className="px-2 py-3 text-center text-xs text-[#6B7280]">No notifications.</p>
+                        ) : (
+                          <div className="flex flex-col gap-1.5">
+                            {visibleNotifications.map((n) => (
+                              <div
+                                key={n.id}
+                                className="rounded-xl border border-[#E5E7EB] bg-gradient-to-b from-[#f8fbff] to-white px-3 py-2.5 text-xs text-[#374151]"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    {n.title ? (
+                                      <p className="truncate text-[12px] font-semibold text-[#111827]">
+                                        <NotificationMessageWithStatusHighlight text={n.title} />
+                                      </p>
+                                    ) : null}
+                                    <p className="mt-0.5 line-clamp-3 text-[11px] leading-snug text-[#4B5563]">
+                                      <NotificationMessageWithStatusHighlight text={n.message} />
+                                    </p>
+                                    <p className="mt-1.5 text-[10px] font-medium text-[#9CA3AF]">
+                                      {formatNotificationTimeAgo(n.created_at)}
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="shrink-0 text-[11px] font-semibold text-[#0485F7] transition hover:text-[#0366c7]"
+                                    onClick={async () => {
+                                      if (isDemoNotificationId(n.id)) {
+                                        setDemoNotificationsDismissed(true)
+                                        return
+                                      }
+                                      if (currentUserId) {
+                                        setDismissedNotificationIds((prev) => {
+                                          const next = [...new Set([...prev, n.id])]
+                                          saveDismissedNotificationIds(currentUserId, next)
+                                          return next
+                                        })
+                                      }
+                                      await supabase.from('user_notifications').delete().eq('id', n.id)
+                                      setNotifications((prev) => prev.filter((x) => x.id !== n.id))
+                                    }}
+                                  >
+                                    Clear
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1090,7 +1299,146 @@ export function AccountDashboard() {
             }
           />
           <section className="w-full min-h-[90vh] bg-white relative z-20 px-6 md:px-12 lg:px-16 py-10 md:py-14" aria-label="Account actions section">
-            <div className="mx-auto grid w-full max-w-[1400px] grid-cols-1 gap-5 lg:grid-cols-[1fr_1fr]">
+            <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5">
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <article className="min-w-0 overflow-hidden rounded-2xl bg-[#F3F3F3] px-6 py-6 md:px-8 md:py-8">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Academy training</p>
+                    <Link
+                      to="/academy?joinTraining=1"
+                      className="shrink-0 text-sm font-semibold text-[#0485F7] transition-colors hover:text-[#0366c7] hover:underline"
+                    >
+                      Request training
+                    </Link>
+                  </div>
+                  {highlightedTrainingRequest ? (
+                    <div className="mt-5 min-w-0 max-w-full">
+                      {(() => {
+                        const t = trainingStatusCopy(highlightedTrainingRequest.status)
+                        return (
+                          <>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${t.badgeClass}`}
+                              >
+                                {t.badge}
+                              </span>
+                              {['pending', 'approved'].includes(highlightedTrainingRequest.status) ? (
+                                <span className="text-xs text-[#6B6B6B]">Request in progress</span>
+                              ) : null}
+                            </div>
+                            <AcademyTrainingTimeline status={highlightedTrainingRequest.status} />
+                            <p className="mt-3 text-sm font-semibold text-[#171717] leading-snug">
+                              {highlightedTrainingRequest.session_label}
+                            </p>
+                            <p
+                              className="mt-1 block max-w-full min-w-0 break-all font-mono text-[11px] text-[#6B6B6B] [overflow-wrap:anywhere]"
+                              title={highlightedTrainingRequest.reference}
+                            >
+                              Ref. {highlightedTrainingRequest.reference}
+                            </p>
+                            <p className="mt-3 text-sm leading-relaxed text-[#4A4A4A]">{t.description}</p>
+                            {highlightedTrainingRequest.status === 'payment_pending' &&
+                            highlightedTrainingRequest.payment_instructions ? (
+                              <div className="mt-3 rounded-xl border border-orange-200/80 bg-white/80 px-3 py-2.5">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-orange-800/90">
+                                  Instructions
+                                </p>
+                                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-[#4A4A4A]">
+                                  {highlightedTrainingRequest.payment_instructions}
+                                </p>
+                              </div>
+                            ) : null}
+                            {highlightedTrainingRequest.status === 'payment_pending' ? (
+                              <div className="mt-4">
+                                <button
+                                  type="button"
+                                  onClick={() => setTrainingPaymentModalOpen(true)}
+                                  className={cn(
+                                    'inline-flex w-full items-center justify-center rounded-full bg-[#0485F7] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0366c7] sm:w-auto',
+                                  )}
+                                >
+                                  Payer — instructions &amp; Stripe
+                                </button>
+                                <p className="mt-2 text-xs text-[#6B6B6B]">
+                                  Paiement sécurisé dans un nouvel onglet lorsque le lien Stripe est configuré pour le site.
+                                </p>
+                              </div>
+                            ) : null}
+                          </>
+                        )
+                      })()}
+                    </div>
+                  ) : (
+                    <div className="mt-5">
+                      <p className="text-sm leading-relaxed text-[#4A4A4A]">
+                        You don&apos;t have a training request on file. Submit a request for a future session — no payment on the form;
+                        Fireball Canada will approve or decline by email.
+                      </p>
+                      <div className="mt-4">
+                        <Link to="/academy?joinTraining=1" className={cn('inline-flex justify-center', appleButtonClassName)}>
+                          Open Academy
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </article>
+
+                <article
+                  ref={dashboardNotificationsRef}
+                  id="dashboard-notifications-card"
+                  className="relative overflow-hidden rounded-2xl bg-[#F3F3F3] px-6 py-6 md:px-8 md:py-8"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Notifications</p>
+                    {notificationCount > 0 ? (
+                      <span className="inline-flex items-center rounded-full bg-[#0485F7] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-sm">
+                          {notificationCount} new
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  {notificationCount === 0 ? (
+                    <p className="mt-5 text-sm leading-relaxed text-[#4A4A4A]">
+                      No notifications yet. Messages from Fireball Canada (broadcasts, role updates, or personal notes) will appear here.
+                    </p>
+                  ) : (
+                    <ul className="mt-4 max-h-[min(320px,45vh)] space-y-3 overflow-y-auto pr-1" aria-label="Notification messages">
+                      {visibleNotifications.slice(0, 12).map((n) => (
+                        <li
+                          key={n.id}
+                          className="rounded-xl border border-[#0485F7]/12 bg-white/90 px-3 py-2.5 shadow-sm"
+                        >
+                          {n.title ? (
+                            <p className="text-[13px] font-semibold text-[#171717]">
+                              <NotificationMessageWithStatusHighlight text={n.title} />
+                            </p>
+                          ) : null}
+                          <p className="mt-0.5 text-[12px] leading-snug text-[#4A4A4A] line-clamp-4">
+                          <NotificationMessageWithStatusHighlight text={n.message} />
+                        </p>
+                          <p className="mt-1.5 text-[10px] font-medium text-[#8A8A8A]">
+                            {formatNotificationTimeAgo(n.created_at)}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </article>
+              </div>
+
+              <TrainingPaymentDueModal
+                open={trainingPaymentModalOpen}
+                onClose={() => setTrainingPaymentModalOpen(false)}
+                request={
+                  paymentDueTrainingRequest ??
+                  (highlightedTrainingRequest?.status === 'payment_pending' ? highlightedTrainingRequest : null)
+                }
+                memberEmail={accountEmail}
+              />
+
+              <div className="grid w-full grid-cols-1 gap-5 lg:grid-cols-[1fr_1fr]">
               <article className="rounded-2xl bg-[#F3F3F3] px-6 py-6 md:px-8 md:py-8">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Orders</p>
@@ -1199,6 +1547,7 @@ export function AccountDashboard() {
                   <span className="text-xl text-[#8A8A8A]" aria-hidden>›</span>
                 </button>
               </div>
+            </div>
             </div>
           </section>
           {leaderboardOpen && createPortal(

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useCart } from '@/context/CartContext'
 import { CATEGORIES, PRODUCTS } from '@/data/products'
 import { isAuthenticated } from '@/utils/supabaseAuth'
+import { FB_UNREAD_NOTIF_EVENT, readUnreadNotificationsFromStorage } from '@/utils/inAppNotificationsFlag'
 import { supabase } from '@/lib/supabase'
 import { isShopPathname } from '@/utils/shopRoutes'
 import { isNavOverFullBleedHero } from '@/utils/navHeroOverlap'
@@ -129,6 +130,32 @@ export function Header() {
   const searchMenuRef = useRef<HTMLDivElement | null>(null)
   const { totalItems } = useCart()
   const isDashboardPage = location.pathname === '/account/dashboard' || location.pathname === '/dashboard'
+  const [headerUnreadNotif, setHeaderUnreadNotif] = useState(() =>
+    typeof window !== 'undefined' ? readUnreadNotificationsFromStorage() : false,
+  )
+  const [loggedInForNotif, setLoggedInForNotif] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    isAuthenticated().then((ok) => {
+      if (!cancelled) setLoggedInForNotif(ok)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [location.pathname])
+
+  useEffect(() => {
+    const onFlag = (e: Event) => {
+      const ce = e as CustomEvent<{ hasUnread?: boolean }>
+      setHeaderUnreadNotif(Boolean(ce.detail?.hasUnread))
+    }
+    window.addEventListener(FB_UNREAD_NOTIF_EVENT, onFlag)
+    return () => window.removeEventListener(FB_UNREAD_NOTIF_EVENT, onFlag)
+  }, [])
+
+  const showAccountNotifBang = loggedInForNotif && headerUnreadNotif && !isDashboardPage
+
   const isContactPage = location.pathname === '/contact'
   const isShopPage = isShopPathname(location.pathname)
   const isProductPage =
@@ -1212,13 +1239,21 @@ export function Header() {
             <Link
               to="/account"
               onClick={handleAccountClick}
-              className="px-2 py-1.5 rounded-md text-white transition-colors hover:bg-carbon-700/30"
+              className="relative px-2 py-1.5 rounded-md text-white transition-colors hover:bg-carbon-700/30"
               aria-label="My account"
             >
               <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
+              {showAccountNotifBang ? (
+                <span
+                  className="absolute -right-0.5 top-0 flex h-[15px] min-w-[15px] items-center justify-center rounded-sm bg-[#E11D48] px-[2px] text-[11px] font-black leading-none text-white shadow-sm ring-1 ring-black/20"
+                  aria-hidden
+                >
+                  !
+                </span>
+              ) : null}
             </Link>
 
             <Link

@@ -63,6 +63,21 @@
   .hero-ground-text--delay-3 {
     animation-delay: 390ms;
   }
+
+  .fb-dashboard-notif-slide-pill {
+    animation: fb-dashboard-notif-slide 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+}
+
+@keyframes fb-dashboard-notif-slide {
+  from {
+    transform: translateY(calc(-100% - 12px));
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes hero-rise-from-ground {
@@ -129,6 +144,13 @@ html.lenis-smooth body {
   textarea,
   select {
     @apply outline-none focus:outline-none;
+  }
+
+  /* Academy training picker : pas de contour carré au focus du radio */
+  .fb-training-session-picker input[type='radio']:focus,
+  .fb-training-session-picker input[type='radio']:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
   }
 
   /* iOS Safari: empêche le zoom auto au focus des champs */

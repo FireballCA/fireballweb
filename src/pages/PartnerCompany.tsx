@@ -67,7 +67,7 @@ const partnerResponsibilities = [
 ]
 
 export function PartnerCompany() {
-  type PartnerApplicationStatus = 'pending' | 'partner' | 'declined'
+  type PartnerApplicationStatus = 'pending' | 'payment_pending' | 'partner' | 'declined'
 
   const [submitted, setSubmitted] = useState(false)
   const [services, setServices] = useState<string[]>([])
@@ -102,7 +102,12 @@ export function PartnerCompany() {
             .maybeSingle()
 
           const normalized = String(existing?.status || '').toLowerCase()
-          if (normalized === 'pending' || normalized === 'partner' || normalized === 'declined') {
+          if (
+            normalized === 'pending' ||
+            normalized === 'payment_pending' ||
+            normalized === 'partner' ||
+            normalized === 'declined'
+          ) {
             setApplicationStatus(normalized as PartnerApplicationStatus)
           } else {
             setApplicationStatus(null)
@@ -121,7 +126,10 @@ export function PartnerCompany() {
     }
   }, [])
 
-  const hasActiveApplication = applicationStatus === 'pending' || applicationStatus === 'partner'
+  const hasActiveApplication =
+    applicationStatus === 'pending' ||
+    applicationStatus === 'payment_pending' ||
+    applicationStatus === 'partner'
 
   if (submitted) {
     return (

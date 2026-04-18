@@ -15,7 +15,7 @@ export function TrainingRegistrationThankYou() {
   const state = location.state as TrainingThankYouState | null
 
   useEffect(() => {
-    document.title = 'Registration confirmed - Fireball Academy'
+    document.title = 'Request received - Fireball Academy'
   }, [])
 
   useEffect(() => {
@@ -36,19 +36,18 @@ export function TrainingRegistrationThankYou() {
         <p className="text-xs font-semibold uppercase tracking-wider text-[#0485F7]">Fireball Academy</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">Thank you, {firstName}</h1>
         <p className="mt-4 text-base leading-relaxed text-carbon-600">
-          Your Fireball Academy training registration has been received. We are pleased to confirm your place in the selected session.
+          Your <strong className="font-semibold text-carbon-800">request</strong> to attend a future Fireball Academy training session has been received.{' '}
+          <strong className="font-semibold text-carbon-800">No payment was taken.</strong>
         </p>
         <p className="mt-4 text-base leading-relaxed text-carbon-600">
-          A confirmation message has been sent to <strong className="font-semibold text-carbon-800">{state.email}</strong> with your
-          order reference and next steps. Please check your inbox and spam folder. You can also follow your registration and updates in
-          your Fireball account dashboard at any time.
+          The Fireball Canada team will review your request and notify you at{' '}
+          <strong className="font-semibold text-carbon-800">{state.email}</strong> whether it is approved or declined. Please check your inbox and spam folder. If your request is approved, we will send instructions and any applicable fees and terms before you pay.
         </p>
         <div className="mt-8 rounded-xl border border-carbon-200 bg-carbon-50/80 px-4 py-4">
-          <p className="text-xs font-medium uppercase tracking-wider text-carbon-500">Order reference</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-carbon-500">Request reference</p>
           <p className="mt-1 font-mono text-sm font-semibold tracking-tight text-carbon-900 break-all">{state.orderNumber}</p>
           <p className="mt-2 text-xs leading-relaxed text-carbon-500">
-            Retain this reference for your correspondence with Fireball Canada. It identifies your registration file and will align with
-            your official payment record once billing has been processed.
+            Use this reference when you contact Fireball Canada about your training request. It does not confirm a seat until you receive an approval message from our team.
           </p>
         </div>
         <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">

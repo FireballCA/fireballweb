@@ -34,7 +34,9 @@ export function Layout() {
     location.pathname.startsWith('/product/') ||
     location.pathname.startsWith('/coating/') ||
     location.pathname.startsWith('/coatings/') ||
-    location.pathname === '/all-coatings'
+    location.pathname === '/all-coatings' ||
+    location.pathname === '/event' ||
+    location.pathname.startsWith('/event/')
 
   const showHeader = !isAccountAuthPage
   const showFooter = !isAnyAccountPage && !isContactPage

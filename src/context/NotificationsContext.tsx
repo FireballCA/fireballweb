@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { NotificationMessageWithStatusHighlight } from '@/utils/notificationTextHighlight'
 
 type NotificationKind = 'success' | 'error' | 'info'
 
@@ -64,8 +65,14 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
               >
                 <div className="mt-0.5 h-2 w-2 flex-shrink-0 rounded-full bg-white/70" />
                 <div className="flex-1 text-sm leading-snug">
-                  {n.title && <div className="mb-0.5 font-medium">{n.title}</div>}
-                  <div className="text-white/80">{n.message}</div>
+                  {n.title ? (
+                    <div className="mb-0.5 font-medium">
+                      <NotificationMessageWithStatusHighlight text={n.title} tone="onDark" />
+                    </div>
+                  ) : null}
+                  <div className="text-white/80">
+                    <NotificationMessageWithStatusHighlight text={n.message} tone="onDark" />
+                  </div>
                 </div>
                 <button
                   type="button"
