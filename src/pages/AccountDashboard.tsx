@@ -670,25 +670,30 @@ export function AccountDashboard() {
         })
       }
 
-      // Charger la dernière notification destinée à cet utilisateur
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-        const userId = user?.id
-        if (userId) {
-          setCurrentUserId(userId)
-          const dismissed = loadDismissedNotificationIds(userId)
-          setDismissedNotificationIds(dismissed)
-          const role: UserRole =
-            profile && profile.role ? normalizeUserRole(profile.role) : 'member'
+      // Notifications et demandes Academy : chargés séparément pour qu’un échec sur l’un n’empêche pas l’autre
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      const userId = user?.id
+      if (userId) {
+        setCurrentUserId(userId)
+        setDismissedNotificationIds(loadDismissedNotificationIds(userId))
+        const role: UserRole =
+          profile && profile.role ? normalizeUserRole(profile.role) : 'member'
+
+        try {
           const list = await fetchNotificationsForUser(userId, role, 12)
           setNotifications(list)
+        } catch (error) {
+          console.error('Error loading dashboard notifications:', error)
+        }
+
+        try {
           const trainings = await fetchTrainingRequestsForDashboard(userId)
           setTrainingRequests(trainings)
+        } catch (error) {
+          console.error('Error loading training requests:', error)
         }
-      } catch (error) {
-        console.error('Error loading dashboard notifications:', error)
       }
 
       // Charger les véhicules du garage depuis Supabase
@@ -996,12 +1001,19 @@ export function AccountDashboard() {
   }, [currentUserId])
 
   useEffect(() => {
-    const onVis = () => {
-      if (document.visibilityState !== 'visible' || !currentUserId) return
+    if (!currentUserId) return
+    const refetchTrainings = () => {
       void fetchTrainingRequestsForDashboard(currentUserId).then(setTrainingRequests)
     }
+    const onVis = () => {
+      if (document.visibilityState === 'visible') refetchTrainings()
+    }
+    window.addEventListener('focus', refetchTrainings)
     document.addEventListener('visibilitychange', onVis)
-    return () => document.removeEventListener('visibilitychange', onVis)
+    return () => {
+      window.removeEventListener('focus', refetchTrainings)
+      document.removeEventListener('visibilitychange', onVis)
+    }
   }, [currentUserId])
 
   useEffect(() => {

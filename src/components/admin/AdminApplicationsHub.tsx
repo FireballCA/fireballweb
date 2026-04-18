@@ -194,43 +194,13 @@ export function AdminApplicationsHub() {
       return
     }
 
-    if (email) {
-      if (next === 'approved') {
-        await sendTrainingDecisionEmail({
-          to: email,
-          customerName: name,
-          reference: row.reference,
-          sessionLabel: row.session_label,
-          kind: 'approved',
-        })
-      } else if (next === 'payment_pending') {
-        await sendTrainingDecisionEmail({
-          to: email,
-          customerName: name,
-          reference: row.reference,
-          sessionLabel: row.session_label,
-          kind: 'payment_pending',
-          extraNote: patch.payment_instructions || undefined,
-        })
-      } else if (next === 'paid') {
-        await sendTrainingDecisionEmail({
-          to: email,
-          customerName: name,
-          reference: row.reference,
-          sessionLabel: row.session_label,
-          kind: 'paid',
-        })
-      } else if (next === 'declined') {
-        await sendTrainingDecisionEmail({
-          to: email,
-          customerName: name,
-          reference: row.reference,
-          sessionLabel: row.session_label,
-          kind: 'declined',
-          extraNote: opts?.adminNote || undefined,
-        })
-      }
+    const merged: TrainingRequestWithProfile = {
+      ...res.row,
+      profile_email: row.profile_email,
+      profile_first_name: row.profile_first_name,
+      profile_last_name: row.profile_last_name,
     }
+    setTrainingRows((prev) => prev.map((r) => (r.id === row.id ? merged : r)))
 
     const notifTitle =
       next === 'approved'
@@ -251,9 +221,54 @@ export function AdminApplicationsHub() {
             ? `An update is available for your training request ${row.reference}.`
             : `Your Academy training request (${row.reference}) status is now: ${next}.`
 
-    await notifyUser(row.user_id, notifTitle, notifBody)
+    try {
+      if (email) {
+        if (next === 'approved') {
+          await sendTrainingDecisionEmail({
+            to: email,
+            customerName: name,
+            reference: row.reference,
+            sessionLabel: row.session_label,
+            kind: 'approved',
+          })
+        } else if (next === 'payment_pending') {
+          await sendTrainingDecisionEmail({
+            to: email,
+            customerName: name,
+            reference: row.reference,
+            sessionLabel: row.session_label,
+            kind: 'payment_pending',
+            extraNote: patch.payment_instructions || undefined,
+          })
+        } else if (next === 'paid') {
+          await sendTrainingDecisionEmail({
+            to: email,
+            customerName: name,
+            reference: row.reference,
+            sessionLabel: row.session_label,
+            kind: 'paid',
+          })
+        } else if (next === 'declined') {
+          await sendTrainingDecisionEmail({
+            to: email,
+            customerName: name,
+            reference: row.reference,
+            sessionLabel: row.session_label,
+            kind: 'declined',
+            extraNote: opts?.adminNote || undefined,
+          })
+        }
+      }
+      await notifyUser(row.user_id, notifTitle, notifBody)
+    } catch (e) {
+      console.warn('Training action: email or in-app notification failed after save', e)
+      setError(
+        `Statut enregistré en base. Échec envoi courriel / notification : ${
+          e instanceof Error ? e.message : String(e)
+        }`,
+      )
+    }
 
-    setTrainingRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, ...patch, updated_at: new Date().toISOString() } : r)))
     setBusyId(null)
   }
 

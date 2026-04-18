@@ -29,6 +29,30 @@ export type TrainingRequestWithProfile = TrainingRequestRow & {
   profile_last_name: string | null
 }
 
+const ALLOWED_TRAINING_STATUS: TrainingRequestStatus[] = [
+  'pending',
+  'approved',
+  'payment_pending',
+  'paid',
+  'declined',
+  'cancelled',
+]
+
+/** Normalise le statut renvoyé par PostgREST (espaces, casse). */
+export function normalizeTrainingStatus(raw: unknown): TrainingRequestStatus {
+  const v = String(raw ?? '')
+    .trim()
+    .toLowerCase()
+  return (ALLOWED_TRAINING_STATUS.includes(v as TrainingRequestStatus) ? v : 'pending') as TrainingRequestStatus
+}
+
+function mapTrainingRow(row: Record<string, unknown>): TrainingRequestRow {
+  return {
+    ...(row as TrainingRequestRow),
+    status: normalizeTrainingStatus(row.status),
+  }
+}
+
 export async function insertTrainingRequest(params: {
   userId: string
   reference: string
@@ -54,7 +78,7 @@ export async function insertTrainingRequest(params: {
   if (error) {
     return { ok: false, error: error.message || 'Unable to save training request.' }
   }
-  return { ok: true, row: data as TrainingRequestRow }
+  return { ok: true, row: mapTrainingRow(data as Record<string, unknown>) }
 }
 
 /** Demandes pour le dashboard membre. */
@@ -70,7 +94,7 @@ export async function fetchTrainingRequestsForDashboard(userId: string): Promise
     console.warn('training_requests fetch:', error.message)
     return []
   }
-  return (data || []) as TrainingRequestRow[]
+  return (data || []).map((row) => mapTrainingRow(row as Record<string, unknown>))
 }
 
 /** Priorité pour la carte dashboard quand plusieurs demandes existent (la plus avancée d’abord). */
@@ -106,7 +130,7 @@ export async function fetchAllTrainingRequestsForAdmin(): Promise<TrainingReques
     return []
   }
 
-  const list = (rows || []) as TrainingRequestRow[]
+  const list = (rows || []).map((row) => mapTrainingRow(row as Record<string, unknown>))
   const userIds = [...new Set(list.map((r) => r.user_id))]
   if (userIds.length === 0) return []
 
@@ -131,17 +155,26 @@ export async function fetchAllTrainingRequestsForAdmin(): Promise<TrainingReques
 export async function updateTrainingRequestAdmin(
   id: string,
   patch: Partial<Pick<TrainingRequestRow, 'status' | 'admin_note' | 'payment_instructions' | 'updated_at'>>,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { error } = await supabase
+): Promise<{ ok: true; row: TrainingRequestRow } | { ok: false; error: string }> {
+  const { data, error } = await supabase
     .from('training_requests')
     .update({
       ...patch,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
+    .select('id,user_id,reference,session_id,session_label,status,applicant_message,phone,admin_note,payment_instructions,created_at,updated_at')
+    .maybeSingle()
 
   if (error) {
     return { ok: false, error: error.message || 'Update failed.' }
   }
-  return { ok: true }
+  if (!data) {
+    return {
+      ok: false,
+      error:
+        'Aucune ligne mise à jour. Vérifiez que votre compte a le rôle admin dans profiles et que les politiques RLS training_requests_update_admin sont appliquées.',
+    }
+  }
+  return { ok: true, row: mapTrainingRow(data as Record<string, unknown>) }
 }
