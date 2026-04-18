@@ -20,6 +20,7 @@ interface MemberStatusHeroProps {
   memberId?: string | null
   barcodeValue?: string | null
   headerRight?: ReactNode
+  onProductsPurchasedClick?: () => void
   onAdminPanelClick?: () => void
   onSettingsClick?: () => void
   walletBalanceLabel?: string
@@ -41,6 +42,7 @@ export function MemberStatusHero({
   memberId = null,
   barcodeValue = null,
   headerRight,
+  onProductsPurchasedClick,
   onSettingsClick,
   walletBalanceLabel = '0.00 $',
 }: MemberStatusHeroProps) {
@@ -133,6 +135,7 @@ export function MemberStatusHero({
             {/* Left: Quick Links */}
             <UserIdentity
               partnerStatus={partnerStatus}
+              onProductsPurchasedClick={onProductsPurchasedClick}
               onSettingsClick={onSettingsClick}
             />
 
@@ -215,6 +218,7 @@ export function MemberStatusHero({
 
         <UserIdentity
           partnerStatus={partnerStatus}
+          onProductsPurchasedClick={onProductsPurchasedClick}
           onSettingsClick={onSettingsClick}
         />
 

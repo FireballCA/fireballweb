@@ -5,6 +5,7 @@ import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { MemberStatusHero } from '@/components/MemberStatusHero/MemberStatusHero'
 import { AddVehicleModal } from '@/components/AddVehicleModal'
 import { AccountDashboardSkeleton } from '@/components/ui/AccountDashboardSkeleton'
+import { ProductsPurchasedSheet } from '@/components/ProductsPurchasedSheet'
 import { AdminPanelSheet } from '@/components/AdminPanelSheet'
 import { SettingsSheet } from '@/components/SettingsSheet'
 import { Footer } from '@/components/Layout/Footer'
@@ -390,6 +391,7 @@ export function AccountDashboard() {
   const [isEnteringDashboard, setIsEnteringDashboard] = useState(false)
   const [dashboardDataLoaded, setDashboardDataLoaded] = useState(false)
   const [carModalOpen, setCarModalOpen] = useState(false)
+  const [productsPurchasedOpen, setProductsPurchasedOpen] = useState(false)
   const [adminPanelOpen, setAdminPanelOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
@@ -980,6 +982,7 @@ export function AccountDashboard() {
             currentTierColorClass={currentTier.colorClass}
             memberId={memberId}
             barcodeValue={barcodeValue}
+            onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}
             onAdminPanelClick={() => setAdminPanelOpen(true)}
             onSettingsClick={() => setSettingsOpen(true)}
             walletBalanceLabel="0.00 $"
@@ -1392,6 +1395,7 @@ export function AccountDashboard() {
           ])
         }}
       />
+      <ProductsPurchasedSheet isOpen={productsPurchasedOpen} onClose={() => setProductsPurchasedOpen(false)} />
       {orderDetailsOrder && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50"

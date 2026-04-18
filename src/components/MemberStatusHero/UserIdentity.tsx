@@ -3,6 +3,7 @@ import { SHOPIFY_CUSTOMER_ORDERS_URL } from '@/constants/shopifyShopApp'
 
 interface UserIdentityProps {
   partnerStatus?: string | null
+  onProductsPurchasedClick?: () => void
   onSettingsClick?: () => void
 }
 
@@ -14,13 +15,14 @@ const ArrowIcon = () => (
 
 export function UserIdentity({
   partnerStatus = null,
+  onProductsPurchasedClick,
   onSettingsClick,
 }: UserIdentityProps) {
   const buttonClass =
     'h-[34px] text-carbon-900 text-[13px] leading-[16px] text-left px-3 rounded-[6px] w-[240px] flex items-center justify-between transition-colors hover:brightness-95'
 
   return (
-    <div>
+    <div data-partner-status={partnerStatus ?? undefined}>
       <p
         className="text-carbon-600 text-[13px] leading-[16px] uppercase tracking-[0.1em] mb-3"
         style={{ fontWeight: 400 }}
@@ -38,16 +40,28 @@ export function UserIdentity({
           <span>Track your order</span>
           <ArrowIcon />
         </a>
-        <a
-          href={SHOPIFY_CUSTOMER_ORDERS_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={buttonClass}
-          style={{ background: 'rgba(229, 231, 235, 0.9)', fontWeight: 400 }}
-        >
-          <span>Products purchased</span>
-          <ArrowIcon />
-        </a>
+        {onProductsPurchasedClick ? (
+          <button
+            type="button"
+            onClick={onProductsPurchasedClick}
+            className={buttonClass}
+            style={{ background: 'rgba(229, 231, 235, 0.9)', fontWeight: 400 }}
+          >
+            <span>Products purchased</span>
+            <ArrowIcon />
+          </button>
+        ) : (
+          <a
+            href={SHOPIFY_CUSTOMER_ORDERS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonClass}
+            style={{ background: 'rgba(229, 231, 235, 0.9)', fontWeight: 400 }}
+          >
+            <span>Products purchased</span>
+            <ArrowIcon />
+          </a>
+        )}
         <Link
           to="/account/company"
           className={buttonClass}
