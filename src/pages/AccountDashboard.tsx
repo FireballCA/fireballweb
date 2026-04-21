@@ -514,6 +514,7 @@ export function AccountDashboard() {
   const dashboardNotificationsRef = useRef<HTMLElement | null>(null)
   const [demoNotificationsDismissed, setDemoNotificationsDismissed] = useState(false)
   const [slidePillVisible, setSlidePillVisible] = useState(false)
+  const [adminXpSnapSaving, setAdminXpSnapSaving] = useState(false)
   const [dismissedNotificationIds, setDismissedNotificationIds] = useState<string[]>([])
 
   const visibleNotifications = useMemo(() => {
@@ -566,19 +567,35 @@ export function AccountDashboard() {
       setNotificationsPanelBox(null)
       return
     }
+    const fallbackBox = () => ({
+      top: 88,
+      left: 12,
+      width: Math.min(320, typeof window !== 'undefined' ? window.innerWidth - 32 : 320),
+    })
     const updatePanelBox = () => {
-      const el = notificationsBellAnchorRef.current
-      if (!el) return
+      const el = notificationsBellAnchorRef.current ?? notificationsMenuRef.current
+      if (!el) {
+        setNotificationsPanelBox(fallbackBox())
+        return
+      }
       const rect = el.getBoundingClientRect()
       const width = Math.min(320, window.innerWidth - 32)
+      if (rect.width <= 0 && rect.height <= 0) {
+        setNotificationsPanelBox(fallbackBox())
+        return
+      }
       const left = Math.max(8, rect.right - width)
       const top = rect.bottom + 8
       setNotificationsPanelBox({ top, left, width })
     }
     updatePanelBox()
+    const raf = window.requestAnimationFrame(() => {
+      updatePanelBox()
+    })
     window.addEventListener('resize', updatePanelBox)
     window.addEventListener('scroll', updatePanelBox, true)
     return () => {
+      window.cancelAnimationFrame(raf)
       window.removeEventListener('resize', updatePanelBox)
       window.removeEventListener('scroll', updatePanelBox, true)
     }
@@ -624,6 +641,42 @@ export function AccountDashboard() {
 
   const scrollToDashboardNotifications = () => {
     dashboardNotificationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  /** Temporaire admin : fixe l’XP au seuil du tier affiché (hero / barre de progression), pas l’abonnement Ignition/Apex. */
+  const persistAdminXpAtTierFloor = async (tierIndex: 1 | 2 | 3 | 4 | 5) => {
+    if (userRole !== 'admin' || !currentUserId) return
+    const tier = XP_TIERS.find((t) => t.index === tierIndex)
+    if (!tier) return
+    setAdminXpSnapSaving(true)
+    try {
+      const nextXp = tier.minXp
+      const { error } = await supabase.from('profiles').update({ xp: nextXp }).eq('id', currentUserId)
+      if (error) {
+        console.error('Admin XP tier snap failed:', error)
+        return
+      }
+      setXp(nextXp)
+    } finally {
+      setAdminXpSnapSaving(false)
+    }
+  }
+
+  /** Temporaire admin : ajoute de l’XP au profil courant. */
+  const persistAdminAddXp = async (delta: number) => {
+    if (userRole !== 'admin' || !currentUserId || delta <= 0) return
+    setAdminXpSnapSaving(true)
+    try {
+      const nextXp = Math.max(0, Math.round(xp + delta))
+      const { error } = await supabase.from('profiles').update({ xp: nextXp }).eq('id', currentUserId)
+      if (error) {
+        console.error('Admin XP bump failed:', error)
+        return
+      }
+      setXp(nextXp)
+    } finally {
+      setAdminXpSnapSaving(false)
+    }
   }
 
   useEffect(() => {
@@ -1259,16 +1312,15 @@ export function AccountDashboard() {
             }
           />
           {notificationsMenuOpen &&
-            notificationsPanelBox &&
             typeof document !== 'undefined' &&
             createPortal(
               <div
                 ref={notificationsPanelRef}
                 className="fixed z-[200] rounded-2xl border border-[#0485F7]/20 bg-white shadow-[0_20px_50px_rgba(4,133,247,0.15)]"
                 style={{
-                  top: notificationsPanelBox.top,
-                  left: notificationsPanelBox.left,
-                  width: notificationsPanelBox.width,
+                  top: notificationsPanelBox?.top ?? 88,
+                  left: notificationsPanelBox?.left ?? 12,
+                  width: notificationsPanelBox?.width ?? Math.min(320, window.innerWidth - 32),
                 }}
                 role="dialog"
                 aria-modal="true"
@@ -1358,6 +1410,46 @@ export function AccountDashboard() {
               </div>,
               document.body,
             )}
+
+          {userRole === 'admin' && currentUserId ? (
+            <div
+              className="pointer-events-auto fixed bottom-3 left-3 z-[95] rounded-md border border-carbon-200/90 bg-white/95 px-2 py-1.5 shadow-sm backdrop-blur-sm"
+              role="region"
+              aria-label="Outils XP admin : paliers de tier et +500 XP (temporaire)"
+            >
+              <p className="text-[9px] font-medium uppercase tracking-wide text-carbon-400">Admin · XP → tier</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {([1, 2, 3, 4, 5] as const).map((idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    disabled={adminXpSnapSaving}
+                    onClick={() => void persistAdminXpAtTierFloor(idx)}
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-semibold tabular-nums transition-colors ${
+                      getTierForXp(xp).current.index === idx
+                        ? 'bg-carbon-900 text-white'
+                        : 'bg-carbon-100 text-carbon-600 hover:bg-carbon-200'
+                    } ${adminXpSnapSaving ? 'opacity-50' : ''}`}
+                  >
+                    T{idx}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-1.5 border-t border-carbon-200/80 pt-1.5">
+                <button
+                  type="button"
+                  disabled={adminXpSnapSaving}
+                  onClick={() => void persistAdminAddXp(500)}
+                  className={`w-full rounded px-1.5 py-0.5 text-[10px] font-semibold text-carbon-700 transition-colors hover:bg-[#0485F7]/15 hover:text-[#0366c7] ${
+                    adminXpSnapSaving ? 'opacity-50' : ''
+                  }`}
+                >
+                  +500 XP
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <section className="w-full min-h-[90vh] bg-white relative z-20 px-6 md:px-12 lg:px-16 py-10 md:py-14" aria-label="Account actions section">
             <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5">
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

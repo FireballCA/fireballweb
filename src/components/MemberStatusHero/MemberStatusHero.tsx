@@ -102,33 +102,30 @@ export function MemberStatusHero({
 
   return (
     <section className="relative w-full min-h-[88vh] bg-white overflow-hidden">
+      {/* Une seule rangée titre / solde / headerRight : évite deux refs (cloche masquée → popup mal positionnée). */}
+      <div className="relative z-10 flex shrink-0 items-center justify-between gap-4 px-6 pt-8 md:px-12 lg:px-16 mb-10 lg:mb-0">
+        <div className="flex min-w-0 flex-col gap-3">
+          <h1
+            className="text-carbon-900 text-[clamp(24px,5.5vw,40px)] font-normal leading-snug lg:text-[40px] lg:leading-[50px]"
+          >
+            {userName}
+          </h1>
+          <div className="flex flex-col items-start gap-2 lg:flex-row lg:items-center lg:gap-3">
+            <p className="text-2xl font-semibold tracking-tight text-carbon-900 lg:text-3xl">{walletBalanceLabel}</p>
+            <button
+              type="button"
+              onClick={() => setAddMoneyModalOpen(true)}
+              className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
+            >
+              Add money
+            </button>
+          </div>
+        </div>
+        {headerRight}
+      </div>
+
       {/* ── Desktop layout ── */}
       <div className="hidden lg:flex flex-col h-full relative z-10 px-16">
-        {/* Header row — Name left, icons right */}
-        <div className="pt-8 shrink-0 flex items-center justify-between">
-          <div className="flex flex-col gap-3">
-            <h1
-              className="text-carbon-900"
-              style={{ fontSize: 40, fontWeight: 400, lineHeight: '50px' }}
-            >
-              {userName}
-            </h1>
-            <div className="flex items-center gap-3">
-              <p className="text-3xl font-semibold tracking-tight text-carbon-900">
-                {walletBalanceLabel}
-              </p>
-              <button
-                type="button"
-                onClick={() => setAddMoneyModalOpen(true)}
-                className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
-              >
-                Add money
-              </button>
-            </div>
-          </div>
-          {headerRight}
-        </div>
-
         {/* 3-column content — légèrement dans la moitié basse */}
         <div className="flex-1 flex items-center pt-[22vh]">
           <div className="w-full grid grid-cols-[240px_1fr_240px] items-start gap-8">
@@ -187,31 +184,7 @@ export function MemberStatusHero({
       </Link>
 
       {/* ── Mobile / Tablet layout ── */}
-      <div className="lg:hidden relative z-10 px-6 md:px-12 pt-8 pb-16 flex flex-col gap-10">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-3">
-            <h1
-              className="text-carbon-900"
-              style={{ fontSize: 'clamp(24px, 5.5vw, 40px)', fontWeight: 400, lineHeight: '1.2' }}
-            >
-              {userName}
-            </h1>
-            <div className="flex flex-col items-start gap-2">
-              <p className="text-2xl font-semibold tracking-tight text-carbon-900">
-                {walletBalanceLabel}
-              </p>
-              <button
-                type="button"
-                onClick={() => setAddMoneyModalOpen(true)}
-                className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
-              >
-                Add money
-              </button>
-            </div>
-          </div>
-          {headerRight}
-        </div>
-
+      <div className="lg:hidden relative z-10 px-6 md:px-12 pb-16 flex flex-col gap-10">
         <div className="flex justify-center">
           <ProgressBar currentXp={currentXp} targetXp={targetXp} />
         </div>
