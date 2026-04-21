@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import type { Product } from '@/data/products'
 import {
   CERAMIC_COATING_SECTIONS as SECTIONS,
   COATING_SECTION_IMAGES,
   type GaugeKey,
 } from '@/data/ceramicCoatingSections'
-import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
-import { shopBrowseCategoryPath } from '@/constants/paths'
+import { LenisContext } from '@/components/LenisRoot'
+import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
+import { cn } from '@/lib/utils'
 
 const GAUGE_COLOR = '#B61B1B' // same red as free-shipping progress
 
@@ -116,7 +116,22 @@ function PerformanceBlock({ gauges }: { gauges: Record<GaugeKey, number> }) {
 }
 
 export function CeramicCoating() {
+  const lenis = useContext(LenisContext)
   const [products, setProducts] = useState<Product[]>([])
+
+  const scrollToLineup = useCallback(
+    (e: MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault()
+      const el = document.getElementById('coatings-lineup')
+      if (!el) return
+      if (lenis) {
+        lenis.scrollTo(el, { offset: -96, duration: 1.15 })
+      } else {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    },
+    [lenis],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -155,40 +170,58 @@ export function CeramicCoating() {
 
   return (
     <div className="w-full bg-white text-carbon-900">
-      {/* Landing — image pleine largeur (bannière), texte en bas */}
-      <section className="relative border-b border-carbon-200" aria-label="Ceramic coatings">
-        <div className="relative min-h-[min(72vh,760px)] w-full overflow-hidden">
-          <img
-            src={landingBannerSrc}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover object-center"
-            loading="eager"
-            decoding="async"
-            draggable={false}
-          />
-          <div
-            className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/25"
-            aria-hidden
-          />
-          <div className="relative z-10 mx-auto flex min-h-[min(72vh,760px)] max-w-7xl flex-col justify-end px-6 pb-12 pt-28 text-left md:pb-16 md:pt-32">
-            <div className="max-w-3xl">
-              <h1 className="font-nav text-4xl font-black uppercase leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl">
-                WORLDS BEST CERAMIC COATING
-              </h1>
-              <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/85 md:text-lg">
+      {/* Hero — fond image (comme avant) + disposition type Car Club */}
+      <section
+        className="relative -mt-20 flex h-[min(88vh,920px)] min-h-[560px] max-h-[980px] flex-col overflow-hidden border-b border-carbon-200 bg-black"
+        aria-label="Ceramic coatings"
+      >
+        <img
+          src={landingBannerSrc}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          loading="eager"
+          decoding="async"
+          draggable={false}
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/82 via-black/45 to-black/25"
+          aria-hidden
+        />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[linear-gradient(to_bottom,#000_0%,rgba(0,0,0,0.55)_55%,transparent_100%)]" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-[linear-gradient(to_right,#000_0%,#000_55%,transparent_100%)]" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-[linear-gradient(to_left,#000_0%,#000_45%,transparent_100%)]" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-[linear-gradient(to_bottom,rgba(0,0,0,0)_0%,rgba(0,0,0,0.5)_55%,#000_100%)]" />
+
+        <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col justify-end px-5 pb-28 pt-20 sm:px-6 md:pb-32 md:pt-24">
+          <div className="mx-auto flex w-full max-w-[90rem] flex-col-reverse gap-10 md:flex-row md:items-end md:justify-between md:gap-12">
+            <h1 className="max-w-xl shrink-0 self-start pb-[0.15em] text-left font-nav text-4xl font-bold leading-[1.2] tracking-tight sm:text-5xl sm:leading-[1.18] md:max-w-lg md:text-6xl md:leading-[1.16] lg:text-7xl lg:leading-[1.14] bg-gradient-to-r from-[#d4d4d4] via-[#7a7a7a] to-[#1a1a1a] bg-clip-text text-transparent [-webkit-text-fill-color:transparent]">
+              World&apos;s best ceramic coating
+            </h1>
+            <div className="flex w-full shrink-0 flex-col items-end gap-6 text-right md:w-auto">
+              <p className="max-w-md text-pretty text-sm font-light leading-relaxed text-silver/80 md:text-base lg:text-lg">
                 Professional ceramic coatings engineered for long-lasting durability.
               </p>
-              <div className="mt-8 flex flex-wrap gap-4">
-                <Link
-                  to={shopBrowseCategoryPath('coatings')}
-                  className="inline-flex items-center gap-2 rounded-xl px-8 py-2.5 font-nav text-sm font-bold uppercase shadow-lg transition-all duration-300 hover:opacity-90 hover:shadow-xl"
-                  style={{ backgroundColor: GAUGE_COLOR, color: 'white' }}
+              <div className="flex flex-col items-end gap-1.5">
+                <a
+                  href="#coatings-lineup"
+                  onClick={scrollToLineup}
+                  className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
                 >
-                  Shop all coatings
-                </Link>
-                <SecondaryClipButton to="/coatings/compare" idleTextClass="text-white" hoverTextClass="text-black">
-                  Compare
-                </SecondaryClipButton>
+                  Explore
+                </a>
+                <p className="flex items-center justify-end gap-1 text-[11px] leading-tight text-silver/45">
+                  <svg
+                    className="h-3.5 w-3.5 shrink-0 animate-bounce text-silver/50"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    aria-hidden
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                  <span>Scroll to discover the lineup</span>
+                </p>
               </div>
             </div>
           </div>
@@ -196,7 +229,7 @@ export function CeramicCoating() {
       </section>
 
       {/* Sections */}
-      <section className="mx-auto max-w-7xl px-6 py-16 md:py-24">
+      <section id="coatings-lineup" className="scroll-mt-24 mx-auto max-w-7xl px-6 py-16 md:py-24">
         <div className="space-y-16 md:space-y-24">
           {SECTIONS.map((s, idx) => {
             const img = imageBySectionId[s.id]

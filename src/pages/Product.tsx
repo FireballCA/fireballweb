@@ -12,6 +12,7 @@ import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { isFavoriteSlug, toggleFavoriteSlug } from '@/utils/favorites'
 import { FavoritePromptModal } from '@/components/FavoritePromptModal'
 import { productDetailPath, shopCategoryPath } from '@/constants/paths'
+import { FREE_SHIPPING_THRESHOLD_CAD } from '@/constants/shipping'
 import { getProductPageContent } from '@/data/productPageContent'
 import { supabase } from '@/lib/supabase'
 import { FireballLoading } from '@/components/FireballLoading'
@@ -290,6 +291,7 @@ export function Product() {
   const [navbarWidth, setNavbarWidth] = useState(0)
   const [shippingProgressAnimated, setShippingProgressAnimated] = useState(false)
   const galleryRef = useRef<HTMLDivElement>(null)
+  const galleryCursorRafRef = useRef<number | null>(null)
   const ctaButtonsRef = useRef<HTMLDivElement>(null)
   const addToCartMainButtonRef = useRef<HTMLButtonElement>(null)
   const navbarRef = useRef<HTMLDivElement>(null)
@@ -297,6 +299,12 @@ export function Product() {
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isPartner, setIsPartner] = useState(false)
+  const [galleryCursorVisible, setGalleryCursorVisible] = useState(false)
+  const [galleryCursorDirection, setGalleryCursorDirection] = useState<'left' | 'right'>('right')
+  const [galleryCursorPosition, setGalleryCursorPosition] = useState({ x: 0, y: 0 })
+  const galleryCursorTargetRef = useRef({ x: 0, y: 0 })
+  const galleryCursorCurrentRef = useRef({ x: 0, y: 0 })
+  const galleryCursorVelocityRef = useRef({ x: 0, y: 0 })
   const [accessDenied, setAccessDenied] = useState(false)
   const [productPageOverrides, setProductPageOverrides] = useState<ProductPageOverrides>({})
   const [savingProductPage, setSavingProductPage] = useState(false)
@@ -616,6 +624,38 @@ export function Product() {
     }
   }, [product, added])
 
+  useEffect(() => {
+    const tick = () => {
+      const target = galleryCursorTargetRef.current
+      const current = galleryCursorCurrentRef.current
+      const velocity = galleryCursorVelocityRef.current
+      const stiffness = 0.12
+      const damping = 0.64
+
+      velocity.x = (velocity.x + (target.x - current.x) * stiffness) * damping
+      velocity.y = (velocity.y + (target.y - current.y) * stiffness) * damping
+
+      current.x += velocity.x
+      current.y += velocity.y
+      setGalleryCursorPosition({ x: current.x, y: current.y })
+      galleryCursorRafRef.current = window.requestAnimationFrame(tick)
+    }
+
+    if (galleryCursorVisible) {
+      galleryCursorRafRef.current = window.requestAnimationFrame(tick)
+    } else if (galleryCursorRafRef.current !== null) {
+      window.cancelAnimationFrame(galleryCursorRafRef.current)
+      galleryCursorRafRef.current = null
+    }
+
+    return () => {
+      if (galleryCursorRafRef.current !== null) {
+        window.cancelAnimationFrame(galleryCursorRafRef.current)
+        galleryCursorRafRef.current = null
+      }
+    }
+  }, [galleryCursorVisible])
+
   // Trouver la variante correspondant aux options sélectionnées
   const currentVariant = product?.variants?.find((v) => {
     return v.selectedOptions.every(
@@ -876,18 +916,51 @@ export function Product() {
 
   return (
     <div className="bg-white min-h-screen" data-no-smooth-scroll>
-      {/* Main Product Section — peu de pt : le flux est déjà sous la navbar (header sticky) */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-4 pb-8 lg:pb-12">
+      {/* Main Product Section — léger espace sous la navbar sticky (main sans pt sur /products/*) */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-9 sm:pt-10 pb-8 lg:pb-12">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-16">
           {/* Left: Image Gallery - Sticky */}
           <div className="lg:sticky lg:top-20 lg:self-start space-y-4">
             {/* Main Image - Légèrement réduite */}
             <div
               ref={galleryRef}
-              className="relative aspect-square rounded-lg overflow-hidden group max-w-[90%] mx-auto"
+              className={`relative aspect-square rounded-lg overflow-hidden group max-w-[90%] mx-auto ${
+                galleryCursorVisible ? 'cursor-none' : ''
+              }`}
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
+              onMouseEnter={(e) => {
+                if (window.innerWidth < 1024) return
+                const rect = e.currentTarget.getBoundingClientRect()
+                const x = e.clientX - rect.left
+                const y = e.clientY - rect.top
+                galleryCursorTargetRef.current = { x, y }
+                galleryCursorCurrentRef.current = { x, y }
+                galleryCursorVelocityRef.current = { x: 0, y: 0 }
+                setGalleryCursorPosition({ x, y })
+                setGalleryCursorDirection(x >= rect.width / 2 ? 'right' : 'left')
+                setGalleryCursorVisible(true)
+              }}
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect()
+                const x = e.clientX - rect.left
+                const y = e.clientY - rect.top
+                galleryCursorTargetRef.current = { x, y }
+                setGalleryCursorDirection(x >= rect.width / 2 ? 'right' : 'left')
+              }}
+              onMouseLeave={() => setGalleryCursorVisible(false)}
+              onClick={(e) => {
+                if (allImages.length <= 1) return
+                const rect = e.currentTarget.getBoundingClientRect()
+                const x = e.clientX - rect.left
+                const goRight = x >= rect.width / 2
+                if (goRight) {
+                  setSelectedImageIndex((prev) => (prev + 1) % allImages.length)
+                } else {
+                  setSelectedImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length)
+                }
+              }}
             >
               {product.video && selectedImageIndex === 0 ? (
                 <video
@@ -907,28 +980,30 @@ export function Product() {
                 />
               )}
               
-              {/* Navigation Arrows */}
+              {/* Cursor custom galerie (desktop) */}
               {allImages.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length)}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                  >
-                    <svg className="w-5 h-5 text-carbon-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedImageIndex((prev) => (prev + 1) % allImages.length)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 hover:bg-white shadow-lg flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                  >
-                    <svg className="w-5 h-5 text-carbon-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </>
+                <div
+                  className={`pointer-events-none absolute z-30 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#111111] text-white shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-[opacity,transform] duration-200 ease-out ${
+                    galleryCursorVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
+                  }`}
+                  style={{
+                    left: `${galleryCursorPosition.x}px`,
+                    top: `${galleryCursorPosition.y}px`,
+                  }}
+                  aria-hidden
+                >
+                  <div className="flex h-full items-center justify-center">
+                    {galleryCursorDirection === 'right' ? (
+                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
+                      </svg>
+                    ) : (
+                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m15 5-7 7 7 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
               )}
 
               {/* Action Icons — partage + favoris */}
@@ -1142,20 +1217,20 @@ export function Product() {
                       <circle cx="17" cy="18" r="2" />
                       <circle cx="7" cy="18" r="2" />
                     </svg>
-                    {displayPrice >= 50 ? (
+                    {displayPrice >= FREE_SHIPPING_THRESHOLD_CAD ? (
                       <span>You're eligible for free shipping!</span>
                     ) : (
                       <span>
                         Add{' '}
                         <span className="font-extrabold text-carbon-900">
-                          {(50 - displayPrice).toFixed(2)}
+                          {(FREE_SHIPPING_THRESHOLD_CAD - displayPrice).toFixed(2)}
                         </span>{' '}
                         $CA for free shipping
                       </span>
                     )}
                   </span>
                   <span className="shrink-0 tabular-nums text-carbon-500">
-                    {Math.round(Math.min((displayPrice / 50) * 100, 100))}%
+                    {Math.round(Math.min((displayPrice / FREE_SHIPPING_THRESHOLD_CAD) * 100, 100))}%
                   </span>
                 </div>
                 <div className="meter__track" aria-hidden>
@@ -1163,7 +1238,7 @@ export function Product() {
                     className="meter__fill transition-[width] duration-1000 ease-out"
                     style={{
                       width: shippingProgressAnimated
-                        ? `${Math.min((displayPrice / 50) * 100, 100)}%`
+                        ? `${Math.min((displayPrice / FREE_SHIPPING_THRESHOLD_CAD) * 100, 100)}%`
                         : '0%',
                       backgroundColor: APPLE_BLUE,
                     }}

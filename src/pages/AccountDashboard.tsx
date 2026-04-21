@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react'
+import { useEffect, useLayoutEffect, useState, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
@@ -504,6 +504,13 @@ export function AccountDashboard() {
   const [notificationsMenuOpen, setNotificationsMenuOpen] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const notificationsMenuRef = useRef<HTMLDivElement | null>(null)
+  const notificationsBellAnchorRef = useRef<HTMLDivElement | null>(null)
+  const notificationsPanelRef = useRef<HTMLDivElement | null>(null)
+  const [notificationsPanelBox, setNotificationsPanelBox] = useState<{
+    top: number
+    left: number
+    width: number
+  } | null>(null)
   const dashboardNotificationsRef = useRef<HTMLElement | null>(null)
   const [demoNotificationsDismissed, setDemoNotificationsDismissed] = useState(false)
   const [slidePillVisible, setSlidePillVisible] = useState(false)
@@ -554,6 +561,29 @@ export function AccountDashboard() {
     setLatestNotification(visible[0] ?? null)
   }, [notifications, dismissedNotificationIds])
 
+  useLayoutEffect(() => {
+    if (!notificationsMenuOpen) {
+      setNotificationsPanelBox(null)
+      return
+    }
+    const updatePanelBox = () => {
+      const el = notificationsBellAnchorRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const width = Math.min(320, window.innerWidth - 32)
+      const left = Math.max(8, rect.right - width)
+      const top = rect.bottom + 8
+      setNotificationsPanelBox({ top, left, width })
+    }
+    updatePanelBox()
+    window.addEventListener('resize', updatePanelBox)
+    window.addEventListener('scroll', updatePanelBox, true)
+    return () => {
+      window.removeEventListener('resize', updatePanelBox)
+      window.removeEventListener('scroll', updatePanelBox, true)
+    }
+  }, [notificationsMenuOpen])
+
   useEffect(() => {
     if (!notificationsMenuOpen) {
       return () => {
@@ -561,9 +591,11 @@ export function AccountDashboard() {
       }
     }
     const handleClickOutside = (event: MouseEvent) => {
-      if (notificationsMenuRef.current && !notificationsMenuRef.current.contains(event.target as Node)) {
-        setNotificationsMenuOpen(false)
+      const t = event.target as Node
+      if (notificationsMenuRef.current?.contains(t) || notificationsPanelRef.current?.contains(t)) {
+        return
       }
+      setNotificationsMenuOpen(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
@@ -1186,7 +1218,7 @@ export function AccountDashboard() {
                     <rect x="7" y="7" width="5" height="5" rx="1" />
                   </svg>
                 </button>
-                <div className="relative flex items-center">
+                <div ref={notificationsBellAnchorRef} className="relative flex items-center">
                   <button
                     type="button"
                     onClick={async () => {
@@ -1222,94 +1254,110 @@ export function AccountDashboard() {
                       </span>
                     ) : null}
                   </button>
-                  {notificationsMenuOpen && (
-                    <div className="absolute right-0 top-full z-[100] mt-2 w-[min(100vw-2rem,20rem)] rounded-2xl border border-[#0485F7]/20 bg-white shadow-[0_20px_50px_rgba(4,133,247,0.15)]">
-                      <div className="border-b border-[#0485F7]/10 px-3 py-2.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[11px] font-nav font-bold uppercase tracking-[0.14em] text-[#0485F7]">
-                            Notifications
-                          </span>
-                          <button
-                            type="button"
-                            className="text-[11px] font-semibold text-[#6B7280] transition hover:text-[#0485F7]"
-                            onClick={async () => {
-                              const realIds = notifications.map((n) => n.id).filter((id) => !isDemoNotificationId(id))
-                              if (realIds.length === 0 && SHOW_DEMO_NOTIFICATIONS) {
-                                setDemoNotificationsDismissed(true)
-                                return
-                              }
-                              if (realIds.length && currentUserId) {
-                                setDismissedNotificationIds((prev) => {
-                                  const next = [...new Set([...prev, ...realIds])]
-                                  saveDismissedNotificationIds(currentUserId, next)
-                                  return next
-                                })
-                                await supabase.from('user_notifications').delete().in('id', realIds)
-                              }
-                              setNotifications([])
-                            }}
-                          >
-                            Clear all
-                          </button>
-                        </div>
-                      </div>
-                      <div className="max-h-64 overflow-y-auto px-2 py-2">
-                        {visibleNotifications.length === 0 ? (
-                          <p className="px-2 py-3 text-center text-xs text-[#6B7280]">No notifications.</p>
-                        ) : (
-                          <div className="flex flex-col gap-1.5">
-                            {visibleNotifications.map((n) => (
-                              <div
-                                key={n.id}
-                                className="rounded-xl border border-[#E5E7EB] bg-gradient-to-b from-[#f8fbff] to-white px-3 py-2.5 text-xs text-[#374151]"
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0 flex-1">
-                                    {n.title ? (
-                                      <p className="truncate text-[12px] font-semibold text-[#111827]">
-                                        <NotificationMessageWithStatusHighlight text={n.title} />
-                                      </p>
-                                    ) : null}
-                                    <p className="mt-0.5 line-clamp-3 text-[11px] leading-snug text-[#4B5563]">
-                                      <NotificationMessageWithStatusHighlight text={n.message} />
-                                    </p>
-                                    <p className="mt-1.5 text-[10px] font-medium text-[#9CA3AF]">
-                                      {formatNotificationTimeAgo(n.created_at)}
-                                    </p>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    className="shrink-0 text-[11px] font-semibold text-[#0485F7] transition hover:text-[#0366c7]"
-                                    onClick={async () => {
-                                      if (isDemoNotificationId(n.id)) {
-                                        setDemoNotificationsDismissed(true)
-                                        return
-                                      }
-                                      if (currentUserId) {
-                                        setDismissedNotificationIds((prev) => {
-                                          const next = [...new Set([...prev, n.id])]
-                                          saveDismissedNotificationIds(currentUserId, next)
-                                          return next
-                                        })
-                                      }
-                                      await supabase.from('user_notifications').delete().eq('id', n.id)
-                                      setNotifications((prev) => prev.filter((x) => x.id !== n.id))
-                                    }}
-                                  >
-                                    Clear
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             }
           />
+          {notificationsMenuOpen &&
+            notificationsPanelBox &&
+            typeof document !== 'undefined' &&
+            createPortal(
+              <div
+                ref={notificationsPanelRef}
+                className="fixed z-[200] rounded-2xl border border-[#0485F7]/20 bg-white shadow-[0_20px_50px_rgba(4,133,247,0.15)]"
+                style={{
+                  top: notificationsPanelBox.top,
+                  left: notificationsPanelBox.left,
+                  width: notificationsPanelBox.width,
+                }}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Notifications"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <div className="border-b border-[#0485F7]/10 px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-nav font-bold uppercase tracking-[0.14em] text-[#0485F7]">
+                      Notifications
+                    </span>
+                    <button
+                      type="button"
+                      className="text-[11px] font-semibold text-[#6B7280] transition hover:text-[#0485F7]"
+                      onClick={async () => {
+                        const realIds = notifications.map((n) => n.id).filter((id) => !isDemoNotificationId(id))
+                        if (realIds.length === 0 && SHOW_DEMO_NOTIFICATIONS) {
+                          setDemoNotificationsDismissed(true)
+                          return
+                        }
+                        if (realIds.length && currentUserId) {
+                          setDismissedNotificationIds((prev) => {
+                            const next = [...new Set([...prev, ...realIds])]
+                            saveDismissedNotificationIds(currentUserId, next)
+                            return next
+                          })
+                          await supabase.from('user_notifications').delete().in('id', realIds)
+                        }
+                        setNotifications([])
+                      }}
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                </div>
+                <div className="max-h-64 overflow-y-auto overscroll-contain px-2 py-2" onWheel={(e) => e.stopPropagation()}>
+                  {visibleNotifications.length === 0 ? (
+                    <p className="px-2 py-3 text-center text-xs text-[#6B7280]">No notifications.</p>
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      {visibleNotifications.map((n) => (
+                        <div
+                          key={n.id}
+                          className="rounded-xl border border-[#E5E7EB] bg-gradient-to-b from-[#f8fbff] to-white px-3 py-2.5 text-xs text-[#374151]"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              {n.title ? (
+                                <p className="truncate text-[12px] font-semibold text-[#111827]">
+                                  <NotificationMessageWithStatusHighlight text={n.title} />
+                                </p>
+                              ) : null}
+                              <p className="mt-0.5 line-clamp-3 text-[11px] leading-snug text-[#4B5563]">
+                                <NotificationMessageWithStatusHighlight text={n.message} />
+                              </p>
+                              <p className="mt-1.5 text-[10px] font-medium text-[#9CA3AF]">
+                                {formatNotificationTimeAgo(n.created_at)}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              className="shrink-0 text-[11px] font-semibold text-[#0485F7] transition hover:text-[#0366c7]"
+                              onClick={async () => {
+                                if (isDemoNotificationId(n.id)) {
+                                  setDemoNotificationsDismissed(true)
+                                  return
+                                }
+                                if (currentUserId) {
+                                  setDismissedNotificationIds((prev) => {
+                                    const next = [...new Set([...prev, n.id])]
+                                    saveDismissedNotificationIds(currentUserId, next)
+                                    return next
+                                  })
+                                }
+                                await supabase.from('user_notifications').delete().eq('id', n.id)
+                                setNotifications((prev) => prev.filter((x) => x.id !== n.id))
+                              }}
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>,
+              document.body,
+            )}
           <section className="w-full min-h-[90vh] bg-white relative z-20 px-6 md:px-12 lg:px-16 py-10 md:py-14" aria-label="Account actions section">
             <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5">
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

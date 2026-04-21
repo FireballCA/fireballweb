@@ -12,10 +12,9 @@ import { getFavoriteSlugsResolved } from '@/utils/favorites'
 import { productDetailPath, shopCategoryPath } from '@/constants/paths'
 import { ProductYouMightLikeRail } from '@/components/ProductYouMightLikeRail'
 import { productSectionHeadingClass } from '@/constants/typography'
+import { FREE_SHIPPING_THRESHOLD_CAD } from '@/constants/shipping'
 import { useClipRevealHover, CLIP_REVEAL_BUTTON_BASE_CLASS } from '@/hooks/useClipRevealHover'
 import { usePageTitle } from '@/hooks/usePageTitle'
-
-const FREE_SHIPPING_THRESHOLD = 100
 
 /** Même offset vertical qu’au chargement : `Layout` main `pt-20` + padding haut de cette page `lg:pt-44`. */
 const CART_SUMMARY_STICKY_TOP = 'lg:top-[calc(5rem+11rem)]'
@@ -109,7 +108,7 @@ export function Cart() {
   }, [])
 
   const cartXpGained = useMemo(() => Math.max(0, Math.round(totalPrice * XP_PER_DOLLAR)), [totalPrice])
-  const shippingFree = totalPrice >= FREE_SHIPPING_THRESHOLD
+  const shippingFree = totalPrice >= FREE_SHIPPING_THRESHOLD_CAD
   const shippingLabel = shippingFree ? 'Free' : 'Calculated at checkout'
 
   const favoriteProducts = useMemo(() => {
