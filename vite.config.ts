@@ -11,7 +11,7 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
     env.SHOPIFY_STOREFRONT_API_VERSION || env.VITE_SHOPIFY_STOREFRONT_API_VERSION || '2024-10'
   const shopifyAdminApiToken = env.SHOPIFY_ADMIN_API_TOKEN || ''
   const shopifyApiVersion = env.SHOPIFY_ADMIN_API_VERSION || '2024-10'
-  const supabaseUrl = env.SUPABASE_URL || ''
+  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL || ''
   const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY || ''
   const resendApiKey = env.RESEND_API_KEY || env.RESEND_KEY || ''
   const cleanInline = (value: unknown): string => String(value || '').replace(/[\r\n]+/g, '').trim()
