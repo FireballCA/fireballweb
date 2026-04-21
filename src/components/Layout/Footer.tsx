@@ -45,8 +45,8 @@ export function Footer() {
         {/* Separator Line */}
         <div className="h-px bg-carbon-700 mb-8" />
 
-        {/* Three Columns */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mb-12">
+        {/* Four Columns */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 mb-12">
           {/* Products Column */}
           <div>
             <h3 className="text-xs font-nav font-bold text-white uppercase mb-4 tracking-wider">
@@ -55,19 +55,88 @@ export function Footer() {
             <ul className="space-y-3">
               <li>
                 <Link to="/shop" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
-                  Products
+                  Coatings
                   <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
                 </Link>
               </li>
               <li>
-                <Link to="/join-fireball" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
-                  Installers
+                <Link to="/shop" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                  Sealants
+                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/shop" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                  Waxes
+                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/shop" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                  Dressings
+                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/shop" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                  Washing
+                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/shop" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                  Cleaners
+                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/shop" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                  Towels
+                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/shop" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                  Accessories
+                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Fireball Column */}
+          <div>
+            <h3 className="text-xs font-nav font-bold text-white uppercase mb-4 tracking-wider">
+              Fireball
+            </h3>
+            <ul className="space-y-3">
+              <li>
+                <Link to="/find-installer" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                  Find installer
+                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/all-coatings" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                  All coatings
                   <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
                 </Link>
               </li>
               <li>
                 <Link to="/academy" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
                   Academy
+                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/event" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                  Events
+                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/join-fireball" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                  Join Fireball
                   <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
                 </Link>
               </li>
@@ -98,6 +167,12 @@ export function Footer() {
                   <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
                 </Link>
               </li>
+              <li>
+                <Link to="/shop" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                  Merch
+                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -115,13 +190,19 @@ export function Footer() {
               </li>
               <li>
                 <Link to="/legal" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                  Cookies
+                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/legal" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
                   Privacy Policy
                   <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
                 </Link>
               </li>
               <li>
                 <Link to="/legal" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
-                  Terms of Service
+                  Terms of services
                   <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
                 </Link>
               </li>
@@ -136,7 +217,7 @@ export function Footer() {
               © {currentYear} Fireball Canada. All rights reserved. · built with ❤️ by RFX studio.
             </p>
             <p className="text-xs text-silver/50 font-sans italic">
-              Engineered for protection.
+              Beyond Your Imagination
             </p>
           </div>
         </div>
