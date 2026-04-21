@@ -10,7 +10,8 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
 
 export type LineupTransitionRect = {
   top: number
@@ -171,7 +172,7 @@ function LineupTransitionPortal({
 }
 
 export function LineupImageTransitionProvider({ children }: { children: ReactNode }) {
-  const globalReduce = useReducedMotion()
+  const globalReduce = useEffectiveReducedMotion()
   const [session, setSession] = useState<Session | null>(null)
   const busyRef = useRef(false)
   const idRef = useRef(0)

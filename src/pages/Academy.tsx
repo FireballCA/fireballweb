@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
 import { IconCertificate, IconSchool, IconChartBar, IconLock } from '@tabler/icons-react'
 import { LenisContext } from '@/components/LenisRoot'
 import { JoinTrainingEventsModal } from '@/components/JoinTrainingEventsModal'
@@ -31,7 +32,7 @@ const landingSectionTitle = 'font-sans text-3xl font-bold tracking-tight md:text
 
 export function Academy() {
   const lenis = useContext(LenisContext)
-  const reduceMotion = useReducedMotion()
+  const reduceMotion = useEffectiveReducedMotion()
   const [searchParams, setSearchParams] = useSearchParams()
   const trainingModalOpen = searchParams.get('joinTraining') === '1'
   const openTrainingModal = () => setSearchParams({ joinTraining: '1' }, { replace: true })

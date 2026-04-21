@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
 import { useEffect, useRef, useState } from 'react'
 import { LineupImageTransitionProvider } from '@/context/LineupImageTransitionContext'
 import { CookieConsentModal } from '@/components/CookieConsentModal'
@@ -9,7 +10,7 @@ import { isShopPathname } from '@/utils/shopRoutes'
 
 export function Layout() {
   const location = useLocation()
-  const reduceMotion = useReducedMotion()
+  const reduceMotion = useEffectiveReducedMotion()
 
   const isAccountAuthPage =
     location.pathname === '/account' ||

@@ -41,9 +41,6 @@ export function VoyagerWorldwideScrollSection({
   const completeRef = useRef(false)
   const rafRef = useRef<number>(0)
 
-  const reduceMotion =
-    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-
   // Parallax désactivé pour la section "Trusted Worldwide" (rendu statique).
   const [parallaxConsumed] = useState(true)
 

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Description, Input, Label, Radio, RadioGroup, TextField } from '@heroui/react'
 import { AppleButton } from '@/components/ui/AppleButton'
@@ -130,7 +131,7 @@ export function JoinClub() {
 
   const heroSentinelRef = useRef<HTMLDivElement | null>(null)
   const [compactNavVisible, setCompactNavVisible] = useState(false)
-  const reduceMotion = useReducedMotion()
+  const reduceMotion = useEffectiveReducedMotion()
 
   const tierChosen = selectedTier !== null
   const nameFilled = memberName.trim().length > 0

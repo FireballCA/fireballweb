@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap'
+import { prefersReducedMotionEffective } from '@/constants/motion'
 import './VoyagerCoatingsSlider.css'
 
 /** Précharge et décode toutes les images du carrousel (cache navigateur = transitions sans attente). */
@@ -91,8 +92,7 @@ export function VoyagerCoatingsSlider({ slides, className = '', onActiveChange }
   const centerRef = useRef<HTMLDivElement>(null)
   const rightRef = useRef<HTMLDivElement>(null)
 
-  const reduceMotion =
-    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  const reduceMotion = prefersReducedMotionEffective()
 
   useEffect(() => {
     indexRef.current = active

@@ -24,9 +24,9 @@ import {
   LayoutGroup,
   motion,
   useMotionValue,
-  useReducedMotion,
   useSpring,
 } from 'motion/react'
+import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
 
 interface CarouselProps {
   items: ReactElement[]
@@ -107,7 +107,7 @@ const springArrowEntrance = {
 
 /** Flèche coin magnétique (lineup / landing CTA). */
 export function CardMagneticCornerArrow({ visible }: { visible: boolean }) {
-  const reduceMotion = useReducedMotion()
+  const reduceMotion = useEffectiveReducedMotion()
   const fieldRef = useRef<HTMLDivElement>(null)
   const mx = useMotionValue(0)
   const my = useMotionValue(0)
@@ -403,7 +403,7 @@ export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
 
 export const Card = ({ card }: { card: AppleCarouselCard }) => {
   const basePx = useLineupCardBaseWidth()
-  const reduceMotion = useReducedMotion()
+  const reduceMotion = useEffectiveReducedMotion()
   const lineupCtx = useContext(LineupExpandContext)
   const navigate = useNavigate()
   const wrapperRef = useRef<HTMLDivElement>(null)

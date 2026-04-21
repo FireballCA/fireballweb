@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
+import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
 
 type IntroOverlayProps = {
 	onDone: () => void
 }
 
 export function IntroOverlay({ onDone }: IntroOverlayProps) {
-	const reduceMotion = useReducedMotion()
+	const reduceMotion = useEffectiveReducedMotion()
 	const [startSwipe, setStartSwipe] = useState(false)
 
 	useEffect(() => {

@@ -932,3 +932,25 @@ html.lenis-smooth body {
 .find-installer-map .mapboxgl-ctrl-bottom-right {
   display: none !important;
 }
+
+/*
+ * `html.fb-force-motion` : ajouté dans main.tsx quand FORCE_FULL_SITE_MOTION est true (src/constants/motion.ts).
+ * Rétablit des transitions que Tailwind neutralise via motion-reduce: quand l’OS signale prefers-reduced-motion.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html.fb-force-motion .meter .meter__fill {
+    transition-property: width;
+    transition-duration: 300ms;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  html.fb-force-motion .motion-reduce\:transition-none {
+    transition-duration: 400ms;
+    transition-property: transform, opacity, border-color, color, background-color, filter;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  html.fb-force-motion .motion-reduce\:duration-200 {
+    transition-duration: 500ms;
+  }
+}
