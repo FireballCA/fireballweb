@@ -355,17 +355,18 @@ function SiO2Chart() {
               <span className="font-bold text-carbon-900">{d.name}</span>
               <span className="ml-2 text-carbon-400">{d.years}</span>
             </div>
-            <span className="font-mono font-bold text-carbon-900">{d.label}</span>
           </div>
-          <div className="meter__track">
-            <div
-              className="meter__fill transition-[width] duration-700 ease-out"
-              style={{
-                width: inView ? `${d.value}%` : '0%',
-                backgroundColor: '#111111',
-                transitionDelay: inView ? `${i * 70}ms` : '0ms',
-              }}
-            />
+          <div className="flex items-center gap-3">
+            <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-[#d9d9de]">
+              <div
+                className="absolute inset-y-0 left-0 rounded-full bg-[#111111] transition-[width] duration-700 ease-out"
+                style={{
+                  width: inView ? `${d.value}%` : '0%',
+                  transitionDelay: inView ? `${i * 70}ms` : '0ms',
+                }}
+              />
+            </div>
+            <span className="w-14 text-right font-mono font-bold text-carbon-900">{d.label}</span>
           </div>
         </motion.div>
       ))}
@@ -697,37 +698,27 @@ export function HowItWorks() {
       <section className="bg-white py-24 md:py-32">
         <div className="mx-auto max-w-7xl px-6">
           <motion.div
-            className="grid items-center gap-10 md:grid-cols-2"
+            className="mx-auto max-w-3xl text-center"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
           >
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-carbon-900 md:text-4xl">
-                Ready to protect
-                your vehicle?
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-carbon-500">
-                Connect with a certified Fireball installer near you. Professional application,
-                factory-backed warranty, and permanent molecular protection.
-              </p>
-              <div className="mt-7 flex flex-wrap gap-3">
-                <Link to="/coatings/find-installer" className={cn('inline-flex', appleButtonVisualClassName)}>
-                  Find an Installer
-                </Link>
-                <SecondaryClipButton to="/coatings/compare" className="!border-carbon-900 !bg-carbon-900" idleTextClass="text-white" hoverTextClass="text-carbon-900">
-                  Compare Coatings
-                </SecondaryClipButton>
-              </div>
-            </div>
-
-            <div className="hidden justify-end md:flex">
-              <div className="rounded-2xl border border-carbon-100 bg-[#f5f5f7] p-10 text-center">
-                <div className="font-mono text-6xl font-bold text-carbon-900">SiO₂</div>
-                <div className="mt-2 text-sm text-carbon-400">Up to 92%+ concentration</div>
-                <div className="mt-1 text-xs text-carbon-300">5 molecular variants · TiO₂ · Graphene</div>
-              </div>
+            <h2 className="text-3xl font-bold tracking-tight text-carbon-900 md:text-4xl">
+              Ready to protect
+              your vehicle?
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-carbon-500">
+              Connect with a certified Fireball installer near you. Professional application,
+              factory-backed warranty, and permanent molecular protection.
+            </p>
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              <Link to="/coatings/find-installer" className={cn('inline-flex', appleButtonVisualClassName)}>
+                Find an Installer
+              </Link>
+              <SecondaryClipButton to="/coatings/compare" className="!border-carbon-900 !bg-carbon-900" idleTextClass="text-white" hoverTextClass="text-carbon-900">
+                Compare Coatings
+              </SecondaryClipButton>
             </div>
           </motion.div>
         </div>

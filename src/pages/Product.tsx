@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate, useLocation, Navigate } from 'react-route
 import type { NavigateFunction } from 'react-router-dom'
 import { useEffect, useState, useRef, useMemo, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CATEGORIES, PRODUCTS, type Product as LocalProduct } from '@/data/products'
+import { CATEGORIES, PRODUCTS, type Product as LocalProduct, type ProductVariant } from '@/data/products'
 import { useCart } from '@/context/CartContext'
 import { fetchProductFromShopifyBySlug, fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { XP_PER_DOLLAR } from '@/utils/supabaseXp'
@@ -19,9 +19,193 @@ import { ProductDetailSkeleton } from '@/components/ui/ProductDetailSkeleton'
 import { useClipRevealHover, CLIP_REVEAL_BUTTON_BASE_CLASS } from '@/hooks/useClipRevealHover'
 import { usePageTitle } from '@/hooks/usePageTitle'
 
-const FIREBALL_RED = '#B61B1B'
+const APPLE_BLUE = '#0485F7'
+const SLIDER_ACTIVE_BLACK = '#111111'
 
 type ProductType = LocalProduct
+
+function normalizeOptionName(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
+function isColorOptionName(name: string) {
+  const n = normalizeOptionName(name)
+  return n === 'color' || n === 'couleur' || n === 'colour'
+}
+
+function isSizeOptionName(name: string) {
+  const n = normalizeOptionName(name)
+  return n === 'size' || n === 'taille' || n === 'pointure'
+}
+
+/** Variante disponible pour la combinaison d’options (ex. couleur + taille). */
+function isVariantValueAvailable(
+  variants: ProductVariant[] | undefined,
+  selection: Record<string, string>,
+  optionName: string,
+  value: string,
+): boolean {
+  if (!variants?.length) return true
+  const next = { ...selection, [optionName]: value }
+  return variants.some(
+    (v) =>
+      v.availableForSale &&
+      (v.selectedOptions?.length ?? 0) > 0 &&
+      v.selectedOptions.every((so) => next[so.name] === so.value),
+  )
+}
+
+function VariantSegmentedControl({
+  optionName,
+  values,
+  selectedValue,
+  onChange,
+  isValueAvailable,
+  activeBgColor = SLIDER_ACTIVE_BLACK,
+}: {
+  optionName: string
+  values: string[]
+  selectedValue: string
+  onChange: (value: string) => void
+  isValueAvailable: (value: string) => boolean
+  activeBgColor?: string
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const groupRef = useRef<HTMLDivElement>(null)
+  const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const [indicator, setIndicator] = useState<{ left: number; width: number; visible: boolean }>({
+    left: 0,
+    width: 0,
+    visible: false,
+  })
+
+  useEffect(() => {
+    const scrollContainer = scrollRef.current
+    const group = groupRef.current
+    if (!scrollContainer || !group) return
+
+    const measure = () => {
+      const btn = buttonRefs.current[selectedValue]
+      if (!btn) {
+        setIndicator((prev) => (prev.visible ? { ...prev, visible: false } : prev))
+        return
+      }
+      const groupRect = group.getBoundingClientRect()
+      const btnRect = btn.getBoundingClientRect()
+      const insetPx = 1
+      const left = Math.round(btnRect.left - groupRect.left) + insetPx
+      const width = Math.max(0, Math.round(btnRect.width) - insetPx * 2)
+      setIndicator({ left, width, visible: width > 0 })
+    }
+
+    measure()
+    const onResize = () => measure()
+    const onScroll = () => measure()
+
+    window.addEventListener('resize', onResize)
+    scrollContainer.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('resize', onResize)
+      scrollContainer.removeEventListener('scroll', onScroll)
+    }
+  }, [selectedValue, values])
+
+  return (
+    <div ref={scrollRef} className="relative inline-block max-w-full overflow-x-auto">
+      <div
+        ref={groupRef}
+        role="radiogroup"
+        aria-label={optionName}
+        className="relative inline-flex w-max items-stretch gap-1 rounded-full border border-carbon-200 bg-carbon-50 p-1"
+      >
+        <div
+          aria-hidden="true"
+          className={`absolute left-0 top-1 bottom-1 rounded-full shadow-sm transition-[transform,width,opacity] duration-300 ease-out ${
+            indicator.visible ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{
+            width: `${indicator.width}px`,
+            transform: `translate3d(${indicator.left}px, 0, 0)`,
+            backgroundColor: activeBgColor,
+          }}
+        />
+        {values.map((val) => {
+          const isSelected = selectedValue === val
+          const isAvailable = isValueAvailable(val)
+          return (
+            <button
+              key={`${optionName}-${val}`}
+              ref={(el) => {
+                buttonRefs.current[val] = el
+              }}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              disabled={!isAvailable}
+              onClick={() => onChange(val)}
+              className={`relative z-10 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                isSelected
+                  ? 'text-white'
+                  : isAvailable
+                    ? 'text-carbon-700 hover:text-carbon-950'
+                    : 'text-carbon-500 opacity-50 cursor-not-allowed'
+              }`}
+            >
+              {val}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function AnimatedPriceValue({ value }: { value: number }) {
+  const formatted = value.toFixed(2)
+  const [current, setCurrent] = useState(formatted)
+  const [previous, setPrevious] = useState<string | null>(null)
+  const [animating, setAnimating] = useState(false)
+
+  useEffect(() => {
+    if (formatted === current) return
+    setPrevious(current)
+    setCurrent(formatted)
+    setAnimating(true)
+    const id = window.setTimeout(() => {
+      setAnimating(false)
+      setPrevious(null)
+    }, 240)
+    return () => window.clearTimeout(id)
+  }, [formatted, current])
+
+  return (
+    <span className="inline-flex items-baseline">
+      <span className="relative inline-block h-[1.2em] overflow-hidden">
+        {previous && (
+          <span
+            className={`absolute left-0 top-0 transition-transform duration-200 ease-out ${
+              animating ? '-translate-y-full' : 'translate-y-0'
+            }`}
+          >
+            {previous}
+          </span>
+        )}
+        <span
+          className={`block transition-transform duration-200 ease-out ${
+            previous ? (animating ? 'translate-y-0' : 'translate-y-full') : 'translate-y-0'
+          }`}
+        >
+          {current}
+        </span>
+      </span>
+      <span>&nbsp;$CA</span>
+    </span>
+  )
+}
 
 type ProductPageOverrides = Record<
   string,
@@ -238,10 +422,10 @@ export function Product() {
             const defaultOptions: Record<string, string> = {}
             loaded.variants[0].selectedOptions.forEach((opt) => {
               defaultOptions[opt.name] = opt.value
-              if (opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'couleur') {
+              if (isColorOptionName(opt.name)) {
                 setSelectedColor(opt.value)
               }
-              if (opt.name.toLowerCase() === 'size' || opt.name.toLowerCase() === 'taille') {
+              if (isSizeOptionName(opt.name)) {
                 setSelectedSize(opt.value)
               }
             })
@@ -280,6 +464,24 @@ export function Product() {
       cancelled = true
     }
   }, [slug, isPartner])
+
+  const colorOption = useMemo(
+    () => product?.options?.find((o) => isColorOptionName(o.name)),
+    [product?.options],
+  )
+  const colorOptions = colorOption?.values ?? []
+
+  const sizeOption = useMemo(
+    () => product?.options?.find((o) => isSizeOptionName(o.name)),
+    [product?.options],
+  )
+  const sizeOptions = sizeOption?.values ?? []
+
+  const genericOptions = useMemo(
+    () =>
+      product?.options?.filter((o) => !isColorOptionName(o.name) && !isSizeOptionName(o.name)) ?? [],
+    [product?.options],
+  )
 
   // Animation de la barre de progression au chargement
   useEffect(() => {
@@ -437,14 +639,6 @@ export function Product() {
       : []
   // Toujours utiliser l'image sélectionnée par l'utilisateur via selectedImageIndex
   const displayImage = allImages[selectedImageIndex] || allImages[0] || product?.image
-
-  // Extraire les options de couleur et taille
-  const colorOptions = product?.options?.find(opt => 
-    opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'couleur'
-  )?.values || []
-  const sizeOptions = product?.options?.find(opt => 
-    opt.name.toLowerCase() === 'size' || opt.name.toLowerCase() === 'taille'
-  )?.values || []
 
   const selectedSizeValue = selectedSize || sizeOptions[0] || ''
 
@@ -630,10 +824,10 @@ export function Product() {
     const newOptions = { ...selectedOptions, [optionName]: value }
     setSelectedOptions(newOptions)
     
-    if (optionName.toLowerCase() === 'color' || optionName.toLowerCase() === 'couleur') {
+    if (isColorOptionName(optionName)) {
       setSelectedColor(value)
     }
-    if (optionName.toLowerCase() === 'size' || optionName.toLowerCase() === 'taille') {
+    if (isSizeOptionName(optionName)) {
       setSelectedSize(value)
     }
     
@@ -923,7 +1117,7 @@ export function Product() {
             <div className="flex flex-col gap-3 mb-6">
               <div className="flex items-center justify-between gap-4">
                 <span className="text-base font-bold text-carbon-900">
-                  {displayPrice.toFixed(2)} $CA
+                  <AnimatedPriceValue value={displayPrice} />
                 </span>
               </div>
 
@@ -939,7 +1133,7 @@ export function Product() {
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="h-[1.2em] w-[1.2em] shrink-0 text-[#B61B1B]"
+                      className="h-[1.2em] w-[1.2em] shrink-0 text-[#0485F7]"
                       aria-hidden
                     >
                       <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
@@ -971,7 +1165,7 @@ export function Product() {
                       width: shippingProgressAnimated
                         ? `${Math.min((displayPrice / 50) * 100, 100)}%`
                         : '0%',
-                      backgroundColor: FIREBALL_RED,
+                      backgroundColor: APPLE_BLUE,
                     }}
                   />
                 </div>
@@ -979,27 +1173,31 @@ export function Product() {
             </div>
 
             {/* Color Selection */}
-            {colorOptions.length > 0 && (
+            {colorOptions.length > 0 && colorOption && (
               <div>
                 <label className="block text-sm font-medium text-carbon-900 mb-2">
-                  {t('product.quantity')}: {selectedColor || colorOptions[0]}
+                  {colorOption.name}: {selectedColor || colorOptions[0]}
                 </label>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   {colorOptions.map((color) => {
                     const isSelected = selectedColor === color || (!selectedColor && color === colorOptions[0])
+                    const isAvailable = isVariantValueAvailable(
+                      product.variants,
+                      selectedOptions,
+                      colorOption.name,
+                      color,
+                    )
                     return (
                       <button
                         key={color}
                         type="button"
-                        onClick={() => handleOptionChange(
-                          product.options?.find(opt => opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'couleur')?.name || 'Color',
-                          color
-                        )}
+                        disabled={!isAvailable}
+                        onClick={() => handleOptionChange(colorOption.name, color)}
                         className={`w-12 h-12 rounded-lg border-2 transition-all ${
                           isSelected
                             ? 'border-carbon-900 ring-2 ring-carbon-900/20'
                             : 'border-carbon-300 hover:border-carbon-400'
-                        }`}
+                        } ${!isAvailable ? 'opacity-40 cursor-not-allowed' : ''}`}
                         style={{
                           backgroundColor: color.toLowerCase() === 'black' ? '#000' : 
                                          color.toLowerCase() === 'white' ? '#fff' :
@@ -1015,15 +1213,17 @@ export function Product() {
             )}
 
             {/* Size Selection */}
-            {sizeOptions.length > 0 && (
+            {sizeOptions.length > 0 && sizeOption && (
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium text-carbon-900">
-                    Size: {selectedSizeValue}
+                    {sizeOption.name}: {selectedSizeValue}
                   </label>
-                  <button type="button" className="text-sm text-carbon-600 hover:text-carbon-900 underline">
-                    View Size Chart
-                  </button>
+                  {isSizeOptionName(sizeOption.name) ? (
+                    <button type="button" className="text-sm text-carbon-600 hover:text-carbon-900 underline">
+                      View Size Chart
+                    </button>
+                  ) : null}
                 </div>
                 <div ref={sizeSegmentRef} className="relative inline-block max-w-full overflow-x-auto">
                   <div
@@ -1034,22 +1234,23 @@ export function Product() {
                   >
                     <div
                       aria-hidden="true"
-                      className={`absolute left-0 top-1 bottom-1 rounded-full bg-[#F6F6F6] shadow-sm ring-1 ring-carbon-900/5 transition-[transform,width,opacity] duration-300 ease-out ${
+                      className={`absolute left-0 top-1 bottom-1 rounded-full shadow-sm transition-[transform,width,opacity] duration-300 ease-out ${
                         sizeIndicator.visible ? 'opacity-100' : 'opacity-0'
                       }`}
                       style={{
                         width: `${sizeIndicator.width}px`,
                         transform: `translate3d(${sizeIndicator.left}px, 0, 0)`,
+                        backgroundColor: SLIDER_ACTIVE_BLACK,
                       }}
                     />
                     {sizeOptions.map((size) => {
                       const isSelected = selectedSizeValue === size
-                      const isAvailable = product.variants?.some((v) => {
-                        const sizeOpt = v.selectedOptions.find((o) =>
-                          (o.name.toLowerCase() === 'size' || o.name.toLowerCase() === 'taille') && o.value === size
-                        )
-                        return sizeOpt && v.availableForSale
-                      })
+                      const isAvailable = isVariantValueAvailable(
+                        product.variants,
+                        selectedOptions,
+                        sizeOption.name,
+                        size,
+                      )
 
                       return (
                         <button
@@ -1065,14 +1266,7 @@ export function Product() {
                             if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
                             e.preventDefault()
                             const enabled = sizeOptions.filter((s) =>
-                              product.variants?.some((v) => {
-                                const sizeOpt = v.selectedOptions.find(
-                                  (o) =>
-                                    (o.name.toLowerCase() === 'size' || o.name.toLowerCase() === 'taille') &&
-                                    o.value === s,
-                                )
-                                return sizeOpt && v.availableForSale
-                              }),
+                              isVariantValueAvailable(product.variants, selectedOptions, sizeOption.name, s),
                             )
                             if (enabled.length <= 1) return
                             const current = selectedSizeValue
@@ -1082,24 +1276,13 @@ export function Product() {
                                 ? (idx + 1) % enabled.length
                                 : (idx - 1 + enabled.length) % enabled.length
                             const next = enabled[nextIdx]
-                            const optionName =
-                              product.options?.find(
-                                (opt) => opt.name.toLowerCase() === 'size' || opt.name.toLowerCase() === 'taille',
-                              )?.name || 'Size'
-                            handleOptionChange(optionName, next)
+                            handleOptionChange(sizeOption.name, next)
                             sizeButtonRefs.current[next]?.focus()
                           }}
-                          onClick={() =>
-                            handleOptionChange(
-                              product.options?.find(
-                                (opt) => opt.name.toLowerCase() === 'size' || opt.name.toLowerCase() === 'taille',
-                              )?.name || 'Size',
-                              size,
-                            )
-                          }
+                          onClick={() => handleOptionChange(sizeOption.name, size)}
                           className={`relative z-10 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                             isSelected
-                              ? 'text-carbon-950'
+                              ? 'text-white'
                               : isAvailable
                                 ? 'text-carbon-700 hover:text-carbon-950'
                                 : 'text-carbon-500 opacity-50 cursor-not-allowed'
@@ -1113,6 +1296,24 @@ export function Product() {
                 </div>
               </div>
             )}
+
+            {/* Autres options Shopify (ex. Title, Format, Style…) */}
+            {genericOptions.map((opt) => (
+              <div key={opt.name}>
+                <label className="block text-sm font-medium text-carbon-900 mb-2">
+                  {opt.name}: {selectedOptions[opt.name] || opt.values[0]}
+                </label>
+                <VariantSegmentedControl
+                  optionName={opt.name}
+                  values={opt.values}
+                  selectedValue={selectedOptions[opt.name] || opt.values[0]}
+                  onChange={(val) => handleOptionChange(opt.name, val)}
+                  isValueAvailable={(val) =>
+                    isVariantValueAvailable(product.variants, selectedOptions, opt.name, val)
+                  }
+                />
+              </div>
+            ))}
 
             {/* XP gagné (avant Quantity) */}
             <div className="w-full py-4 px-6 rounded-none border border-carbon-200 bg-[#F6F6F6] flex flex-col items-start justify-center gap-1">
@@ -1449,15 +1650,44 @@ export function Product() {
           }`}
         >
           <div 
-            className="flex items-center gap-4 px-6 py-4 rounded-full bg-carbon-950/80 backdrop-blur-md border border-carbon-800/50 shadow-xl"
+            className="flex items-center gap-4 px-5 py-4 rounded-3xl bg-[#eceef3]/95 backdrop-blur-md border border-[#d8dce6] shadow-[0_12px_30px_rgba(17,17,17,0.18)]"
             style={{ 
-              width: navbarWidth > 0 ? `${navbarWidth * 0.8}px` : 'auto'
+              width: navbarWidth > 0 ? `${navbarWidth * 0.9}px` : 'auto'
             }}
           >
             {/* Titre du produit */}
-            <h2 className="text-base font-semibold text-pearl line-clamp-1 flex-1 min-w-0">
-              {product.name}
-            </h2>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-semibold text-carbon-900 line-clamp-1">{product.name}</h2>
+              <p className="mt-0.5 text-xs font-medium text-carbon-600">
+                <AnimatedPriceValue value={displayPrice} />
+              </p>
+            </div>
+
+            {sizeOptions.length > 0 && sizeOption && (
+              <VariantSegmentedControl
+                optionName={sizeOption.name}
+                values={sizeOptions}
+                selectedValue={selectedSizeValue}
+                activeBgColor="#111111"
+                onChange={(val) => handleOptionChange(sizeOption.name, val)}
+                isValueAvailable={(val) =>
+                  isVariantValueAvailable(product.variants, selectedOptions, sizeOption.name, val)
+                }
+              />
+            )}
+
+            {genericOptions[0] && (
+              <VariantSegmentedControl
+                optionName={genericOptions[0].name}
+                values={genericOptions[0].values}
+                selectedValue={selectedOptions[genericOptions[0].name] || genericOptions[0].values[0]}
+                activeBgColor="#111111"
+                onChange={(val) => handleOptionChange(genericOptions[0].name, val)}
+                isValueAvailable={(val) =>
+                  isVariantValueAvailable(product.variants, selectedOptions, genericOptions[0].name, val)
+                }
+              />
+            )}
             
               {/* Bouton Add to cart — même effet survol rouge Fireball */}
             <button
@@ -1491,7 +1721,7 @@ export function Product() {
               onBlur={() => clipAddSticky.onBlur()}
               className={`relative overflow-hidden rounded-full border px-6 py-2.5 text-sm font-medium whitespace-nowrap outline-none [-webkit-tap-highlight-color:transparent] transition-[border-color,color] duration-500 ease-out focus:outline-none focus-visible:outline-none active:scale-[0.98] ${
                 currentVariant && !currentVariant.availableForSale
-                  ? 'cursor-not-allowed border-carbon-700 bg-carbon-800 text-carbon-500'
+                  ? 'cursor-not-allowed border-carbon-300 bg-carbon-200 text-carbon-500'
                   : added
                     ? 'border-transparent bg-carbon-600 text-white'
                     : 'border-[#0485F7] bg-[#0485F7] text-white hover:border-[#3592F9] hover:bg-[#3592F9]'
@@ -1605,15 +1835,28 @@ export function Product() {
 
       {/* Sticky Add to Cart Mobile */}
       <div
-        className={`lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-carbon-200 p-4 z-50 shadow-lg transform-gpu transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        className={`lg:hidden fixed bottom-0 left-0 right-0 bg-[#eef0f5]/95 backdrop-blur-md border-t border-[#d8dce6] p-4 z-50 shadow-[0_-10px_30px_rgba(17,17,17,0.15)] transform-gpu transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
           showMobileStickyBar ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
         }`}
       >
-        <div className="max-w-7xl mx-auto flex gap-3">
+        <div className="max-w-7xl mx-auto space-y-2">
+          {sizeOptions.length > 0 && sizeOption && (
+            <VariantSegmentedControl
+              optionName={sizeOption.name}
+              values={sizeOptions}
+              selectedValue={selectedSizeValue}
+              activeBgColor="#111111"
+              onChange={(val) => handleOptionChange(sizeOption.name, val)}
+              isValueAvailable={(val) =>
+                isVariantValueAvailable(product.variants, selectedOptions, sizeOption.name, val)
+              }
+            />
+          )}
+          <div className="flex gap-3">
           <div className="flex-1">
             <p className="text-sm font-semibold text-carbon-900 line-clamp-1">{product.name}</p>
             <p className="mt-1 text-xs font-medium text-carbon-600">
-              {displayPrice.toFixed(2)} $CA
+              <AnimatedPriceValue value={displayPrice} />
             </p>
           </div>
           <button
@@ -1672,6 +1915,7 @@ export function Product() {
               {added ? `✓ ${t('product.addedToCart')}` : 'Purchase'}
             </span>
           </button>
+          </div>
         </div>
       </div>
     </div>

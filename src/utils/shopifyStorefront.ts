@@ -37,6 +37,25 @@ async function shopifyFetch<T>(query: string, variables?: Record<string, unknown
 // Cache mémoire léger pour réduire les latences de navigation
 const productCache = new Map<string, Product>()
 
+/** Construit les options (nom + valeurs) à partir des variantes si l’API ne renvoie pas d’options exploitables. */
+function deriveOptionsFromVariants(variants: ProductVariant[]): { name: string; values: string[] }[] {
+  const byName = new Map<string, Set<string>>()
+  for (const v of variants) {
+    if (!v.selectedOptions?.length) continue
+    for (const so of v.selectedOptions) {
+      const name = String(so.name || '').trim()
+      if (!name) continue
+      const value = String(so.value ?? '').trim()
+      if (!value) continue
+      if (!byName.has(name)) byName.set(name, new Set())
+      byName.get(name)!.add(value)
+    }
+  }
+  return Array.from(byName.entries())
+    .filter(([, vals]) => vals.size > 1)
+    .map(([name, vals]) => ({ name, values: Array.from(vals) }))
+}
+
 function resolveCategoryFromTags(tags: string[]): CategoryId {
   const lower = tags.map((t) => t.toLowerCase().trim())
   
@@ -132,7 +151,7 @@ function mapShopifyProductToLocal(node: {
   const price = Number.parseFloat(minPriceAmount)
   const firstVariantId = node.variants?.edges?.[0]?.node?.id
 
-  // Mapper les variantes
+  // Mapper les variantes (ne pas exclure les prix à 0 : promotions / erreurs de parsing sinon on perd des tailles)
   const variants: ProductVariant[] =
     node.variants?.edges
       .map((edge) => {
@@ -144,16 +163,18 @@ function mapShopifyProductToLocal(node: {
           ? Number.parseFloat(variantPriceAmount)
           : Number.parseFloat(fallbackPriceAmount)
         
+        const resolvedPrice = Number.isFinite(variantPrice) ? variantPrice : price
+
         return {
           id: edge.node.id,
           title: edge.node.title,
-          price: Number.isFinite(variantPrice) ? variantPrice : price,
+          price: Number.isFinite(resolvedPrice) ? resolvedPrice : 0,
           availableForSale: edge.node.availableForSale ?? true,
           selectedOptions: edge.node.selectedOptions || [],
           image: edge.node.image?.url,
         }
       })
-      .filter((v) => v.price > 0) || []
+      .filter((v) => Number.isFinite(v.price)) || []
 
   // Récupérer la vidéo si disponible
   let videoUrl: string | undefined
@@ -179,7 +200,17 @@ function mapShopifyProductToLocal(node: {
     shopifyProductId: node.id,
     shopifyVariantId: firstVariantId,
     variants: variants.length > 0 ? variants : undefined,
-    options: node.options?.filter((opt) => opt.values.length > 1),
+    options: (() => {
+      const fromApi = (node.options ?? [])
+        .map((o) => ({
+          name: String(o.name || '').trim(),
+          values: Array.isArray(o.values) ? o.values.map((v) => String(v).trim()).filter(Boolean) : [],
+        }))
+        .filter((o) => o.name && o.values.length > 1)
+      if (fromApi.length > 0) return fromApi
+      const derived = deriveOptionsFromVariants(variants)
+      return derived.length > 0 ? derived : undefined
+    })(),
     video: videoUrl,
     tags: tags.length > 0 ? tags : undefined,
     partnerOnly: partnerOnly || undefined,

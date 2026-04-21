@@ -165,6 +165,9 @@ export function Header() {
     location.pathname.startsWith('/coating/') ||
     location.pathname.startsWith('/coatings/') ||
     location.pathname === '/all-coatings'
+  const isStandardNavCoatingPage =
+    location.pathname === '/coatings/how-it-works' || location.pathname === '/coatings/compare'
+  const isAutoHideHeaderPage = (isProductPage || isCoatingPage) && !isStandardNavCoatingPage
   const isBusinessPage =
     location.pathname.startsWith('/business') || location.pathname.startsWith('/account/business')
   const isJoinClubPage = location.pathname === '/join-club'
@@ -179,7 +182,7 @@ export function Header() {
     isProductPage ||
     isCoatingPage ||
     !isNavOverFullBleedHero(location.pathname)
-  /** 0 = navbar visible, 1 = entièrement masquée (pages produit / coating uniquement, piloté par le scroll) */
+  /** 0 = navbar visible, 1 = entièrement masquée (pages produit / coating, hors pages vitrines compare/how-it-works) */
   const [headerHideProgress, setHeaderHideProgress] = useState(0)
   const headerHideProgressRef = useRef(0)
   const lastScrollYRef = useRef(0)
@@ -418,11 +421,11 @@ export function Header() {
   }, [menuOpen, shopOpen, ceramicOpen, companyOpen, searchOpen, langOpen])
 
   useEffect(() => {
-    if (!isProductPage && !isCoatingPage) {
+    if (!isAutoHideHeaderPage) {
       headerHideProgressRef.current = 0
       setHeaderHideProgress(0)
     }
-  }, [isProductPage, isCoatingPage])
+  }, [isAutoHideHeaderPage])
 
   useEffect(() => {
     const flushHeaderHide = () => {
@@ -441,7 +444,7 @@ export function Header() {
       const progress = Math.min(scrollY / maxScroll, 1)
       setScrollProgress(progress)
 
-      if (!(isProductPage || isCoatingPage)) {
+      if (!isAutoHideHeaderPage) {
         lastScrollYRef.current = scrollY
         return
       }
@@ -490,8 +493,7 @@ export function Header() {
       }
     }
   }, [
-    isProductPage,
-    isCoatingPage,
+    isAutoHideHeaderPage,
     menuOpen,
     shopOpen,
     ceramicOpen,
@@ -737,7 +739,7 @@ export function Header() {
       <div
         id="site-header-stack"
         className={`${
-          isProductPage || isCoatingPage || isJoinClubPage || isAcademyPage ? '' : 'sticky'
+          isAutoHideHeaderPage || isJoinClubPage || isAcademyPage ? '' : 'sticky'
         } top-0 left-0 right-0 ${
           isMobileMenuMounted ? 'z-[10010]' : 'z-[120]'
         } transition-transform duration-300 ease-out will-change-transform`}
@@ -786,7 +788,7 @@ export function Header() {
         )}
 
         <header
-          className={`${isProductPage || isCoatingPage ? 'sticky' : ''} left-0 right-0`}
+          className={`${isAutoHideHeaderPage ? 'sticky' : ''} left-0 right-0`}
           style={{
             ...(isMobileMenuMounted
               ? {
@@ -795,7 +797,7 @@ export function Header() {
                   backdropFilter: 'none',
                 }
               : navBgStyle),
-            ...((isProductPage || isCoatingPage) && !isMobileMenuMounted
+            ...(isAutoHideHeaderPage && !isMobileMenuMounted
               ? {
                   transform: `translateY(${-headerHideProgress * 100}%)`,
                   willChange: 'transform',

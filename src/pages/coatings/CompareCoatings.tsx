@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
 import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 
-const GAUGE_COLOR = '#B61B1B'
+const GAUGE_COLOR = '#111111'
 
 // ─── Coating data ─────────────────────────────────────────────────────────────
 
@@ -235,11 +235,6 @@ function CoatingCard({
       >
         <div className="mb-4 flex items-start justify-between">
           <div>
-            {c.proOnly && (
-              <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[0.18em] text-carbon-500">
-                Elite Certified
-              </span>
-            )}
             <span className="font-nav text-base font-bold leading-tight tracking-tight text-carbon-900">
               {c.name}
             </span>
@@ -299,18 +294,35 @@ const GAUGE_KEYS: { key: 'hardness' | 'gloss' | 'resistance' | 'hydrophobicity';
 function TableGauge({ value, inView, delay }: { value: number; inView: boolean; delay: number }) {
   const pct = Math.round(value)
   return (
-    <div className="flex items-center gap-2">
-      <div className="meter__track h-1.5 flex-1">
+    <div className="mx-auto flex w-[92px] items-center gap-2">
+      <div className="relative h-1.5 w-14 overflow-hidden rounded-full bg-[#d9d9de]">
         <div
-          className="meter__fill transition-[width] duration-700 ease-out"
+          className="absolute inset-y-0 left-0 rounded-full bg-[#111111] transition-[width] duration-700 ease-out"
           style={{
             width: inView ? `${pct}%` : '0%',
-            backgroundColor: GAUGE_COLOR,
             transitionDelay: inView ? `${delay}ms` : '0ms',
           }}
         />
       </div>
       <span className="w-7 text-right font-mono text-[10px] tabular-nums text-carbon-500">{pct}</span>
+    </div>
+  )
+}
+
+function SiO2TableCell({ value, inView, delay }: { value: number; inView: boolean; delay: number }) {
+  const pct = Math.round(value)
+  return (
+    <div className="mx-auto flex w-[92px] items-center gap-2">
+      <span className="w-9 text-right font-mono text-xs font-bold tabular-nums text-carbon-900">{pct}%</span>
+      <div className="relative h-1.5 w-14 overflow-hidden rounded-full bg-[#d9d9de]" aria-hidden>
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-[#111111] transition-[width] duration-700 ease-out"
+          style={{
+            width: inView ? `${pct}%` : '0%',
+            transitionDelay: inView ? `${delay}ms` : '0ms',
+          }}
+        />
+      </div>
     </div>
   )
 }
@@ -365,9 +377,13 @@ function ComparisonTable() {
             <tbody>
               <tr>
                 <td className="py-3 pr-6 text-xs text-carbon-500">SiO₂ Content</td>
-                {COATINGS.map((c) => (
-                  <td key={c.id} className="py-3 text-center font-mono text-sm font-bold text-carbon-900">
-                    {c.sio2}%+
+                {COATINGS.map((c, ci) => (
+                  <td key={c.id} className="px-2 py-3.5">
+                    <SiO2TableCell
+                      value={c.sio2}
+                      inView={inView}
+                      delay={140 + ci * 40}
+                    />
                   </td>
                 ))}
               </tr>
@@ -429,19 +445,6 @@ function ComparisonTable() {
                 ))}
               </tr>
 
-              <tr className="border-t border-carbon-100">
-                <td className="py-3.5 pr-6 text-xs text-carbon-500">Installer access</td>
-                {COATINGS.map((c) => (
-                  <td key={c.id} className="py-3.5 text-center">
-                    <span className={cn(
-                      'text-[10px] font-semibold uppercase tracking-wide',
-                      c.proOnly ? 'text-carbon-900' : 'text-carbon-400',
-                    )}>
-                      {c.proOnly ? 'Elite only' : 'Certified'}
-                    </span>
-                  </td>
-                ))}
-              </tr>
             </tbody>
           </table>
         </div>
@@ -479,13 +482,6 @@ function ProductDetail({ c, reverse = false }: { c: CoatingSpec; reverse?: boole
             className="w-full object-contain drop-shadow-xl"
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0' }}
           />
-          {c.proOnly && (
-            <div className="absolute -right-2 -top-2 rounded-full bg-carbon-900 px-3 py-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-white">
-                Elite Only
-              </span>
-            </div>
-          )}
         </div>
       </motion.div>
 
@@ -704,37 +700,27 @@ export function CompareCoatings() {
       <section className="border-t border-carbon-100 bg-white py-24 md:py-32">
         <div className="mx-auto max-w-7xl px-6">
           <motion.div
-            className="grid items-center gap-10 md:grid-cols-2"
+            className="mx-auto max-w-3xl text-center"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-carbon-900 md:text-4xl">
-                Ready to protect
-                your investment?
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-carbon-500">
-                Connect with a certified Fireball installer near you. Professional application,
-                factory-backed warranty, and permanent ceramic protection.
-              </p>
-              <div className="mt-7 flex flex-wrap gap-3">
-                <Link to="/coatings/find-installer" className={cn('inline-flex', appleButtonVisualClassName)}>
-                  Find an Installer
-                </Link>
-                <SecondaryClipButton to="/coatings/how-it-works" idleTextClass="text-carbon-900" hoverTextClass="text-white">
-                  How It Works
-                </SecondaryClipButton>
-              </div>
-            </div>
-            <div className="hidden md:flex items-center justify-end">
-              <img
-                src={COATINGS[0].image}
-                alt={COATINGS[0].name}
-                className="max-h-72 w-auto object-contain drop-shadow-2xl"
-                onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = '0' }}
-              />
+            <h2 className="text-3xl font-bold tracking-tight text-carbon-900 md:text-4xl">
+              Ready to protect
+              your investment?
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-carbon-500">
+              Connect with a certified Fireball installer near you. Professional application,
+              factory-backed warranty, and permanent ceramic protection.
+            </p>
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              <Link to="/coatings/find-installer" className={cn('inline-flex', appleButtonVisualClassName)}>
+                Find an Installer
+              </Link>
+              <SecondaryClipButton to="/coatings/how-it-works" className="!border-carbon-900 !bg-carbon-900" idleTextClass="text-white" hoverTextClass="text-carbon-900">
+                How It Works
+              </SecondaryClipButton>
             </div>
           </motion.div>
         </div>

@@ -47,6 +47,8 @@ export interface Product {
   rating?: number
   /** Nombre total d'avis */
   reviewCount?: number
+  /** Produit réservé aux partenaires/installateurs */
+  partnerOnly?: boolean
 }
 
 /**
