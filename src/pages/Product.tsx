@@ -539,7 +539,7 @@ export function Product() {
     
     const handleScroll = () => {
       if (!ctaButtonsRef.current) {
-        setShowStickyBar(false)
+        setShowStickyBar(window.scrollY > 150)
         return
       }
       
