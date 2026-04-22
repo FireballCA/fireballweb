@@ -287,7 +287,6 @@ export function Product() {
   const [openAccordion, setOpenAccordion] = useState<'description' | 'why' | 'howToUse' | null>('description')
   const [adminEditorOpen, setAdminEditorOpen] = useState(false)
   const [showStickyBar, setShowStickyBar] = useState(false)
-  const [showMobileStickyBar, setShowMobileStickyBar] = useState(false)
   const [navbarWidth, setNavbarWidth] = useState(0)
   const [shippingProgressAnimated, setShippingProgressAnimated] = useState(false)
   const galleryRef = useRef<HTMLDivElement>(null)
@@ -314,7 +313,6 @@ export function Product() {
 
   const clipAddMain = useClipRevealHover()
   const clipAddSticky = useClipRevealHover()
-  const clipAddMobile = useClipRevealHover()
 
   const sizeSegmentRef = useRef<HTMLDivElement>(null)
   const sizeGroupRef = useRef<HTMLDivElement>(null)
@@ -584,46 +582,6 @@ export function Product() {
     }
   }, [])
 
-  // Mobile: afficher la barre sticky uniquement quand le vrai bouton Add to Cart sort de l'écran
-  useEffect(() => {
-    const updateMobileStickyVisibility = () => {
-      if (window.innerWidth >= 1024) {
-        setShowMobileStickyBar(false)
-        return
-      }
-
-      const mainAddToCartButton = addToCartMainButtonRef.current
-      if (!mainAddToCartButton) {
-        setShowMobileStickyBar(false)
-        return
-      }
-
-      const rect = mainAddToCartButton.getBoundingClientRect()
-      // Afficher uniquement après avoir dépassé le bouton (quand il est sorti par le haut).
-      setShowMobileStickyBar(rect.bottom < 0)
-    }
-
-    let rafId: number | null = null
-    const onScrollOrResize = () => {
-      if (rafId !== null) {
-        window.cancelAnimationFrame(rafId)
-      }
-      rafId = window.requestAnimationFrame(updateMobileStickyVisibility)
-    }
-
-    window.addEventListener('scroll', onScrollOrResize, { passive: true })
-    window.addEventListener('resize', onScrollOrResize)
-    onScrollOrResize()
-
-    return () => {
-      if (rafId !== null) {
-        window.cancelAnimationFrame(rafId)
-      }
-      window.removeEventListener('scroll', onScrollOrResize)
-      window.removeEventListener('resize', onScrollOrResize)
-    }
-  }, [product, added])
-
   useEffect(() => {
     const tick = () => {
       const target = galleryCursorTargetRef.current
@@ -725,7 +683,6 @@ export function Product() {
   useEffect(() => {
     clipAddMain.reset()
     clipAddSticky.reset()
-    clipAddMobile.reset()
     const el = addToCartMainButtonRef.current
     if (el) {
       el.style.removeProperty('--clip-x')
@@ -920,7 +877,7 @@ export function Product() {
   return (
     <div className="bg-white min-h-screen" data-no-smooth-scroll>
       {/* Main Product Section — léger espace sous la navbar sticky (main sans pt sur /products/*) */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-9 sm:pt-10 pb-8 lg:pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-9 sm:pt-10 pb-8 max-lg:pb-28 lg:pb-12">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-16">
           {/* Left: Image Gallery - Sticky */}
           <div className="lg:sticky lg:top-20 lg:self-start space-y-4">
@@ -1439,8 +1396,8 @@ export function Product() {
               <p className="text-sm text-amber-600">{t('product.unavailable')}</p>
             )}
 
-            {/* CTAs - Empilés verticalement */}
-            <div ref={ctaButtonsRef} className="flex flex-col gap-3 pt-4 mb-6">
+            {/* CTAs — add to cart principal : desktop / tablette uniquement (mobile = barre flottante) */}
+            <div ref={ctaButtonsRef} className="hidden lg:flex flex-col gap-3 pt-4 mb-6">
               {/* Add to Cart — fond noir + survol type landing (cercle blanc) */}
               <button
                 ref={addToCartMainButtonRef}
@@ -1911,89 +1868,23 @@ export function Product() {
 
       {favoriteModal}
 
-      {/* Sticky Add to Cart Mobile */}
-      <div
-        className={`lg:hidden fixed bottom-0 left-0 right-0 bg-[#eef0f5]/95 backdrop-blur-md border-t border-[#d8dce6] p-4 z-50 shadow-[0_-10px_30px_rgba(17,17,17,0.15)] transform-gpu transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          showMobileStickyBar ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto space-y-2">
-          {sizeOptions.length > 0 && sizeOption && (
-            <VariantSegmentedControl
-              optionName={sizeOption.name}
-              values={sizeOptions}
-              selectedValue={selectedSizeValue}
-              activeBgColor="#111111"
-              onChange={(val) => handleOptionChange(sizeOption.name, val)}
-              isValueAvailable={(val) =>
-                isVariantValueAvailable(product.variants, selectedOptions, sizeOption.name, val)
-              }
-            />
-          )}
-          <div className="flex gap-3">
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-carbon-900 line-clamp-1">{product.name}</p>
-            <p className="mt-1 text-xs font-medium text-carbon-600">
-              <AnimatedPriceValue value={displayPrice} />
-            </p>
-          </div>
+      {/* Add to cart mobile : fixe en bas, marges (flottant), seul CTA d’achat sur petit écran */}
+      <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pointer-events-none">
+        <div className="max-w-7xl mx-auto w-full pointer-events-auto">
           <button
             type="button"
             onClick={handleAddToCart}
             disabled={currentVariant && !currentVariant.availableForSale}
-            onPointerEnter={
+            className={`[-webkit-tap-highlight-color:transparent] w-full rounded-full border py-3.5 px-6 text-base font-semibold shadow-[0_4px_24px_rgba(4,133,247,0.35)] transition-colors transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0485F7]/40 focus-visible:ring-offset-2 active:scale-[0.99] ${
               currentVariant && !currentVariant.availableForSale
-                ? undefined
-                : added
-                  ? undefined
-                  : clipAddMobile.onPointerEnter
-            }
-            onPointerMove={
-              currentVariant && !currentVariant.availableForSale
-                ? undefined
-                : added
-                  ? undefined
-                  : clipAddMobile.onPointerMove
-            }
-            onPointerLeave={
-              currentVariant && !currentVariant.availableForSale
-                ? undefined
-                : added
-                  ? undefined
-                  : clipAddMobile.onPointerLeave
-            }
-            onFocus={() => {
-              if ((!currentVariant || currentVariant.availableForSale) && !added) clipAddMobile.onFocus()
-            }}
-            onBlur={() => clipAddMobile.onBlur()}
-            className={`relative shrink-0 overflow-hidden rounded-full border px-6 py-3 text-sm font-medium outline-none [-webkit-tap-highlight-color:transparent] transition-[border-color,color] duration-500 ease-out focus:outline-none focus-visible:outline-none active:scale-[0.98] ${
-              currentVariant && !currentVariant.availableForSale
-                ? 'cursor-not-allowed border-carbon-200 bg-carbon-200 text-carbon-500'
+                ? 'cursor-not-allowed border-carbon-200 bg-carbon-200 text-carbon-500 shadow-none'
                 : added
                   ? 'border-transparent bg-carbon-600 text-white'
-                  : 'border-[#0485F7] bg-[#0485F7] text-white hover:border-[#3592F9] hover:bg-[#3592F9]'
+                  : 'border-[#0485F7] bg-[#0485F7] text-white'
             }`}
-            style={
-              currentVariant && !currentVariant.availableForSale
-                ? undefined
-                : added
-                  ? undefined
-                  : clipAddMobile.cssVars
-            }
           >
-            <span
-              className={`relative z-10 ${
-                currentVariant && !currentVariant.availableForSale
-                  ? ''
-                  : added
-                    ? 'text-white'
-                      : 'text-white'
-              }`}
-            >
-              {added ? `✓ ${t('product.addedToCart')}` : 'Purchase'}
-            </span>
+            {added ? `✓ ${t('product.addedToCart')}` : t('product.addToCart')}
           </button>
-          </div>
         </div>
       </div>
     </div>
