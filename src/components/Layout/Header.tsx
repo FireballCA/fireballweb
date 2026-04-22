@@ -136,6 +136,7 @@ export function Header() {
   const [loggedInForNotif, setLoggedInForNotif] = useState(false)
   const [headerAvatarUrl, setHeaderAvatarUrl] = useState<string | null>(null)
   const [headerUserInitial, setHeaderUserInitial] = useState<string | null>(null)
+  const [headerUserName, setHeaderUserName] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -146,10 +147,12 @@ export function Header() {
         if (!cancelled && profile) {
           setHeaderAvatarUrl(profile.avatar_url || null)
           setHeaderUserInitial(profile.first_name ? profile.first_name.charAt(0).toUpperCase() : null)
+          setHeaderUserName(profile.first_name || null)
         }
       } else if (!ok && !cancelled) {
         setHeaderAvatarUrl(null)
         setHeaderUserInitial(null)
+        setHeaderUserName(null)
       }
     })
     return () => {
@@ -1875,26 +1878,73 @@ export function Header() {
 
             {/* Boutons d'action (tout en bas, hors zone scrollable) */}
             <div className="shrink-0 -mx-6 px-6 pt-3 pb-3 flex flex-col items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false)
-                  navigate('/account')
-                }}
-                className="w-[95vw] max-w-[520px] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white bg-[#B61B1B] shadow-[0_14px_30px_rgba(0,0,0,0.55)] hover:bg-[#b61b1bcc] transition-colors"
-              >
-                Log in
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false)
-                  navigate('/join-fireball')
-                }}
-                className="w-[95vw] max-w-[520px] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white border border-white/[0.16] bg-transparent hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors"
-              >
-                Join Fireball
-              </button>
+              {loggedInForNotif ? (
+                <div className="w-[95vw] max-w-[520px] flex items-center gap-3">
+                  {/* Rond profil */}
+                  <button
+                    type="button"
+                    onClick={() => { setMenuOpen(false); navigate('/account/dashboard') }}
+                    className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full transition-opacity hover:opacity-80"
+                    aria-label="My account"
+                  >
+                    {headerAvatarUrl ? (
+                      <img
+                        src={headerAvatarUrl}
+                        alt="Profile"
+                        className="w-10 h-10 rounded-full object-cover ring-2 ring-white/20"
+                      />
+                    ) : headerUserInitial ? (
+                      <div className="w-10 h-10 rounded-full bg-carbon-600 ring-2 ring-white/20 flex items-center justify-center text-[15px] font-semibold text-white select-none">
+                        {headerUserInitial}
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-carbon-600 ring-2 ring-white/20 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                  {/* Nom */}
+                  {headerUserName && (
+                    <span className="text-sm font-nav font-medium text-silver truncate flex-1 min-w-0">
+                      {headerUserName}
+                    </span>
+                  )}
+                  {/* Bouton Dashboard */}
+                  <button
+                    type="button"
+                    onClick={() => { setMenuOpen(false); navigate('/account/dashboard') }}
+                    className="flex-shrink-0 px-4 py-2 rounded-2xl text-sm font-nav font-bold uppercase tracking-[0.12em] text-white bg-[#B61B1B] shadow-[0_8px_20px_rgba(0,0,0,0.45)] hover:bg-[#b61b1bcc] transition-colors"
+                  >
+                    Dashboard
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      navigate('/account')
+                    }}
+                    className="w-[95vw] max-w-[520px] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white bg-[#B61B1B] shadow-[0_14px_30px_rgba(0,0,0,0.55)] hover:bg-[#b61b1bcc] transition-colors"
+                  >
+                    Log in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      navigate('/join-fireball')
+                    }}
+                    className="w-[95vw] max-w-[520px] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white border border-white/[0.16] bg-transparent hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors"
+                  >
+                    Join Fireball
+                  </button>
+                </>
+              )}
             </div>
           </div>
             </div>
