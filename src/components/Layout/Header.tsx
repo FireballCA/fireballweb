@@ -1344,24 +1344,22 @@ export function Header() {
       {/* Mobile menu */}
       {isMobileMenuMounted && typeof document !== 'undefined' && createPortal(
         <div
-          className="lg:hidden fixed inset-0 z-[9999] pointer-events-none"
-          style={{ backgroundColor: solidNavColor }}
+          className="lg:hidden fixed inset-0 z-[9999] overflow-hidden pointer-events-none"
         >
           <div
-            className={`h-full transition-all duration-300 ease-out ${
+            className={`absolute inset-0 transition-transform duration-[280ms] ease-out ${
               isMobileMenuVisible
-                ? 'opacity-100 translate-y-0 pointer-events-auto'
-                : 'opacity-0 -translate-y-4 pointer-events-none'
+                ? 'translate-y-0 pointer-events-auto'
+                : '-translate-y-full pointer-events-none'
             }`}
-            style={{
-              paddingTop: `${
-                (isShopPage ? 64 : 80) + (bannerActive ? bannerHeightPx : 0)
-              }px`,
-            }}
+            style={{ backgroundColor: solidNavColor }}
           >
             <div
               className="h-full border-t border-carbon-800 px-6 py-4 overflow-x-hidden"
-              style={{ backgroundColor: solidNavColor }}
+              style={{
+                paddingTop: `${(isShopPage ? 64 : 80) + (bannerActive ? bannerHeightPx : 0)}px`,
+                backgroundColor: solidNavColor,
+              }}
             >
           <div className="h-full flex flex-col">
             <nav className="-mx-6 space-y-0 pb-4 flex-1 overflow-y-auto overflow-x-hidden">
@@ -1879,44 +1877,40 @@ export function Header() {
             {/* Boutons d'action (tout en bas, hors zone scrollable) */}
             <div className="shrink-0 -mx-6 px-6 pt-3 pb-3 flex flex-col items-center gap-2">
               {loggedInForNotif ? (
-                <div className="w-[95vw] max-w-[520px] flex items-center gap-3">
-                  {/* Rond profil */}
-                  <button
-                    type="button"
-                    onClick={() => { setMenuOpen(false); navigate('/account/dashboard') }}
-                    className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full transition-opacity hover:opacity-80"
-                    aria-label="My account"
-                  >
-                    {headerAvatarUrl ? (
-                      <img
-                        src={headerAvatarUrl}
-                        alt="Profile"
-                        className="w-10 h-10 rounded-full object-cover ring-2 ring-white/20"
-                      />
-                    ) : headerUserInitial ? (
-                      <div className="w-10 h-10 rounded-full bg-carbon-600 ring-2 ring-white/20 flex items-center justify-center text-[15px] font-semibold text-white select-none">
-                        {headerUserInitial}
-                      </div>
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-carbon-600 ring-2 ring-white/20 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                          <circle cx="12" cy="7" r="4" />
-                        </svg>
-                      </div>
+                <div className="w-[90%] max-w-[520px] flex flex-col gap-3">
+                  {/* Profil + nom */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0 flex items-center justify-center w-9 h-9">
+                      {headerAvatarUrl ? (
+                        <img
+                          src={headerAvatarUrl}
+                          alt="Profile"
+                          className="w-9 h-9 rounded-full object-cover ring-2 ring-white/20"
+                        />
+                      ) : headerUserInitial ? (
+                        <div className="w-9 h-9 rounded-full bg-carbon-600 ring-2 ring-white/20 flex items-center justify-center text-[14px] font-semibold text-white select-none">
+                          {headerUserInitial}
+                        </div>
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-carbon-600 ring-2 ring-white/20 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    {headerUserName && (
+                      <span className="text-sm font-nav font-medium text-silver truncate">
+                        {headerUserName}
+                      </span>
                     )}
-                  </button>
-                  {/* Nom */}
-                  {headerUserName && (
-                    <span className="text-sm font-nav font-medium text-silver truncate flex-1 min-w-0">
-                      {headerUserName}
-                    </span>
-                  )}
-                  {/* Bouton Dashboard */}
+                  </div>
+                  {/* Bouton Dashboard pleine largeur */}
                   <button
                     type="button"
                     onClick={() => { setMenuOpen(false); navigate('/account/dashboard') }}
-                    className="flex-shrink-0 px-4 py-2 rounded-2xl text-sm font-nav font-bold uppercase tracking-[0.12em] text-white bg-[#B61B1B] shadow-[0_8px_20px_rgba(0,0,0,0.45)] hover:bg-[#b61b1bcc] transition-colors"
+                    className="w-full py-3 rounded-xl text-sm font-nav font-semibold text-white bg-[#B61B1B] shadow-[0_8px_20px_rgba(0,0,0,0.45)] hover:bg-[#b61b1bcc] transition-colors"
                   >
                     Dashboard
                   </button>
