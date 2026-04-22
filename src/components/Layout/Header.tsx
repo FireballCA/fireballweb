@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCart } from '@/context/CartContext'
 import { CATEGORIES, PRODUCTS } from '@/data/products'
-import { isAuthenticated } from '@/utils/supabaseAuth'
+import { isAuthenticated, getCurrentUserProfile } from '@/utils/supabaseAuth'
 import { FB_UNREAD_NOTIF_EVENT, readUnreadNotificationsFromStorage } from '@/utils/inAppNotificationsFlag'
 import { supabase } from '@/lib/supabase'
 import { isShopPathname } from '@/utils/shopRoutes'
@@ -134,16 +134,37 @@ export function Header() {
     typeof window !== 'undefined' ? readUnreadNotificationsFromStorage() : false,
   )
   const [loggedInForNotif, setLoggedInForNotif] = useState(false)
+  const [headerAvatarUrl, setHeaderAvatarUrl] = useState<string | null>(null)
+  const [headerUserInitial, setHeaderUserInitial] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    isAuthenticated().then((ok) => {
+    isAuthenticated().then(async (ok) => {
       if (!cancelled) setLoggedInForNotif(ok)
+      if (ok && !cancelled) {
+        const profile = await getCurrentUserProfile()
+        if (!cancelled && profile) {
+          setHeaderAvatarUrl(profile.avatar_url || null)
+          setHeaderUserInitial(profile.first_name ? profile.first_name.charAt(0).toUpperCase() : null)
+        }
+      } else if (!ok && !cancelled) {
+        setHeaderAvatarUrl(null)
+        setHeaderUserInitial(null)
+      }
     })
     return () => {
       cancelled = true
     }
   }, [location.pathname])
+
+  useEffect(() => {
+    const onAvatarUpdate = (e: Event) => {
+      const ce = e as CustomEvent<{ avatarUrl: string | null }>
+      setHeaderAvatarUrl(ce.detail?.avatarUrl || null)
+    }
+    window.addEventListener('avatar-updated', onAvatarUpdate)
+    return () => window.removeEventListener('avatar-updated', onAvatarUpdate)
+  }, [])
 
   useEffect(() => {
     const onFlag = (e: Event) => {
@@ -1241,13 +1262,25 @@ export function Header() {
             <Link
               to="/account"
               onClick={handleAccountClick}
-              className="relative px-2 py-1.5 rounded-md text-white transition-colors hover:bg-carbon-700/30"
+              className="relative flex items-center justify-center w-8 h-8 rounded-full transition-opacity hover:opacity-80"
               aria-label="My account"
             >
-              <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
+              {headerAvatarUrl ? (
+                <img
+                  src={headerAvatarUrl}
+                  alt="Profile"
+                  className="w-8 h-8 rounded-full object-cover ring-2 ring-white/20"
+                />
+              ) : headerUserInitial ? (
+                <div className="w-8 h-8 rounded-full bg-carbon-600 ring-2 ring-white/20 flex items-center justify-center text-[13px] font-semibold text-white select-none">
+                  {headerUserInitial}
+                </div>
+              ) : (
+                <svg className="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              )}
               {showAccountNotifBang ? (
                 <span
                   className="absolute -right-0.5 top-0 flex h-[15px] min-w-[15px] items-center justify-center rounded-sm bg-[#E11D48] px-[2px] text-[11px] font-black leading-none text-white shadow-sm ring-1 ring-black/20"

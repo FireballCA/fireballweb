@@ -60,6 +60,10 @@ export function AccountSettings() {
   // Profile state
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null)
@@ -275,6 +279,7 @@ export function AccountSettings() {
         setFirstName(first)
         setLastName(last)
         setEmail(emailValue)
+        setAvatarUrl(profile.avatar_url || null)
         setOriginalFirstName(first)
         setOriginalLastName(last)
         setOriginalEmail(emailValue)
@@ -329,6 +334,80 @@ export function AccountSettings() {
       cancelled = true
     }
   }, [navigate])
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Please select an image file.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError('Image must be under 5 MB.')
+      return
+    }
+
+    setUploadingAvatar(true)
+    setAvatarError(null)
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const ext = file.name.split('.').pop()
+      const path = `${user.id}/avatar.${ext}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type })
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+      const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`
+
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id)
+
+      if (profileErr) throw profileErr
+
+      setAvatarUrl(urlWithCacheBust)
+      window.dispatchEvent(new CustomEvent('avatar-updated', { detail: { avatarUrl: urlWithCacheBust } }))
+    } catch (err) {
+      console.error(err)
+      setAvatarError('Failed to upload photo. Please try again.')
+    } finally {
+      setUploadingAvatar(false)
+      if (avatarInputRef.current) avatarInputRef.current.value = ''
+    }
+  }
+
+  const handleRemoveAvatar = async () => {
+    setUploadingAvatar(true)
+    setAvatarError(null)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('id', user.id)
+
+      if (profileErr) throw profileErr
+
+      setAvatarUrl(null)
+      window.dispatchEvent(new CustomEvent('avatar-updated', { detail: { avatarUrl: null } }))
+    } catch (err) {
+      console.error(err)
+      setAvatarError('Failed to remove photo.')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
 
   const handleSaveProfile = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -792,6 +871,76 @@ export function AccountSettings() {
               )}
               
               <div className="space-y-6">
+                {/* Profile Photo */}
+                <div className="flex items-start gap-8">
+                  <div className="w-48 text-left">
+                    <label className="text-sm text-carbon-900 font-medium">Profile photo</label>
+                    <p className="text-[11px] text-carbon-600 mt-1">JPG, PNG or WebP · max 5 MB</p>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-4">
+                      <div className="relative flex-shrink-0">
+                        {avatarUrl ? (
+                          <img
+                            src={avatarUrl}
+                            alt="Profile"
+                            className="w-16 h-16 rounded-full object-cover border border-carbon-200"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-full bg-carbon-100 border border-carbon-200 flex items-center justify-center text-xl font-semibold text-carbon-500 select-none">
+                            {firstName ? firstName.charAt(0).toUpperCase() : '?'}
+                          </div>
+                        )}
+                        {uploadingAvatar && (
+                          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
+                            <svg className="w-5 h-5 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <input
+                          ref={avatarInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleAvatarChange}
+                          disabled={uploadingAvatar}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => avatarInputRef.current?.click()}
+                          disabled={uploadingAvatar}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-carbon-200 bg-white px-3 py-1.5 text-xs font-medium text-carbon-900 hover:border-carbon-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0L8 8m4-4l4 4" />
+                          </svg>
+                          {avatarUrl ? 'Change photo' : 'Upload photo'}
+                        </button>
+                        {avatarUrl && (
+                          <button
+                            type="button"
+                            onClick={handleRemoveAvatar}
+                            disabled={uploadingAvatar}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-carbon-500 hover:text-[#9C1B30] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m2 0a1 1 0 00-1-1h-4a1 1 0 00-1 1m-4 0h10" />
+                            </svg>
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {avatarError && (
+                      <p className="mt-2 text-[12px] text-red-500">{avatarError}</p>
+                    )}
+                  </div>
+                </div>
+
                 {/* Name */}
                 <div className="flex items-start gap-8">
                   <div className="w-48 text-left">
