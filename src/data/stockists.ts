@@ -13,6 +13,7 @@ export interface StockistLocation {
   notes?: string
   lat: number
   lng: number
+  type?: 'installer' | 'dealer'
 }
 
 export const STOCKIST_LOCATIONS: StockistLocation[] = [
@@ -52,4 +53,5 @@ export const STOCKIST_LOCATIONS: StockistLocation[] = [
   { id: 'loc_4kyyqx8q', name: 'The Shine of the Beast', address1: '', city: 'Rimouski', province: 'Quebec', postalCode: 'G0L 1B0', country: 'Canada', phone: '(418) 732-0515', website: 'https://www.facebook.com/p/Esth%C3%A9tique-Automobile-Rimouski-100063502117487', email: 'earimouski@gmail.com', lat: 48.4480, lng: -68.5230 },
   { id: 'loc_3mkq82vv', name: "Daigle's Detailing", address1: '', city: 'Grand-Sault', province: 'New Brunswick', country: 'Canada', phone: '(506) 479-1469', website: 'https://www.facebook.com/DaiglesDetailing1', email: 'Tony.daigle11@yahoo.com', lat: 47.0500, lng: -67.7400 },
   { id: 'loc_3j88r5ee', name: 'XPrience Mobile Detailing', address1: '', city: 'Beaubassin-Est', province: 'New Brunswick', postalCode: 'E4P 6C8', country: 'Canada', phone: '(506) 744-0200', website: 'https://www.facebook.com/benoit.hebert.3150', email: 'benoithebert27@gmail.com', notes: 'MASTER INSTALLER', lat: 46.1800, lng: -64.3600 },
+  { id: 'loc_dealer_rev_auto_sport', name: 'Révolution Auto Sport', address1: '3070 Bd Choquette', city: 'Saint-Hyacinthe', province: 'Quebec', postalCode: 'J2S 7R8', country: 'Canada', phone: '+14502502200', lat: 45.6165, lng: -72.9638, type: 'dealer' },
 ]

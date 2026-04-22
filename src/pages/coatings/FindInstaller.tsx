@@ -250,24 +250,31 @@ export function FindInstaller() {
               attributionControl={false}
               onClick={() => setActiveId(null)}
             >
-              {installers.map((installer) => (
-                <Marker
-                  key={installer.id}
-                  latitude={installer.lat}
-                  longitude={installer.lng}
-                  anchor="bottom"
-                  onClick={(e) => {
-                    e.originalEvent.stopPropagation()
-                    setActiveId(installer.id)
-                  }}
-                >
-                  <button
-                    type="button"
-                    aria-label={installer.name}
-                    className="h-3.5 w-3.5 rounded-full border border-white/80 bg-[#d9242f] shadow-[0_0_10px_rgba(217,36,47,0.65)]"
-                  />
-                </Marker>
-              ))}
+              {installers.map((installer) => {
+                const isDealer = installer.type === 'dealer'
+                return (
+                  <Marker
+                    key={installer.id}
+                    latitude={installer.lat}
+                    longitude={installer.lng}
+                    anchor="bottom"
+                    onClick={(e) => {
+                      e.originalEvent.stopPropagation()
+                      setActiveId(installer.id)
+                    }}
+                  >
+                    <button
+                      type="button"
+                      aria-label={installer.name}
+                      className={
+                        isDealer
+                          ? 'h-3.5 w-3.5 rounded-full border border-white/80 bg-[#0485F7] shadow-[0_0_10px_rgba(4,133,247,0.65)]'
+                          : 'h-3.5 w-3.5 rounded-full border border-white/80 bg-[#d9242f] shadow-[0_0_10px_rgba(217,36,47,0.65)]'
+                      }
+                    />
+                  </Marker>
+                )
+              })}
               {activeInstaller && (
                 <Popup
                   latitude={activeInstaller.lat}
@@ -304,6 +311,16 @@ export function FindInstaller() {
                 </Popup>
               )}
             </Map>
+          </div>
+          <div className="mt-3 flex items-center gap-5 px-2">
+            <span className="flex items-center gap-2 text-xs text-silver/70">
+              <span className="inline-block h-3 w-3 rounded-full bg-[#d9242f] shadow-[0_0_6px_rgba(217,36,47,0.65)]" />
+              Installeur certifié
+            </span>
+            <span className="flex items-center gap-2 text-xs text-silver/70">
+              <span className="inline-block h-3 w-3 rounded-full bg-[#0485F7] shadow-[0_0_6px_rgba(4,133,247,0.65)]" />
+              Revendeur
+            </span>
           </div>
         </div>
 
