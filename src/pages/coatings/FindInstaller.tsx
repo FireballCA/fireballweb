@@ -50,7 +50,7 @@ export function FindInstaller() {
     setActiveId(nearest.stockist.id)
     focusMapOn(nearest.stockist.lng, nearest.stockist.lat, 14)
     setSearchSuccess(
-      `L'installateur certifié le plus proche est à environ ${formatDistanceEn(nearest.distanceKm)}.`,
+      `The closest certified installer is about ${formatDistanceEn(nearest.distanceKm)} away.`,
     )
     setSearchHint(null)
     setSearchError(null)
@@ -87,7 +87,7 @@ export function FindInstaller() {
         focusMapOn(position.coords.longitude, position.coords.latitude, 13)
       },
       () => {
-        setSearchError('Impossible de récupérer votre position.')
+        setSearchError('Unable to retrieve your location.')
       },
       { enableHighAccuracy: true, timeout: 12000 },
     )
@@ -139,7 +139,7 @@ export function FindInstaller() {
 
     const places = await searchPhotonPlaces(query, 8, photonCanadaOpts)
     if (places.length === 0) {
-      setSearchHint('Aucun résultat trouvé. Essaie un nom de ville ou choisis une suggestion dans la liste.')
+      setSearchHint('We could not find that location. Try a city name or pick a suggestion from the list.')
       setIsSearching(false)
       return
     }
@@ -153,15 +153,15 @@ export function FindInstaller() {
     <section className="bg-carbon-950">
       <div className="mx-auto w-full max-w-7xl px-6 py-16 md:py-20">
         <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-white md:text-5xl">Trouvez votre installateur</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-white md:text-5xl">Find your installer</h1>
           <p className="mt-3 max-w-2xl text-sm text-silver/75 md:text-base">
-            Localisez les installateurs Fireball certifiés partout au Canada et connectez-vous avec un partenaire près de chez vous.
+            Locate certified Fireball installers across Canada and connect with a nearby partner.
           </p>
           <Link
             to="/contact"
             className="mt-6 inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] px-4 py-2 text-xs font-semibold text-white transition-colors hover:border-[#3592F9] hover:bg-[#3592F9]"
           >
-            Besoin d'aide pour en trouver un ?
+            Need help finding one?
           </Link>
         </div>
 
@@ -187,7 +187,7 @@ export function FindInstaller() {
                   role="combobox"
                   aria-expanded={showSuggestions && suggestions.length > 0}
                   aria-autocomplete="list"
-                  placeholder="Recherche par code postal, ville ou adresse"
+                  placeholder="Search by postal code, city or address"
                   className="h-10 w-full rounded-full border border-white/15 bg-black/35 px-4 text-sm text-white placeholder:text-white/45"
                 />
                 {showSuggestions && suggestions.length > 0 && (
@@ -218,7 +218,7 @@ export function FindInstaller() {
                 disabled={isSearching}
                 className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 px-4 text-xs font-semibold text-white transition-colors hover:bg-white/20 disabled:opacity-60"
               >
-                {isSearching ? 'Recherche...' : 'Rechercher'}
+                {isSearching ? 'Searching...' : 'Search'}
               </button>
             </form>
             <SecondaryClipButton
@@ -228,7 +228,7 @@ export function FindInstaller() {
               idleTextClass="text-white"
               hoverTextClass="text-black"
             >
-              Me localiser
+              Locate me
             </SecondaryClipButton>
           </div>
           {searchSuccess && (
@@ -305,7 +305,7 @@ export function FindInstaller() {
                       to="/account/dashboard"
                       className="mt-4 inline-flex w-[95%] items-center justify-center self-center rounded-full border border-[#0485F7] bg-[#0485F7] px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:border-[#3592F9] hover:bg-[#3592F9]"
                     >
-                      Ajouter un véhicule
+                      Add Vehicle
                     </Link>
                   </div>
                 </Popup>
@@ -315,25 +315,25 @@ export function FindInstaller() {
           <div className="mt-3 flex items-center gap-5 px-2">
             <span className="flex items-center gap-2 text-xs text-silver/70">
               <span className="inline-block h-3 w-3 rounded-full bg-[#d9242f] shadow-[0_0_6px_rgba(217,36,47,0.65)]" />
-              Installeur certifié
+              Certified installer
             </span>
             <span className="flex items-center gap-2 text-xs text-silver/70">
               <span className="inline-block h-3 w-3 rounded-full bg-[#0485F7] shadow-[0_0_6px_rgba(4,133,247,0.65)]" />
-              Revendeur
+              Dealer
             </span>
           </div>
         </div>
 
         <div className="mt-4 rounded-2xl border border-white/10 bg-carbon-900/70 p-5 md:p-6">
-          <h2 className="text-xl font-semibold text-white md:text-2xl">Enregistrez votre véhicule et suivez vos services.</h2>
+          <h2 className="text-xl font-semibold text-white md:text-2xl">Save your vehicle and track your services.</h2>
           <p className="mt-2 text-sm text-silver/75 md:text-base">
-            Ajoutez votre voiture à Mon Garage pour une expérience personnalisée.
+            Add your car to My Garage for a personalized experience.
           </p>
           <Link
             to="/account/dashboard"
             className="mt-4 inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] px-4 py-2 text-xs font-semibold text-white transition-colors hover:border-[#3592F9] hover:bg-[#3592F9]"
           >
-            Ouvrir Mon Garage
+            Open My Garage
           </Link>
         </div>
       </div>
