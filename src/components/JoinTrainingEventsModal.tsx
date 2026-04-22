@@ -6,7 +6,7 @@ import { AppleButton, appleButtonVisualClassName } from '@/components/ui/AppleBu
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { generatePreviewStripeOrderId, sendTrainingRegistrationEmail } from '@/utils/trainingRegistrationEmail'
-import { insertTrainingRequest } from '@/utils/trainingRequests'
+import { fetchTrainingRequestsForDashboard, insertTrainingRequest } from '@/utils/trainingRequests'
 import { getCurrentUserProfile, type UserProfile } from '@/utils/supabaseAuth'
 import {
   DEFAULT_TRAINING_SESSION_OPTIONS,
@@ -52,6 +52,9 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
   const [message, setMessage] = useState('')
   const [requestSubmitting, setRequestSubmitting] = useState(false)
   const [requestSaveError, setRequestSaveError] = useState<string | null>(null)
+  const [existingTrainingRequests, setExistingTrainingRequests] = useState<
+    { session_id: string | null; session_label: string; status: string }[]
+  >([])
 
   const returnToQuery = `returnTo=${encodeURIComponent(ACADEMY_TRAINING_RETURN_PATH)}`
   const connectionHref = `/account?${returnToQuery}`
@@ -98,6 +101,16 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
     if (fullName) setName((n) => n.trim() || fullName)
     if (profile.email) setEmail((e) => e.trim() || profile.email)
   }, [open, profile])
+
+  useEffect(() => {
+    if (!open || !profile?.id) {
+      setExistingTrainingRequests([])
+      return
+    }
+    void fetchTrainingRequestsForDashboard(profile.id).then((rows) => {
+      setExistingTrainingRequests(rows.map((r) => ({ session_id: r.session_id, session_label: r.session_label, status: r.status })))
+    })
+  }, [open, profile?.id])
 
   /** Lenis intercepte la molette sur toute la page — on le suspend pour que le scroll natif fonctionne dans le modal. */
   useEffect(() => {
@@ -173,12 +186,31 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
     phone.trim().length > 0 &&
     message.trim().length > 0
 
-  const canGoToNextStep = formValid && !!profile
+  const parseSessionStartFromLabel = (label: string): Date | null => {
+    const raw = String(label || '').trim()
+    if (!raw) return null
+    const firstChunk = raw.split('-')[0]?.trim() ?? raw
+    const withYear = /\b\d{4}\b/.test(firstChunk) ? firstChunk : `${firstChunk} ${new Date().getFullYear()}`
+    const t = Date.parse(withYear)
+    if (Number.isNaN(t)) return null
+    return new Date(t)
+  }
+
+  const now = new Date()
+  const blockingStatuses = new Set(['pending', 'approved', 'payment_pending', 'paid'])
+  const blockingExistingRequest = existingTrainingRequests.find((r) => {
+    if (!blockingStatuses.has(String(r.status))) return false
+    const d = parseSessionStartFromLabel(r.session_label)
+    if (!d) return true
+    return d.getTime() >= now.getTime()
+  })
+  const hasOngoingTrainingRequest = Boolean(blockingExistingRequest)
+  const canGoToNextStep = formValid && !!profile && !hasOngoingTrainingRequest
 
   const selectedSession = trainingSessions.find((o) => o.id === selectedSessionId)
 
   const handleSubmitRequest = async () => {
-    if (!profile || !email.trim()) return
+    if (!profile || !email.trim() || hasOngoingTrainingRequest) return
     setRequestSaveError(null)
     setRequestSubmitting(true)
     try {
@@ -372,6 +404,11 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
                 }}
               >
                 <h3 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-500">Your details</h3>
+                {hasOngoingTrainingRequest ? (
+                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                    You already have a training request in progress for a future session. You can submit a new request after this training is completed.
+                  </p>
+                ) : null}
 
                 <div>
                   <label htmlFor={`${baseId}-name`} className={labelClass}>
@@ -442,6 +479,8 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
                   </AppleButton>
                   {!profile ? (
                     <p className="mt-2 text-xs text-carbon-500">Sign in using Connection above to enable Next steps.</p>
+                  ) : hasOngoingTrainingRequest ? (
+                    <p className="mt-2 text-xs text-carbon-500">A request is already active for an upcoming training session.</p>
                   ) : !formValid ? (
                     <p className="mt-2 text-xs text-carbon-500">Complete all required fields to continue.</p>
                   ) : null}

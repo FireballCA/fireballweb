@@ -43,7 +43,46 @@ export function normalizeTrainingStatus(raw: unknown): TrainingRequestStatus {
   const v = String(raw ?? '')
     .trim()
     .toLowerCase()
-  return (ALLOWED_TRAINING_STATUS.includes(v as TrainingRequestStatus) ? v : 'pending') as TrainingRequestStatus
+
+  if (ALLOWED_TRAINING_STATUS.includes(v as TrainingRequestStatus)) {
+    return v as TrainingRequestStatus
+  }
+
+  if (['under_review', 'under review', 'in_review', 'in review', 'submitted', 'request_sent'].includes(v)) {
+    return 'pending'
+  }
+
+  if (['accepted', 'validated', 'approved_pending_payment'].includes(v)) {
+    return 'approved'
+  }
+
+  if (
+    [
+      'payment_required',
+      'payment required',
+      'payment_due',
+      'payment due',
+      'awaiting_payment',
+      'awaiting payment',
+      'invoice_sent',
+    ].includes(v)
+  ) {
+    return 'payment_pending'
+  }
+
+  if (['completed', 'complete', 'all_set', 'all set'].includes(v)) {
+    return 'paid'
+  }
+
+  if (['rejected', 'not_approved', 'not approved', 'denied'].includes(v)) {
+    return 'declined'
+  }
+
+  if (['canceled', 'void'].includes(v)) {
+    return 'cancelled'
+  }
+
+  return 'pending'
 }
 
 function mapTrainingRow(row: Record<string, unknown>): TrainingRequestRow {
@@ -61,6 +100,27 @@ export async function insertTrainingRequest(params: {
   message: string
   phone: string
 }): Promise<{ ok: true; row: TrainingRequestRow } | { ok: false; error: string }> {
+  const duplicateQuery = supabase
+    .from('training_requests')
+    .select('id,status')
+    .eq('user_id', params.userId)
+    .in('status', ['pending', 'approved', 'payment_pending', 'paid'])
+    .limit(1)
+
+  if (params.sessionId) {
+    duplicateQuery.eq('session_id', params.sessionId)
+  } else {
+    duplicateQuery.is('session_id', null)
+  }
+
+  const { data: duplicateRows } = await duplicateQuery
+  if ((duplicateRows || []).length > 0) {
+    return {
+      ok: false,
+      error: 'You already have a request for this training session.',
+    }
+  }
+
   const { data, error } = await supabase
     .from('training_requests')
     .insert({
@@ -155,26 +215,31 @@ export async function fetchAllTrainingRequestsForAdmin(): Promise<TrainingReques
 export async function updateTrainingRequestAdmin(
   id: string,
   patch: Partial<Pick<TrainingRequestRow, 'status' | 'admin_note' | 'payment_instructions' | 'updated_at'>>,
-): Promise<{ ok: true; row: TrainingRequestRow } | { ok: false; error: string }> {
+): Promise<{ ok: true; row: TrainingRequestRow | null } | { ok: false; error: string }> {
+  const nextUpdatedAt = new Date().toISOString()
+
   const { data, error } = await supabase
     .from('training_requests')
     .update({
       ...patch,
-      updated_at: new Date().toISOString(),
+      updated_at: nextUpdatedAt,
     })
     .eq('id', id)
     .select('id,user_id,reference,session_id,session_label,status,applicant_message,phone,admin_note,payment_instructions,created_at,updated_at')
-    .maybeSingle()
+    .limit(1)
 
   if (error) {
     return { ok: false, error: error.message || 'Update failed.' }
   }
-  if (!data) {
+
+  const updatedRow = Array.isArray(data) ? data[0] : null
+  if (!updatedRow) {
     return {
       ok: false,
       error:
-        'Aucune ligne mise à jour. Vérifiez que votre compte a le rôle admin dans profiles et que les politiques RLS training_requests_update_admin sont appliquées.',
+        "Aucune ligne n'a été réellement mise à jour. Vérifie que ton utilisateur existe bien dans `profiles` avec `role='admin'` et que la policy RLS `training_requests_update_admin` est bien active.",
     }
   }
-  return { ok: true, row: mapTrainingRow(data as Record<string, unknown>) }
+
+  return { ok: true, row: mapTrainingRow(updatedRow as Record<string, unknown>) }
 }

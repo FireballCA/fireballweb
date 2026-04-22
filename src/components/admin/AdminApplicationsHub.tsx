@@ -10,10 +10,13 @@ import {
   type TrainingRequestWithProfile,
 } from '@/utils/trainingRequests'
 import { insertUserTargetedNotification } from '@/utils/adminUserNotification'
-import { sendPartnerDecisionEmail, sendTrainingDecisionEmail } from '@/utils/adminRequestEmails'
+import { sendPartnerDecisionEmail } from '@/utils/adminRequestEmails'
 import {
   TrainingEmailComposeModal,
   TrainingPaymentInstructionsModal,
+  trainingStatusEmailDraft,
+  type TrainingEmailLanguagePresets,
+  type TrainingStatusEmailDraftKind,
 } from '@/components/admin/TrainingAdminModals'
 
 type PartnerAppStatus = 'pending' | 'payment_pending' | 'partner' | 'declined'
@@ -121,6 +124,9 @@ export function AdminApplicationsHub() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [expandedTrainingId, setExpandedTrainingId] = useState<string | null>(null)
   const [trainingEmailRow, setTrainingEmailRow] = useState<TrainingRequestWithProfile | null>(null)
+  const [trainingEmailSubject, setTrainingEmailSubject] = useState('')
+  const [trainingEmailBody, setTrainingEmailBody] = useState('')
+  const [trainingEmailLanguagePresets, setTrainingEmailLanguagePresets] = useState<TrainingEmailLanguagePresets | null>(null)
   const [trainingPaymentRow, setTrainingPaymentRow] = useState<TrainingRequestWithProfile | null>(null)
 
   const loadTraining = useCallback(async () => {
@@ -177,7 +183,6 @@ export function AdminApplicationsHub() {
     setBusyId(row.id)
     setError('')
     const email = row.profile_email?.trim()
-    const name = displayName(row)
 
     const patch: Parameters<typeof updateTrainingRequestAdmin>[1] = { status: next }
     if (opts?.adminNote !== undefined) {
@@ -194,12 +199,22 @@ export function AdminApplicationsHub() {
       return
     }
 
-    const merged: TrainingRequestWithProfile = {
-      ...res.row,
-      profile_email: row.profile_email,
-      profile_first_name: row.profile_first_name,
-      profile_last_name: row.profile_last_name,
-    }
+    const merged: TrainingRequestWithProfile = res.row
+      ? {
+          ...res.row,
+          profile_email: row.profile_email,
+          profile_first_name: row.profile_first_name,
+          profile_last_name: row.profile_last_name,
+        }
+      : {
+          ...row,
+          ...patch,
+          status: (patch.status ?? row.status) as TrainingRequestStatus,
+          admin_note: patch.admin_note !== undefined ? patch.admin_note : row.admin_note,
+          payment_instructions:
+            patch.payment_instructions !== undefined ? patch.payment_instructions : row.payment_instructions,
+          updated_at: new Date().toISOString(),
+        }
     setTrainingRows((prev) => prev.map((r) => (r.id === row.id ? merged : r)))
 
     const notifTitle =
@@ -209,6 +224,8 @@ export function AdminApplicationsHub() {
           ? 'Payment required — Academy'
           : next === 'paid'
             ? 'Training payment received'
+            : next === 'cancelled'
+              ? 'Training request cancelled'
             : next === 'declined'
               ? 'Training request update'
               : 'Training request updated'
@@ -216,49 +233,14 @@ export function AdminApplicationsHub() {
       next === 'payment_pending'
         ? `Payment is due for your session: ${row.session_label}. Reference ${row.reference}.`
         : next === 'paid'
-          ? `We recorded your payment for ${row.session_label} (${row.reference}).`
+          ? `Paid — thank you. We recorded your payment for ${row.session_label} (${row.reference}).`
+        : next === 'cancelled'
+          ? `Your training request ${row.reference} has been cancelled by Fireball Canada.`
           : next === 'declined'
             ? `An update is available for your training request ${row.reference}.`
             : `Your Academy training request (${row.reference}) status is now: ${next}.`
 
     try {
-      if (email) {
-        if (next === 'approved') {
-          await sendTrainingDecisionEmail({
-            to: email,
-            customerName: name,
-            reference: row.reference,
-            sessionLabel: row.session_label,
-            kind: 'approved',
-          })
-        } else if (next === 'payment_pending') {
-          await sendTrainingDecisionEmail({
-            to: email,
-            customerName: name,
-            reference: row.reference,
-            sessionLabel: row.session_label,
-            kind: 'payment_pending',
-            extraNote: patch.payment_instructions || undefined,
-          })
-        } else if (next === 'paid') {
-          await sendTrainingDecisionEmail({
-            to: email,
-            customerName: name,
-            reference: row.reference,
-            sessionLabel: row.session_label,
-            kind: 'paid',
-          })
-        } else if (next === 'declined') {
-          await sendTrainingDecisionEmail({
-            to: email,
-            customerName: name,
-            reference: row.reference,
-            sessionLabel: row.session_label,
-            kind: 'declined',
-            extraNote: opts?.adminNote || undefined,
-          })
-        }
-      }
       await notifyUser(row.user_id, notifTitle, notifBody)
     } catch (e) {
       console.warn('Training action: email or in-app notification failed after save', e)
@@ -267,6 +249,20 @@ export function AdminApplicationsHub() {
           e instanceof Error ? e.message : String(e)
         }`,
       )
+    }
+
+    if (email && ['approved', 'payment_pending', 'paid', 'declined', 'cancelled'].includes(next)) {
+      const kind = next as TrainingStatusEmailDraftKind
+      const extraNote = patch.payment_instructions ?? opts?.adminNote
+      const frDraft = trainingStatusEmailDraft(kind, merged, extraNote, 'fr')
+      const enDraft = trainingStatusEmailDraft(kind, merged, extraNote, 'en')
+      setTrainingEmailSubject(frDraft.subject)
+      setTrainingEmailBody(frDraft.body)
+      setTrainingEmailLanguagePresets({
+        fr: { subject: frDraft.subject, body: frDraft.body },
+        en: { subject: enDraft.subject, body: enDraft.body },
+      })
+      setTrainingEmailRow(merged)
     }
 
     setBusyId(null)
@@ -685,7 +681,15 @@ export function AdminApplicationsHub() {
       <TrainingEmailComposeModal
         open={Boolean(trainingEmailRow)}
         row={trainingEmailRow}
-        onClose={() => setTrainingEmailRow(null)}
+        initialSubject={trainingEmailSubject}
+        initialBody={trainingEmailBody}
+        languagePresets={trainingEmailLanguagePresets}
+        onClose={() => {
+          setTrainingEmailRow(null)
+          setTrainingEmailSubject('')
+          setTrainingEmailBody('')
+          setTrainingEmailLanguagePresets(null)
+        }}
       />
       <TrainingPaymentInstructionsModal
         open={Boolean(trainingPaymentRow)}
@@ -812,6 +816,15 @@ function TrainingActions({
         <ActionBtn busy={busy} variant="primary" label="Approuver" onClick={() => onAction(row, 'approved')} />
         <ActionBtn
           busy={busy}
+          variant="ghost"
+          label="Annuler"
+          onClick={() => {
+            const note = window.prompt('Note optionnelle (annulation) :') || ''
+            void onAction(row, 'cancelled', { adminNote: note })
+          }}
+        />
+        <ActionBtn
+          busy={busy}
           variant="danger"
           label="Refuser"
           onClick={() => {
@@ -835,6 +848,15 @@ function TrainingActions({
         <ActionBtn busy={busy} variant="primary" label="Marquer payé" onClick={() => onAction(row, 'paid')} />
         <ActionBtn
           busy={busy}
+          variant="ghost"
+          label="Annuler"
+          onClick={() => {
+            const note = window.prompt('Note optionnelle (annulation) :') || ''
+            void onAction(row, 'cancelled', { adminNote: note })
+          }}
+        />
+        <ActionBtn
+          busy={busy}
           variant="danger"
           label="Refuser"
           onClick={() => {
@@ -850,6 +872,15 @@ function TrainingActions({
       <>
         {EmailBtn}
         <ActionBtn busy={busy} variant="primary" label="Marquer payé" onClick={() => onAction(row, 'paid')} />
+        <ActionBtn
+          busy={busy}
+          variant="ghost"
+          label="Annuler"
+          onClick={() => {
+            const note = window.prompt('Note optionnelle (annulation) :') || ''
+            void onAction(row, 'cancelled', { adminNote: note })
+          }}
+        />
         <ActionBtn
           busy={busy}
           variant="danger"

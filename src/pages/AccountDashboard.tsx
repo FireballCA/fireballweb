@@ -29,7 +29,6 @@ import {
   type TrainingRequestRow,
   type TrainingRequestStatus,
 } from '@/utils/trainingRequests'
-import { AcademyTrainingTimeline } from '@/components/AcademyTrainingTimeline'
 import { TrainingPaymentDueModal } from '@/components/TrainingPaymentDueModal'
 import { broadcastUnreadNotifications } from '@/utils/inAppNotificationsFlag'
 import { NotificationMessageWithStatusHighlight } from '@/utils/notificationTextHighlight'
@@ -643,6 +642,55 @@ export function AccountDashboard() {
     dashboardNotificationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  const clearSingleNotification = async (id: string) => {
+    if (isDemoNotificationId(id)) {
+      setDemoNotificationsDismissed(true)
+      return
+    }
+    if (currentUserId) {
+      setDismissedNotificationIds((prev) => {
+        const next = [...new Set([...prev, id])]
+        saveDismissedNotificationIds(currentUserId, next)
+        return next
+      })
+    }
+    await supabase.from('user_notifications').delete().eq('id', id)
+    setNotifications((prev) => prev.filter((x) => x.id !== id))
+  }
+
+  const clearAllDashboardNotifications = async () => {
+    const realIds = notifications.map((n) => n.id).filter((id) => !isDemoNotificationId(id))
+    if (realIds.length === 0 && SHOW_DEMO_NOTIFICATIONS) {
+      setDemoNotificationsDismissed(true)
+      return
+    }
+    if (realIds.length && currentUserId) {
+      setDismissedNotificationIds((prev) => {
+        const next = [...new Set([...prev, ...realIds])]
+        saveDismissedNotificationIds(currentUserId, next)
+        return next
+      })
+      await supabase.from('user_notifications').delete().in('id', realIds)
+    }
+    setNotifications([])
+  }
+
+  const handleDashboardNotifListWheelCapture = (e: React.WheelEvent<HTMLUListElement>) => {
+    const el = e.currentTarget
+    const canScroll = el.scrollHeight > el.clientHeight + 1
+    if (!canScroll) return
+
+    const goingDown = e.deltaY > 0
+    const goingUp = e.deltaY < 0
+    const atTop = el.scrollTop <= 0
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1
+    const canConsume = (goingDown && !atBottom) || (goingUp && !atTop)
+    if (!canConsume) return
+
+    // Quand la liste peut absorber la molette, on évite le scroll de la page.
+    e.stopPropagation()
+  }
+
   /** Temporaire admin : fixe l’XP au seuil du tier affiché (hero / barre de progression), pas l’abonnement Ignition/Apex. */
   const persistAdminXpAtTierFloor = async (tierIndex: 1 | 2 | 3 | 4 | 5) => {
     if (userRole !== 'admin' || !currentUserId) return
@@ -1062,6 +1110,10 @@ export function AccountDashboard() {
     if (!due.length) return null
     return [...due].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0]
   }, [trainingRequests])
+  const hasActiveTrainingRequest = useMemo(
+    () => trainingRequests.some((r) => ['pending', 'approved', 'payment_pending'].includes(r.status)),
+    [trainingRequests],
+  )
 
   useEffect(() => {
     if (!currentUserId) return
@@ -1452,16 +1504,18 @@ export function AccountDashboard() {
 
           <section className="w-full min-h-[90vh] bg-white relative z-20 px-6 md:px-12 lg:px-16 py-10 md:py-14" aria-label="Account actions section">
             <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5">
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
                 <article className="min-w-0 overflow-hidden rounded-2xl bg-[#F3F3F3] px-6 py-6 md:px-8 md:py-8">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Academy training</p>
-                    <Link
-                      to="/academy?joinTraining=1"
-                      className="shrink-0 text-sm font-semibold text-[#0485F7] transition-colors hover:text-[#0366c7] hover:underline"
-                    >
-                      Request training
-                    </Link>
+                    {!hasActiveTrainingRequest ? (
+                      <Link
+                        to="/academy?joinTraining=1"
+                        className="shrink-0 text-sm font-semibold text-[#0485F7] transition-colors hover:text-[#0366c7] hover:underline"
+                      >
+                        Request training
+                      </Link>
+                    ) : null}
                   </div>
                   {highlightedTrainingRequest ? (
                     <div className="mt-5 min-w-0 max-w-full">
@@ -1475,11 +1529,7 @@ export function AccountDashboard() {
                               >
                                 {t.badge}
                               </span>
-                              {['pending', 'approved'].includes(highlightedTrainingRequest.status) ? (
-                                <span className="text-xs text-[#6B6B6B]">Request in progress</span>
-                              ) : null}
                             </div>
-                            <AcademyTrainingTimeline status={highlightedTrainingRequest.status} />
                             <p className="mt-3 text-sm font-semibold text-[#171717] leading-snug">
                               {highlightedTrainingRequest.session_label}
                             </p>
@@ -1510,7 +1560,7 @@ export function AccountDashboard() {
                                     'inline-flex w-full items-center justify-center rounded-full bg-[#0485F7] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0366c7] sm:w-auto',
                                   )}
                                 >
-                                  Payer — instructions &amp; Stripe
+                                  Confirm your place
                                 </button>
                                 <p className="mt-2 text-xs text-[#6B6B6B]">
                                   Paiement sécurisé dans un nouvel onglet lorsque le lien Stripe est configuré pour le site.
@@ -1550,29 +1600,56 @@ export function AccountDashboard() {
                         </span>
                       ) : null}
                     </div>
+                    {notificationCount > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => void clearAllDashboardNotifications()}
+                        className="shrink-0 text-xs font-semibold text-[#6B7280] transition hover:text-[#0485F7]"
+                      >
+                        Clear
+                      </button>
+                    ) : null}
                   </div>
                   {notificationCount === 0 ? (
                     <p className="mt-5 text-sm leading-relaxed text-[#4A4A4A]">
                       No notifications yet. Messages from Fireball Canada (broadcasts, role updates, or personal notes) will appear here.
                     </p>
                   ) : (
-                    <ul className="mt-4 max-h-[min(320px,45vh)] space-y-3 overflow-y-auto pr-1" aria-label="Notification messages">
+                    <ul
+                      className="mt-4 max-h-[min(320px,45vh)] space-y-3 overflow-y-auto overscroll-contain pr-1"
+                      aria-label="Notification messages"
+                      onWheelCapture={handleDashboardNotifListWheelCapture}
+                    >
                       {visibleNotifications.slice(0, 12).map((n) => (
                         <li
                           key={n.id}
-                          className="rounded-xl border border-[#0485F7]/12 bg-white/90 px-3 py-2.5 shadow-sm"
+                          className="group rounded-xl border border-[#0485F7]/12 bg-white/90 px-3 py-2.5 shadow-sm"
                         >
-                          {n.title ? (
-                            <p className="text-[13px] font-semibold text-[#171717]">
-                              <NotificationMessageWithStatusHighlight text={n.title} />
-                            </p>
-                          ) : null}
-                          <p className="mt-0.5 text-[12px] leading-snug text-[#4A4A4A] line-clamp-4">
-                          <NotificationMessageWithStatusHighlight text={n.message} />
-                        </p>
-                          <p className="mt-1.5 text-[10px] font-medium text-[#8A8A8A]">
-                            {formatNotificationTimeAgo(n.created_at)}
-                          </p>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              {n.title ? (
+                                <p className="text-[13px] font-semibold text-[#171717]">
+                                  <NotificationMessageWithStatusHighlight text={n.title} />
+                                </p>
+                              ) : null}
+                              <p className="mt-0.5 text-[12px] leading-snug text-[#4A4A4A] line-clamp-4">
+                                <NotificationMessageWithStatusHighlight text={n.message} />
+                              </p>
+                              <p className="mt-1.5 text-[10px] font-medium text-[#8A8A8A]">
+                                {formatNotificationTimeAgo(n.created_at)}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => void clearSingleNotification(n.id)}
+                              className="shrink-0 rounded-full p-1 text-[#9CA3AF] opacity-0 transition hover:bg-[#EEF2F7] hover:text-[#4B5563] group-hover:opacity-100"
+                              aria-label="Clear notification"
+                            >
+                              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
                         </li>
                       ))}
                     </ul>

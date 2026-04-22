@@ -664,6 +664,9 @@ export function Product() {
   })
 
   const displayPrice = currentVariant?.price ?? product?.price ?? 0
+  const lineSubtotal = displayPrice * quantity
+  const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD_CAD - lineSubtotal)
+  const freeShippingProgressPct = Math.min((lineSubtotal / FREE_SHIPPING_THRESHOLD_CAD) * 100, 100)
   const xpGainedForLine = Math.max(0, Math.round(displayPrice * quantity * XP_PER_DOLLAR))
 
   // Reviews: on n'affiche que ce qui est "réel" côté produit.
@@ -1217,20 +1220,20 @@ export function Product() {
                       <circle cx="17" cy="18" r="2" />
                       <circle cx="7" cy="18" r="2" />
                     </svg>
-                    {displayPrice >= FREE_SHIPPING_THRESHOLD_CAD ? (
+                    {lineSubtotal >= FREE_SHIPPING_THRESHOLD_CAD ? (
                       <span>You're eligible for free shipping!</span>
                     ) : (
                       <span>
                         Add{' '}
                         <span className="font-extrabold text-carbon-900">
-                          {(FREE_SHIPPING_THRESHOLD_CAD - displayPrice).toFixed(2)}
+                          {remainingForFreeShipping.toFixed(2)}
                         </span>{' '}
                         $CA for free shipping
                       </span>
                     )}
                   </span>
                   <span className="shrink-0 tabular-nums text-carbon-500">
-                    {Math.round(Math.min((displayPrice / FREE_SHIPPING_THRESHOLD_CAD) * 100, 100))}%
+                    {Math.round(freeShippingProgressPct)}%
                   </span>
                 </div>
                 <div className="meter__track" aria-hidden>
@@ -1238,7 +1241,7 @@ export function Product() {
                     className="meter__fill transition-[width] duration-1000 ease-out"
                     style={{
                       width: shippingProgressAnimated
-                        ? `${Math.min((displayPrice / FREE_SHIPPING_THRESHOLD_CAD) * 100, 100)}%`
+                        ? `${freeShippingProgressPct}%`
                         : '0%',
                       backgroundColor: APPLE_BLUE,
                     }}

@@ -17,26 +17,110 @@ export function defaultManualTrainingEmailBody(row: TrainingRequestWithProfile):
   return `Bonjour ${name},\n\nNous faisons suite à votre demande pour « ${row.session_label} » (référence ${row.reference}).\n\n[Votre message ici]\n\nCordialement,\nL'équipe Fireball Canada`
 }
 
+export type TrainingStatusEmailDraftKind = 'approved' | 'payment_pending' | 'paid' | 'declined' | 'cancelled'
+
+export function trainingStatusEmailDraft(
+  kind: TrainingStatusEmailDraftKind,
+  row: TrainingRequestWithProfile,
+  extraNote?: string,
+  language: 'fr' | 'en' = 'fr',
+) {
+  const name = displayName(row)
+  const note = extraNote?.trim()
+  const isFr = language === 'fr'
+  if (kind === 'approved') {
+    return {
+      subject: isFr
+        ? `Fireball Academy — Demande approuvée (${row.reference})`
+        : `Fireball Academy — Request approved (${row.reference})`,
+      body: isFr
+        ? `Bonjour ${name},\n\nVotre demande pour « ${row.session_label} » (${row.reference}) a été approuvée.\n\nNous vous contacterons avec les prochaines étapes.\n\nCordialement,\nL'équipe Fireball Canada`
+        : `Hello ${name},\n\nYour request for "${row.session_label}" (${row.reference}) has been approved.\n\nWe will contact you with the next steps.\n\nBest regards,\nFireball Canada team`,
+    }
+  }
+  if (kind === 'payment_pending') {
+    return {
+      subject: isFr
+        ? `Fireball Academy — Paiement requis (${row.reference})`
+        : `Fireball Academy — Payment required (${row.reference})`,
+      body: isFr
+        ? `Bonjour ${name},\n\nVotre place pour « ${row.session_label} » est réservée.\n\nUn paiement est requis pour confirmer votre place.\n\n${note ? `${note}\n\n` : ''}Référence : ${row.reference}\n\nCordialement,\nL'équipe Fireball Canada`
+        : `Hello ${name},\n\nYour seat for "${row.session_label}" is reserved.\n\nPayment is required to confirm your place.\n\n${note ? `${note}\n\n` : ''}Reference: ${row.reference}\n\nBest regards,\nFireball Canada team`,
+    }
+  }
+  if (kind === 'paid') {
+    return {
+      subject: isFr
+        ? `Fireball Academy — Paiement reçu (${row.reference})`
+        : `Fireball Academy — Payment received (${row.reference})`,
+      body: isFr
+        ? `Bonjour ${name},\n\nMerci, nous avons bien reçu votre paiement pour « ${row.session_label} » (${row.reference}).\n\nMerci pour votre confiance. Notre équipe reviendra vers vous rapidement pour la suite.\n\nCordialement,\nL'équipe Fireball Canada`
+        : `Hello ${name},\n\nThank you, we have received your payment for "${row.session_label}" (${row.reference}).\n\nThank you for your trust. Our team will follow up with you shortly.\n\nBest regards,\nFireball Canada team`,
+    }
+  }
+  if (kind === 'cancelled') {
+    return {
+      subject: isFr
+        ? `Fireball Academy — Demande annulée (${row.reference})`
+        : `Fireball Academy — Request cancelled (${row.reference})`,
+      body: isFr
+        ? `Bonjour ${name},\n\nVotre demande pour « ${row.session_label} » (${row.reference}) a été annulée.\n\n${note ? `${note}\n\n` : ''}Vous pouvez soumettre une nouvelle demande si nécessaire.\n\nCordialement,\nL'équipe Fireball Canada`
+        : `Hello ${name},\n\nYour request for "${row.session_label}" (${row.reference}) has been cancelled.\n\n${note ? `${note}\n\n` : ''}You may submit a new request if needed.\n\nBest regards,\nFireball Canada team`,
+    }
+  }
+  return {
+    subject: isFr
+      ? `Fireball Academy — Mise à jour de la demande (${row.reference})`
+      : `Fireball Academy — Request update (${row.reference})`,
+    body: isFr
+      ? `Bonjour ${name},\n\nNous sommes désolés, votre demande pour « ${row.session_label} » (${row.reference}) a été refusée.\n\n${note ? `${note}\n\n` : ''}Si vous avez des questions, répondez à ce courriel.\n\nCordialement,\nL'équipe Fireball Canada`
+      : `Hello ${name},\n\nWe are sorry, your request for "${row.session_label}" (${row.reference}) has been declined.\n\n${note ? `${note}\n\n` : ''}If you have any questions, please reply to this email.\n\nBest regards,\nFireball Canada team`,
+  }
+}
+
+export type TrainingEmailLanguagePresets = {
+  fr: { subject: string; body: string }
+  en: { subject: string; body: string }
+}
+
 type TrainingEmailComposeModalProps = {
   open: boolean
   row: TrainingRequestWithProfile | null
   onClose: () => void
   onSent?: () => void
+  initialSubject?: string
+  initialBody?: string
+  languagePresets?: TrainingEmailLanguagePresets | null
 }
 
-export function TrainingEmailComposeModal({ open, row, onClose, onSent }: TrainingEmailComposeModalProps) {
+export function TrainingEmailComposeModal({
+  open,
+  row,
+  onClose,
+  onSent,
+  initialSubject,
+  initialBody,
+  languagePresets,
+}: TrainingEmailComposeModalProps) {
   const baseId = useId()
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
   const [err, setErr] = useState('')
+  const [selectedLang, setSelectedLang] = useState<'fr' | 'en'>('fr')
 
   useEffect(() => {
     if (!open || !row) return
-    setSubject(defaultManualTrainingEmailSubject(row))
-    setBody(defaultManualTrainingEmailBody(row))
+    if (languagePresets) {
+      setSelectedLang('fr')
+      setSubject(languagePresets.fr.subject)
+      setBody(languagePresets.fr.body)
+    } else {
+      setSubject(initialSubject ?? defaultManualTrainingEmailSubject(row))
+      setBody(initialBody ?? defaultManualTrainingEmailBody(row))
+    }
     setErr('')
-  }, [open, row])
+  }, [open, row, initialSubject, initialBody, languagePresets])
 
   useEffect(() => {
     if (!open) return
@@ -79,6 +163,40 @@ export function TrainingEmailComposeModal({ open, row, onClose, onSent }: Traini
           <p className="text-[11px] font-nav font-bold uppercase tracking-[0.14em] text-slate-400">Envoyer un courriel</p>
           <h2 className="mt-1 text-lg font-semibold text-slate-900">{row.session_label}</h2>
           <p className="mt-1 font-mono text-xs text-slate-500 break-all">Vers : {email || '—'}</p>
+          {languagePresets ? (
+            <div className="mt-2 flex justify-end gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedLang('fr')
+                  setSubject(languagePresets.fr.subject)
+                  setBody(languagePresets.fr.body)
+                }}
+                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition ${
+                  selectedLang === 'fr'
+                    ? 'border-[#0485F7] bg-[#0485F7] text-white'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                FR
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedLang('en')
+                  setSubject(languagePresets.en.subject)
+                  setBody(languagePresets.en.body)
+                }}
+                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition ${
+                  selectedLang === 'en'
+                    ? 'border-[#0485F7] bg-[#0485F7] text-white'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                EN
+              </button>
+            </div>
+          ) : null}
         </div>
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
           <div>
