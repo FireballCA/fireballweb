@@ -216,7 +216,7 @@ export function Header() {
   const HEADER_HIDE_SCROLL_SCALE = 1 / 320
   const HEADER_SHOW_TOP_PX = 96
   const SCROLL_DELTA_IGNORE = 0.75
-  const MOBILE_MENU_ANIMATION_MS = 280
+  const MOBILE_MENU_ANIMATION_MS = 480
   
   type BannerItem = {
     id: string
@@ -1347,7 +1347,7 @@ export function Header() {
           className="lg:hidden fixed inset-0 z-[9999] overflow-hidden pointer-events-none"
         >
           <div
-            className={`absolute inset-0 transition-transform duration-[280ms] ease-out ${
+            className={`absolute inset-0 transition-transform duration-[480ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
               isMobileMenuVisible
                 ? 'translate-y-0 pointer-events-auto'
                 : '-translate-y-full pointer-events-none'
@@ -1877,9 +1877,9 @@ export function Header() {
             {/* Boutons d'action (tout en bas, hors zone scrollable) */}
             <div className="shrink-0 -mx-6 px-6 pt-3 pb-3 flex flex-col items-center gap-2">
               {loggedInForNotif ? (
-                <div className="w-[90%] max-w-[520px] flex flex-col gap-3">
+                <div className="w-full flex flex-col gap-3">
                   {/* Profil + nom */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 w-full">
                     <div className="flex-shrink-0 flex items-center justify-center w-9 h-9">
                       {headerAvatarUrl ? (
                         <img
@@ -1912,7 +1912,7 @@ export function Header() {
                     onClick={() => { setMenuOpen(false); navigate('/account/dashboard') }}
                     className="w-full py-3 rounded-xl text-sm font-nav font-semibold text-white bg-[#B61B1B] shadow-[0_8px_20px_rgba(0,0,0,0.45)] hover:bg-[#b61b1bcc] transition-colors"
                   >
-                    Dashboard
+                    My dashboard
                   </button>
                 </div>
               ) : (

@@ -448,26 +448,6 @@ export function Academy() {
         </div>
       </section>
 
-      <section className="bg-black text-pearl py-24 md:py-32">
-        <div className="max-w-7xl mx-auto px-6 md:px-16">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="academy-reveal">
-              <h2 className={cn('text-pearl mb-6', landingSectionTitle)}>
-                Become Fireball Certified
-              </h2>
-              <p className="text-lg leading-relaxed text-silver/70" style={{ fontFamily: "'Roboto', sans-serif", fontWeight: 300 }}>
-                After completing the training, participants may qualify to become certified Fireball installers and gain access to professional products and support.
-              </p>
-            </div>
-            <div className="academy-reveal text-center">
-              <div className="w-48 h-48 mx-auto rounded-full border border-white/20 bg-white/[0.06] flex items-center justify-center text-[#0485F7] text-6xl font-bold shadow-[0_0_40px_rgba(4,133,247,0.25)]">
-                ✓
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section className="bg-white py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 md:px-6">
           <div className="max-w-3xl text-left">
