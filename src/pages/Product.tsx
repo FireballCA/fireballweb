@@ -1869,7 +1869,7 @@ export function Product() {
       {favoriteModal}
 
       {/* Add to cart mobile : fixe en bas, marges (flottant), seul CTA d’achat sur petit écran */}
-      <div className={`lg:hidden fixed inset-x-0 bottom-0 z-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pointer-events-none transition-all duration-300 ease-in-out ${showStickyBar ? ‘translate-y-0 opacity-100’ : ‘translate-y-full opacity-0’}`}>
+      <div className={"lg:hidden fixed inset-x-0 bottom-0 z-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pointer-events-none transition-all duration-300 ease-in-out " + (showStickyBar ? "translate-y-0 opacity-100" : "translate-y-full opacity-0")}>
         <div className="max-w-7xl mx-auto w-full pointer-events-auto">
           <button
             type="button"
