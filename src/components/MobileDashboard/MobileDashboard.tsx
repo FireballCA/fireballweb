@@ -86,8 +86,8 @@ function IconLeaderboard() {
   )
 }
 
-const BADGE_SIZE = 128   // px — w-32 h-32
-const SHEET_TOP = 160    // px from top of wrapper when fully expanded
+const BADGE_SIZE = 128   // px
+const SHEET_TOP = 230    // px from top — more white space above the sheet
 const PEEK_PX = 72       // px of section 2 visible when collapsed
 const SNAP_THRESHOLD = 60 // px of drag before snapping to new state
 
@@ -112,17 +112,15 @@ export function MobileDashboard({
   onLeaderboardClick,
   onTrophyClick,
 }: MobileDashboardProps) {
-  const imgRef = useRef<HTMLDivElement>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
   const xpRef = useRef<HTMLSpanElement>(null)
   const xpLabelRef = useRef<HTMLSpanElement>(null)
-  const sheetRef = useRef<HTMLDivElement>(null)
 
   const isExpandedRef = useRef(true)
   const maxSheetYRef = useRef(0)
   const touchStartYRef = useRef(0)
   const sheetYAtDragStartRef = useRef(0)
 
-  // Compute max translateY (collapsed position)
   const computeMaxY = () => window.innerHeight - SHEET_TOP - PEEK_PX
 
   const applySheetTransform = (y: number, animate: boolean) => {
@@ -131,16 +129,10 @@ export function MobileDashboard({
       sheetRef.current.style.transition = transition
       sheetRef.current.style.transform = `translateY(${y}px)`
     }
-    // Badge tracks the sheet, staying centered on the sheet's top edge
-    if (imgRef.current) {
-      imgRef.current.style.transition = transition
-      imgRef.current.style.transform = `translateX(-50%) translateY(${y}px)`
-    }
   }
 
   useEffect(() => {
     maxSheetYRef.current = computeMaxY()
-    // Start expanded
     applySheetTransform(0, false)
   }, [])
 
@@ -153,6 +145,7 @@ export function MobileDashboard({
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
+  // Touch handlers — only attached to the handle bar, not the full sheet
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartYRef.current = e.touches[0].clientY
     sheetYAtDragStartRef.current = isExpandedRef.current ? 0 : maxSheetYRef.current
@@ -169,6 +162,13 @@ export function MobileDashboard({
     const dy = e.changedTouches[0].clientY - touchStartYRef.current
     const wasExpanded = isExpandedRef.current
 
+    // Tap on the handle (small movement) → toggle
+    if (Math.abs(dy) < 10) {
+      isExpandedRef.current = !wasExpanded
+      applySheetTransform(isExpandedRef.current ? 0 : maxSheetYRef.current, true)
+      return
+    }
+
     if (wasExpanded && dy > SNAP_THRESHOLD) {
       isExpandedRef.current = false
       applySheetTransform(maxSheetYRef.current, true)
@@ -176,7 +176,6 @@ export function MobileDashboard({
       isExpandedRef.current = true
       applySheetTransform(0, true)
     } else {
-      // Snap back to current state
       applySheetTransform(wasExpanded ? 0 : maxSheetYRef.current, true)
     }
   }
@@ -189,9 +188,9 @@ export function MobileDashboard({
   return (
     <div className="lg:hidden w-full -mt-20 relative overflow-hidden" style={{ height: '100dvh' }}>
 
-      {/* ── Section 1: white hero fills entire container ── */}
-      <div className="absolute inset-0 bg-white">
-        {/* XP display — centered in the white area above the sheet */}
+      {/* ── Section 1: white hero — overflow-hidden clips the badge at SHEET_TOP ── */}
+      <div className="absolute inset-0 bg-white overflow-hidden">
+        {/* XP display centered in white area */}
         <div
           className="absolute inset-x-0 top-0 flex flex-col items-center justify-center pointer-events-none"
           style={{ height: SHEET_TOP }}
@@ -221,22 +220,18 @@ export function MobileDashboard({
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ── Badge — floats at the sheet's top edge, above both layers ── */}
-      <div
-        ref={imgRef}
-        className="absolute left-1/2 z-20"
-        style={{
-          top: SHEET_TOP - BADGE_SIZE / 2,
-          willChange: 'transform',
-          // initial horizontal centering; JS will override with translateX(-50%) translateY(0)
-          transform: 'translateX(-50%)',
-        }}
-      >
+        {/* Tier badge — no white bg/border, center sits at SHEET_TOP edge.
+            overflow-hidden on this section clips the bottom half so it only
+            appears in the white area, never in section 2. */}
         <div
-          className="rounded-full bg-white border-2 border-neutral-200 overflow-hidden shadow-lg"
-          style={{ width: BADGE_SIZE, height: BADGE_SIZE }}
+          className="absolute left-1/2 pointer-events-none"
+          style={{
+            top: SHEET_TOP - BADGE_SIZE / 2,
+            transform: 'translateX(-50%)',
+            width: BADGE_SIZE,
+            height: BADGE_SIZE,
+          }}
         >
           <img
             src={getTierBadgeSrc(tier)}
@@ -249,25 +244,26 @@ export function MobileDashboard({
       {/* ── Section 2: dark bottom sheet ── */}
       <div
         ref={sheetRef}
-        className="absolute left-0 right-0 z-10 bg-[#111111] rounded-t-[28px] overflow-hidden"
+        className="absolute left-0 right-0 z-10 bg-[#111111] rounded-t-[28px]"
         style={{
           top: SHEET_TOP,
           minHeight: `calc(100dvh - ${SHEET_TOP}px)`,
-          // initial transform applied via useEffect
           willChange: 'transform',
         }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
-        {/* Apple-style drag handle */}
-        <div className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing select-none">
+        {/* ── Gray handle — ONLY this element handles touch/drag events ── */}
+        <div
+          className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing select-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <div className="w-9 h-[4px] rounded-full bg-white/25" />
         </div>
 
-        {/* Content — scrollable inside the sheet */}
+        {/* Nav buttons — scrollable content, touch events don't bubble to sheet drag */}
         <div className="overflow-y-auto" style={{ maxHeight: `calc(100dvh - ${SHEET_TOP + 36}px)` }}>
-          <div className="px-5 pb-20 flex flex-col gap-2.5" style={{ paddingTop: BADGE_SIZE / 2 + 20 }}>
+          <div className="px-5 pb-20 flex flex-col gap-2.5" style={{ paddingTop: BADGE_SIZE / 2 + 12 }}>
             {/* Track your order */}
             <a
               href={SHOPIFY_CUSTOMER_ORDERS_URL}
