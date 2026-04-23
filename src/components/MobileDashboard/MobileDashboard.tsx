@@ -322,6 +322,7 @@ export function MobileDashboard({
       benefitsContainerRef.current.style.top = `${benefitsTop}px`
       benefitsContainerRef.current.style.maxHeight = `${benefitsMaxH}px`
       benefitsContainerRef.current.style.overflowY = 'auto'
+      benefitsContainerRef.current.style.touchAction = 'pan-y'
       benefitsContainerRef.current.style.pointerEvents = progress > 0.8 ? 'auto' : 'none'
     }
 
@@ -343,6 +344,10 @@ export function MobileDashboard({
   useEffect(() => {
     maxSheetYRef.current = computeMaxY()
     applySheetTransform(0, false)
+
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
   }, [])
 
   useEffect(() => {
@@ -416,10 +421,12 @@ export function MobileDashboard({
   return (
     <div
       className="lg:hidden w-full -mt-20 relative"
-      style={{ height: '100dvh', overflow: 'hidden' }}
+      style={{ height: '100dvh', overflow: 'hidden', touchAction: 'none' }}
     >
       {/* ── Section 1: white hero ── */}
       <div className="absolute inset-0 bg-white overflow-hidden">
+        {/* Dark strip at bottom so section 2 rounded corners don't expose white */}
+        <div className="absolute bottom-0 inset-x-0 h-20 bg-[#111111] pointer-events-none" />
         {/* XP display — slides up + fades out on collapse */}
         <div
           ref={xpContainerRef}
@@ -590,7 +597,7 @@ export function MobileDashboard({
       {/* ── Benefits rectangles ── */}
       <div
         ref={benefitsContainerRef}
-        className="absolute z-[6] pointer-events-none"
+        className="absolute z-[6] pointer-events-none mobile-no-scrollbar"
         style={{
           left: '50%',
           transform: 'translateX(-50%)',
@@ -648,8 +655,8 @@ export function MobileDashboard({
         </div>
 
         {/* Scrollable nav content */}
-        <div className="overflow-y-auto" style={{ maxHeight: `calc(100dvh - ${SHEET_TOP + 44}px)` }}>
-          <div className="px-5 pb-20 flex flex-col gap-2.5" style={{ paddingTop: BADGE_SIZE_EXPANDED / 2 + 12 }}>
+        <div className="overflow-y-auto" style={{ maxHeight: `calc(100dvh - ${SHEET_TOP + 44}px)`, touchAction: 'pan-y' }}>
+          <div className="px-5 pb-20 flex flex-col gap-2.5" style={{ paddingTop: 16 }}>
             <a
               href={SHOPIFY_CUSTOMER_ORDERS_URL}
               target="_blank"

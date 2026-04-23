@@ -377,6 +377,16 @@ html.lenis-smooth body {
   display: none;
 }
 
+/* Mobile dashboard – hide scrollbar in benefits rectangles */
+.mobile-no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mobile-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* HeroUI DateRangePicker (admin training/events) */
 @layer components {
   .date-range-picker__trigger {
