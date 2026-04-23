@@ -1296,6 +1296,7 @@ export function AccountDashboard() {
               ? Math.min(100, Math.max(0, ((xp - currentTier.minXp) / (nextTier.minXp - currentTier.minXp)) * 100))
               : 100}
             partnerStatus={partnerStatus}
+            tier={currentTier.headerLabel}
             onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}
             onSettingsClick={() => setSettingsOpen(true)}
             onGarageClick={() => setCarModalOpen(true)}

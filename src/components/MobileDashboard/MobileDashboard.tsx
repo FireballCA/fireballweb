@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { SHOPIFY_CUSTOMER_ORDERS_URL } from '@/constants/shopifyShopApp'
 
@@ -86,27 +86,91 @@ function IconLeaderboard() {
   )
 }
 
+function IconLock() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  )
+}
+
 const BADGE_SIZE_EXPANDED = 128    // px when section 2 is up
-const BADGE_SIZE_COLLAPSED = 260   // px when section 2 is at bottom
-const SHEET_TOP = 230              // px from top
+const BADGE_SIZE_COLLAPSED = 290   // px when section 2 is at bottom
+const SHEET_TOP = 270              // px from top
 const PEEK_PX = 72                 // px of section 2 visible when collapsed
 const SNAP_THRESHOLD = 60
 
-function getTierBadgeSrc(tier?: string | null): string {
-  const t = String(tier || '').toUpperCase().trim()
-  if (t === 'TIER 1') return '/Account/Level Badge/Tier 1.png'
-  if (t === 'TIER 2') return '/Account/Level Badge/Tier 2.png'
-  if (t === 'TIER 3') return '/Account/Level Badge/Tier 3.png'
-  if (t === 'TIER 4') return '/Account/Level Badge/Tier 4.png'
-  if (t === 'TIER 5') return '/Account/Level Badge/Tier 5.png'
-  return '/Account/Level Badge/Tier 1.png'
-}
+const MOBILE_TIERS = [
+  {
+    index: 1,
+    label: 'Tier 1',
+    headerLabel: 'TIER 1',
+    badgeSrc: '/Account/Level Badge/Tier 1.png',
+    benefits: [
+      'Base access to Fireball ecosystem',
+      'Earn XP on every eligible purchase',
+      'Unlock higher tiers with continued activity',
+    ],
+  },
+  {
+    index: 2,
+    label: 'Tier 2',
+    headerLabel: 'TIER 2',
+    badgeSrc: '/Account/Level Badge/Tier 2.png',
+    benefits: [
+      '10$ Rewards',
+      'Early access to select offers',
+      'Priority email support',
+    ],
+  },
+  {
+    index: 3,
+    label: 'Tier 3',
+    headerLabel: 'TIER 3',
+    badgeSrc: '/Account/Level Badge/Tier 3.png',
+    benefits: [
+      '15$ Rewards',
+      'Access to exclusive products',
+      'Early access to new releases',
+      'Occasional bonus rewards',
+      'Fireball Partnership',
+    ],
+  },
+  {
+    index: 4,
+    label: 'Tier 4',
+    headerLabel: 'TIER 4',
+    badgeSrc: '/Account/Level Badge/Tier 4.png',
+    benefits: [
+      '20$ Rewards',
+      'Priority access to limited drops',
+      'Exclusive member offers',
+      'Special event access',
+    ],
+  },
+  {
+    index: 5,
+    label: 'Tier 5',
+    headerLabel: 'TIER 5',
+    badgeSrc: '/Account/Level Badge/Tier 5.png',
+    benefits: [
+      '30$ Rewards',
+      'VIP-only products & drops',
+      'Maximum priority access',
+      'Annual exclusive reward',
+      'Top-tier member status',
+    ],
+  },
+] as const
 
-function getTierLabel(tier?: string | null): string {
-  const t = String(tier || '').trim()
-  if (!t) return 'Tier 1'
-  // Normalize "TIER 1" → "Tier 1"
-  return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()
+function getTierIndexFromLabel(tier?: string | null): number {
+  const t = String(tier || '').toUpperCase().trim()
+  if (t === 'TIER 2') return 1
+  if (t === 'TIER 3') return 2
+  if (t === 'TIER 4') return 3
+  if (t === 'TIER 5') return 4
+  return 0
 }
 
 export function MobileDashboard({
@@ -120,23 +184,34 @@ export function MobileDashboard({
   onLeaderboardClick,
   onTrophyClick,
 }: MobileDashboardProps) {
+  const currentTierIndex = getTierIndexFromLabel(tier)
+  const [viewingTierIndex, setViewingTierIndex] = useState(currentTierIndex)
+
   const sheetRef = useRef<HTMLDivElement>(null)
   const xpRef = useRef<HTMLSpanElement>(null)
   const xpLabelRef = useRef<HTMLSpanElement>(null)
   const progressBarWrapperRef = useRef<HTMLDivElement>(null)
   const badgeContainerRef = useRef<HTMLDivElement>(null)
   const tierTextRef = useRef<HTMLDivElement>(null)
+  const benefitsContainerRef = useRef<HTMLDivElement>(null)
+  const arrowsContainerRef = useRef<HTMLDivElement>(null)
+  const lockOverlayRef = useRef<HTMLDivElement>(null)
 
   const isExpandedRef = useRef(true)
   const maxSheetYRef = useRef(0)
   const touchStartYRef = useRef(0)
   const sheetYAtDragStartRef = useRef(0)
+  const progressRef = useRef(0)
+
+  const viewingTierIndexRef = useRef(viewingTierIndex)
+  viewingTierIndexRef.current = viewingTierIndex
 
   const computeMaxY = () => window.innerHeight - SHEET_TOP - PEEK_PX
 
   const applySheetTransform = (y: number, animate: boolean) => {
     const maxY = maxSheetYRef.current
     const progress = maxY > 0 ? Math.max(0, Math.min(1, y / maxY)) : 0
+    progressRef.current = progress
     const EASE = 'cubic-bezier(0.4,0,0.2,1)'
     const DUR = '0.35s'
     const sheetTrans = animate ? `transform ${DUR} ${EASE}` : 'none'
@@ -152,8 +227,6 @@ export function MobileDashboard({
     const badgeSize = BADGE_SIZE_EXPANDED + (BADGE_SIZE_COLLAPSED - BADGE_SIZE_EXPANDED) * progress
 
     // ── Badge center Y ──
-    // Stays pinned at section-2 top for progress 0→0.65 (image behind sheet),
-    // then lerps to screen center for the final stretch.
     const section2VisualTop = SHEET_TOP + y
     const screenCenter = (window.innerHeight - PEEK_PX) / 2
     const breakpoint = 0.65
@@ -162,7 +235,7 @@ export function MobileDashboard({
       imageCenterY = section2VisualTop
     } else {
       const t = (progress - breakpoint) / (1 - breakpoint)
-      const tEased = t * t * (3 - 2 * t) // smoothstep
+      const tEased = t * t * (3 - 2 * t)
       imageCenterY = section2VisualTop + (screenCenter - section2VisualTop) * tEased
     }
 
@@ -174,8 +247,8 @@ export function MobileDashboard({
     }
 
     // ── XP text ──
-    const xpFontSize = 56 - 28 * progress        // 56 → 28
-    const xpLabelFontSize = 14 - 6 * progress    // 14 → 8
+    const xpFontSize = 56 - 28 * progress
+    const xpLabelFontSize = 14 - 6 * progress
     if (xpRef.current) {
       xpRef.current.style.transition = allTrans
       xpRef.current.style.fontSize = `${xpFontSize}px`
@@ -185,27 +258,46 @@ export function MobileDashboard({
       xpLabelRef.current.style.fontSize = `${xpLabelFontSize}px`
     }
 
-    // ── Progress bar: fade + shrink ──
+    // ── Progress bar ──
     if (progressBarWrapperRef.current) {
       progressBarWrapperRef.current.style.transition = allTrans
       progressBarWrapperRef.current.style.opacity = `${Math.max(0, 1 - progress * 2)}`
       progressBarWrapperRef.current.style.transform = `scaleX(${1 - 0.4 * progress})`
     }
 
-    // ── Tier text ──
-    // Expanded (progress=0): visible, same font size as XP (56px), above badge
-    // Collapsed (progress=1): faded/slid behind badge (covered by section 2 or image)
-    // It slides from just behind the badge to above it as section 2 opens.
-    const tierFontSize = 56 - 28 * progress          // matches XP size
-    const tierOpacity = Math.max(0, 1 - progress * 1.8)
-    // When collapsed: slides down into badge; when expanded: sits above badge
-    const tierTop = imageCenterY - badgeSize / 2 - tierFontSize - 10
-    const tierSlideOffset = progress * 60           // slides down behind badge as it collapses
+    // ── Tier text: visible when section 2 is at bottom (progress → 1), hidden when expanded ──
+    const tierOpacity = Math.max(0, (progress - 0.4) / 0.6)
+    const tierFontSize = 28 + 14 * progress   // 28 → 42
+    const tierTop = imageCenterY - badgeSize / 2 - tierFontSize - 14
     if (tierTextRef.current) {
       tierTextRef.current.style.transition = allTrans
       tierTextRef.current.style.opacity = `${tierOpacity}`
       tierTextRef.current.style.fontSize = `${tierFontSize}px`
-      tierTextRef.current.style.top = `${tierTop + tierSlideOffset}px`
+      tierTextRef.current.style.top = `${tierTop}px`
+    }
+
+    // ── Benefits container: appears below badge when collapsed ──
+    const benefitsOpacity = Math.max(0, (progress - 0.6) / 0.4)
+    const benefitsTop = imageCenterY + badgeSize / 2 + 16
+    if (benefitsContainerRef.current) {
+      benefitsContainerRef.current.style.transition = allTrans
+      benefitsContainerRef.current.style.opacity = `${benefitsOpacity}`
+      benefitsContainerRef.current.style.top = `${benefitsTop}px`
+      benefitsContainerRef.current.style.pointerEvents = progress > 0.8 ? 'auto' : 'none'
+    }
+
+    // ── Arrows: centered vertically on badge ──
+    if (arrowsContainerRef.current) {
+      arrowsContainerRef.current.style.transition = allTrans
+      arrowsContainerRef.current.style.opacity = `${benefitsOpacity}`
+      arrowsContainerRef.current.style.top = `${imageCenterY}px`
+      arrowsContainerRef.current.style.pointerEvents = progress > 0.8 ? 'auto' : 'none'
+    }
+
+    // ── Lock overlay ──
+    if (lockOverlayRef.current) {
+      lockOverlayRef.current.style.transition = allTrans
+      lockOverlayRef.current.style.opacity = `${benefitsOpacity}`
     }
   }
 
@@ -222,6 +314,12 @@ export function MobileDashboard({
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
+  // Re-apply current transform when viewingTierIndex changes (to reposition correctly)
+  useEffect(() => {
+    const currentY = isExpandedRef.current ? 0 : maxSheetYRef.current
+    applySheetTransform(currentY, false)
+  }, [viewingTierIndex])
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartYRef.current = e.touches[0].clientY
@@ -260,6 +358,17 @@ export function MobileDashboard({
 
   const navButtonClass =
     'flex w-full items-center rounded-2xl bg-white/[0.07] px-4 py-3 text-white active:bg-white/[0.13] transition-colors'
+
+  const viewingTier = MOBILE_TIERS[viewingTierIndex]
+  const isLocked = viewingTierIndex > currentTierIndex
+
+  const handlePrevTier = () => {
+    setViewingTierIndex((i) => Math.max(0, i - 1))
+  }
+
+  const handleNextTier = () => {
+    setViewingTierIndex((i) => Math.min(MOBILE_TIERS.length - 1, i + 1))
+  }
 
   return (
     <div
@@ -300,27 +409,27 @@ export function MobileDashboard({
         </div>
       </div>
 
-      {/* ── Tier text — slides from behind badge to above it (z below section 2) ── */}
+      {/* ── Tier label — visible when section 2 is down ── */}
       <div
         ref={tierTextRef}
         className="absolute pointer-events-none z-[5]"
         style={{
           left: '50%',
           transform: 'translateX(-50%)',
-          opacity: 1,
+          opacity: 0,
           color: '#171717',
           fontFamily: 'Inter, sans-serif',
-          fontWeight: 300,
+          fontWeight: 800,
           lineHeight: 1,
           whiteSpace: 'nowrap',
-          fontSize: 56,
-          top: SHEET_TOP - BADGE_SIZE_EXPANDED / 2 - 56 - 10,
+          fontSize: 28,
+          top: SHEET_TOP - BADGE_SIZE_COLLAPSED / 2 - 56,
         }}
       >
-        {getTierLabel(tier)}
+        {viewingTier.label}
       </div>
 
-      {/* ── Badge image — sits between section 1 and section 2 (z below section 2) ── */}
+      {/* ── Badge image ── */}
       <div
         ref={badgeContainerRef}
         className="absolute z-[5] pointer-events-none"
@@ -333,10 +442,93 @@ export function MobileDashboard({
         }}
       >
         <img
-          src={getTierBadgeSrc(tier)}
-          alt={tier ?? 'Level badge'}
+          src={viewingTier.badgeSrc}
+          alt={viewingTier.label}
           className="w-full h-full object-cover"
+          style={isLocked ? { filter: 'brightness(0.35)' } : undefined}
         />
+        {/* Lock overlay */}
+        {isLocked && (
+          <div
+            ref={lockOverlayRef}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+            style={{ opacity: 0 }}
+          >
+            <IconLock />
+          </div>
+        )}
+      </div>
+
+      {/* ── Arrow buttons (left/right) — float beside badge when collapsed ── */}
+      <div
+        ref={arrowsContainerRef}
+        className="absolute z-[6] flex items-center justify-between pointer-events-none"
+        style={{
+          left: '50%',
+          transform: 'translateX(-50%) translateY(-50%)',
+          width: BADGE_SIZE_COLLAPSED + 80,
+          top: SHEET_TOP,
+          opacity: 0,
+        }}
+      >
+        <button
+          type="button"
+          onClick={handlePrevTier}
+          disabled={viewingTierIndex === 0}
+          className="flex items-center justify-center rounded-full bg-black/10 active:bg-black/20 transition-colors disabled:opacity-20"
+          style={{ width: 36, height: 36 }}
+          aria-label="Tier précédent"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#171717" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          onClick={handleNextTier}
+          disabled={viewingTierIndex === MOBILE_TIERS.length - 1}
+          className="flex items-center justify-center rounded-full bg-black/10 active:bg-black/20 transition-colors disabled:opacity-20"
+          style={{ width: 36, height: 36 }}
+          aria-label="Tier suivant"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#171717" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </button>
+      </div>
+
+      {/* ── Benefits rectangles — appear below badge when collapsed ── */}
+      <div
+        ref={benefitsContainerRef}
+        className="absolute z-[6] pointer-events-none"
+        style={{
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: BADGE_SIZE_COLLAPSED,
+          top: SHEET_TOP + BADGE_SIZE_COLLAPSED / 2 + 16,
+          opacity: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+        }}
+      >
+        {viewingTier.benefits.map((benefit, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-2.5 px-4"
+            style={{
+              minHeight: 44,
+              background: 'rgba(229, 231, 235, 0.85)',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: 13,
+              fontWeight: 400,
+              color: '#171717',
+            }}
+          >
+            <span style={{ color: '#6b7280', fontWeight: 400, fontSize: 15, flexShrink: 0 }}>+</span>
+            <span>{benefit}</span>
+          </div>
+        ))}
       </div>
 
       {/* ── Section 2: dark bottom sheet ── */}
@@ -349,7 +541,7 @@ export function MobileDashboard({
           willChange: 'transform',
         }}
       >
-        {/* Gray handle bar — larger ── */}
+        {/* Gray handle bar */}
         <div
           className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing select-none"
           onTouchStart={handleTouchStart}
