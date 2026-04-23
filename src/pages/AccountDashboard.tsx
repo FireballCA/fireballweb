@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { MemberStatusHero } from '@/components/MemberStatusHero/MemberStatusHero'
+import { MobileDashboard } from '@/components/MobileDashboard/MobileDashboard'
 import { AddVehicleModal } from '@/components/AddVehicleModal'
 import { AccountDashboardSkeleton } from '@/components/ui/AccountDashboardSkeleton'
 import { ProductsPurchasedSheet } from '@/components/ProductsPurchasedSheet'
@@ -1288,7 +1289,17 @@ export function AccountDashboard() {
               </div>
             </div>
           )}
-          <MemberStatusHero 
+          {/* Mobile-only dashboard */}
+          <MobileDashboard
+            currentXp={xp}
+            partnerStatus={partnerStatus}
+            onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}
+            onSettingsClick={() => setSettingsOpen(true)}
+          />
+
+          {/* Desktop hero (hidden on mobile) */}
+          <div className="hidden lg:block">
+          <MemberStatusHero
             userName={fullName || 'Anthony Bergeron'}
             currentXp={xp}
             targetXp={targetXp}
@@ -1363,6 +1374,7 @@ export function AccountDashboard() {
               </div>
             }
           />
+          </div>
           {notificationsMenuOpen &&
             typeof document !== 'undefined' &&
             createPortal(
