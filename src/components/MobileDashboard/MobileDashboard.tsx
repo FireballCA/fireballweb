@@ -86,9 +86,10 @@ function IconLeaderboard() {
   )
 }
 
-const PEEK_PX = 90       // px of section 2 visible when collapsed
-const SHEET_TOP = 64     // px from top of wrapper when fully expanded
-const SNAP_THRESHOLD = 70 // px of drag before snapping to new state
+const BADGE_SIZE = 128   // px — w-32 h-32
+const SHEET_TOP = 160    // px from top of wrapper when fully expanded
+const PEEK_PX = 72       // px of section 2 visible when collapsed
+const SNAP_THRESHOLD = 60 // px of drag before snapping to new state
 
 function getTierBadgeSrc(tier?: string | null): string {
   const t = String(tier || '').toUpperCase().trim()
@@ -116,7 +117,7 @@ export function MobileDashboard({
   const xpLabelRef = useRef<HTMLSpanElement>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
 
-  const isExpandedRef = useRef(false)
+  const isExpandedRef = useRef(true)
   const maxSheetYRef = useRef(0)
   const touchStartYRef = useRef(0)
   const sheetYAtDragStartRef = useRef(0)
@@ -125,23 +126,22 @@ export function MobileDashboard({
   const computeMaxY = () => window.innerHeight - SHEET_TOP - PEEK_PX
 
   const applySheetTransform = (y: number, animate: boolean) => {
-    const el = sheetRef.current
-    if (!el) return
-    el.style.transition = animate ? 'transform 0.35s cubic-bezier(0.4,0,0.2,1)' : 'none'
-    el.style.transform = `translateY(${y}px)`
-
-    // Scale image based on sheet position: collapsed (y big) → image large
+    const transition = animate ? 'transform 0.35s cubic-bezier(0.4,0,0.2,1)' : 'none'
+    if (sheetRef.current) {
+      sheetRef.current.style.transition = transition
+      sheetRef.current.style.transform = `translateY(${y}px)`
+    }
+    // Badge tracks the sheet, staying centered on the sheet's top edge
     if (imgRef.current) {
-      const progress = y / maxSheetYRef.current
-      const scale = 1 + progress * 0.45
-      imgRef.current.style.transform = `scale(${scale})`
+      imgRef.current.style.transition = transition
+      imgRef.current.style.transform = `translateX(-50%) translateY(${y}px)`
     }
   }
 
   useEffect(() => {
     maxSheetYRef.current = computeMaxY()
-    // Start collapsed
-    applySheetTransform(maxSheetYRef.current, false)
+    // Start expanded
+    applySheetTransform(0, false)
   }, [])
 
   useEffect(() => {
@@ -191,27 +191,28 @@ export function MobileDashboard({
 
       {/* ── Section 1: white hero fills entire container ── */}
       <div className="absolute inset-0 bg-white">
-        {/* XP overlay */}
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pb-32 pointer-events-none">
+        {/* XP display — centered in the white area above the sheet */}
+        <div
+          className="absolute inset-x-0 top-0 flex flex-col items-center justify-center pointer-events-none"
+          style={{ height: SHEET_TOP }}
+        >
           <div className="flex items-start leading-none">
             <span
               ref={xpRef}
               className="text-neutral-900 font-inter font-light leading-none"
-              style={{ fontSize: 72 }}
+              style={{ fontSize: 56 }}
             >
               {currentXp.toLocaleString()}
             </span>
             <span
               ref={xpLabelRef}
-              className="text-neutral-500 font-inter mt-1.5 ml-1"
-              style={{ fontSize: 16, lineHeight: '20px' }}
+              className="text-neutral-500 font-inter mt-1 ml-1"
+              style={{ fontSize: 14, lineHeight: '18px' }}
             >
               XP
             </span>
           </div>
-
-          {/* XP Progress bar */}
-          <div className="mt-3 w-32">
+          <div className="mt-2.5 w-28">
             <div className="h-1 rounded-full bg-neutral-200 overflow-hidden">
               <div
                 className="h-full rounded-full bg-neutral-800 transition-none"
@@ -220,27 +221,35 @@ export function MobileDashboard({
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Profile image — sits in section 1, partially visible at bottom (under section 2) */}
+      {/* ── Badge — floats at the sheet's top edge, above both layers ── */}
+      <div
+        ref={imgRef}
+        className="absolute left-1/2 z-20"
+        style={{
+          top: SHEET_TOP - BADGE_SIZE / 2,
+          willChange: 'transform',
+          // initial horizontal centering; JS will override with translateX(-50%) translateY(0)
+          transform: 'translateX(-50%)',
+        }}
+      >
         <div
-          ref={imgRef}
-          className="absolute bottom-[52px] left-1/2 -translate-x-1/2 z-10 origin-bottom"
-          style={{ willChange: 'transform' }}
+          className="rounded-full bg-white border-2 border-neutral-200 overflow-hidden shadow-lg"
+          style={{ width: BADGE_SIZE, height: BADGE_SIZE }}
         >
-          <div className="w-36 h-36 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center overflow-hidden shadow-md">
-            <img
-              src={getTierBadgeSrc(tier)}
-              alt={tier ?? 'Level badge'}
-              className="w-full h-full object-cover"
-            />
-          </div>
+          <img
+            src={getTierBadgeSrc(tier)}
+            alt={tier ?? 'Level badge'}
+            className="w-full h-full object-cover"
+          />
         </div>
       </div>
 
       {/* ── Section 2: dark bottom sheet ── */}
       <div
         ref={sheetRef}
-        className="absolute left-0 right-0 bg-[#111111] rounded-t-[28px] overflow-hidden"
+        className="absolute left-0 right-0 z-10 bg-[#111111] rounded-t-[28px] overflow-hidden"
         style={{
           top: SHEET_TOP,
           minHeight: `calc(100dvh - ${SHEET_TOP}px)`,
@@ -258,7 +267,7 @@ export function MobileDashboard({
 
         {/* Content — scrollable inside the sheet */}
         <div className="overflow-y-auto" style={{ maxHeight: `calc(100dvh - ${SHEET_TOP + 36}px)` }}>
-          <div className="px-5 pt-12 pb-20 flex flex-col gap-2.5">
+          <div className="px-5 pb-20 flex flex-col gap-2.5" style={{ paddingTop: BADGE_SIZE / 2 + 20 }}>
             {/* Track your order */}
             <a
               href={SHOPIFY_CUSTOMER_ORDERS_URL}
