@@ -85,6 +85,10 @@ function IconLeaderboard() {
   )
 }
 
+const PEEK_PX = 90       // px of section 2 visible when collapsed
+const SHEET_TOP = 64     // px from top of wrapper when fully expanded
+const SNAP_THRESHOLD = 70 // px of drag before snapping to new state
+
 export function MobileDashboard({
   currentXp,
   xpProgressPercent,
@@ -98,33 +102,72 @@ export function MobileDashboard({
   const imgRef = useRef<HTMLDivElement>(null)
   const xpRef = useRef<HTMLSpanElement>(null)
   const xpLabelRef = useRef<HTMLSpanElement>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
+
+  const isExpandedRef = useRef(false)
+  const maxSheetYRef = useRef(0)
+  const touchStartYRef = useRef(0)
+  const sheetYAtDragStartRef = useRef(0)
+
+  // Compute max translateY (collapsed position)
+  const computeMaxY = () => window.innerHeight - SHEET_TOP - PEEK_PX
+
+  const applySheetTransform = (y: number, animate: boolean) => {
+    const el = sheetRef.current
+    if (!el) return
+    el.style.transition = animate ? 'transform 0.35s cubic-bezier(0.4,0,0.2,1)' : 'none'
+    el.style.transform = `translateY(${y}px)`
+
+    // Scale image based on sheet position: collapsed (y big) → image large
+    if (imgRef.current) {
+      const progress = y / maxSheetYRef.current
+      const scale = 1 + progress * 0.45
+      imgRef.current.style.transform = `scale(${scale})`
+    }
+  }
 
   useEffect(() => {
-    const handleScroll = () => {
-      const scrollY = window.scrollY
-      const maxScroll = 180
-
-      const progress = Math.min(scrollY / maxScroll, 1)
-
-      if (imgRef.current) {
-        const scale = 1 + progress * 0.18
-        imgRef.current.style.transform = `scale(${scale})`
-      }
-
-      if (xpRef.current) {
-        const fontSize = 72 - progress * 36
-        xpRef.current.style.fontSize = `${fontSize}px`
-        xpRef.current.style.opacity = `${1 - progress * 0.5}`
-      }
-
-      if (xpLabelRef.current) {
-        xpLabelRef.current.style.opacity = `${1 - progress * 0.5}`
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
+    maxSheetYRef.current = computeMaxY()
+    // Start collapsed
+    applySheetTransform(maxSheetYRef.current, false)
   }, [])
+
+  useEffect(() => {
+    const onResize = () => {
+      maxSheetYRef.current = computeMaxY()
+      applySheetTransform(isExpandedRef.current ? 0 : maxSheetYRef.current, false)
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartYRef.current = e.touches[0].clientY
+    sheetYAtDragStartRef.current = isExpandedRef.current ? 0 : maxSheetYRef.current
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const dy = e.touches[0].clientY - touchStartYRef.current
+    const rawY = sheetYAtDragStartRef.current + dy
+    const clampedY = Math.max(0, Math.min(maxSheetYRef.current, rawY))
+    applySheetTransform(clampedY, false)
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const dy = e.changedTouches[0].clientY - touchStartYRef.current
+    const wasExpanded = isExpandedRef.current
+
+    if (wasExpanded && dy > SNAP_THRESHOLD) {
+      isExpandedRef.current = false
+      applySheetTransform(maxSheetYRef.current, true)
+    } else if (!wasExpanded && dy < -SNAP_THRESHOLD) {
+      isExpandedRef.current = true
+      applySheetTransform(0, true)
+    } else {
+      // Snap back to current state
+      applySheetTransform(wasExpanded ? 0 : maxSheetYRef.current, true)
+    }
+  }
 
   const normalizedPartnerStatus = String(partnerStatus || '').trim().toLowerCase()
 
@@ -132,24 +175,24 @@ export function MobileDashboard({
     'flex w-full items-center rounded-2xl bg-white/[0.07] px-4 py-3 text-white active:bg-white/[0.13] transition-colors'
 
   return (
-    /* -mt-20 slides the mobile dashboard behind the sticky navbar (h-20 = 80px) */
-    <div className="lg:hidden w-full -mt-20">
-      {/* ── Hero: 52vh white, navbar overlays transparently ── */}
-      <div className="relative h-[52vh] bg-white overflow-visible">
-        {/* XP overlay — upper portion of hero */}
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pb-20 pointer-events-none">
+    <div className="lg:hidden w-full -mt-20 relative overflow-hidden" style={{ height: '100dvh' }}>
+
+      {/* ── Section 1: white hero fills entire container ── */}
+      <div className="absolute inset-0 bg-white">
+        {/* XP overlay */}
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pb-32 pointer-events-none">
           <div className="flex items-start leading-none">
             <span
               ref={xpRef}
               className="text-neutral-900 font-inter font-light leading-none"
-              style={{ fontSize: 72, willChange: 'font-size, opacity' }}
+              style={{ fontSize: 72 }}
             >
               {currentXp.toLocaleString()}
             </span>
             <span
               ref={xpLabelRef}
               className="text-neutral-500 font-inter mt-1.5 ml-1"
-              style={{ fontSize: 16, lineHeight: '20px', willChange: 'opacity' }}
+              style={{ fontSize: 16, lineHeight: '20px' }}
             >
               XP
             </span>
@@ -166,101 +209,117 @@ export function MobileDashboard({
           </div>
         </div>
 
-        {/* Image straddling section 1 / section 2 boundary — centered at bottom of hero */}
+        {/* Profile image — sits in section 1, partially visible at bottom (under section 2) */}
         <div
           ref={imgRef}
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 z-30 origin-bottom"
+          className="absolute bottom-[52px] left-1/2 -translate-x-1/2 z-10 origin-bottom"
           style={{ willChange: 'transform' }}
         >
-          <div className="w-24 h-24 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center overflow-hidden shadow-md">
+          <div className="w-36 h-36 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center overflow-hidden shadow-md">
             <span className="text-neutral-300 text-[10px] font-mono uppercase tracking-widest select-none">img</span>
           </div>
         </div>
       </div>
 
-      {/* ── Section 2: dark card overlapping hero, padding-top leaves room for image ── */}
-      <div className="relative z-20 -mt-7 rounded-t-[28px] bg-[#111111] px-5 pt-16 pb-20 min-h-[64vh]">
-        <div className="flex flex-col gap-2.5">
-          {/* Track your order */}
-          <a
-            href={SHOPIFY_CUSTOMER_ORDERS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={navButtonClass}
-          >
-            <span className="w-8 flex justify-start text-white/50 shrink-0"><IconPackage /></span>
-            <span className="flex-1 text-center font-nav font-semibold text-[13px]">Track your order</span>
-            <span className="w-8" />
-          </a>
+      {/* ── Section 2: dark bottom sheet ── */}
+      <div
+        ref={sheetRef}
+        className="absolute left-0 right-0 bg-[#111111] rounded-t-[28px] overflow-hidden"
+        style={{
+          top: SHEET_TOP,
+          minHeight: `calc(100dvh - ${SHEET_TOP}px)`,
+          // initial transform applied via useEffect
+          willChange: 'transform',
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Apple-style drag handle */}
+        <div className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing select-none">
+          <div className="w-9 h-[4px] rounded-full bg-white/25" />
+        </div>
 
-          {/* Products purchased */}
-          {onProductsPurchasedClick ? (
-            <button type="button" onClick={onProductsPurchasedClick} className={navButtonClass}>
-              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconShoppingBag /></span>
-              <span className="flex-1 text-center font-nav font-semibold text-[13px]">Products purchased</span>
-              <span className="w-8" />
-            </button>
-          ) : (
+        {/* Content — scrollable inside the sheet */}
+        <div className="overflow-y-auto" style={{ maxHeight: `calc(100dvh - ${SHEET_TOP + 36}px)` }}>
+          <div className="px-5 pt-12 pb-20 flex flex-col gap-2.5">
+            {/* Track your order */}
             <a
               href={SHOPIFY_CUSTOMER_ORDERS_URL}
               target="_blank"
               rel="noopener noreferrer"
               className={navButtonClass}
             >
-              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconShoppingBag /></span>
-              <span className="flex-1 text-center font-nav font-semibold text-[13px]">Products purchased</span>
+              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconPackage /></span>
+              <span className="flex-1 text-center font-nav font-semibold text-[13px]">Track your order</span>
               <span className="w-8" />
             </a>
-          )}
 
-          {/* Become certified */}
-          <Link to="/account/company" className={navButtonClass}>
-            <span className="w-8 flex justify-start text-white/50 shrink-0"><IconBadge /></span>
-            <span className="flex-1 text-center font-nav font-semibold text-[13px]">Become certified</span>
-            <span className="w-8" />
-          </Link>
+            {/* Products purchased */}
+            {onProductsPurchasedClick ? (
+              <button type="button" onClick={onProductsPurchasedClick} className={navButtonClass}>
+                <span className="w-8 flex justify-start text-white/50 shrink-0"><IconShoppingBag /></span>
+                <span className="flex-1 text-center font-nav font-semibold text-[13px]">Products purchased</span>
+                <span className="w-8" />
+              </button>
+            ) : (
+              <a
+                href={SHOPIFY_CUSTOMER_ORDERS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={navButtonClass}
+              >
+                <span className="w-8 flex justify-start text-white/50 shrink-0"><IconShoppingBag /></span>
+                <span className="flex-1 text-center font-nav font-semibold text-[13px]">Products purchased</span>
+                <span className="w-8" />
+              </a>
+            )}
 
-          {/* My Garage */}
-          <button type="button" onClick={onGarageClick} className={navButtonClass}>
-            <span className="w-8 flex justify-start text-white/50 shrink-0"><IconGarage /></span>
-            <span className="flex-1 text-center font-nav font-semibold text-[13px]">My Garage</span>
-            <span className="w-8" />
-          </button>
+            {/* Become certified */}
+            <Link to="/account/company" className={navButtonClass}>
+              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconBadge /></span>
+              <span className="flex-1 text-center font-nav font-semibold text-[13px]">Become certified</span>
+              <span className="w-8" />
+            </Link>
 
-          {/* Leaderboard */}
-          <button type="button" onClick={onLeaderboardClick} className={navButtonClass}>
-            <span className="w-8 flex justify-start text-white/50 shrink-0"><IconLeaderboard /></span>
-            <span className="flex-1 text-center font-nav font-semibold text-[13px]">Leaderboard</span>
-            <span className="w-8" />
-          </button>
+            {/* My Garage */}
+            <button type="button" onClick={onGarageClick} className={navButtonClass}>
+              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconGarage /></span>
+              <span className="flex-1 text-center font-nav font-semibold text-[13px]">My Garage</span>
+              <span className="w-8" />
+            </button>
 
-          {/* Trophy */}
-          <button type="button" onClick={onTrophyClick} className={navButtonClass}>
-            <span className="w-8 flex justify-start text-white/50 shrink-0"><IconTrophy /></span>
-            <span className="flex-1 text-center font-nav font-semibold text-[13px]">Trophy</span>
-            <span className="w-8" />
-          </button>
+            {/* Leaderboard */}
+            <button type="button" onClick={onLeaderboardClick} className={navButtonClass}>
+              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconLeaderboard /></span>
+              <span className="flex-1 text-center font-nav font-semibold text-[13px]">Leaderboard</span>
+              <span className="w-8" />
+            </button>
 
-          {/* Settings */}
-          <button
-            type="button"
-            onClick={onSettingsClick}
-            className={navButtonClass}
-          >
-            <span className="w-8 flex justify-start text-white/50 shrink-0"><IconSettings /></span>
-            <span className="flex-1 text-center font-nav font-semibold text-[13px]">Settings</span>
-            <span className="w-8" />
-          </button>
+            {/* Trophy */}
+            <button type="button" onClick={onTrophyClick} className={navButtonClass}>
+              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconTrophy /></span>
+              <span className="flex-1 text-center font-nav font-semibold text-[13px]">Trophy</span>
+              <span className="w-8" />
+            </button>
 
-          {/* Manage Business */}
-          <Link
-            to={normalizedPartnerStatus === 'partner' ? '/business' : '/account/company'}
-            className={navButtonClass}
-          >
-            <span className="w-8 flex justify-start text-white/50 shrink-0"><IconBuilding /></span>
-            <span className="flex-1 text-center font-nav font-semibold text-[13px]">Manage Business</span>
-            <span className="w-8" />
-          </Link>
+            {/* Settings */}
+            <button type="button" onClick={onSettingsClick} className={navButtonClass}>
+              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconSettings /></span>
+              <span className="flex-1 text-center font-nav font-semibold text-[13px]">Settings</span>
+              <span className="w-8" />
+            </button>
+
+            {/* Manage Business */}
+            <Link
+              to={normalizedPartnerStatus === 'partner' ? '/business' : '/account/company'}
+              className={navButtonClass}
+            >
+              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconBuilding /></span>
+              <span className="flex-1 text-center font-nav font-semibold text-[13px]">Manage Business</span>
+              <span className="w-8" />
+            </Link>
+          </div>
         </div>
       </div>
     </div>

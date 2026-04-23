@@ -760,6 +760,11 @@ html.lenis-smooth body {
   left: 4px;
 }
 
+/* Mobile burger menu — dark variant (dashboard on white background) */
+.fb-burger--dark span {
+  background: #111111;
+}
+
 /* Academy page animations */
 .academy-reveal {
   opacity: 0;
