@@ -1292,9 +1292,15 @@ export function AccountDashboard() {
           {/* Mobile-only dashboard */}
           <MobileDashboard
             currentXp={xp}
+            xpProgressPercent={nextTier
+              ? Math.min(100, Math.max(0, ((xp - currentTier.minXp) / (nextTier.minXp - currentTier.minXp)) * 100))
+              : 100}
             partnerStatus={partnerStatus}
             onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}
             onSettingsClick={() => setSettingsOpen(true)}
+            onGarageClick={() => setCarModalOpen(true)}
+            onLeaderboardClick={() => setLeaderboardOpen(true)}
+            onTrophyClick={() => setTrophyOpen(true)}
           />
 
           {/* Desktop hero (hidden on mobile) */}
@@ -1514,7 +1520,7 @@ export function AccountDashboard() {
             </div>
           ) : null}
 
-          <section className="w-full min-h-[90vh] bg-white relative z-20 px-6 md:px-12 lg:px-16 py-10 md:py-14" aria-label="Account actions section">
+          <section className="hidden lg:block w-full min-h-[90vh] bg-white relative z-20 px-6 md:px-12 lg:px-16 py-10 md:py-14" aria-label="Account actions section">
             <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5">
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
                 <article className="min-w-0 overflow-hidden rounded-2xl bg-[#F3F3F3] px-6 py-6 md:px-8 md:py-8">
@@ -1957,7 +1963,7 @@ export function AccountDashboard() {
             </div>,
             document.body,
           )}
-          <Footer />
+          <div className="hidden lg:block"><Footer /></div>
       </div>
       )}
 
