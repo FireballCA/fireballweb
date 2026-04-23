@@ -6,6 +6,7 @@ interface MobileDashboardProps {
   currentXp: number
   xpProgressPercent: number
   partnerStatus?: string | null
+  tier?: string | null
   onProductsPurchasedClick?: () => void
   onSettingsClick?: () => void
   onGarageClick?: () => void
@@ -89,10 +90,21 @@ const PEEK_PX = 90       // px of section 2 visible when collapsed
 const SHEET_TOP = 64     // px from top of wrapper when fully expanded
 const SNAP_THRESHOLD = 70 // px of drag before snapping to new state
 
+function getTierBadgeSrc(tier?: string | null): string {
+  const t = String(tier || '').toUpperCase().trim()
+  if (t === 'TIER 1') return '/Account/Level Badge/Tier 1.png'
+  if (t === 'TIER 2') return '/Account/Level Badge/Tier 2.png'
+  if (t === 'TIER 3') return '/Account/Level Badge/Tier 3.png'
+  if (t === 'TIER 4') return '/Account/Level Badge/Tier 4.png'
+  if (t === 'TIER 5') return '/Account/Level Badge/Tier 5.png'
+  return '/Account/Level Badge/Tier 1.png'
+}
+
 export function MobileDashboard({
   currentXp,
   xpProgressPercent,
   partnerStatus,
+  tier,
   onProductsPurchasedClick,
   onSettingsClick,
   onGarageClick,
@@ -216,7 +228,11 @@ export function MobileDashboard({
           style={{ willChange: 'transform' }}
         >
           <div className="w-36 h-36 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center overflow-hidden shadow-md">
-            <span className="text-neutral-300 text-[10px] font-mono uppercase tracking-widest select-none">img</span>
+            <img
+              src={getTierBadgeSrc(tier)}
+              alt={tier ?? 'Level badge'}
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
       </div>
