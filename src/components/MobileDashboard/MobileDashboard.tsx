@@ -96,7 +96,7 @@ function IconLock() {
   )
 }
 
-const BADGE_SIZE_EXPANDED = 128
+const BADGE_SIZE_EXPANDED = 170
 const BADGE_SIZE_COLLAPSED = 290
 const SHEET_TOP = 330              // increased to give more room for impact tier text
 const PEEK_PX = 72
@@ -202,6 +202,8 @@ export function MobileDashboard({
   const stickyLabelsRef = useRef<HTMLDivElement>(null)
   // Badge
   const badgeContainerRef = useRef<HTMLDivElement>(null)
+  const currentBadgeImgRef = useRef<HTMLImageElement>(null)
+  const viewingBadgeImgRef = useRef<HTMLImageElement>(null)
   // Impact tier text — behind badge, peeks above
   const impactTierRef = useRef<HTMLDivElement>(null)
   // Section 2 content
@@ -258,6 +260,18 @@ export function MobileDashboard({
       badgeContainerRef.current.style.top = `${imageCenterY - badgeSize / 2}px`
     }
 
+    // ── Badge crossfade: current tier ↔ viewing tier ──
+    const viewingBadgeOpacity = Math.min(1, progress * 2.5)
+    const currentBadgeOpacity = Math.max(0, 1 - progress * 2.5)
+    if (currentBadgeImgRef.current) {
+      currentBadgeImgRef.current.style.transition = allTrans
+      currentBadgeImgRef.current.style.opacity = `${currentBadgeOpacity}`
+    }
+    if (viewingBadgeImgRef.current) {
+      viewingBadgeImgRef.current.style.transition = allTrans
+      viewingBadgeImgRef.current.style.opacity = `${viewingBadgeOpacity}`
+    }
+
     // ── XP container: slide up + fade out ──
     const xpOpacity = Math.max(0, 1 - progress * 2.2)
     const xpSlideY = -progress * 70
@@ -301,10 +315,13 @@ export function MobileDashboard({
     // ── Benefits container ──
     const benefitsOpacity = Math.max(0, (progress - 0.6) / 0.4)
     const benefitsTop = imageCenterY + badgeSize / 2 + 16
+    const benefitsMaxH = Math.max(80, window.innerHeight - PEEK_PX - benefitsTop - 8)
     if (benefitsContainerRef.current) {
       benefitsContainerRef.current.style.transition = allTrans
       benefitsContainerRef.current.style.opacity = `${benefitsOpacity}`
       benefitsContainerRef.current.style.top = `${benefitsTop}px`
+      benefitsContainerRef.current.style.maxHeight = `${benefitsMaxH}px`
+      benefitsContainerRef.current.style.overflowY = 'auto'
       benefitsContainerRef.current.style.pointerEvents = progress > 0.8 ? 'auto' : 'none'
     }
 
@@ -402,7 +419,7 @@ export function MobileDashboard({
       style={{ height: '100dvh', overflow: 'hidden' }}
     >
       {/* ── Section 1: white hero ── */}
-      <div className="absolute inset-0 bg-white overflow-y-auto">
+      <div className="absolute inset-0 bg-white overflow-hidden">
         {/* XP display — slides up + fades out on collapse */}
         <div
           ref={xpContainerRef}
@@ -505,11 +522,21 @@ export function MobileDashboard({
           height: BADGE_SIZE_EXPANDED,
         }}
       >
+        {/* Current tier badge — visible in expanded (small) state */}
         <img
+          ref={currentBadgeImgRef}
+          src={MOBILE_TIERS[currentTierIndex].badgeSrc}
+          alt={MOBILE_TIERS[currentTierIndex].label}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 1 }}
+        />
+        {/* Viewing tier badge — fades in when collapsed */}
+        <img
+          ref={viewingBadgeImgRef}
           src={viewingTier.badgeSrc}
           alt={viewingTier.label}
-          className="w-full h-full object-cover"
-          style={isLocked ? { filter: 'brightness(0.35)' } : undefined}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0, filter: isLocked ? 'brightness(0.35)' : undefined }}
         />
         {isLocked && (
           <div
@@ -575,23 +602,29 @@ export function MobileDashboard({
           gap: 6,
         }}
       >
-        {viewingTier.benefits.map((benefit, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-2.5 px-4"
-            style={{
-              minHeight: 44,
-              background: 'rgba(229, 231, 235, 0.85)',
-              fontFamily: 'Inter, sans-serif',
-              fontSize: 13,
-              fontWeight: 400,
-              color: '#171717',
-            }}
-          >
-            <span style={{ color: '#6b7280', fontWeight: 400, fontSize: 15, flexShrink: 0 }}>+</span>
-            <span>{benefit}</span>
-          </div>
-        ))}
+        {viewingTier.benefits.map((benefit, i) => {
+          const isRewardBenefit = benefit.includes('$')
+          const hidden = isLocked && !isRewardBenefit
+          return (
+            <div
+              key={i}
+              className="flex items-center gap-2.5 px-4"
+              style={{
+                minHeight: 44,
+                background: 'rgba(229, 231, 235, 0.85)',
+                fontFamily: 'Inter, sans-serif',
+                fontSize: 13,
+                fontWeight: 400,
+                color: '#171717',
+              }}
+            >
+              <span style={{ color: '#6b7280', fontWeight: 400, fontSize: 15, flexShrink: 0 }}>+</span>
+              <span style={hidden ? { color: '#9ca3af', fontStyle: 'italic' } : undefined}>
+                {hidden ? 'Unlock to see' : benefit}
+              </span>
+            </div>
+          )
+        })}
       </div>
 
       {/* ── Section 2: dark bottom sheet ── */}
@@ -611,7 +644,7 @@ export function MobileDashboard({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <div className="rounded-full bg-white/30" style={{ width: 56, height: 6 }} />
+          <div className="rounded-full bg-white/30" style={{ width: 96, height: 6 }} />
         </div>
 
         {/* Scrollable nav content */}
