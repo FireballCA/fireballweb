@@ -1485,7 +1485,7 @@ export function AccountDashboard() {
 
           {userRole === 'admin' && currentUserId ? (
             <div
-              className="pointer-events-auto fixed bottom-3 left-3 z-[95] rounded-md border border-carbon-200/90 bg-white/95 px-2 py-1.5 shadow-sm backdrop-blur-sm"
+              className="hidden lg:block pointer-events-auto fixed bottom-3 left-3 z-[95] rounded-md border border-carbon-200/90 bg-white/95 px-2 py-1.5 shadow-sm backdrop-blur-sm"
               role="region"
               aria-label="Outils XP admin : paliers de tier et +500 XP (temporaire)"
             >

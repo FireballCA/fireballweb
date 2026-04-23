@@ -423,10 +423,16 @@ export function MobileDashboard({
       className="lg:hidden w-full -mt-20 relative"
       style={{ height: '100dvh', overflow: 'hidden', touchAction: 'none' }}
     >
-      {/* ── Section 1: white hero ── */}
-      <div className="absolute inset-0 bg-white overflow-hidden">
-        {/* Dark strip at bottom so section 2 rounded corners don't expose white */}
-        <div className="absolute bottom-0 inset-x-0 h-20 bg-[#111111] pointer-events-none" />
+      {/* ── Section 1: white hero — click collapses section 2 ── */}
+      <div
+        className="absolute inset-0 bg-white overflow-hidden"
+        onClick={() => {
+          if (isExpandedRef.current) {
+            isExpandedRef.current = false
+            applySheetTransform(maxSheetYRef.current, true)
+          }
+        }}
+      >
         {/* XP display — slides up + fades out on collapse */}
         <div
           ref={xpContainerRef}
