@@ -132,22 +132,12 @@ export function MobileDashboard({
     'flex w-full items-center rounded-2xl bg-white/[0.07] px-4 py-3 text-white active:bg-white/[0.13] transition-colors'
 
   return (
-    <div className="lg:hidden w-full">
-      {/* ── Hero: 36vh, white bg ── */}
-      <div className="relative h-[36vh] overflow-hidden bg-white">
-        {/* Small centered image, partially hidden by section 2 */}
-        <div
-          ref={imgRef}
-          className="absolute inset-0 flex items-center justify-center origin-center"
-          style={{ willChange: 'transform' }}
-        >
-          <div className="w-28 h-28 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center overflow-hidden">
-            <span className="text-neutral-300 text-xs font-mono uppercase tracking-widest select-none">img</span>
-          </div>
-        </div>
-
-        {/* XP overlay — slightly above center */}
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pb-10 pointer-events-none">
+    /* -mt-20 slides the mobile dashboard behind the sticky navbar (h-20 = 80px) */
+    <div className="lg:hidden w-full -mt-20">
+      {/* ── Hero: 52vh white, navbar overlays transparently ── */}
+      <div className="relative h-[52vh] bg-white overflow-visible">
+        {/* XP overlay — upper portion of hero */}
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pb-20 pointer-events-none">
           <div className="flex items-start leading-none">
             <span
               ref={xpRef}
@@ -175,10 +165,21 @@ export function MobileDashboard({
             </div>
           </div>
         </div>
+
+        {/* Image straddling section 1 / section 2 boundary — centered at bottom of hero */}
+        <div
+          ref={imgRef}
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 z-30 origin-bottom"
+          style={{ willChange: 'transform' }}
+        >
+          <div className="w-24 h-24 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center overflow-hidden shadow-md">
+            <span className="text-neutral-300 text-[10px] font-mono uppercase tracking-widest select-none">img</span>
+          </div>
+        </div>
       </div>
 
-      {/* ── Section 2: dark card overlapping hero ── */}
-      <div className="relative z-20 -mt-7 rounded-t-[28px] bg-[#111111] px-5 pt-7 pb-20 min-h-[64vh]">
+      {/* ── Section 2: dark card overlapping hero, padding-top leaves room for image ── */}
+      <div className="relative z-20 -mt-7 rounded-t-[28px] bg-[#111111] px-5 pt-16 pb-20 min-h-[64vh]">
         <div className="flex flex-col gap-2.5">
           {/* Track your order */}
           <a

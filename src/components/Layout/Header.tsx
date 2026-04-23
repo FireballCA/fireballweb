@@ -766,7 +766,7 @@ export function Header() {
           isAutoHideHeaderPage || isJoinClubPage || isAcademyPage ? '' : 'sticky'
         } top-0 left-0 right-0 ${
           isMobileMenuMounted ? 'z-[10010]' : 'z-[120]'
-        } transition-transform duration-300 ease-out will-change-transform${isDashboardPage ? ' max-lg:hidden' : ''}`}
+        } transition-transform duration-300 ease-out will-change-transform`}
         style={{
           transform:
             isJoinClubPage || isAcademyPage || !(bannerActive && bannerHidden && bannerHeightPx > 0)
@@ -812,7 +812,7 @@ export function Header() {
         )}
 
         <header
-          className={`${isAutoHideHeaderPage ? 'sticky' : ''} left-0 right-0`}
+          className={`${isAutoHideHeaderPage ? 'sticky' : ''} left-0 right-0${isDashboardPage ? ' max-lg:!bg-transparent max-lg:![border-bottom:none] max-lg:![backdrop-filter:none]' : ''}`}
           style={{
             ...(isMobileMenuMounted
               ? {
