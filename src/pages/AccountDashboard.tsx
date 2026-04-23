@@ -1295,6 +1295,7 @@ export function AccountDashboard() {
             xpProgressPercent={nextTier
               ? Math.min(100, Math.max(0, ((xp - currentTier.minXp) / (nextTier.minXp - currentTier.minXp)) * 100))
               : 100}
+            xpToNextTier={nextTier ? Math.max(0, nextTier.minXp - xp) : 0}
             partnerStatus={partnerStatus}
             tier={currentTier.headerLabel}
             onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}

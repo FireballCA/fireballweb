@@ -5,6 +5,7 @@ import { SHOPIFY_CUSTOMER_ORDERS_URL } from '@/constants/shopifyShopApp'
 interface MobileDashboardProps {
   currentXp: number
   xpProgressPercent: number
+  xpToNextTier?: number
   partnerStatus?: string | null
   tier?: string | null
   onProductsPurchasedClick?: () => void
@@ -95,11 +96,13 @@ function IconLock() {
   )
 }
 
-const BADGE_SIZE_EXPANDED = 128    // px when section 2 is up
-const BADGE_SIZE_COLLAPSED = 290   // px when section 2 is at bottom
-const SHEET_TOP = 270              // px from top
-const PEEK_PX = 72                 // px of section 2 visible when collapsed
+const BADGE_SIZE_EXPANDED = 128
+const BADGE_SIZE_COLLAPSED = 290
+const SHEET_TOP = 330              // increased to give more room for impact tier text
+const PEEK_PX = 72
 const SNAP_THRESHOLD = 60
+const STICKY_BAR_TOP = 60         // px from top — just under the navbar
+const SIDE_PADDING = 20           // matches px-5 on buttons
 
 const MOBILE_TIERS = [
   {
@@ -176,6 +179,7 @@ function getTierIndexFromLabel(tier?: string | null): number {
 export function MobileDashboard({
   currentXp,
   xpProgressPercent,
+  xpToNextTier,
   partnerStatus,
   tier,
   onProductsPurchasedClick,
@@ -188,11 +192,19 @@ export function MobileDashboard({
   const [viewingTierIndex, setViewingTierIndex] = useState(currentTierIndex)
 
   const sheetRef = useRef<HTMLDivElement>(null)
-  const xpRef = useRef<HTMLSpanElement>(null)
-  const xpLabelRef = useRef<HTMLSpanElement>(null)
+  // XP display in hero — slides up + fades
+  const xpContainerRef = useRef<HTMLDivElement>(null)
+  // Original small progress bar in hero — fades out
   const progressBarWrapperRef = useRef<HTMLDivElement>(null)
+  // Sticky progress bar that slides into place below navbar
+  const stickyBarRef = useRef<HTMLDivElement>(null)
+  const stickyBarFillRef = useRef<HTMLDivElement>(null)
+  const stickyLabelsRef = useRef<HTMLDivElement>(null)
+  // Badge
   const badgeContainerRef = useRef<HTMLDivElement>(null)
-  const tierTextRef = useRef<HTMLDivElement>(null)
+  // Impact tier text — behind badge, peeks above
+  const impactTierRef = useRef<HTMLDivElement>(null)
+  // Section 2 content
   const benefitsContainerRef = useRef<HTMLDivElement>(null)
   const arrowsContainerRef = useRef<HTMLDivElement>(null)
   const lockOverlayRef = useRef<HTMLDivElement>(null)
@@ -246,37 +258,47 @@ export function MobileDashboard({
       badgeContainerRef.current.style.top = `${imageCenterY - badgeSize / 2}px`
     }
 
-    // ── XP text ──
-    const xpFontSize = 56 - 28 * progress
-    const xpLabelFontSize = 14 - 6 * progress
-    if (xpRef.current) {
-      xpRef.current.style.transition = allTrans
-      xpRef.current.style.fontSize = `${xpFontSize}px`
-    }
-    if (xpLabelRef.current) {
-      xpLabelRef.current.style.transition = allTrans
-      xpLabelRef.current.style.fontSize = `${xpLabelFontSize}px`
+    // ── XP container: slide up + fade out ──
+    const xpOpacity = Math.max(0, 1 - progress * 2.2)
+    const xpSlideY = -progress * 70
+    if (xpContainerRef.current) {
+      xpContainerRef.current.style.transition = allTrans
+      xpContainerRef.current.style.opacity = `${xpOpacity}`
+      xpContainerRef.current.style.transform = `translateY(${xpSlideY}px)`
     }
 
-    // ── Progress bar ──
+    // ── Original small progress bar: fade out ──
     if (progressBarWrapperRef.current) {
       progressBarWrapperRef.current.style.transition = allTrans
-      progressBarWrapperRef.current.style.opacity = `${Math.max(0, 1 - progress * 2)}`
-      progressBarWrapperRef.current.style.transform = `scaleX(${1 - 0.4 * progress})`
+      progressBarWrapperRef.current.style.opacity = `${Math.max(0, 1 - progress * 2.5)}`
     }
 
-    // ── Tier text: visible when section 2 is at bottom (progress → 1), hidden when expanded ──
-    const tierOpacity = Math.max(0, (progress - 0.4) / 0.6)
-    const tierFontSize = 28 + 14 * progress   // 28 → 42
-    const tierTop = imageCenterY - badgeSize / 2 - tierFontSize - 14
-    if (tierTextRef.current) {
-      tierTextRef.current.style.transition = allTrans
-      tierTextRef.current.style.opacity = `${tierOpacity}`
-      tierTextRef.current.style.fontSize = `${tierFontSize}px`
-      tierTextRef.current.style.top = `${tierTop}px`
+    // ── Sticky progress bar (near navbar) ──
+    const stickyOpacity = Math.min(1, Math.max(0, (progress - 0.45) / 0.35))
+    if (stickyBarRef.current) {
+      stickyBarRef.current.style.transition = allTrans
+      stickyBarRef.current.style.opacity = `${stickyOpacity}`
+    }
+    if (stickyLabelsRef.current) {
+      stickyLabelsRef.current.style.transition = allTrans
+      stickyLabelsRef.current.style.opacity = `${stickyOpacity}`
     }
 
-    // ── Benefits container: appears below badge when collapsed ──
+    // ── Impact tier text: behind badge, peeks above ──
+    const impactOpacity = Math.min(1, Math.max(0, (progress - 0.3) / 0.45))
+    // Font size grows as section collapses
+    const impactFontSize = 90 + 65 * progress
+    // Position so the text peeks ~55px above badge top
+    const peekPx = 55
+    const impactTop = imageCenterY - badgeSize / 2 - peekPx
+    if (impactTierRef.current) {
+      impactTierRef.current.style.transition = allTrans
+      impactTierRef.current.style.opacity = `${impactOpacity}`
+      impactTierRef.current.style.fontSize = `${impactFontSize}px`
+      impactTierRef.current.style.top = `${impactTop}px`
+    }
+
+    // ── Benefits container ──
     const benefitsOpacity = Math.max(0, (progress - 0.6) / 0.4)
     const benefitsTop = imageCenterY + badgeSize / 2 + 16
     if (benefitsContainerRef.current) {
@@ -286,7 +308,7 @@ export function MobileDashboard({
       benefitsContainerRef.current.style.pointerEvents = progress > 0.8 ? 'auto' : 'none'
     }
 
-    // ── Arrows: centered vertically on badge ──
+    // ── Arrows ──
     if (arrowsContainerRef.current) {
       arrowsContainerRef.current.style.transition = allTrans
       arrowsContainerRef.current.style.opacity = `${benefitsOpacity}`
@@ -315,7 +337,6 @@ export function MobileDashboard({
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // Re-apply current transform when viewingTierIndex changes (to reposition correctly)
   useEffect(() => {
     const currentY = isExpandedRef.current ? 0 : maxSheetYRef.current
     applySheetTransform(currentY, false)
@@ -370,28 +391,32 @@ export function MobileDashboard({
     setViewingTierIndex((i) => Math.min(MOBILE_TIERS.length - 1, i + 1))
   }
 
+  const xpLabel = currentXp.toLocaleString() + ' XP'
+  const nextTierLabel = xpToNextTier != null && xpToNextTier > 0
+    ? `${xpToNextTier.toLocaleString()} XP to next tier`
+    : 'Max tier reached'
+
   return (
     <div
       className="lg:hidden w-full -mt-20 relative"
       style={{ height: '100dvh', overflow: 'hidden' }}
     >
       {/* ── Section 1: white hero ── */}
-      <div className="absolute inset-0 bg-white">
-        {/* XP display */}
+      <div className="absolute inset-0 bg-white overflow-y-auto">
+        {/* XP display — slides up + fades out on collapse */}
         <div
+          ref={xpContainerRef}
           className="absolute inset-x-0 top-0 flex flex-col items-center justify-center pointer-events-none"
           style={{ height: SHEET_TOP }}
         >
           <div className="flex items-start leading-none">
             <span
-              ref={xpRef}
               className="text-neutral-900 font-inter font-light leading-none"
               style={{ fontSize: 56 }}
             >
               {currentXp.toLocaleString()}
             </span>
             <span
-              ref={xpLabelRef}
               className="text-neutral-500 font-inter mt-1 ml-1"
               style={{ fontSize: 14, lineHeight: '18px' }}
             >
@@ -409,24 +434,63 @@ export function MobileDashboard({
         </div>
       </div>
 
-      {/* ── Tier label — visible when section 2 is down ── */}
+      {/* ── Sticky progress bar — appears just below navbar when collapsed ── */}
       <div
-        ref={tierTextRef}
-        className="absolute pointer-events-none z-[5]"
+        ref={stickyBarRef}
+        className="absolute z-[8] pointer-events-none"
+        style={{
+          top: STICKY_BAR_TOP,
+          left: SIDE_PADDING,
+          right: SIDE_PADDING,
+          opacity: 0,
+        }}
+      >
+        <div className="h-[3px] rounded-full bg-neutral-200 overflow-hidden">
+          <div
+            ref={stickyBarFillRef}
+            className="h-full rounded-full bg-neutral-800"
+            style={{ width: `${Math.min(Math.max(xpProgressPercent, 0), 100)}%` }}
+          />
+        </div>
+      </div>
+      <div
+        ref={stickyLabelsRef}
+        className="absolute z-[8] pointer-events-none flex justify-between"
+        style={{
+          top: STICKY_BAR_TOP + 7,
+          left: SIDE_PADDING,
+          right: SIDE_PADDING,
+          opacity: 0,
+        }}
+      >
+        <span style={{ fontSize: 10, color: '#737373', fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+          {xpLabel}
+        </span>
+        <span style={{ fontSize: 10, color: '#737373', fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
+          {nextTierLabel}
+        </span>
+      </div>
+
+      {/* ── Impact tier text — behind badge, peeks above ── */}
+      <div
+        ref={impactTierRef}
+        className="absolute pointer-events-none z-[3]"
         style={{
           left: '50%',
           transform: 'translateX(-50%)',
           opacity: 0,
-          color: '#171717',
-          fontFamily: 'Inter, sans-serif',
-          fontWeight: 800,
+          color: 'rgba(23,23,23,0.13)',
+          fontFamily: "Impact, 'Haettenschweiler', 'Arial Narrow Bold', 'Arial Black', sans-serif",
+          fontWeight: 900,
           lineHeight: 1,
           whiteSpace: 'nowrap',
-          fontSize: 28,
-          top: SHEET_TOP - BADGE_SIZE_COLLAPSED / 2 - 56,
+          letterSpacing: '-0.01em',
+          textTransform: 'uppercase',
+          fontSize: 90,
+          top: SHEET_TOP - BADGE_SIZE_COLLAPSED / 2 - 55,
         }}
       >
-        {viewingTier.label}
+        {viewingTier.headerLabel}
       </div>
 
       {/* ── Badge image ── */}
@@ -447,7 +511,6 @@ export function MobileDashboard({
           className="w-full h-full object-cover"
           style={isLocked ? { filter: 'brightness(0.35)' } : undefined}
         />
-        {/* Lock overlay */}
         {isLocked && (
           <div
             ref={lockOverlayRef}
@@ -459,7 +522,7 @@ export function MobileDashboard({
         )}
       </div>
 
-      {/* ── Arrow buttons (left/right) — float beside badge when collapsed ── */}
+      {/* ── Arrow buttons ── */}
       <div
         ref={arrowsContainerRef}
         className="absolute z-[6] flex items-center justify-between pointer-events-none"
@@ -497,7 +560,7 @@ export function MobileDashboard({
         </button>
       </div>
 
-      {/* ── Benefits rectangles — appear below badge when collapsed ── */}
+      {/* ── Benefits rectangles ── */}
       <div
         ref={benefitsContainerRef}
         className="absolute z-[6] pointer-events-none"
