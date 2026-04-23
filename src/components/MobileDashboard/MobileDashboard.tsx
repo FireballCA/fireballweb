@@ -86,10 +86,11 @@ function IconLeaderboard() {
   )
 }
 
-const BADGE_SIZE = 128   // px
-const SHEET_TOP = 230    // px from top — more white space above the sheet
-const PEEK_PX = 72       // px of section 2 visible when collapsed
-const SNAP_THRESHOLD = 60 // px of drag before snapping to new state
+const BADGE_SIZE_EXPANDED = 128    // px when section 2 is up
+const BADGE_SIZE_COLLAPSED = 260   // px when section 2 is at bottom
+const SHEET_TOP = 230              // px from top
+const PEEK_PX = 72                 // px of section 2 visible when collapsed
+const SNAP_THRESHOLD = 60
 
 function getTierBadgeSrc(tier?: string | null): string {
   const t = String(tier || '').toUpperCase().trim()
@@ -99,6 +100,13 @@ function getTierBadgeSrc(tier?: string | null): string {
   if (t === 'TIER 4') return '/Account/Level Badge/Tier 4.png'
   if (t === 'TIER 5') return '/Account/Level Badge/Tier 5.png'
   return '/Account/Level Badge/Tier 1.png'
+}
+
+function getTierLabel(tier?: string | null): string {
+  const t = String(tier || '').trim()
+  if (!t) return 'Tier 1'
+  // Normalize "TIER 1" → "Tier 1"
+  return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()
 }
 
 export function MobileDashboard({
@@ -115,6 +123,9 @@ export function MobileDashboard({
   const sheetRef = useRef<HTMLDivElement>(null)
   const xpRef = useRef<HTMLSpanElement>(null)
   const xpLabelRef = useRef<HTMLSpanElement>(null)
+  const progressBarWrapperRef = useRef<HTMLDivElement>(null)
+  const badgeContainerRef = useRef<HTMLDivElement>(null)
+  const tierTextRef = useRef<HTMLDivElement>(null)
 
   const isExpandedRef = useRef(true)
   const maxSheetYRef = useRef(0)
@@ -124,10 +135,77 @@ export function MobileDashboard({
   const computeMaxY = () => window.innerHeight - SHEET_TOP - PEEK_PX
 
   const applySheetTransform = (y: number, animate: boolean) => {
-    const transition = animate ? 'transform 0.35s cubic-bezier(0.4,0,0.2,1)' : 'none'
+    const maxY = maxSheetYRef.current
+    const progress = maxY > 0 ? Math.max(0, Math.min(1, y / maxY)) : 0
+    const EASE = 'cubic-bezier(0.4,0,0.2,1)'
+    const DUR = '0.35s'
+    const sheetTrans = animate ? `transform ${DUR} ${EASE}` : 'none'
+    const allTrans = animate ? `all ${DUR} ${EASE}` : 'none'
+
+    // ── Sheet ──
     if (sheetRef.current) {
-      sheetRef.current.style.transition = transition
+      sheetRef.current.style.transition = sheetTrans
       sheetRef.current.style.transform = `translateY(${y}px)`
+    }
+
+    // ── Badge size ──
+    const badgeSize = BADGE_SIZE_EXPANDED + (BADGE_SIZE_COLLAPSED - BADGE_SIZE_EXPANDED) * progress
+
+    // ── Badge center Y ──
+    // Stays pinned at section-2 top for progress 0→0.65 (image behind sheet),
+    // then lerps to screen center for the final stretch.
+    const section2VisualTop = SHEET_TOP + y
+    const screenCenter = (window.innerHeight - PEEK_PX) / 2
+    const breakpoint = 0.65
+    let imageCenterY: number
+    if (progress <= breakpoint) {
+      imageCenterY = section2VisualTop
+    } else {
+      const t = (progress - breakpoint) / (1 - breakpoint)
+      const tEased = t * t * (3 - 2 * t) // smoothstep
+      imageCenterY = section2VisualTop + (screenCenter - section2VisualTop) * tEased
+    }
+
+    if (badgeContainerRef.current) {
+      badgeContainerRef.current.style.transition = allTrans
+      badgeContainerRef.current.style.width = `${badgeSize}px`
+      badgeContainerRef.current.style.height = `${badgeSize}px`
+      badgeContainerRef.current.style.top = `${imageCenterY - badgeSize / 2}px`
+    }
+
+    // ── XP text ──
+    const xpFontSize = 56 - 28 * progress        // 56 → 28
+    const xpLabelFontSize = 14 - 6 * progress    // 14 → 8
+    if (xpRef.current) {
+      xpRef.current.style.transition = allTrans
+      xpRef.current.style.fontSize = `${xpFontSize}px`
+    }
+    if (xpLabelRef.current) {
+      xpLabelRef.current.style.transition = allTrans
+      xpLabelRef.current.style.fontSize = `${xpLabelFontSize}px`
+    }
+
+    // ── Progress bar: fade + shrink ──
+    if (progressBarWrapperRef.current) {
+      progressBarWrapperRef.current.style.transition = allTrans
+      progressBarWrapperRef.current.style.opacity = `${Math.max(0, 1 - progress * 2)}`
+      progressBarWrapperRef.current.style.transform = `scaleX(${1 - 0.4 * progress})`
+    }
+
+    // ── Tier text ──
+    // Expanded (progress=0): visible, same font size as XP (56px), above badge
+    // Collapsed (progress=1): faded/slid behind badge (covered by section 2 or image)
+    // It slides from just behind the badge to above it as section 2 opens.
+    const tierFontSize = 56 - 28 * progress          // matches XP size
+    const tierOpacity = Math.max(0, 1 - progress * 1.8)
+    // When collapsed: slides down into badge; when expanded: sits above badge
+    const tierTop = imageCenterY - badgeSize / 2 - tierFontSize - 10
+    const tierSlideOffset = progress * 60           // slides down behind badge as it collapses
+    if (tierTextRef.current) {
+      tierTextRef.current.style.transition = allTrans
+      tierTextRef.current.style.opacity = `${tierOpacity}`
+      tierTextRef.current.style.fontSize = `${tierFontSize}px`
+      tierTextRef.current.style.top = `${tierTop + tierSlideOffset}px`
     }
   }
 
@@ -145,7 +223,6 @@ export function MobileDashboard({
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // Touch handlers — only attached to the handle bar, not the full sheet
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartYRef.current = e.touches[0].clientY
     sheetYAtDragStartRef.current = isExpandedRef.current ? 0 : maxSheetYRef.current
@@ -162,7 +239,6 @@ export function MobileDashboard({
     const dy = e.changedTouches[0].clientY - touchStartYRef.current
     const wasExpanded = isExpandedRef.current
 
-    // Tap on the handle (small movement) → toggle
     if (Math.abs(dy) < 10) {
       isExpandedRef.current = !wasExpanded
       applySheetTransform(isExpandedRef.current ? 0 : maxSheetYRef.current, true)
@@ -186,11 +262,13 @@ export function MobileDashboard({
     'flex w-full items-center rounded-2xl bg-white/[0.07] px-4 py-3 text-white active:bg-white/[0.13] transition-colors'
 
   return (
-    <div className="lg:hidden w-full -mt-20 relative overflow-hidden" style={{ height: '100dvh' }}>
-
-      {/* ── Section 1: white hero — overflow-hidden clips the badge at SHEET_TOP ── */}
-      <div className="absolute inset-0 bg-white overflow-hidden">
-        {/* XP display centered in white area */}
+    <div
+      className="lg:hidden w-full -mt-20 relative"
+      style={{ height: '100dvh', overflow: 'hidden' }}
+    >
+      {/* ── Section 1: white hero ── */}
+      <div className="absolute inset-0 bg-white">
+        {/* XP display */}
         <div
           className="absolute inset-x-0 top-0 flex flex-col items-center justify-center pointer-events-none"
           style={{ height: SHEET_TOP }}
@@ -211,7 +289,7 @@ export function MobileDashboard({
               XP
             </span>
           </div>
-          <div className="mt-2.5 w-28">
+          <div ref={progressBarWrapperRef} className="mt-2.5 w-28" style={{ transformOrigin: 'center' }}>
             <div className="h-1 rounded-full bg-neutral-200 overflow-hidden">
               <div
                 className="h-full rounded-full bg-neutral-800 transition-none"
@@ -220,25 +298,45 @@ export function MobileDashboard({
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Tier badge — no white bg/border, center sits at SHEET_TOP edge.
-            overflow-hidden on this section clips the bottom half so it only
-            appears in the white area, never in section 2. */}
-        <div
-          className="absolute left-1/2 pointer-events-none"
-          style={{
-            top: SHEET_TOP - BADGE_SIZE / 2,
-            transform: 'translateX(-50%)',
-            width: BADGE_SIZE,
-            height: BADGE_SIZE,
-          }}
-        >
-          <img
-            src={getTierBadgeSrc(tier)}
-            alt={tier ?? 'Level badge'}
-            className="w-full h-full object-cover"
-          />
-        </div>
+      {/* ── Tier text — slides from behind badge to above it (z below section 2) ── */}
+      <div
+        ref={tierTextRef}
+        className="absolute pointer-events-none z-[5]"
+        style={{
+          left: '50%',
+          transform: 'translateX(-50%)',
+          opacity: 1,
+          color: '#171717',
+          fontFamily: 'Inter, sans-serif',
+          fontWeight: 300,
+          lineHeight: 1,
+          whiteSpace: 'nowrap',
+          fontSize: 56,
+          top: SHEET_TOP - BADGE_SIZE_EXPANDED / 2 - 56 - 10,
+        }}
+      >
+        {getTierLabel(tier)}
+      </div>
+
+      {/* ── Badge image — sits between section 1 and section 2 (z below section 2) ── */}
+      <div
+        ref={badgeContainerRef}
+        className="absolute z-[5] pointer-events-none"
+        style={{
+          top: SHEET_TOP - BADGE_SIZE_EXPANDED / 2,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: BADGE_SIZE_EXPANDED,
+          height: BADGE_SIZE_EXPANDED,
+        }}
+      >
+        <img
+          src={getTierBadgeSrc(tier)}
+          alt={tier ?? 'Level badge'}
+          className="w-full h-full object-cover"
+        />
       </div>
 
       {/* ── Section 2: dark bottom sheet ── */}
@@ -251,20 +349,19 @@ export function MobileDashboard({
           willChange: 'transform',
         }}
       >
-        {/* ── Gray handle — ONLY this element handles touch/drag events ── */}
+        {/* Gray handle bar — larger ── */}
         <div
           className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing select-none"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <div className="w-9 h-[4px] rounded-full bg-white/25" />
+          <div className="rounded-full bg-white/30" style={{ width: 56, height: 6 }} />
         </div>
 
-        {/* Nav buttons — scrollable content, touch events don't bubble to sheet drag */}
-        <div className="overflow-y-auto" style={{ maxHeight: `calc(100dvh - ${SHEET_TOP + 36}px)` }}>
-          <div className="px-5 pb-20 flex flex-col gap-2.5" style={{ paddingTop: BADGE_SIZE / 2 + 12 }}>
-            {/* Track your order */}
+        {/* Scrollable nav content */}
+        <div className="overflow-y-auto" style={{ maxHeight: `calc(100dvh - ${SHEET_TOP + 44}px)` }}>
+          <div className="px-5 pb-20 flex flex-col gap-2.5" style={{ paddingTop: BADGE_SIZE_EXPANDED / 2 + 12 }}>
             <a
               href={SHOPIFY_CUSTOMER_ORDERS_URL}
               target="_blank"
@@ -276,7 +373,6 @@ export function MobileDashboard({
               <span className="w-8" />
             </a>
 
-            {/* Products purchased */}
             {onProductsPurchasedClick ? (
               <button type="button" onClick={onProductsPurchasedClick} className={navButtonClass}>
                 <span className="w-8 flex justify-start text-white/50 shrink-0"><IconShoppingBag /></span>
@@ -296,42 +392,36 @@ export function MobileDashboard({
               </a>
             )}
 
-            {/* Become certified */}
             <Link to="/account/company" className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconBadge /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">Become certified</span>
               <span className="w-8" />
             </Link>
 
-            {/* My Garage */}
             <button type="button" onClick={onGarageClick} className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconGarage /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">My Garage</span>
               <span className="w-8" />
             </button>
 
-            {/* Leaderboard */}
             <button type="button" onClick={onLeaderboardClick} className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconLeaderboard /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">Leaderboard</span>
               <span className="w-8" />
             </button>
 
-            {/* Trophy */}
             <button type="button" onClick={onTrophyClick} className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconTrophy /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">Trophy</span>
               <span className="w-8" />
             </button>
 
-            {/* Settings */}
             <button type="button" onClick={onSettingsClick} className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconSettings /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">Settings</span>
               <span className="w-8" />
             </button>
 
-            {/* Manage Business */}
             <Link
               to={normalizedPartnerStatus === 'partner' ? '/business' : '/account/company'}
               className={navButtonClass}
