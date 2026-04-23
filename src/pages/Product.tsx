@@ -538,34 +538,48 @@ export function Product() {
     let timeoutId: NodeJS.Timeout | null = null
     
     const handleScroll = () => {
+      const isMobile = window.innerWidth < 1024
+      const footer = document.querySelector('footer')
+
+      if (isMobile) {
+        let shouldShow = window.scrollY > 80
+        if (footer && shouldShow) {
+          const footerRect = footer.getBoundingClientRect()
+          const viewportHeight = window.innerHeight
+          const menuBottom = viewportHeight - 16 - 56
+          if (footerRect.top < menuBottom) {
+            shouldShow = false
+          }
+        }
+        if (timeoutId) clearTimeout(timeoutId)
+        timeoutId = setTimeout(() => setShowStickyBar(shouldShow), 10)
+        return
+      }
+
       if (!ctaButtonsRef.current) {
         setShowStickyBar(window.scrollY > 150)
         return
       }
-      
+
       const ctaRect = ctaButtonsRef.current.getBoundingClientRect()
       const shouldShowFromCTA = ctaRect.bottom < 0
-      
-      // Vérifier si on est dans le footer
-      const footer = document.querySelector('footer')
+
       let shouldShow = shouldShowFromCTA
-      
+
       if (footer && shouldShowFromCTA) {
         const footerRect = footer.getBoundingClientRect()
         const viewportHeight = window.innerHeight
-        const menuBottom = viewportHeight - 24 - 64 // bottom-6 (24px) + hauteur du menu (64px environ)
-        
-        // Si le footer commence avant la position du menu flottant, cacher le menu
+        const menuBottom = viewportHeight - 24 - 64
+
         if (footerRect.top < menuBottom) {
           shouldShow = false
         }
       }
-      
-      // Utiliser un timeout pour éviter le flash de décentrage
+
       if (timeoutId) {
         clearTimeout(timeoutId)
       }
-      
+
       timeoutId = setTimeout(() => {
         setShowStickyBar(shouldShow)
       }, 10)
