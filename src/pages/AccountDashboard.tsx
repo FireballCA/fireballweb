@@ -1299,8 +1299,6 @@ export function AccountDashboard() {
             partnerStatus={partnerStatus}
             tier={currentTier.headerLabel}
             onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}
-            onSettingsClick={() => setSettingsOpen(true)}
-            onGarageClick={() => setCarModalOpen(true)}
             onLeaderboardClick={() => setLeaderboardOpen(true)}
             onTrophyClick={() => setTrophyOpen(true)}
           />

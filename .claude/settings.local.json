@@ -4,7 +4,9 @@
       "Bash(npx tsc *)",
       "Bash(xargs grep *)",
       "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")",
-      "Bash(grep -E \"\\\\.\\(sql|ts|tsx\\)$\")"
+      "Bash(grep -E \"\\\\.\\(sql|ts|tsx\\)$\")",
+      "Bash(npm run *)",
+      "Bash(npx vite *)"
     ]
   }
 }

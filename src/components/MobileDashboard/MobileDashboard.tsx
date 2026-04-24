@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { SHOPIFY_CUSTOMER_ORDERS_URL } from '@/constants/shopifyShopApp'
+import { MobilePageSheet } from '@/components/MobilePageSheet/MobilePageSheet'
 
 interface MobileDashboardProps {
   currentXp: number
@@ -9,8 +9,6 @@ interface MobileDashboardProps {
   partnerStatus?: string | null
   tier?: string | null
   onProductsPurchasedClick?: () => void
-  onSettingsClick?: () => void
-  onGarageClick?: () => void
   onLeaderboardClick?: () => void
   onTrophyClick?: () => void
 }
@@ -180,16 +178,15 @@ export function MobileDashboard({
   currentXp,
   xpProgressPercent,
   xpToNextTier,
-  partnerStatus,
+  partnerStatus: _partnerStatus,
   tier,
   onProductsPurchasedClick,
-  onSettingsClick,
-  onGarageClick,
   onLeaderboardClick,
   onTrophyClick,
 }: MobileDashboardProps) {
   const currentTierIndex = getTierIndexFromLabel(tier)
   const [viewingTierIndex, setViewingTierIndex] = useState(currentTierIndex)
+  const [activeSheet, setActiveSheet] = useState<'garage' | 'settings' | 'certified' | 'business' | null>(null)
 
   const sheetRef = useRef<HTMLDivElement>(null)
   // XP display in hero — slides up + fades
@@ -396,8 +393,6 @@ export function MobileDashboard({
       applySheetTransform(wasExpanded ? 0 : maxSheetYRef.current, true)
     }
   }
-
-  const normalizedPartnerStatus = String(partnerStatus || '').trim().toLowerCase()
 
   const navButtonClass =
     'flex w-full items-center rounded-2xl bg-white/[0.07] px-4 py-3 text-white active:bg-white/[0.13] transition-colors'
@@ -693,13 +688,13 @@ export function MobileDashboard({
               </a>
             )}
 
-            <Link to="/account/company" className={navButtonClass}>
+            <button type="button" onClick={() => setActiveSheet('certified')} className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconBadge /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">Become certified</span>
               <span className="w-8" />
-            </Link>
+            </button>
 
-            <button type="button" onClick={onGarageClick} className={navButtonClass}>
+            <button type="button" onClick={() => setActiveSheet('garage')} className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconGarage /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">My Garage</span>
               <span className="w-8" />
@@ -717,23 +712,26 @@ export function MobileDashboard({
               <span className="w-8" />
             </button>
 
-            <button type="button" onClick={onSettingsClick} className={navButtonClass}>
+            <button type="button" onClick={() => setActiveSheet('settings')} className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconSettings /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">Settings</span>
               <span className="w-8" />
             </button>
 
-            <Link
-              to={normalizedPartnerStatus === 'partner' ? '/business' : '/account/company'}
-              className={navButtonClass}
-            >
+            <button type="button" onClick={() => setActiveSheet('business')} className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconBuilding /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">Manage Business</span>
               <span className="w-8" />
-            </Link>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* ── MobilePageSheets ── */}
+      <MobilePageSheet isOpen={activeSheet === 'garage'} onClose={() => setActiveSheet(null)} title="My Garage" />
+      <MobilePageSheet isOpen={activeSheet === 'settings'} onClose={() => setActiveSheet(null)} title="Settings" />
+      <MobilePageSheet isOpen={activeSheet === 'certified'} onClose={() => setActiveSheet(null)} title="Become Certified" />
+      <MobilePageSheet isOpen={activeSheet === 'business'} onClose={() => setActiveSheet(null)} title="Manage Business" />
     </div>
   )
 }
