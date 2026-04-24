@@ -3,8 +3,9 @@ import { initReactI18next } from 'react-i18next'
 
 import en from './locales/en/translation.json'
 import fr from './locales/fr/translation.json'
+import { safeLocal } from './utils/safeStorage'
 
-const savedLang = localStorage.getItem('fireball-lang') || 'en'
+const savedLang = safeLocal.get('fireball-lang') || 'en'
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -17,7 +18,7 @@ i18n.use(initReactI18next).init({
 })
 
 i18n.on('languageChanged', (lng) => {
-  localStorage.setItem('fireball-lang', lng)
+  safeLocal.set('fireball-lang', lng)
 })
 
 export default i18n

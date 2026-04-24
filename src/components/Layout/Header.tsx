@@ -752,7 +752,7 @@ export function Header() {
     if (authenticated) {
       navigate('/account/dashboard')
     } else {
-      sessionStorage.setItem('accountIntroFromNav', '1')
+      try { sessionStorage.setItem('accountIntroFromNav', '1') } catch {}
       navigate('/account')
     }
   }

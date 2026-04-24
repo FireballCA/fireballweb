@@ -5,12 +5,14 @@ export type AccountRecord = {
   createdAt: string
 }
 
+import { safeLocal } from './safeStorage'
+
 const ACCOUNTS_KEY = 'fireball.accounts.v1'
 const SESSION_KEY = 'fireball.session.v1'
 const WELCOME_KEY = 'fireball.welcome.v1'
 
 function readJson<T>(key: string, fallback: T): T {
-  const raw = localStorage.getItem(key)
+  const raw = safeLocal.get(key)
   if (!raw) return fallback
   try {
     return JSON.parse(raw) as T
@@ -20,7 +22,7 @@ function readJson<T>(key: string, fallback: T): T {
 }
 
 function writeJson<T>(key: string, value: T) {
-  localStorage.setItem(key, JSON.stringify(value))
+  safeLocal.set(key, JSON.stringify(value))
 }
 
 export function getAccounts(): AccountRecord[] {
@@ -55,27 +57,27 @@ export function loginAccount(input: { email: string; password: string }) {
   if (!account) return { ok: false as const, reason: 'not_found' as const }
   if (account.password !== password) return { ok: false as const, reason: 'invalid_password' as const }
 
-  localStorage.setItem(SESSION_KEY, account.email)
+  safeLocal.set(SESSION_KEY, account.email)
   return { ok: true as const, account }
 }
 
 export function logoutAccount() {
-  localStorage.removeItem(SESSION_KEY)
+  safeLocal.remove(SESSION_KEY)
 }
 
 export function getCurrentAccount(): AccountRecord | null {
-  const sessionEmail = localStorage.getItem(SESSION_KEY)
+  const sessionEmail = safeLocal.get(SESSION_KEY)
   if (!sessionEmail) return null
   return getAccounts().find((item) => item.email === sessionEmail) ?? null
 }
 
 export function setWelcomeMessage(fullName: string) {
-  localStorage.setItem(WELCOME_KEY, fullName)
+  safeLocal.set(WELCOME_KEY, fullName)
 }
 
 export function consumeWelcomeMessage(): string | null {
-  const value = localStorage.getItem(WELCOME_KEY)
+  const value = safeLocal.get(WELCOME_KEY)
   if (!value) return null
-  localStorage.removeItem(WELCOME_KEY)
+  safeLocal.remove(WELCOME_KEY)
   return value
 }

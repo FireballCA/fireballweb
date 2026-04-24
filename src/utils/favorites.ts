@@ -15,7 +15,7 @@ export function readLocalFavoriteSlugs(): string[] {
 }
 
 function writeLocalFavoriteSlugs(slugs: string[]) {
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(slugs))
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify(slugs)) } catch {}
 }
 
 export async function getFavoriteSlugsFromProfile(): Promise<string[] | null> {

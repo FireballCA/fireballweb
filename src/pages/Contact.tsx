@@ -90,10 +90,7 @@ export function Contact() {
   }, [lenis])
 
   const handleSignInClick = () => {
-    sessionStorage.setItem(
-      CONTACT_DRAFT_KEY,
-      JSON.stringify({ name, email, subject, message })
-    )
+    try { sessionStorage.setItem(CONTACT_DRAFT_KEY, JSON.stringify({ name, email, subject, message })) } catch {}
     navigate('/account?returnTo=/contact')
   }
 

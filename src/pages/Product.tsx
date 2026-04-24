@@ -223,7 +223,7 @@ function useProductFavoritePrompt(
 
   const handleFavoriteModalContinue = async () => {
     if (!slug) return
-    sessionStorage.setItem('favorite_modal_shown', '1')
+    try { sessionStorage.setItem('favorite_modal_shown', '1') } catch {}
     setModalOpen(false)
     const next = await toggleFavoriteSlug(slug)
     setWishlisted(next)
@@ -236,7 +236,7 @@ function useProductFavoritePrompt(
       setWishlisted(next)
       return
     }
-    if (!sessionStorage.getItem('favorite_modal_shown')) {
+    if (!(() => { try { return sessionStorage.getItem('favorite_modal_shown') } catch { return null } })()) {
       setModalOpen(true)
       return
     }
