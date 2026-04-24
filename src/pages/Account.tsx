@@ -401,6 +401,14 @@ export function Account() {
                     </svg>
                   </Link>
                 </p>
+
+                {/* Help link — inline on mobile, hidden on md+ (shown via absolute below) */}
+                <p className="md:hidden text-center text-sm mt-4">
+                  <span className="text-white/45">{t('auth.needHelp')} </span>
+                  <a href="mailto:contact@fireball.fr" className="text-white hover:text-white/80 underline">
+                    {t('auth.contactUs')}
+                  </a>
+                </p>
               </form>
             </div>
             </div>
@@ -408,8 +416,8 @@ export function Account() {
         </div>
       </div>
 
-      {/* Global help link at bottom of page */}
-      <div className="absolute inset-x-0 bottom-4 md:bottom-6 z-10 text-center text-sm flex-shrink-0">
+      {/* Global help link at bottom of page — desktop only */}
+      <div className="hidden md:block absolute inset-x-0 bottom-6 z-10 text-center text-sm flex-shrink-0">
         <span className="text-white/45">{t('auth.needHelp')} </span>
         <a
           href="mailto:contact@fireball.fr"

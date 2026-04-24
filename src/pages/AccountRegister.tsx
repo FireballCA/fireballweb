@@ -76,10 +76,13 @@ export function AccountRegister() {
     const previousHtmlOverflow = document.documentElement.style.overflow
     const previousHtmlHeight = document.documentElement.style.height
 
-    document.body.style.overflow = 'hidden'
-    document.body.style.height = '100vh'
-    document.documentElement.style.overflow = 'hidden'
-    document.documentElement.style.height = '100vh'
+    // Lock scroll on desktop only — mobile needs to scroll the form
+    if (window.innerWidth >= 768) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.height = '100vh'
+      document.documentElement.style.overflow = 'hidden'
+      document.documentElement.style.height = '100vh'
+    }
 
     return () => {
       document.body.style.overflow = previousBodyOverflow
@@ -247,7 +250,7 @@ export function AccountRegister() {
   }
 
   return (
-    <section className="relative h-screen w-screen max-w-full overflow-hidden bg-black flex flex-col md:items-center md:justify-center md:py-12 md:px-6 select-none">
+    <section className="relative min-h-screen md:h-screen w-screen max-w-full overflow-y-auto md:overflow-hidden bg-black flex flex-col md:items-center md:justify-center md:py-12 md:px-6 select-none">
       {/* Background */}
       <div className="absolute inset-0 bg-black pointer-events-none" />
       <div className="absolute -top-40 -right-32 w-80 h-80 bg-red-500/18 blur-3xl rounded-full opacity-70 pointer-events-none" aria-hidden />
@@ -314,7 +317,7 @@ export function AccountRegister() {
       </div>
 
       {/* Main card: on mobile only form (full width), on md+ left panel + form with fixed max height */}
-      <div className="relative z-10 flex-1 min-h-0 md:flex-initial w-full flex flex-col md:flex-row md:max-w-5xl md:w-full md:max-h-[85vh] md:mx-auto">
+      <div className="relative z-10 pt-16 md:pt-0 flex-1 min-h-0 md:flex-initial w-full flex flex-col md:flex-row md:max-w-5xl md:w-full md:max-h-[85vh] md:mx-auto">
         <div className="flex flex-1 min-h-0 md:flex-initial md:max-h-[85vh] w-full flex-col md:flex-row bg-black shadow-[0_0_40px_rgba(0,0,0,0.6)] overflow-hidden">
           {/* Left panel: logo + advantages (hidden on mobile) */}
           <div
@@ -379,7 +382,7 @@ export function AccountRegister() {
           </div>
 
           {/* Right panel: form (full width on mobile, with subtle right divider on md+) */}
-          <div className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden bg-black px-4 sm:px-10 py-6 sm:py-10 md:py-8 md:flex md:items-center border-r border-white/10">
+          <div className="flex-1 min-h-0 min-w-0 flex flex-col md:overflow-hidden bg-black px-4 sm:px-10 py-6 sm:py-10 md:py-8 md:flex md:items-center border-r border-white/10">
             <div className="w-full max-w-md mx-auto flex-shrink-0">
               <div className="mb-7">
                 <h1 className="text-2xl sm:text-3xl font-semibold text-white mb-1">
