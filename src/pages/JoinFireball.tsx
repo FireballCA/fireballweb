@@ -22,48 +22,48 @@ const benefits = [
     Icon: IconBuildingStore,
     stat: 'Pro',
     statLabel: 'pricing access',
-    title: 'Tarifs revendeur exclusifs',
-    body: "En tant que partenaire Fireball, vous accédez aux produits à des prix professionnels réservés aux revendeurs certifiés — une marge compétitive que vos clients ne trouveront pas ailleurs.",
+    title: 'Exclusive reseller pricing',
+    body: 'As a Fireball partner, you get access to professional pricing reserved for certified resellers — a competitive margin your clients cannot find anywhere else.',
   },
   {
     Icon: IconSchool,
     stat: '100%',
-    statLabel: 'formation incluse',
-    title: 'Formation et certification officielle',
-    body: "Chaque partenaire reçoit une formation complète sur les produits Fireball : application, vente, et positionnement. Vous repartez certifié, crédible, et prêt à conclure.",
+    statLabel: 'hands-on training',
+    title: 'Official training & certification',
+    body: 'Every partner goes through a full Fireball product training: application, sales, and positioning. You leave certified, credible, and ready to close.',
   },
   {
     Icon: IconTrendingUp,
     stat: 'ROI',
-    statLabel: 'dès le départ',
-    title: 'Un modèle rentable dès le premier client',
-    body: "Le programme est conçu pour que votre investissement se rentabilise rapidement. Fireball vous donne les outils, les prix, et le support pour générer des revenus réels.",
+    statLabel: 'from day one',
+    title: 'A model that pays off fast',
+    body: 'The program is built so your investment returns quickly. Fireball gives you the tools, pricing, and support to generate real revenue from your first client.',
   },
   {
     Icon: IconUsers,
-    stat: 'Réseau',
-    statLabel: 'de partenaires',
-    title: 'Accès à une communauté de pros',
-    body: "Rejoignez un réseau de détailleurs et installateurs certifiés à travers le Canada. Partagez des références, des conseils, et grandissez avec des gens qui comprennent votre réalité.",
+    stat: 'Network',
+    statLabel: 'of professionals',
+    title: 'Access to a community of pros',
+    body: 'Join a network of certified detailers and installers across Canada. Share referrals, advice, and grow alongside people who understand what you do.',
   },
   {
     Icon: IconHeadset,
     stat: '1:1',
-    statLabel: 'support dédié',
-    title: "Support direct de l’équipe Fireball",
-    body: "Vous n'êtes jamais seul. L'équipe Fireball est disponible pour vous accompagner sur les produits, les techniques, et les défis de votre business — en temps réel.",
+    statLabel: 'dedicated support',
+    title: 'Direct support from the Fireball team',
+    body: "You're never on your own. The Fireball team is available to help you with products, techniques, and business challenges — in real time.",
   },
   {
     Icon: IconRosette,
-    stat: 'Marque',
-    statLabel: 'reconnue',
-    title: "La force d'une marque établie",
-    body: "Vendre Fireball, c'est vendre une marque que les clients recherchent. Un nom, une réputation, et des produits qui parlent d'eux-mêmes — du premium que vous pouvez défendre avec confiance.",
+    stat: 'Brand',
+    statLabel: 'clients trust',
+    title: 'The strength of an established brand',
+    body: 'Selling Fireball means selling a brand clients actively seek out. A name, a reputation, and products that speak for themselves — premium you can stand behind.',
   },
 ]
 
 export function JoinFireball() {
-  usePageTitle('Rejoindre Fireball — Fireball Canada')
+  usePageTitle('Join Fireball — Fireball Canada')
 
   useEffect(() => {
     const reveals = document.querySelectorAll<HTMLElement>('.jf-reveal')
@@ -98,7 +98,7 @@ export function JoinFireball() {
         {/* Hero */}
         <section className="relative -mt-20 flex h-[88dvh] min-h-[88dvh] flex-col overflow-hidden">
           <img
-            src="/join-fireball-hero.jpg"
+            src="/join-fireball-team.jpg"
             alt=""
             className="absolute inset-0 h-full w-full object-cover object-center"
             draggable={false}
@@ -106,48 +106,42 @@ export function JoinFireball() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/35 to-black/65" aria-hidden />
 
           <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 pt-20 pb-10 text-center">
-            <p className="jf-reveal mb-5 text-[11px] font-semibold uppercase tracking-[0.25em] text-white/50">
-              Programme Revendeur
-            </p>
             <h1 className="jf-reveal font-nav text-4xl font-black leading-[1.04] tracking-tight text-white md:text-6xl lg:text-7xl mb-6">
-              Devenez revendeur<br />Fireball.
+              Build more than<br />a business.
             </h1>
             <p className="jf-reveal max-w-xl text-base leading-relaxed text-white/65 md:text-lg" style={{ fontWeight: 300 }}>
-              Accédez aux produits, à la formation, et au réseau d'une marque premium — et bâtissez un business sur des bases solides.
+              Join a network of certified professionals and grow with the products, training, and support of a brand people trust.
             </p>
             <div className="jf-reveal mt-10 flex flex-col items-center gap-3 sm:flex-row">
               <a href="/join" className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}>
-                Soumettre ma candidature
+                Apply now
               </a>
               <SecondaryClipButton
-                href="#pourquoi"
+                href="#why"
                 onClick={(e) => {
                   e.preventDefault()
-                  document.getElementById('pourquoi')?.scrollIntoView({ behavior: 'smooth' })
+                  document.getElementById('why')?.scrollIntoView({ behavior: 'smooth' })
                 }}
               >
-                En savoir plus
+                Learn more
               </SecondaryClipButton>
             </div>
           </div>
         </section>
 
         {/* Intro */}
-        <section id="pourquoi" className="bg-white py-24 md:py-32">
+        <section id="why" className="bg-white py-24 md:py-32">
           <div className="mx-auto max-w-7xl px-6 md:px-16">
-            <p className="jf-reveal mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-carbon-500">
-              Pourquoi rejoindre Fireball
-            </p>
             <h2 className={cn('jf-reveal text-carbon-900 mb-5', landingSectionTitle)}>
-              Plus qu'un fournisseur.<br />Un vrai partenariat.
+              More than a supplier.<br />A real partnership.
             </h2>
             <p className="jf-reveal max-w-2xl text-base leading-relaxed text-carbon-600 md:text-lg" style={{ fontWeight: 300 }}>
-              Fireball ne vend pas simplement des produits à ses revendeurs. On bâtit ensemble un réseau de professionnels certifiés qui représentent la marque avec fierté — et qui en tirent une valeur concrète au quotidien.
+              Fireball does not just sell products to its resellers. We build a network of certified professionals who represent the brand with pride — and get real, tangible value out of it every day.
             </p>
           </div>
         </section>
 
-        {/* Benefits cards — style Academy */}
+        {/* Benefits cards */}
         <section className="bg-white pb-24 md:pb-32">
           <div className="mx-auto max-w-7xl px-6 md:px-16">
             <div className="grid gap-6 md:grid-cols-2 md:gap-8">
@@ -198,14 +192,14 @@ export function JoinFireball() {
         <section className="border-t border-carbon-900/8 bg-[#f7f7f7] py-24 md:py-32">
           <div className="mx-auto max-w-3xl px-6 text-center">
             <h2 className={cn('jf-reveal text-carbon-900 mb-5', landingSectionTitle)}>
-              Prêt à rejoindre le réseau ?
+              Ready to join the network?
             </h2>
             <p className="jf-reveal mx-auto mb-10 max-w-xl text-base leading-relaxed text-carbon-600 md:text-lg" style={{ fontWeight: 300 }}>
-              Remplissez le formulaire de candidature — notre équipe vous contacte personnellement dans les 3 à 5 jours ouvrables pour discuter de votre projet.
+              Fill out the application form — our team will reach out personally within 3 to 5 business days to talk about your project.
             </p>
             <div className="jf-reveal">
               <a href="/join" className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}>
-                Soumettre ma candidature
+                Apply now
               </a>
             </div>
           </div>
