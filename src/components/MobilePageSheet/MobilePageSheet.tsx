@@ -101,12 +101,13 @@ export function MobilePageSheet({ isOpen, onClose, title, children }: MobilePage
 
   return createPortal(
     <div className="fixed inset-0 z-[100] lg:hidden" style={{ touchAction: 'none' }}>
-      {/* Dimmed overlay */}
+      {/* Dimmed overlay — blocks all interaction with content behind */}
       <div
         ref={overlayRef}
         className="absolute inset-0"
         style={{ background: 'rgba(0,0,0,0.45)', opacity: 0 }}
         onClick={onClose}
+        onTouchStart={(e) => { e.stopPropagation(); e.preventDefault(); onClose() }}
       />
 
       {/* White sheet — slides from bottom, ~90% height */}
