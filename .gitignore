@@ -8,3 +8,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.claude/worktrees/amazing-pasteur-0d069e/
+.claude/worktrees/cool-liskov-4a7f13/
+.claude/worktrees/hardcore-zhukovsky-5c93e2/
