@@ -371,8 +371,88 @@ export function MobileSettingsContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="text-neutral-400 text-sm">Loading…</div>
+      <div className="pb-10 flex flex-col gap-6 pt-2" style={{ background: '#f5f5f5' }}>
+        {/* Profile skeleton */}
+        <div className="flex flex-col gap-3">
+          <div className="mx-5 h-3 w-16 rounded-full bg-neutral-200 animate-pulse" />
+          <div className="mx-5 rounded-2xl overflow-hidden border border-neutral-100 bg-white">
+            <div className="flex items-center gap-4 px-5 py-4">
+              <div className="w-14 h-14 rounded-full bg-neutral-200 animate-pulse shrink-0" />
+              <div className="flex-1 flex flex-col gap-2">
+                <div className="h-3.5 w-24 rounded-full bg-neutral-200 animate-pulse" />
+                <div className="h-2.5 w-36 rounded-full bg-neutral-200 animate-pulse" />
+              </div>
+            </div>
+          </div>
+          <div className="mx-5 flex flex-col gap-2">
+            <div className="h-11 rounded-xl bg-neutral-200 animate-pulse" />
+            <div className="h-11 rounded-xl bg-neutral-200 animate-pulse" />
+          </div>
+        </div>
+
+        {/* Security skeleton */}
+        <div className="flex flex-col gap-3">
+          <div className="mx-5 h-3 w-16 rounded-full bg-neutral-200 animate-pulse" />
+          <div className="mx-5 flex flex-col gap-2">
+            <div className="h-11 rounded-xl bg-neutral-200 animate-pulse" />
+            <div className="h-11 rounded-xl bg-neutral-200 animate-pulse" />
+            <div className="h-11 rounded-xl bg-neutral-200 animate-pulse" />
+          </div>
+        </div>
+
+        {/* Notifications skeleton */}
+        <div className="flex flex-col gap-3">
+          <div className="mx-5 h-3 w-24 rounded-full bg-neutral-200 animate-pulse" />
+          <div className="mx-5 rounded-2xl overflow-hidden border border-neutral-100 bg-white">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center justify-between px-5 py-3.5 border-b border-neutral-100 last:border-b-0">
+                <div className="flex flex-col gap-1.5">
+                  <div className="h-3.5 w-28 rounded-full bg-neutral-200 animate-pulse" />
+                  <div className="h-2.5 w-40 rounded-full bg-neutral-200 animate-pulse" />
+                </div>
+                <div className="w-11 h-6 rounded-full bg-neutral-200 animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Cookie skeleton */}
+        <div className="flex flex-col gap-3">
+          <div className="mx-5 h-3 w-32 rounded-full bg-neutral-200 animate-pulse" />
+          <div className="mx-5 rounded-2xl overflow-hidden border border-neutral-100 bg-white">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center justify-between px-5 py-3.5 border-b border-neutral-100 last:border-b-0">
+                <div className="flex flex-col gap-1.5">
+                  <div className="h-3.5 w-32 rounded-full bg-neutral-200 animate-pulse" />
+                  <div className="h-2.5 w-44 rounded-full bg-neutral-200 animate-pulse" />
+                </div>
+                <div className="w-11 h-6 rounded-full bg-neutral-200 animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Connected accounts skeleton */}
+        <div className="flex flex-col gap-3">
+          <div className="mx-5 h-3 w-36 rounded-full bg-neutral-200 animate-pulse" />
+          <div className="mx-5 rounded-2xl overflow-hidden border border-neutral-100 bg-white">
+            {[0, 1].map((i) => (
+              <div key={i} className="flex items-center justify-between px-5 py-3.5 border-b border-neutral-100 last:border-b-0">
+                <div className="flex flex-col gap-1.5">
+                  <div className="h-3.5 w-16 rounded-full bg-neutral-200 animate-pulse" />
+                  <div className="h-2.5 w-40 rounded-full bg-neutral-200 animate-pulse" />
+                </div>
+                <div className="w-11 h-6 rounded-full bg-neutral-200 animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Danger zone skeleton */}
+        <div className="flex flex-col gap-3">
+          <div className="mx-5 h-3 w-24 rounded-full bg-neutral-200 animate-pulse" />
+          <div className="mx-5 h-12 rounded-2xl bg-neutral-200 animate-pulse" />
+        </div>
       </div>
     )
   }

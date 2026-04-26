@@ -116,6 +116,7 @@ export function Header() {
   const [ceramicOpen, setCeramicOpen] = useState(false)
   const [companyOpen, setCompanyOpen] = useState(false)
   const [mobileShopOpen, setMobileShopOpen] = useState(false)
+  const [mobileCeramicOpen, setMobileCeramicOpen] = useState(false)
   const [mobileCompanyOpen, setMobileCompanyOpen] = useState(false)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const [isMobileMenuMounted, setIsMobileMenuMounted] = useState(false)
@@ -1522,6 +1523,54 @@ export function Header() {
                       </Link>
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* Ceramic coating (dropdown mobile) */}
+            <div className={`border-b border-white/[0.06] ${mobileCeramicOpen ? 'bg-white/[0.03]' : ''}`}>
+              <button
+                type="button"
+                className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white"
+                onClick={() => setMobileCeramicOpen((open) => !open)}
+              >
+                <span>Ceramic coating</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-transform mr-1 ${mobileCeramicOpen ? '-rotate-180' : ''}`}
+                >
+                  <path d="m19 12-7 7-7-7" />
+                </svg>
+              </button>
+              {mobileCeramicOpen && (
+                <div className="pl-4 pb-2 space-y-4 animate-fade-in">
+                  {CERAMIC_SECTIONS.map((section) => (
+                    <div key={section.title} className="space-y-1.5">
+                      <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
+                        {section.title}
+                      </p>
+                      <div className="mt-1 space-y-1.5 pl-3">
+                        {section.links.map((link) => (
+                          <Link
+                            key={link.to}
+                            to={link.to}
+                            className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                            onClick={() => setMenuOpen(false)}
+                          >
+                            <span>{link.label}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
