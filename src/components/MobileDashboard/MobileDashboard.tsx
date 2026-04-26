@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { SHOPIFY_CUSTOMER_ORDERS_URL } from '@/constants/shopifyShopApp'
 import { MobilePageSheet } from '@/components/MobilePageSheet/MobilePageSheet'
+import { MobileSettingsContent } from '@/components/MobileSettingsContent/MobileSettingsContent'
 
 interface MobileDashboardProps {
   currentXp: number
@@ -729,7 +730,9 @@ export function MobileDashboard({
 
       {/* ── MobilePageSheets ── */}
       <MobilePageSheet isOpen={activeSheet === 'garage'} onClose={() => setActiveSheet(null)} title="My Garage" />
-      <MobilePageSheet isOpen={activeSheet === 'settings'} onClose={() => setActiveSheet(null)} title="Settings" />
+      <MobilePageSheet isOpen={activeSheet === 'settings'} onClose={() => setActiveSheet(null)} title="Settings">
+        <MobileSettingsContent />
+      </MobilePageSheet>
       <MobilePageSheet isOpen={activeSheet === 'certified'} onClose={() => setActiveSheet(null)} title="Become Certified" />
       <MobilePageSheet isOpen={activeSheet === 'business'} onClose={() => setActiveSheet(null)} title="Manage Business" />
     </div>
