@@ -55,7 +55,7 @@ export function HomeCollectionSection({ config }: Props) {
         <img
           src={image}
           alt=""
-          className="h-full w-full min-h-[100dvh] object-cover"
+          className="h-full w-full md:min-h-[100dvh] object-cover"
           loading="eager"
           decoding="async"
         />
