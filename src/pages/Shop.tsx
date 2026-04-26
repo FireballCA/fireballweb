@@ -283,7 +283,7 @@ export function Shop() {
         <section className="relative min-h-[28vh] md:min-h-[55vh] flex items-center justify-center border-b border-carbon-800 pt-2 md:pt-10">
           <div className="w-full px-6 text-center pt-10 md:pt-16">
             {/* Catégorie en dégradé — mobile: pas de coupe */}
-            <h1 className="text-[clamp(4.5rem,22vw,14rem)] sm:text-[clamp(5.5rem,18vw,14rem)] font-black uppercase leading-[0.9] sm:leading-[0.78] tracking-[-0.045em] bg-gradient-to-b from-white/[0.2] via-white/[0.08] to-transparent bg-clip-text text-transparent select-none break-words">
+            <h1 className="text-[12vw] sm:text-[clamp(5.5rem,18vw,14rem)] font-black uppercase leading-[0.9] sm:leading-[0.78] tracking-[-0.045em] bg-gradient-to-b from-white/[0.2] via-white/[0.08] to-transparent bg-clip-text text-transparent select-none whitespace-nowrap sm:whitespace-normal">
               {category.name}
             </h1>
           </div>
