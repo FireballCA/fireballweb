@@ -24,6 +24,10 @@ import { Event } from '@/pages/Event'
 import { EventDetail } from '@/pages/EventDetail'
 import { Contact } from '@/pages/Contact'
 import { Legal } from '@/pages/Legal'
+import { LegalNotice } from '@/pages/LegalNotice'
+import { Cookies } from '@/pages/Cookies'
+import { Privacy } from '@/pages/Privacy'
+import { TermsOfService } from '@/pages/TermsOfService'
 import { Academy } from '@/pages/Academy'
 import { TrainingRegistrationThankYou } from '@/pages/TrainingRegistrationThankYou'
 import { JoinClub } from '@/pages/JoinClub'
@@ -82,6 +86,10 @@ function App() {
             <Route path="event" element={<Event />} />
             <Route path="contact" element={<Contact />} />
             <Route path="legal" element={<Legal />} />
+            <Route path="Legal-Notice" element={<LegalNotice />} />
+            <Route path="Cookies" element={<Cookies />} />
+            <Route path="Privacy" element={<Privacy />} />
+            <Route path="Terms-of-Service" element={<TermsOfService />} />
             <Route path="academy/training-thank-you" element={<TrainingRegistrationThankYou />} />
             <Route path="academy" element={<Academy />} />
             <Route path="join-fireball" element={<Navigate to="/join" replace />} />
