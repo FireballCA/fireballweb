@@ -144,18 +144,13 @@ export function PartnerCompany() {
 
   if (submitted) {
     return (
-      <section className="min-h-screen bg-white px-6 py-24 flex items-center justify-center text-carbon-900">
+      <section className="min-h-screen bg-black px-6 py-24 flex items-center justify-center text-white">
         <div className="max-w-[760px] text-center">
-          <div className="mx-auto mb-6 inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 border border-emerald-200">
-            <svg className="w-8 h-8 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-carbon-900">Application Received</h1>
-          <p className="mt-6 text-carbon-600 text-sm md:text-base leading-relaxed">
+          <h1 className="text-4xl md:text-6xl font-semibold tracking-tight">Application Received</h1>
+          <p className="mt-6 text-white/75 text-sm md:text-base leading-relaxed">
             Your request to join the Fireball Certified Network is now under review.
           </p>
-          <p className="mt-4 text-carbon-500 text-sm md:text-base leading-relaxed">
+          <p className="mt-4 text-white/65 text-sm md:text-base leading-relaxed">
             If approved, you will receive access to the Fireball Partner Portal to begin registering
             installations and managing client warranties.
           </p>
@@ -165,122 +160,118 @@ export function PartnerCompany() {
   }
 
   return (
-    <section className="min-h-screen bg-white px-6 md:px-12 lg:px-16 pt-0 pb-24 text-carbon-900">
+    <section className="min-h-screen bg-[#141416] px-6 md:px-12 lg:px-16 pt-0 pb-24 text-white">
       <div className="max-w-[1100px] mx-auto">
-
-        {/* Hero */}
         <section className="relative min-h-[calc(62vh+8rem)] flex flex-col text-center">
           <div className="h-24 shrink-0" aria-hidden />
           <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-carbon-900/12 bg-carbon-900/[0.04] px-3.5 py-1.5 text-[11px] uppercase tracking-[0.14em] text-carbon-600 w-fit mx-auto">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/70 opacity-75" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
-              </span>
-              We are currently accepting new partner applications
-            </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.05] px-3.5 py-1.5 text-[11px] uppercase tracking-[0.14em] text-white/75 w-fit mx-auto">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/70 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+            </span>
+            We are currently accepting new partner applications
+          </div>
 
-            <h1 className="relative z-10 mt-10 md:mt-12 text-4xl md:text-6xl font-bold tracking-tight text-carbon-900">
-              Become a Fireball Certified Partner
-            </h1>
-            <div className="-mt-10 md:-mt-12 pointer-events-none select-none w-full flex justify-center">
-              <p className="text-[clamp(3.8rem,14vw,10rem)] font-black uppercase leading-[0.78] tracking-[-0.045em] bg-gradient-to-b from-carbon-900/[0.07] via-carbon-900/[0.03] to-transparent bg-clip-text text-transparent">
-                Fireball Network
-              </p>
-            </div>
+          <h1 className="relative z-10 mt-10 md:mt-12 text-4xl md:text-6xl font-bold tracking-tight">
+            Become a Fireball Certified Partner
+          </h1>
+          <div className="-mt-10 md:-mt-12 pointer-events-none select-none w-full flex justify-center">
+            <p className="text-[clamp(3.8rem,14vw,10rem)] font-black uppercase leading-[0.78] tracking-[-0.045em] bg-gradient-to-b from-white/[0.2] via-white/[0.08] to-transparent bg-clip-text text-transparent">
+              Fireball Network
+            </p>
+          </div>
 
-            <p className="relative z-10 mt-2 max-w-[900px] mx-auto text-carbon-600 text-sm md:text-base leading-relaxed">
-              Become a recognized Fireball installation partner and offer industry-leading ceramic protection backed by
-              official warranty registration and national brand support.
-            </p>
-            <p className="relative z-10 mt-4 text-xs text-carbon-400 text-center">
-              Applications are selectively approved to maintain network quality.
-            </p>
+          <p className="relative z-10 mt-2 max-w-[900px] mx-auto text-white/75 text-sm md:text-base leading-relaxed">
+            Become a recognized Fireball installation partner and offer industry-leading ceramic protection backed by
+            official warranty registration and national brand support.
+          </p>
+          <p className="relative z-10 mt-4 text-xs text-white/55 text-center">
+            Applications are selectively approved to maintain network quality.
+          </p>
           </div>
         </section>
 
-        {/* Info cards */}
-        <section className="mt-12 relative left-1/2 right-1/2 w-screen -translate-x-1/2 bg-[#f5f5f7] rounded-[34px] px-6 md:px-12 lg:px-16 py-8 md:py-10 shadow-[0_2px_16px_rgba(0,0,0,0.06)]">
+        <section className="mt-12 relative left-1/2 right-1/2 w-screen -translate-x-1/2 bg-[#252525] rounded-[34px] px-6 md:px-12 lg:px-16 py-8 md:py-10 shadow-[0_24px_36px_rgba(0,0,0,0.28)]">
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-carbon-900">Partner Advantages</h2>
-            <p className="mt-3 text-carbon-600 text-sm md:text-base leading-relaxed">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Partner Advantages</h2>
+            <p className="mt-3 text-white/75 text-sm md:text-base leading-relaxed">
               Certified Fireball Installers receive:
             </p>
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {partnerAdvantages.map((benefit) => (
                 <div
                   key={benefit}
-                  className="bg-white border border-carbon-900/8 text-carbon-800 px-3.5 py-2.5 rounded-[8px] text-xs flex items-center gap-2 shadow-sm"
+                  className="bg-[#252525] border border-white/10 text-white px-3.5 py-2.5 rounded-[8px] text-xs flex items-center gap-2"
                 >
-                  <span className="text-emerald-500 text-sm select-none font-bold">+</span>
+                  <span className="text-emerald-400 text-sm select-none">+</span>
                   <span>{benefit}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="mt-8 md:mt-10">
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-carbon-900">Professional Requirements</h2>
-            <p className="mt-3 text-carbon-600 text-sm md:text-base leading-relaxed">
+          <div className="mt-8 md:mt-10 translate-y-1">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Professional Requirements</h2>
+            <p className="mt-3 text-white/75 text-sm md:text-base leading-relaxed">
               Applicants must:
             </p>
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {professionalRequirements.map((requirement) => (
                 <div
                   key={requirement}
-                  className="bg-white border border-carbon-900/8 text-carbon-700 px-3.5 py-2.5 rounded-[8px] text-xs flex items-center gap-2 shadow-sm"
+                  className="bg-black/25 border border-white/10 text-white/90 px-3.5 py-2.5 rounded-[8px] text-xs flex items-center gap-2"
                 >
-                  <span className="text-red-400 text-sm select-none font-bold">+</span>
+                  <span className="text-red-400 text-sm select-none">+</span>
                   <span>{requirement}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="mt-8 md:mt-10">
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-carbon-900">Additional Evaluation Criteria</h2>
-            <p className="mt-3 text-carbon-600 text-sm md:text-base leading-relaxed">
+          <div className="mt-8 md:mt-10 translate-y-1">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Additional Evaluation Criteria</h2>
+            <p className="mt-3 text-white/75 text-sm md:text-base leading-relaxed">
               Fireball Canada may also evaluate:
             </p>
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {additionalEvaluationCriteria.map((criterion) => (
                 <div
                   key={criterion}
-                  className="bg-white border border-carbon-900/8 text-carbon-700 px-3.5 py-2.5 rounded-[8px] text-xs flex items-center gap-2 shadow-sm"
+                  className="bg-black/25 border border-white/10 text-white/90 px-3.5 py-2.5 rounded-[8px] text-xs flex items-center gap-2"
                 >
-                  <span className="text-red-400 text-sm select-none font-bold">+</span>
+                  <span className="text-red-400 text-sm select-none">+</span>
                   <span>{criterion}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="mt-8 md:mt-10">
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-carbon-900">Partner Responsibilities</h2>
-            <p className="mt-3 text-carbon-600 text-sm md:text-base leading-relaxed">
+          <div className="mt-8 md:mt-10 translate-y-1">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Partner Responsibilities</h2>
+            <p className="mt-3 text-white/75 text-sm md:text-base leading-relaxed">
               Certified installers must:
             </p>
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {partnerResponsibilities.map((responsibility) => (
                 <div
                   key={responsibility}
-                  className="bg-white border border-carbon-900/8 text-carbon-700 px-3.5 py-2.5 rounded-[8px] text-xs flex items-center gap-2 shadow-sm"
+                  className="bg-black/25 border border-white/10 text-white/90 px-3.5 py-2.5 rounded-[8px] text-xs flex items-center gap-2"
                 >
-                  <span className="text-red-400 text-sm select-none font-bold">+</span>
+                  <span className="text-red-400 text-sm select-none">+</span>
                   <span>{responsibility}</span>
                 </div>
               ))}
             </div>
-            <p className="mt-4 text-sm text-carbon-500 leading-relaxed">
+            <p className="mt-4 text-sm text-white/70 leading-relaxed">
               Failure to uphold these standards may result in certification review or suspension.
             </p>
           </div>
         </section>
 
-        {/* Apply section */}
         <section className="mt-12">
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-carbon-900">Apply for Certification</h2>
-          <p className="mt-3 text-carbon-600 text-sm md:text-base leading-relaxed max-w-[780px]">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Apply for Certification</h2>
+          <p className="mt-3 text-white/75 text-sm md:text-base leading-relaxed max-w-[780px]">
             Before submitting your application, please review the certification standards and eligibility requirements
             outlined below.
             <br />
@@ -290,7 +281,14 @@ export function PartnerCompany() {
         </section>
 
         <form
-          className="mt-8 rounded-3xl p-6 md:p-8 relative overflow-hidden border border-carbon-900/8 bg-white shadow-[0_2px_24px_rgba(0,0,0,0.06)]"
+          className="mt-8 rounded-3xl p-6 md:p-8 relative overflow-hidden"
+          style={{
+            background:
+              'linear-gradient(135deg, rgba(40, 40, 40, 0.96) 0%, rgba(22, 22, 22, 0.96) 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.18)',
+            boxShadow:
+              '0 18px 45px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.18), inset 0 0 0 1px rgba(255,255,255,0.03)',
+          }}
           onSubmit={(e) => {
             e.preventDefault()
             setFormError('')
@@ -382,10 +380,10 @@ export function PartnerCompany() {
           }}
         >
           {formBlocked && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80 backdrop-blur-md rounded-3xl">
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/45 backdrop-blur-md">
               <div className="max-w-[520px] mx-auto px-6 text-center">
-                <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-carbon-900/15 bg-carbon-900/[0.05]">
-                  <svg className="w-6 h-6 text-carbon-700" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/25 bg-white/10">
+                  <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -396,20 +394,20 @@ export function PartnerCompany() {
                 </div>
                 {!authenticated ? (
                   <>
-                    <h3 className="text-carbon-900 text-xl font-semibold">Account required</h3>
-                    <p className="mt-2 text-sm text-carbon-600">
+                    <h3 className="text-white text-xl font-semibold">Account required</h3>
+                    <p className="mt-2 text-sm text-white/75">
                       Create an account or sign in to access the Fireball certification application form.
                     </p>
                     <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
                       <Link
                         to="/account?returnTo=%2Faccount%2Fcompany"
-                        className="inline-flex items-center justify-center rounded-full border border-carbon-900/20 bg-carbon-900/[0.06] px-5 py-2.5 text-sm font-semibold text-carbon-900 hover:bg-carbon-900/10 transition-colors"
+                        className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
                       >
                         Sign in
                       </Link>
                       <Link
                         to="/account/register?returnTo=%2Faccount%2Fcompany"
-                        className="inline-flex items-center justify-center rounded-full bg-carbon-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-carbon-800 transition-colors"
+                        className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#9f1119] via-[#d21826] to-[#ff3b48] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(214,24,38,0.35)]"
                       >
                         Create account
                       </Link>
@@ -417,16 +415,16 @@ export function PartnerCompany() {
                   </>
                 ) : (
                   <>
-                    <h3 className="text-carbon-900 text-xl font-semibold">Application already in progress</h3>
-                    <p className="mt-2 text-sm text-carbon-600">
+                    <h3 className="text-white text-xl font-semibold">Application already in progress</h3>
+                    <p className="mt-2 text-sm text-white/75">
                       You already have a Fireball partner application with status{' '}
-                      <span className="font-semibold text-carbon-900">{applicationStatus}</span>. For updates, please
-                      contact our team.
+                      <span className="font-semibold text-white">{applicationStatus}</span>. For updates, please contact
+                      our team.
                     </p>
                     <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
                       <a
                         href="mailto:partners@fireballcanada.com?subject=Partner%20Application%20Follow-up"
-                        className="inline-flex items-center justify-center rounded-full bg-carbon-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-carbon-800 transition-colors"
+                        className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#9f1119] via-[#d21826] to-[#ff3b48] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(214,24,38,0.35)]"
                       >
                         Contact us
                       </a>
@@ -434,7 +432,7 @@ export function PartnerCompany() {
                         <button
                           type="button"
                           onClick={() => setAdminFormOverride(true)}
-                          className="inline-flex items-center justify-center rounded-full border border-amber-400 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-800 hover:bg-amber-100 transition-colors gap-1.5"
+                          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-amber-400/60 bg-amber-400/10 px-5 py-2.5 text-sm font-semibold text-amber-300 hover:bg-amber-400/20 transition-colors"
                         >
                           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -450,215 +448,207 @@ export function PartnerCompany() {
             </div>
           )}
 
-          {isAdmin && hasActiveApplication && !adminFormOverride && (
-            null
-          )}
-
           <div className={formBlocked ? 'pointer-events-none select-none blur-sm' : ''}>
             {isAdmin && adminFormOverride && (
-              <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                <svg className="w-4 h-4 shrink-0 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-300">
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span><strong>Admin override active</strong> — this will overwrite the existing application (upsert on user_id).</span>
               </div>
             )}
 
-            <div className="space-y-8">
-              <section>
-                <h2 className="text-xs font-nav font-bold uppercase tracking-[0.18em] text-carbon-500">
-                  Business Information
-                </h2>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {businessFields.map((field) => (
-                    <div key={field.name}>
-                      <label className="block text-[11px] uppercase tracking-[0.14em] text-carbon-500 mb-2">
-                        {field.label}
-                      </label>
-                      <input
-                        name={field.name}
-                        type={field.type}
-                        required
-                        className="w-full px-3 py-2.5 rounded-xl bg-[#f5f5f7] border border-carbon-900/12 text-sm text-carbon-900 placeholder:text-carbon-400 focus:outline-none focus:border-carbon-900/40 focus:bg-white transition-colors"
-                      />
-                    </div>
-                  ))}
-                  <div>
-                    <LiquidGlassSelect
-                      label="Years in Operation"
-                      value={yearsOperationValue}
-                      options={yearsInOperation.map((option) => ({ value: option, label: option }))}
-                      onChange={setYearsOperationValue}
-                      placeholder="Select years in operation"
-                      searchable={false}
-                    />
-                  </div>
-                </div>
-              </section>
-
-              <section>
-                <h2 className="text-xs font-nav font-bold uppercase tracking-[0.18em] text-carbon-500">
-                  Services Offered
-                </h2>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  {serviceOptions.map((service) => {
-                    const checked = services.includes(service)
-                    const serviceId = `service-${service.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
-                    return (
-                      <div
-                        key={service}
-                        className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 cursor-pointer transition-colors ${
-                          checked
-                            ? 'border-carbon-900/20 bg-carbon-900/[0.04]'
-                            : 'border-carbon-900/8 bg-[#f5f5f7] hover:bg-carbon-900/[0.03]'
-                        }`}
-                        onClick={() => {
-                          if (checked) {
-                            setServices((prev) => prev.filter((item) => item !== service))
-                          } else {
-                            setServices((prev) => [...prev, service])
-                          }
-                        }}
-                      >
-                        <div className="pointer-events-none inline-flex items-center justify-center">
-                          <IOSCheckbox
-                            id={serviceId}
-                            checked={checked}
-                            onChange={(nextChecked) => {
-                              if (nextChecked) {
-                                setServices((prev) => [...prev, service])
-                              } else {
-                                setServices((prev) => prev.filter((item) => item !== service))
-                              }
-                            }}
-                            color="red"
-                            sizeEm={0.88}
-                          />
-                        </div>
-                        <span className="text-sm text-carbon-800">{service}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </section>
-
-              <section>
-                <h2 className="text-xs font-nav font-bold uppercase tracking-[0.18em] text-carbon-500">
-                  Coating Experience
-                </h2>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <LiquidGlassSelect
-                      label="How many ceramic coating installations have you performed?"
-                      value={coatingInstallationsValue}
-                      options={coatingInstallations.map((option) => ({ value: option, label: option }))}
-                      onChange={setCoatingInstallationsValue}
-                      placeholder="Select installation volume"
-                      searchable={false}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] uppercase tracking-[0.14em] text-carbon-500 mb-2">
-                      Which brands have you worked with previously?
+          <div className="space-y-8">
+            <section>
+              <h2 className="text-xs font-nav font-bold uppercase tracking-[0.18em] text-white/65">
+                Business Information
+              </h2>
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {businessFields.map((field) => (
+                  <div key={field.name}>
+                    <label className="block text-[11px] uppercase tracking-[0.14em] text-white/60 mb-2">
+                      {field.label}
                     </label>
                     <input
-                      name="previousBrands"
-                      type="text"
+                      name={field.name}
+                      type={field.type}
                       required
-                      className="w-full px-3 py-2.5 rounded-xl bg-[#f5f5f7] border border-carbon-900/12 text-sm text-carbon-900 placeholder:text-carbon-400 focus:outline-none focus:border-carbon-900/40 focus:bg-white transition-colors"
+                      className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/20 text-sm text-white focus:outline-none focus:border-white/70"
                     />
                   </div>
+                ))}
+                <div>
+                  <LiquidGlassSelect
+                    label="Years in Operation"
+                    value={yearsOperationValue}
+                    options={yearsInOperation.map((option) => ({ value: option, label: option }))}
+                    onChange={setYearsOperationValue}
+                    placeholder="Select years in operation"
+                    searchable={false}
+                  />
                 </div>
-              </section>
-
-              <section>
-                <h2 className="text-xs font-nav font-bold uppercase tracking-[0.18em] text-carbon-500">
-                  Operation Details
-                </h2>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="block text-[11px] uppercase tracking-[0.14em] text-carbon-500 mb-2">
-                      Do you operate from a physical location?
-                    </p>
-                    <div className="flex items-center gap-5 text-sm text-carbon-800">
-                      <label className="inline-flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="physicalLocation"
-                          checked={physicalLocation === 'yes'}
-                          onChange={() => setPhysicalLocation('yes')}
-                          className="accent-carbon-900"
-                        />
-                        Yes
-                      </label>
-                      <label className="inline-flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="physicalLocation"
-                          checked={physicalLocation === 'no'}
-                          onChange={() => setPhysicalLocation('no')}
-                          className="accent-carbon-900"
-                        />
-                        No (Mobile Only)
-                      </label>
-                    </div>
-                  </div>
-                  <div>
-                    <LiquidGlassSelect
-                      label="How many technicians are in your team?"
-                      value={teamSizeValue}
-                      options={teamSizes.map((option) => ({ value: option, label: option }))}
-                      onChange={setTeamSizeValue}
-                      placeholder="Select team size"
-                      searchable={false}
-                    />
-                  </div>
-                </div>
-              </section>
-
-              <section>
-                <h2 className="text-xs font-nav font-bold uppercase tracking-[0.18em] text-carbon-500">Agreement</h2>
-                <div
-                  className="mt-3 inline-flex items-start gap-2.5 text-sm text-carbon-700 cursor-pointer"
-                  onClick={() => setAgreementChecked((prev) => !prev)}
-                >
-                  <div className="pointer-events-none mt-0.5">
-                    <IOSCheckbox
-                      id="partner-agreement-checkbox"
-                      checked={agreementChecked}
-                      onChange={setAgreementChecked}
-                      color="red"
-                    />
-                  </div>
-                  <span>
-                    I understand that Fireball Canada reserves the right to approve or deny this application based on
-                    internal certification standards.
-                  </span>
-                </div>
-              </section>
-            </div>
-
-            <p className="mt-8 text-xs text-carbon-500">
-              Approval includes onboarding support and certification guidance.
-            </p>
-            {formError && (
-              <div className="mt-4 rounded-xl px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm">
-                {formError}
               </div>
-            )}
-            <button
-              type="submit"
-              className="mt-8 inline-flex items-center justify-center rounded-full bg-carbon-900 px-7 py-3 text-sm font-semibold text-white shadow-sm hover:bg-carbon-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              disabled={!agreementChecked || submitting}
-            >
-              {submitting ? 'Submitting...' : 'Apply for Certification'}
-            </button>
+            </section>
 
-            <p className="mt-4 text-xs text-carbon-500">
-              Applications are reviewed within 3-5 business days.
-              <br />
-              Selected partners receive onboarding instructions via email.
-            </p>
+            <section>
+              <h2 className="text-xs font-nav font-bold uppercase tracking-[0.18em] text-white/65">
+                Services Offered
+              </h2>
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {serviceOptions.map((service) => {
+                  const checked = services.includes(service)
+                  const serviceId = `service-${service.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+                  return (
+                    <div
+                      key={service}
+                      className="flex items-center gap-2.5 rounded-xl border border-white/15 bg-black/25 px-3 py-2.5 cursor-pointer"
+                      onClick={() => {
+                        if (checked) {
+                          setServices((prev) => prev.filter((item) => item !== service))
+                        } else {
+                          setServices((prev) => [...prev, service])
+                        }
+                      }}
+                    >
+                      <div className="pointer-events-none inline-flex items-center justify-center">
+                        <IOSCheckbox
+                          id={serviceId}
+                          checked={checked}
+                          onChange={(nextChecked) => {
+                            if (nextChecked) {
+                              setServices((prev) => [...prev, service])
+                            } else {
+                              setServices((prev) => prev.filter((item) => item !== service))
+                            }
+                          }}
+                          color="red"
+                          sizeEm={0.88}
+                        />
+                      </div>
+                      <span className="text-sm text-white/90">{service}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-xs font-nav font-bold uppercase tracking-[0.18em] text-white/65">
+                Coating Experience
+              </h2>
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <LiquidGlassSelect
+                    label="How many ceramic coating installations have you performed?"
+                    value={coatingInstallationsValue}
+                    options={coatingInstallations.map((option) => ({ value: option, label: option }))}
+                    onChange={setCoatingInstallationsValue}
+                    placeholder="Select installation volume"
+                    searchable={false}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase tracking-[0.14em] text-white/60 mb-2">
+                    Which brands have you worked with previously?
+                  </label>
+                  <input
+                    name="previousBrands"
+                    type="text"
+                    required
+                    className="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/20 text-sm text-white focus:outline-none focus:border-white/70"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-xs font-nav font-bold uppercase tracking-[0.18em] text-white/65">
+                Operation Details
+              </h2>
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="block text-[11px] uppercase tracking-[0.14em] text-white/60 mb-2">
+                    Do you operate from a physical location?
+                  </p>
+                  <div className="flex items-center gap-5 text-sm text-white/85">
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="physicalLocation"
+                        checked={physicalLocation === 'yes'}
+                        onChange={() => setPhysicalLocation('yes')}
+                        className="accent-red-500"
+                      />
+                      Yes
+                    </label>
+                    <label className="inline-flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="physicalLocation"
+                        checked={physicalLocation === 'no'}
+                        onChange={() => setPhysicalLocation('no')}
+                        className="accent-red-500"
+                      />
+                      No (Mobile Only)
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <LiquidGlassSelect
+                    label="How many technicians are in your team?"
+                    value={teamSizeValue}
+                    options={teamSizes.map((option) => ({ value: option, label: option }))}
+                    onChange={setTeamSizeValue}
+                    placeholder="Select team size"
+                    searchable={false}
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-xs font-nav font-bold uppercase tracking-[0.18em] text-white/65">Agreement</h2>
+              <div
+                className="mt-3 inline-flex items-start gap-2.5 text-sm text-white/80 cursor-pointer"
+                onClick={() => setAgreementChecked((prev) => !prev)}
+              >
+                <div className="pointer-events-none mt-0.5">
+                  <IOSCheckbox
+                    id="partner-agreement-checkbox"
+                    checked={agreementChecked}
+                    onChange={setAgreementChecked}
+                    color="red"
+                  />
+                </div>
+                <span>
+                  I understand that Fireball Canada reserves the right to approve or deny this application based on
+                  internal certification standards.
+                </span>
+              </div>
+            </section>
+          </div>
+
+          <p className="mt-8 text-xs text-white/65">
+            Approval includes onboarding support and certification guidance.
+          </p>
+          {formError && (
+            <div className="mt-4 rounded-xl px-4 py-3 bg-red-500/10 border border-red-500/25 text-red-300 text-sm">
+              {formError}
+            </div>
+          )}
+          <button
+            type="submit"
+            className="mt-8 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#9f1119] via-[#d21826] to-[#ff3b48] px-7 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(214,24,38,0.35)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={!agreementChecked || submitting}
+          >
+            {submitting ? 'Submitting...' : 'Apply for Certification'}
+          </button>
+
+          <p className="mt-4 text-xs text-white/65">
+            Applications are reviewed within 3-5 business days.
+            <br />
+            Selected partners receive onboarding instructions via email.
+          </p>
           </div>
         </form>
       </div>
