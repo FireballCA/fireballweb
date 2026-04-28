@@ -242,9 +242,10 @@ export function Header() {
   const lastBannerScrollYRef = useRef(0)
   const bannerRef = useRef<HTMLDivElement | null>(null)
   const [bannerHeightPx, setBannerHeightPx] = useState(0)
-  // Disable banners inside dashboards (member dashboard + business/admin)
+  const isEventDetailPage = location.pathname.startsWith('/event/') && location.pathname.length > '/event/'.length - 1
+  // Disable banners inside dashboards (member dashboard + business/admin) and event detail pages
   const bannerAllowedByRoute =
-    !isContactPage && !isBusinessPage && !isDashboardPage
+    !isContactPage && !isBusinessPage && !isDashboardPage && !isEventDetailPage
   const activeBanners = useMemo(
     () => banners.filter((b) => b.enabled && String(b.text || '').trim().length > 0),
     [banners],

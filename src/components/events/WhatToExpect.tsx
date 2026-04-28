@@ -4,7 +4,7 @@ const EXPECT_ROWS = [
   {
     num: '01',
     title: 'The Community',
-    body: 'Connect with certified Fireball installers, industry partners, and enthusiasts who live this world. Real conversations — the kind that don’t happen on a show floor.',
+    body: "Connect with certified Fireball installers, industry partners, and enthusiasts who live this world. Real conversations — the kind that don't happen on a show floor.",
   },
   {
     num: '02',
@@ -33,7 +33,7 @@ export function WhatToExpect() {
           io.disconnect()
         }
       },
-      { threshold: 0.1 },
+      { threshold: 0.08 },
     )
     io.observe(el)
     return () => io.disconnect()
@@ -46,14 +46,14 @@ export function WhatToExpect() {
       aria-labelledby="what-to-expect-heading"
     >
       <div
-        className={`mx-auto max-w-7xl px-6 py-16 transition-all duration-700 ease-out sm:px-10 sm:py-20 lg:px-16 lg:py-[80px] ${
-          revealed ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
-        }`}
+        className="mx-auto max-w-7xl px-6 py-16 sm:px-10 sm:py-20 lg:px-16 lg:py-[80px]"
         style={{ fontFamily: "'Roboto', sans-serif" }}
       >
         <h2
           id="what-to-expect-heading"
-          className="mb-12 text-center font-nav text-4xl font-bold tracking-tight text-carbon-950 sm:mb-16 sm:text-5xl md:text-6xl lg:mb-20"
+          className={`mb-12 text-center font-nav text-4xl font-bold tracking-tight text-carbon-950 sm:mb-16 sm:text-5xl md:text-6xl lg:mb-20 transition-all duration-700 ease-out ${
+            revealed ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
+          }`}
         >
           What to expect
         </h2>
@@ -74,10 +74,16 @@ export function WhatToExpect() {
           </div>
 
           <div className="relative z-[1] flex flex-col">
-            {EXPECT_ROWS.map((row) => (
+            {EXPECT_ROWS.map((row, idx) => (
               <div
                 key={row.num}
-                className="group relative cursor-default overflow-hidden border-t border-carbon-900/10 last:border-b last:border-carbon-900/10"
+                className={`group relative cursor-default overflow-hidden border-t border-carbon-900/10 last:border-b last:border-carbon-900/10 transition-all ease-out ${
+                  revealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+                }`}
+                style={{
+                  transitionDuration: '600ms',
+                  transitionDelay: revealed ? `${idx * 120 + 200}ms` : '0ms',
+                }}
                 onMouseEnter={() => setBgNum(row.num)}
                 onMouseLeave={() => setBgNum(null)}
               >

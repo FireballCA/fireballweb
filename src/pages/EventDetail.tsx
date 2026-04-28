@@ -3,7 +3,7 @@ import { Navigate, useParams } from 'react-router-dom'
 import { ReserveYourSpot } from '@/components/events/ReserveYourSpot'
 import { WhatToExpect } from '@/components/events/WhatToExpect'
 import { supabase } from '@/lib/supabase'
-import { resolveSiteEventConfigs } from '@/constants/siteEventConfigs'
+import { resolveSiteEventConfigs, type EventAccessMode } from '@/constants/siteEventConfigs'
 import { usePageTitle } from '@/hooks/usePageTitle'
 
 /** Scales down font size so the title stays on one line within its container */
@@ -75,7 +75,7 @@ function EventCountdown({ targetIso }: { targetIso: string }) {
     <div className="flex w-full items-stretch justify-center">
       {ended ? (
         <p className="py-4 text-center font-nav text-xl font-bold text-white sm:text-2xl">
-          We’re live — see you there.
+          We're live — see you there.
         </p>
       ) : (
         units.map((u, i) => (
@@ -111,6 +111,8 @@ export function EventDetail() {
     dateLine: string
     locationLine: string
     startAt: string
+    accessMode: EventAccessMode
+    allowedRoles: string[] | undefined
   } | null>(null)
   const [loaded, setLoaded] = useState(false)
 
@@ -139,6 +141,8 @@ export function EventDetail() {
               dateLine: ev.dateLine || '',
               locationLine: ev.locationLine || ev.cityRegion,
               startAt: ev.startAt || new Date().toISOString(),
+              accessMode: ev.accessMode || (ev.isPrivate ? 'private' : 'public'),
+              allowedRoles: ev.allowedRoles,
             }
           : null,
       )
@@ -202,7 +206,12 @@ export function EventDetail() {
       </section>
 
       <WhatToExpect />
-      <ReserveYourSpot />
+      <ReserveYourSpot
+        eventSlug={eventSlug!}
+        eventTitle={resolved.heroTitle}
+        accessMode={resolved.accessMode}
+        allowedRoles={resolved.allowedRoles}
+      />
     </div>
   )
 }

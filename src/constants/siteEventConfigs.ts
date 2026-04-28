@@ -1,3 +1,5 @@
+export type EventAccessMode = 'public' | 'private' | 'partner-only'
+
 export type SiteEventConfig = {
   id: string
   slug: string
@@ -8,6 +10,8 @@ export type SiteEventConfig = {
   cityRegion: string
   imageSrc: string
   isPrivate: boolean
+  accessMode?: EventAccessMode
+  allowedRoles?: string[]
   ctaLabel: string
   ctaHref: string
   navTitle?: string
@@ -30,6 +34,7 @@ export const DEFAULT_SITE_EVENT_CONFIGS: SiteEventConfig[] = [
     cityRegion: 'Saint-Hyacinthe, QC',
     imageSrc: '/Assets/Driven.webp',
     isPrivate: false,
+    accessMode: 'public',
     ctaLabel: 'See details',
     ctaHref: 'https://www.drivenshow.ca/sainthyacinthe/',
     navTitle: 'The Driven Show',
@@ -46,10 +51,11 @@ export const DEFAULT_SITE_EVENT_CONFIGS: SiteEventConfig[] = [
     monthFull: 'MAY',
     title: 'Fireball After Party',
     description:
-      'Private evening after the show - invitation only. Meet the team, connect with the community, and get details once your spot is confirmed.',
+      'An evening after the show — the team, the community, and the people who take their craft seriously. Open to all.',
     cityRegion: 'Saint-Hyacinthe, QC',
     imageSrc: '/Assets/FireballAfterParty.png',
-    isPrivate: true,
+    isPrivate: false,
+    accessMode: 'public',
     ctaLabel: 'RSVP NOW',
     ctaHref: '/event/fireball-after-party',
     navTitle: 'Fireball After Party',
@@ -70,6 +76,9 @@ export function resolveSiteEventConfigs(raw: unknown): SiteEventConfig[] {
     const title = typeof i.title === 'string' ? i.title.trim() : ''
     const slug = typeof i.slug === 'string' ? i.slug.trim() : ''
     if (!title || !slug) continue
+    const rawMode = typeof i.accessMode === 'string' ? i.accessMode : ''
+    const accessMode: EventAccessMode =
+      rawMode === 'private' ? 'private' : rawMode === 'partner-only' ? 'partner-only' : 'public'
     parsed.push({
       id:
         typeof i.id === 'string' && i.id.trim()
@@ -83,6 +92,10 @@ export function resolveSiteEventConfigs(raw: unknown): SiteEventConfig[] {
       cityRegion: typeof i.cityRegion === 'string' ? i.cityRegion : '',
       imageSrc: typeof i.imageSrc === 'string' ? i.imageSrc : '',
       isPrivate: Boolean(i.isPrivate),
+      accessMode,
+      allowedRoles: Array.isArray(i.allowedRoles)
+        ? (i.allowedRoles as unknown[]).filter((r): r is string => typeof r === 'string')
+        : undefined,
       ctaLabel: typeof i.ctaLabel === 'string' ? i.ctaLabel : 'See details',
       ctaHref: typeof i.ctaHref === 'string' ? i.ctaHref : `/event/${slug}`,
       navTitle: typeof i.navTitle === 'string' ? i.navTitle : undefined,
