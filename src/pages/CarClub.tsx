@@ -266,60 +266,6 @@ export function CarClub() {
             </motion.div>
           </div>
 
-          {/* VALUE JUSTIFICATION */}
-          <motion.div
-            className="border-t border-white/20 pt-16 pb-16"
-            initial={{ opacity: 0, y: 28 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            viewport={{ once: true, amount: 0.3 }}
-          >
-            <h3 className="mx-auto max-w-3xl text-center font-nav text-2xl font-bold tracking-tight text-white md:text-4xl">
-              {t('carClub.privilegeTitle')}
-            </h3>
-            <p className="mt-6 text-white/80 text-center max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
-              {t('carClub.privilegeDesc')}
-              <br />
-              <span className="font-semibold text-white/90">{t('carClub.privilegeHighlight')}</span>
-            </p>
-          </motion.div>
-
-          {/* FINAL CTA */}
-          <motion.div
-            className="border-t border-white/20 pt-16 pb-8"
-            initial={{ opacity: 0, y: 28 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            viewport={{ once: true, amount: 0.3 }}
-          >
-            <h3 className="text-center font-nav text-2xl font-bold tracking-tight text-white md:text-4xl">
-              Join the Fireball Inner Circle
-            </h3>
-            <p className="mt-4 text-white/80 text-center max-w-xl mx-auto text-sm md:text-base">
-              {t('carClub.joinCircleDesc')}
-            </p>
-            <motion.div
-              className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
-              viewport={{ once: true }}
-            >
-              <Link
-                to="/join-club?tier=apex"
-                className="inline-block px-8 py-3.5 font-nav font-bold text-sm uppercase rounded-lg text-white transition-colors duration-200 hover:opacity-90"
-                style={{ backgroundColor: '#B61B1B' }}
-              >
-                Become an Apex Member
-              </Link>
-              <Link
-                to="/join-club?tier=ignition"
-                className="inline-block px-8 py-3.5 font-nav font-bold text-sm uppercase rounded-lg border-2 border-white/60 text-white hover:border-white hover:bg-white/10 transition-all duration-300"
-              >
-                {t('carClub.startIgnition')}
-              </Link>
-            </motion.div>
-          </motion.div>
         </div>
       </section>
     </div>
