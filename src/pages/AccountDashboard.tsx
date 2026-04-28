@@ -43,7 +43,9 @@ interface Vehicle {
   brand: string
   model: string
   year: number
-  ceramicProtectionDate: Date // Date de complétion de la protection
+  color?: string
+  imageUrl?: string
+  ceramicProtectionDate?: Date
   protectionShop?: string
   protectionProduct?: string
 }
@@ -284,11 +286,9 @@ function VehicleSettingsModal({ vehicle, onClose, onUpdate, onDelete }: VehicleS
     }
   }, [])
 
-  const lastProtection = vehicle.ceramicProtectionDate.toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  const lastProtection = vehicle.ceramicProtectionDate
+    ? vehicle.ceramicProtectionDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null
 
   const handleSave = () => {
     const parsedYear = Number(year)
@@ -375,6 +375,7 @@ function VehicleSettingsModal({ vehicle, onClose, onUpdate, onDelete }: VehicleS
           </div>
         </div>
 
+        {lastProtection && (
         <div className="mt-5 border-t border-white/12 pt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <p className="text-[11px] font-nav font-bold uppercase text-white/60 tracking-[0.18em]">
@@ -425,6 +426,7 @@ function VehicleSettingsModal({ vehicle, onClose, onUpdate, onDelete }: VehicleS
             </button>
           </div>
         </div>
+        )}
 
         <div className="mt-6 flex items-center justify-between gap-3">
           <button
@@ -838,7 +840,9 @@ export function AccountDashboard() {
           brand: row.brand,
           model: row.model,
           year: row.year,
-          ceramicProtectionDate: new Date(row.ceramic_protection_date),
+          color: row.color ?? undefined,
+          imageUrl: row.image_url ?? undefined,
+          ceramicProtectionDate: row.ceramic_protection_date ? new Date(row.ceramic_protection_date) : undefined,
           protectionShop: row.protection_shop ?? undefined,
           protectionProduct: row.protection_product ?? undefined,
         }))
@@ -1768,12 +1772,95 @@ export function AccountDashboard() {
               </article>
 
               <div className="flex flex-col gap-5">
-                <article className="flex items-center justify-between rounded-[2px] bg-[#F3F3F3] px-6 py-6">
-                  <div>
-                    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">My garage</p>
-                    <p className="mt-2 text-sm text-[#4A4A4A]">Manage your vehicles and protection history.</p>
+                {/* ── My Garage ─────────────────────────────────────── */}
+                <article className="rounded-[2px] bg-[#F3F3F3] px-6 py-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">My Garage</p>
+                    <button
+                      type="button"
+                      onClick={() => setCarModalOpen(true)}
+                      className="flex items-center gap-1.5 rounded-full bg-[#171717] px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-80"
+                    >
+                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add vehicle
+                    </button>
                   </div>
+
+                  {vehicles.length === 0 ? (
+                    /* Empty state */
+                    <button
+                      type="button"
+                      onClick={() => setCarModalOpen(true)}
+                      className="flex w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[#D8D8D8] py-10 text-center transition-colors hover:border-[#BDBDBD] hover:bg-[#EBEBEB]"
+                    >
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E3E3E3]">
+                        <svg className="h-6 w-6 text-[#8A8A8A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                            d="M9 17H5a2 2 0 01-2-2V9a2 2 0 012-2h1l2-3h8l2 3h1a2 2 0 012 2v6a2 2 0 01-2 2h-4M9 17v3m6-3v3M9 17h6" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#171717]">No vehicles yet</p>
+                        <p className="mt-0.5 text-xs text-[#8A8A8A]">Add your first vehicle to track its protection</p>
+                      </div>
+                    </button>
+                  ) : (
+                    /* Vehicle cards grid */
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {vehicles.map((v) => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() => setSettingsVehicle(v)}
+                          className="group flex overflow-hidden rounded-xl bg-white text-left shadow-[0_1px_4px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-[0_4px_14px_rgba(0,0,0,0.12)]"
+                        >
+                          {/* Photo / placeholder */}
+                          <div className="flex h-[88px] w-[88px] shrink-0 items-center justify-center bg-[#F0F0F0] text-center">
+                            {v.imageUrl ? (
+                              <img src={v.imageUrl} alt={`${v.brand} ${v.model}`} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex flex-col items-center gap-1">
+                                <svg className="h-6 w-6 text-[#BDBDBD]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span className="text-[9px] font-medium text-[#BDBDBD]">No photo</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex flex-1 flex-col justify-between px-4 py-3">
+                            <div>
+                              <p className="text-[13px] font-bold text-[#171717] leading-tight">
+                                {v.year} {v.brand} {v.model}
+                              </p>
+                              {v.color && (
+                                <p className="mt-0.5 text-[11px] text-[#8A8A8A]">{v.color}</p>
+                              )}
+                            </div>
+                            <div className="mt-2">
+                              {v.ceramicProtectionDate ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F5E9] px-2 py-0.5 text-[10px] font-semibold text-[#2E7D32]">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-[#4CAF50]" />
+                                  Coated
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[#F5F5F5] px-2 py-0.5 text-[10px] font-semibold text-[#9E9E9E]">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-[#BDBDBD]" />
+                                  Not protected
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </article>
+
                 <button
                   type="button"
                   onClick={() => setLeaderboardOpen(true)}
@@ -1975,7 +2062,6 @@ export function AccountDashboard() {
             brand: make,
             model,
             year,
-            ceramicProtectionDate: new Date(),
           })
           if (!row) return
           setVehicles((prev) => [
@@ -1985,7 +2071,7 @@ export function AccountDashboard() {
               brand: row.brand,
               model: row.model,
               year: row.year,
-              ceramicProtectionDate: new Date(row.ceramic_protection_date),
+              ceramicProtectionDate: row.ceramic_protection_date ? new Date(row.ceramic_protection_date) : undefined,
               protectionShop: row.protection_shop ?? undefined,
             },
           ])

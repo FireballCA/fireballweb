@@ -10,7 +10,9 @@
       "Bash(gh pr *)",
       "PowerShell(git push origin main 2>&1)",
       "Bash(python3 -c ' *)",
-      "Bash(node -e \"const d=require\\('./src/locales/en/translation.json'\\); console.log\\(JSON.stringify\\(d.carClub,null,2\\)\\)\")"
+      "Bash(node -e \"const d=require\\('./src/locales/en/translation.json'\\); console.log\\(JSON.stringify\\(d.carClub,null,2\\)\\)\")",
+      "Bash(wmic logicaldisk *)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }

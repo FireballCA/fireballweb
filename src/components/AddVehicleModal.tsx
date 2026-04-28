@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
-import { LiquidGlassSelect } from './LiquidGlassSelect'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 interface AddVehicleModalProps {
   isOpen: boolean
@@ -22,6 +21,127 @@ interface Model {
   Model_Name: string
 }
 
+// ─── Light-mode searchable select ─────────────────────────────────────────────
+
+interface LightSelectProps {
+  label: string
+  value: string
+  options: { value: string; label: string }[]
+  onChange: (value: string) => void
+  placeholder?: string
+  disabled?: boolean
+}
+
+function LightSelect({ label, value, options, onChange, placeholder = 'Select…', disabled = false }: LightSelectProps) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+        setQuery('')
+      }
+    }
+    if (open) {
+      document.addEventListener('mousedown', handler)
+      setTimeout(() => inputRef.current?.focus(), 80)
+    }
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const filtered = options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
+  const selected = options.find((o) => o.value === value)
+
+  return (
+    <div className="relative" ref={ref}>
+      <label className="block text-[13px] font-medium text-[#1d1d1f] mb-1.5">{label}</label>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen((v) => !v)}
+        className="w-full h-[44px] rounded-[10px] px-3.5 text-left text-[15px] flex items-center justify-between transition-all outline-none"
+        style={{
+          background: disabled ? '#f5f5f7' : '#fff',
+          border: open ? '1.5px solid #0071e3' : '1.5px solid #d2d2d7',
+          color: selected ? '#1d1d1f' : '#86868b',
+          boxShadow: open ? '0 0 0 3px rgba(0,113,227,0.15)' : 'none',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.5 : 1,
+        }}
+      >
+        <span>{selected ? selected.label : placeholder}</span>
+        <svg
+          className={`w-4 h-4 text-[#86868b] transition-transform shrink-0 ml-2 ${open ? 'rotate-180' : ''}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          className="absolute z-[60] w-full mt-1.5 rounded-[12px] overflow-hidden"
+          style={{
+            background: '#fff',
+            border: '1.5px solid #d2d2d7',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+            maxHeight: 320,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div className="p-2 border-b border-[#f0f0f0]">
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search…"
+              className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[#1d1d1f] placeholder:text-[#86868b] outline-none"
+              style={{ background: '#f5f5f7', border: '1.5px solid transparent' }}
+              onFocus={(e) => (e.currentTarget.style.border = '1.5px solid #0071e3')}
+              onBlur={(e) => (e.currentTarget.style.border = '1.5px solid transparent')}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <div className="overflow-y-auto p-1.5" style={{ maxHeight: 260 }}>
+            {filtered.length > 0 ? (
+              filtered.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => { onChange(opt.value); setOpen(false); setQuery('') }}
+                  className="w-full px-3 py-2 rounded-[8px] text-left text-[13px] transition-colors"
+                  style={{
+                    background: value === opt.value ? '#e8f0fe' : 'transparent',
+                    color: value === opt.value ? '#0071e3' : '#1d1d1f',
+                    fontWeight: value === opt.value ? 600 : 400,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (value !== opt.value) e.currentTarget.style.background = '#f5f5f7'
+                  }}
+                  onMouseLeave={(e) => {
+                    if (value !== opt.value) e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))
+            ) : (
+              <p className="px-3 py-3 text-[13px] text-[#86868b] text-center">No results</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Modal ─────────────────────────────────────────────────────────────────────
+
 export function AddVehicleModal({
   isOpen,
   onClose,
@@ -33,103 +153,61 @@ export function AddVehicleModal({
   const [selectedMake, setSelectedMake] = useState(currentMake)
   const [selectedModel, setSelectedModel] = useState(currentModel)
   const [selectedYear, setSelectedYear] = useState(currentYear)
-  
+
   const [makes, setMakes] = useState<Make[]>([])
   const [models, setModels] = useState<Model[]>([])
   const [loadingMakes, setLoadingMakes] = useState(false)
   const [loadingModels, setLoadingModels] = useState(false)
 
-  // Générer les années de 1990 à l'année actuelle
-  const generateYears = useCallback(() => {
-    const currentYear = new Date().getFullYear()
-    const years: number[] = []
-    for (let year = currentYear; year >= 1990; year--) {
-      years.push(year)
-    }
-    return years
-  }, [])
+  const years = useCallback(() => {
+    const cur = new Date().getFullYear()
+    return Array.from({ length: cur - 1989 }, (_, i) => cur - i)
+  }, [])()
 
-  const years = generateYears()
-
-  // Bloquer le scroll quand le modal est ouvert
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
+    if (isOpen) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
-  // Charger les marques depuis l'API NHTSA quand le modal s'ouvre
   useEffect(() => {
-    if (isOpen && makes.length === 0) {
-      loadMakes()
-    }
+    if (isOpen && makes.length === 0) loadMakes()
   }, [isOpen, makes.length])
 
-  // Charger les modèles quand une marque est sélectionnée
   useEffect(() => {
     if (selectedMake) {
       loadModels(selectedMake)
-      // Réinitialiser le modèle et l'année quand on change de marque
       if (selectedMake !== currentMake) {
         setSelectedModel('')
         setSelectedYear(new Date().getFullYear())
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMake])
 
   const loadMakes = useCallback(async () => {
     setLoadingMakes(true)
     try {
-      const response = await fetch('https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json')
-      if (!response.ok) {
-        throw new Error('Failed to load makes')
+      const res = await fetch('https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json')
+      const data = await res.json()
+      if (data.Results) {
+        setMakes(data.Results.sort((a: Make, b: Make) => a.Make_Name.localeCompare(b.Make_Name)))
       }
-      
-      const data = await response.json()
-      if (data.Results && data.Results.length > 0) {
-        // Trier les marques par ordre alphabétique
-        const sortedMakes = data.Results.sort((a: Make, b: Make) => 
-          a.Make_Name.localeCompare(b.Make_Name)
-        )
-        setMakes(sortedMakes)
-      }
-    } catch (error) {
-      console.error('Error loading makes:', error)
-    } finally {
-      setLoadingMakes(false)
-    }
+    } catch (e) { console.error(e) }
+    finally { setLoadingMakes(false) }
   }, [])
 
   const loadModels = useCallback(async (make: string) => {
     setLoadingModels(true)
-    setModels([]) // Réinitialiser les modèles
+    setModels([])
     try {
-      const response = await fetch(
-        `https://vpic.nhtsa.dot.gov/api/vehicles/getmodelsformake/${encodeURIComponent(make)}?format=json`
-      )
-      if (!response.ok) {
-        throw new Error('Failed to load models')
+      const res = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/getmodelsformake/${encodeURIComponent(make)}?format=json`)
+      const data = await res.json()
+      if (data.Results) {
+        setModels(data.Results.sort((a: Model, b: Model) => a.Model_Name.localeCompare(b.Model_Name)))
       }
-      
-      const data = await response.json()
-      if (data.Results && data.Results.length > 0) {
-        // Trier les modèles par ordre alphabétique
-        const sortedModels = data.Results.sort((a: Model, b: Model) => 
-          a.Model_Name.localeCompare(b.Model_Name)
-        )
-        setModels(sortedModels)
-      }
-    } catch (error) {
-      console.error('Error loading models:', error)
-    } finally {
-      setLoadingModels(false)
-    }
+    } catch (e) { console.error(e) }
+    finally { setLoadingModels(false) }
   }, [])
 
   const handleConfirm = () => {
@@ -141,142 +219,92 @@ export function AddVehicleModal({
 
   if (!isOpen) return null
 
-  const makeOptions = makes.map((make) => ({
-    value: make.Make_Name,
-    label: make.Make_Name,
-  }))
-
-  const modelOptions = models.map((model) => ({
-    value: model.Model_Name,
-    label: model.Model_Name,
-    bold: true,
-  }))
-
-  const yearOptions = years.map((year) => ({
-    value: year.toString(),
-    label: year.toString(),
-  }))
-
-  const isModelDisabled = !selectedMake || loadingModels
-  const isYearDisabled = !selectedModel
+  const makeOptions = makes.map((m) => ({ value: m.Make_Name, label: m.Make_Name }))
+  const modelOptions = models.map((m) => ({ value: m.Model_Name, label: m.Model_Name }))
+  const yearOptions = years.map((y) => ({ value: y.toString(), label: y.toString() }))
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      {/* Backdrop avec blur */}
-      <div 
-        className="absolute inset-0"
-        style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-        }}
-      />
-      
-      {/* Modal - Style Liquid Glass Apple moderne */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      {/* Backdrop */}
       <div
-        className="relative rounded-3xl shadow-2xl max-w-2xl w-full p-8"
-        style={{
-          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
-          backdropFilter: 'blur(80px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(80px) saturate(200%)',
-          border: '1px solid rgba(255, 255, 255, 0.18)',
-          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.2)',
-        }}
+        className="absolute inset-0"
+        style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
+      />
+
+      {/* Panel */}
+      <div
+        className="relative w-full max-w-md rounded-[20px] overflow-hidden"
+        style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close button top right */}
-        <button
-          onClick={onClose}
-          className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors"
-          aria-label="Close"
-        >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-
-        <h3 className="text-white text-2xl font-normal mb-6 pr-8" style={{ textShadow: '0 2px 10px rgba(0, 0, 0, 0.3)' }}>
-          Select Your Car
-        </h3>
-        
-        <div className="space-y-6">
-          {/* Make Selector */}
-          <LiquidGlassSelect
-            label="Vehicle Make"
-            value={selectedMake}
-            options={makeOptions}
-            onChange={(value) => {
-              setSelectedMake(value)
-            }}
-            placeholder={loadingMakes ? 'Loading makes...' : 'Select a make'}
-          />
-
-          {/* Model Selector - Disabled until Make is selected */}
-          <div className={isModelDisabled ? 'opacity-50 pointer-events-none' : ''}>
-            <LiquidGlassSelect
-              label="Vehicle Model"
-              value={selectedModel}
-              options={modelOptions}
-              onChange={(value) => {
-                setSelectedModel(value)
-                // Réinitialiser l'année quand on change de modèle
-                setSelectedYear(new Date().getFullYear())
-              }}
-              placeholder={loadingModels ? 'Loading models...' : selectedMake ? 'Select a model' : 'Select a make first'}
-            />
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-5 border-b border-[#f0f0f0]">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#86868b] mb-0.5">My Garage</p>
+            <h3 className="text-[20px] font-semibold text-[#1d1d1f]">Add a Vehicle</h3>
           </div>
-
-          {/* Year Selector - Disabled until Model is selected */}
-          <div className={isYearDisabled ? 'opacity-50 pointer-events-none' : ''}>
-            <LiquidGlassSelect
-              label="Production Year"
-              value={selectedYear.toString()}
-              options={yearOptions}
-              onChange={(value) => setSelectedYear(Number(value))}
-              placeholder={selectedModel ? 'Select a year' : 'Select a model first'}
-            />
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-3 mt-8">
           <button
             onClick={onClose}
-            className="flex-1 px-6 py-3 rounded-xl text-white transition-all"
-            style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(30px)',
-              WebkitBackdropFilter: 'blur(30px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
-            }}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+            style={{ background: '#f5f5f7' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}
+          >
+            <svg className="w-4 h-4 text-[#1d1d1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5 space-y-4">
+          <LightSelect
+            label="Make"
+            value={selectedMake}
+            options={makeOptions}
+            onChange={setSelectedMake}
+            placeholder={loadingMakes ? 'Loading…' : 'Select a make'}
+          />
+
+          <LightSelect
+            label="Model"
+            value={selectedModel}
+            options={modelOptions}
+            onChange={(v) => { setSelectedModel(v); setSelectedYear(new Date().getFullYear()) }}
+            placeholder={loadingModels ? 'Loading…' : selectedMake ? 'Select a model' : 'Select a make first'}
+            disabled={!selectedMake || loadingModels}
+          />
+
+          <LightSelect
+            label="Year"
+            value={selectedYear.toString()}
+            options={yearOptions}
+            onChange={(v) => setSelectedYear(Number(v))}
+            placeholder={selectedModel ? 'Select a year' : 'Select a model first'}
+            disabled={!selectedModel}
+          />
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 pb-6 pt-2 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 h-[44px] rounded-[10px] text-[15px] font-medium transition-all"
+            style={{ background: '#f5f5f7', color: '#1d1d1f' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}
           >
             Cancel
           </button>
           <button
             onClick={handleConfirm}
             disabled={!selectedMake || !selectedModel || !selectedYear}
-            className="flex-1 px-6 py-3 bg-white hover:bg-white/90 text-black rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 h-[44px] rounded-[10px] text-[15px] font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: '#0071e3', color: '#fff' }}
+            onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.background = '#0077ed' }}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#0071e3')}
           >
-            Submit
+            Continue
           </button>
         </div>
       </div>
