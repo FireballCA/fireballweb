@@ -15,38 +15,91 @@ export function LegalNotice() {
 
         <div className="space-y-10 font-sans text-base leading-relaxed text-carbon-600">
           <section>
-            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Publisher</h2>
-            <p>This website is published by <strong className="text-carbon-900">Fireball Canada</strong>, a company operating under Canadian law.</p>
-            <div className="mt-4 space-y-1">
-              <p>Email: <a href="mailto:fireballcanada@gmail.com" className="text-[#B61B1B] hover:underline">fireballcanada@gmail.com</a></p>
+            <p>
+              This website is operated by <strong className="text-carbon-900">Passion Detailing</strong> ("Fireball Canada", "Passion du détail", "Passion Detailing", "we", "us", or "our").
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Business Information</h2>
+            <div className="space-y-1">
+              <p className="font-semibold text-carbon-900">Fireball Canada</p>
+              <p>Passion du détail INC</p>
+              <p>8007 Av. Émilien-Letarte</p>
+              <p>Saint-Hyacinthe, QC, J2R 0A4, Canada</p>
+              <p className="mt-2">
+                Email:{' '}
+                <a href="mailto:info@passiondetailing.ca" className="text-[#B61B1B] hover:underline">
+                  info@passiondetailing.ca
+                </a>
+              </p>
             </div>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Hosting</h2>
-            <p>This website is hosted by a third-party provider. Fireball Canada is not responsible for the technical infrastructure beyond what falls under its direct editorial control.</p>
+            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Purpose of the Website</h2>
+            <p>
+              This website provides access to automotive detailing products, services, training programs, membership systems, and related digital tools, including account management, vehicle tracking, and installer services.
+            </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-carbon-900 mb-4">Intellectual Property</h2>
-            <p>All content on this website — including logos, branding, product names, images, design, and written content — is the exclusive property of Fireball Canada or its partners and is protected by applicable intellectual property laws.</p>
-            <p className="mt-4">No reproduction, distribution, or commercial use is permitted without prior written consent from Fireball Canada.</p>
+            <p>
+              All content on this website, including but not limited to text, graphics, logos, icons, images, videos, software, and design elements, is the exclusive property of Fireball Canada or its licensors and is protected by Canadian and international intellectual property laws.
+            </p>
+            <p className="mt-4">
+              No part of this website may be copied, reproduced, distributed, or used without prior written consent.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Accuracy of Information</h2>
+            <p>
+              We strive to ensure that all information provided on this website is accurate and up to date. However, we do not guarantee the completeness, reliability, or accuracy of any information. Content may be updated or modified at any time without notice.
+            </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-carbon-900 mb-4">Limitation of Liability</h2>
-            <p>Fireball Canada makes every effort to ensure the accuracy of information published on this website. However, we cannot guarantee that all information is free of errors or omissions, and we reserve the right to update content at any time without notice.</p>
-            <p className="mt-4">Fireball Canada shall not be held liable for any damages arising from the use of or reliance on the information published on this site.</p>
+            <p>Fireball Canada shall not be held liable for any direct, indirect, incidental, or consequential damages resulting from:</p>
+            <ul className="list-disc list-inside mt-4 space-y-2 ml-4">
+              <li>the use or inability to use the website</li>
+              <li>errors or omissions in content</li>
+              <li>reliance on any information provided</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-carbon-900 mb-4">External Links</h2>
+            <p>
+              This website may include links to third-party websites. Fireball Canada is not responsible for the content, policies, or practices of any third-party sites.
+            </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-carbon-900 mb-4">Governing Law</h2>
-            <p>This legal notice is governed by Canadian law. Any dispute arising from the use of this website shall be subject to the exclusive jurisdiction of the competent Canadian courts.</p>
+            <p>
+              This website is governed by the laws of the Province of Quebec and the applicable laws of Canada.
+            </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-carbon-900 mb-4">Contact</h2>
-            <p>For any legal inquiries, please contact us at <a href="mailto:fireballcanada@gmail.com" className="text-[#B61B1B] hover:underline">fireballcanada@gmail.com</a>.</p>
+            <p>For any legal inquiries, please contact:</p>
+            <div className="mt-3 space-y-1">
+              <p>
+                <a href="mailto:fireballcarcarecanada@gmail.com" className="text-[#B61B1B] hover:underline">
+                  fireballcarcarecanada@gmail.com
+                </a>
+              </p>
+              <p>
+                <a href="mailto:info@passiondetailing.ca" className="text-[#B61B1B] hover:underline">
+                  info@passiondetailing.ca
+                </a>{' '}
+                <span className="text-carbon-500">(Object : Fireball Canada)</span>
+              </p>
+            </div>
           </section>
         </div>
       </div>

@@ -15,34 +15,75 @@ export function Cookies() {
 
         <div className="space-y-10 font-sans text-base leading-relaxed text-carbon-600">
           <section>
+            <p>
+              This Cookies Policy explains how Fireball Canada uses cookies and similar technologies when you visit our website.
+            </p>
+          </section>
+
+          <section>
             <h2 className="text-2xl font-bold text-carbon-900 mb-4">What Are Cookies</h2>
-            <p>Cookies are small text files stored on your device when you visit a website. They allow the site to remember your actions and preferences over a period of time, so you do not have to re-enter them each time you visit.</p>
+            <p>
+              Cookies are small data files stored on your device when you access a website. They allow websites to recognize your device and store certain information about your preferences or actions.
+            </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-carbon-900 mb-4">How We Use Cookies</h2>
-            <p>Fireball Canada uses cookies for the following purposes:</p>
+            <p>We use cookies to:</p>
             <ul className="list-disc list-inside mt-4 space-y-2 ml-4">
-              <li><strong className="text-carbon-900">Essential cookies</strong> — required for the website to function correctly (e.g., session management, authentication).</li>
-              <li><strong className="text-carbon-900">Analytics cookies</strong> — help us understand how visitors interact with the site so we can improve it.</li>
-              <li><strong className="text-carbon-900">Preference cookies</strong> — remember your settings and choices to personalize your experience.</li>
+              <li>ensure proper functioning of the website</li>
+              <li>enhance user experience</li>
+              <li>analyze website traffic and usage patterns</li>
+              <li>remember user preferences</li>
+              <li>improve performance and security</li>
             </ul>
           </section>
 
           <section>
+            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Types of Cookies We Use</h2>
+
+            <div className="space-y-6 mt-2">
+              <div>
+                <h3 className="text-lg font-semibold text-carbon-900 mb-2">Essential Cookies</h3>
+                <p>These cookies are necessary for the website to function properly and cannot be disabled.</p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-carbon-900 mb-2">Performance and Analytics Cookies</h3>
+                <p>These cookies help us understand how users interact with our website by collecting anonymous information such as page visits and traffic sources.</p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-carbon-900 mb-2">Functional Cookies</h3>
+                <p>These cookies allow us to remember your preferences, such as language or account settings.</p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-carbon-900 mb-2">Marketing Cookies</h3>
+                <p>We may use cookies to deliver relevant advertisements or track campaign performance.</p>
+              </div>
+            </div>
+          </section>
+
+          <section>
             <h2 className="text-2xl font-bold text-carbon-900 mb-4">Third-Party Cookies</h2>
-            <p>Some pages may include content from third-party services (such as analytics or payment processors) that may set their own cookies. Fireball Canada does not control these cookies and encourages you to review the privacy policies of those third parties.</p>
+            <p>
+              We may use third-party services such as analytics providers or embedded content (e.g., videos, social media), which may place cookies on your device.
+            </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-carbon-900 mb-4">Managing Cookies</h2>
-            <p>You can manage or disable cookies at any time through your browser settings. Please note that disabling certain cookies may affect the functionality of the website.</p>
-            <p className="mt-4">For guidance on managing cookies, refer to your browser's help documentation.</p>
+            <p>
+              You can manage or disable cookies through your browser settings. Please note that disabling certain cookies may impact website functionality.
+            </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Contact</h2>
-            <p>If you have questions about our use of cookies, contact us at <a href="mailto:fireballcanada@gmail.com" className="text-[#B61B1B] hover:underline">fireballcanada@gmail.com</a>.</p>
+            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Consent</h2>
+            <p>
+              By continuing to use our website, you consent to the use of cookies in accordance with this policy.
+            </p>
           </section>
         </div>
       </div>

@@ -24,6 +24,10 @@ export function Layout() {
     location.pathname === '/press-kit' ||
     location.pathname === '/about' ||
     location.pathname === '/legal' ||
+    location.pathname === '/Legal-Notice' ||
+    location.pathname === '/Cookies' ||
+    location.pathname === '/Privacy' ||
+    location.pathname === '/Terms-of-Service' ||
     location.pathname === '/cart' ||
     location.pathname === '/academy/training-thank-you'
   const isJoinClubPage = location.pathname === '/join-club' || location.pathname === '/join'

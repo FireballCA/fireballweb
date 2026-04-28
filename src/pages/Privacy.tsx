@@ -15,52 +15,110 @@ export function Privacy() {
 
         <div className="space-y-10 font-sans text-base leading-relaxed text-carbon-600">
           <section>
-            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Introduction</h2>
-            <p>Fireball Canada is committed to protecting your personal information. This Privacy Policy explains what data we collect, how we use it, and your rights regarding that data.</p>
+            <p>
+              Fireball Canada is committed to protecting your privacy and handling your personal information responsibly and transparently.
+            </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Data We Collect</h2>
-            <p>We may collect the following personal information:</p>
+            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Information We Collect</h2>
+            <p>We may collect the following types of personal information:</p>
             <ul className="list-disc list-inside mt-4 space-y-2 ml-4">
-              <li>Full name and email address</li>
-              <li>Account credentials</li>
-              <li>Order history and billing information</li>
-              <li>Vehicle information (if provided through the platform)</li>
-              <li>Usage data and browsing behavior on our website</li>
+              <li>Name and contact details (email, phone number)</li>
+              <li>Billing and shipping information</li>
+              <li>Account login information</li>
+              <li>Vehicle details (if provided in My Garage)</li>
+              <li>Purchase history and transaction data</li>
+              <li>Usage data (pages visited, actions performed)</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-carbon-900 mb-4">How We Use Your Data</h2>
-            <p>Your personal data is used to:</p>
+            <h2 className="text-2xl font-bold text-carbon-900 mb-4">How We Use Your Information</h2>
+            <p>We use your information to:</p>
             <ul className="list-disc list-inside mt-4 space-y-2 ml-4">
-              <li>Operate and maintain the platform</li>
-              <li>Process orders and manage your account</li>
-              <li>Send transactional and service-related communications</li>
-              <li>Improve our products, services, and user experience</li>
-              <li>Comply with applicable legal obligations</li>
+              <li>process and fulfill orders</li>
+              <li>manage your account and provide services</li>
+              <li>personalize your experience</li>
+              <li>improve our products and platform</li>
+              <li>communicate with you regarding updates, promotions, or support</li>
+              <li>ensure platform security and prevent fraud</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Data Sharing</h2>
-            <p>We do not sell your personal data to third parties. We may share data with trusted service providers (payment processors, hosting services) strictly for operational purposes and under confidentiality agreements.</p>
+            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Legal Basis for Processing</h2>
+            <p>We process your data based on:</p>
+            <ul className="list-disc list-inside mt-4 space-y-2 ml-4">
+              <li>your consent</li>
+              <li>contractual necessity</li>
+              <li>legal obligations</li>
+              <li>legitimate business interests</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Sharing of Information</h2>
+            <p>We do not sell your personal information. We may share your data with:</p>
+            <ul className="list-disc list-inside mt-4 space-y-2 ml-4">
+              <li>payment processors</li>
+              <li>shipping and logistics providers</li>
+              <li>analytics and hosting providers</li>
+              <li>legal authorities when required</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Data Security</h2>
+            <p>
+              We implement appropriate technical and organizational measures to protect your data from unauthorized access, disclosure, or loss.
+            </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-carbon-900 mb-4">Data Retention</h2>
-            <p>We retain personal data only as long as necessary to fulfill the purposes described in this policy or as required by law.</p>
+            <p>
+              We retain personal data only as long as necessary for the purposes outlined in this policy, unless a longer retention period is required by law.
+            </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-carbon-900 mb-4">Your Rights</h2>
-            <p>You have the right to access, correct, or request deletion of your personal data at any time. To exercise these rights, contact us at the address below.</p>
+            <p>You have the right to:</p>
+            <ul className="list-disc list-inside mt-4 space-y-2 ml-4">
+              <li>access your personal data</li>
+              <li>request correction of inaccurate data</li>
+              <li>request deletion of your data</li>
+              <li>withdraw consent at any time</li>
+            </ul>
+            <p className="mt-6">To exercise your rights, contact us at:</p>
+            <div className="mt-2 space-y-1">
+              <p>
+                <a href="mailto:fireballcarcarecanada@gmail.com" className="text-[#B61B1B] hover:underline">
+                  fireballcarcarecanada@gmail.com
+                </a>
+              </p>
+              <p>
+                <a href="mailto:info@passiondetailing.ca" className="text-[#B61B1B] hover:underline">
+                  info@passiondetailing.ca
+                </a>{' '}
+                <span className="text-carbon-500">(Object : Fireball Canada)</span>
+              </p>
+            </div>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Contact</h2>
-            <p>For any privacy-related inquiries, contact us at <a href="mailto:fireballcanada@gmail.com" className="text-[#B61B1B] hover:underline">fireballcanada@gmail.com</a>.</p>
+            <h2 className="text-2xl font-bold text-carbon-900 mb-4">International Transfers</h2>
+            <p>
+              Your data may be processed or stored outside of Canada. We ensure appropriate safeguards are in place.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-carbon-900 mb-4">Updates to This Policy</h2>
+            <p>
+              We may update this Privacy Policy at any time. Continued use of the website constitutes acceptance of the updated policy.
+            </p>
           </section>
         </div>
       </div>
