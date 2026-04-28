@@ -194,17 +194,19 @@ export function CarClub() {
                   </motion.div>
                 ))}
               </motion.div>
-              <motion.a
-                href="#"
-                onClick={(e) => e.preventDefault()}
-                className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
+              <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
                 viewport={{ once: true }}
               >
-                {t('carClub.joinIgnition')}
-              </motion.a>
+                <Link
+                  to="/join-club?tier=ignition"
+                  className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
+                >
+                  {t('carClub.joinIgnition')}
+                </Link>
+              </motion.div>
             </motion.div>
 
             {/* CARTE DROITE — APEX MEMBER (Premium) */}
@@ -266,6 +268,187 @@ export function CarClub() {
             </motion.div>
           </div>
 
+        </div>
+      </section>
+
+      {/* ── STATS BAR ── */}
+      <section className="bg-black border-y border-white/[0.06] py-14">
+        <div className="mx-auto max-w-5xl px-6 md:px-10">
+          <motion.div
+            className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-6 text-center"
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.3 }}
+          >
+            {[
+              { value: '500+', label: t('carClub.statMembers') },
+              { value: '12+', label: t('carClub.statInstallers') },
+              { value: '$100', label: t('carClub.statCredit') },
+              { value: '24/7', label: t('carClub.statAccess') },
+            ].map(({ value, label }) => (
+              <motion.div key={label} variants={featureItem} className="flex flex-col gap-1.5">
+                <span className="font-nav text-4xl font-black tracking-tight bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent">
+                  {value}
+                </span>
+                <span className="text-xs uppercase tracking-widest text-white/40 font-semibold">{label}</span>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── PRIVILEGE SECTION ── */}
+      <section className="relative overflow-hidden bg-black py-28 md:py-36">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(220,38,38,0.08)_0%,transparent_100%)]" />
+        <div className="mx-auto max-w-4xl px-6 md:px-10 text-center relative z-10">
+          <motion.div
+            className="pointer-events-none select-none mb-4"
+            variants={fadeIn}
+            custom={0}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.3 }}
+          >
+            <p className="text-[clamp(3.5rem,12vw,9rem)] font-black uppercase leading-[0.78] tracking-[-0.04em] bg-gradient-to-b from-white/[0.12] to-transparent bg-clip-text text-transparent">
+              APEX
+            </p>
+          </motion.div>
+
+          <motion.h2
+            className="font-nav text-3xl md:text-5xl font-bold tracking-tight text-white mb-6 text-balance"
+            variants={fadeUp}
+            custom={0.1}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.4 }}
+          >
+            {t('carClub.privilegeTitle')}
+          </motion.h2>
+
+          <motion.p
+            className="text-white/60 text-base md:text-lg leading-relaxed max-w-2xl mx-auto mb-4"
+            variants={fadeUp}
+            custom={0.2}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.4 }}
+          >
+            {t('carClub.privilegeDesc')}
+          </motion.p>
+
+          <motion.p
+            className="text-white/90 font-semibold text-sm md:text-base tracking-wide uppercase mb-10"
+            variants={fadeUp}
+            custom={0.28}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.4 }}
+          >
+            {t('carClub.privilegeHighlight')}
+          </motion.p>
+
+          {/* Avantages visuels Apex */}
+          <motion.div
+            className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left mb-12"
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.2 }}
+          >
+            {[
+              { icon: '◈', title: t('carClub.privilegePerk1Title'), body: t('carClub.privilegePerk1Body') },
+              { icon: '◉', title: t('carClub.privilegePerk2Title'), body: t('carClub.privilegePerk2Body') },
+              { icon: '◆', title: t('carClub.privilegePerk3Title'), body: t('carClub.privilegePerk3Body') },
+            ].map(({ icon, title, body }) => (
+              <motion.div
+                key={title}
+                variants={featureItem}
+                className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 flex flex-col gap-2 hover:border-red-500/30 hover:bg-white/[0.05] transition-colors duration-300"
+              >
+                <span className="text-red-400 text-xl">{icon}</span>
+                <p className="font-nav font-semibold text-sm text-white tracking-wide">{title}</p>
+                <p className="text-white/50 text-xs leading-relaxed">{body}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+            viewport={{ once: true }}
+          >
+            <Link
+              to="/join-club?tier=apex"
+              className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
+            >
+              {t('carClub.becomeApex')}
+            </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── FINAL CTA — JOIN THE INNER CIRCLE ── */}
+      <section className="relative bg-black pb-32 pt-20">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_100%,rgba(255,255,255,0.03)_0%,transparent_100%)]" />
+        <div className="mx-auto max-w-3xl px-6 md:px-10 text-center relative z-10">
+          <motion.div
+            className="pointer-events-none select-none mb-2"
+            variants={fadeIn}
+            custom={0}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.3 }}
+          >
+            <p className="text-[clamp(3rem,10vw,7.5rem)] font-black uppercase leading-[0.82] tracking-[-0.04em] bg-gradient-to-b from-white/[0.1] to-transparent bg-clip-text text-transparent">
+              JOIN
+            </p>
+          </motion.div>
+
+          <motion.h2
+            className="font-nav text-3xl md:text-5xl font-bold tracking-tight text-white mb-5 text-balance"
+            variants={fadeUp}
+            custom={0.1}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.4 }}
+          >
+            {t('carClub.joinCircleTitle')}
+          </motion.h2>
+
+          <motion.p
+            className="text-white/55 text-base md:text-lg leading-relaxed max-w-xl mx-auto mb-10"
+            variants={fadeUp}
+            custom={0.2}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.4 }}
+          >
+            {t('carClub.joinCircleDesc')}
+          </motion.p>
+
+          <motion.div
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+            variants={fadeUp}
+            custom={0.3}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.4 }}
+          >
+            <Link
+              to="/join-club?tier=apex"
+              className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
+            >
+              {t('carClub.becomeApex')}
+            </Link>
+            <Link
+              to="/join-club?tier=ignition"
+              className="inline-flex whitespace-nowrap items-center rounded-full border border-white/20 bg-transparent px-6 py-2.5 text-sm font-semibold text-white/70 hover:border-white/40 hover:text-white transition-colors duration-200"
+            >
+              {t('carClub.startIgnition')}
+            </Link>
+          </motion.div>
         </div>
       </section>
     </div>

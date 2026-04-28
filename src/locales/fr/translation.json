@@ -183,7 +183,17 @@
     "joinCircleTitle": "Rejoignez le cercle intérieur Fireball",
     "joinCircleDesc": "L'abonnement n'est pas une question d'accès. C'est une question d'alignement avec les plus hauts standards en protection automobile.",
     "becomeApex": "Devenir membre Apex",
-    "startIgnition": "Commencer avec Ignition"
+    "startIgnition": "Commencer avec Ignition",
+    "statMembers": "Membres actifs",
+    "statInstallers": "Installateurs certifiés",
+    "statCredit": "Crédit annuel (Apex)",
+    "statAccess": "Support membre",
+    "privilegePerk1Title": "100 $ de crédit produit annuel",
+    "privilegePerk1Body": "L'abonnement Apex se rembourse de lui-même. Chaque année, 100 $ en crédit produit sont crédités automatiquement.",
+    "privilegePerk2Title": "Accès prioritaire et exclusif",
+    "privilegePerk2Body": "Premier accès aux stocks limités, aux technologies inédites et aux événements privés Fireball.",
+    "privilegePerk3Title": "Statut élite",
+    "privilegePerk3Body": "Une carte digitale noire premium qui marque votre rang au sein de l'écosystème Fireball."
   },
   "joinClub": {
     "pageTitle": "Rejoindre le Fireball Car Club",

@@ -183,7 +183,17 @@
     "joinCircleTitle": "Join the Fireball Inner Circle",
     "joinCircleDesc": "Membership is not about access. It's about alignment with the highest standards in automotive protection.",
     "becomeApex": "Become an Apex Member",
-    "startIgnition": "Start with Ignition"
+    "startIgnition": "Start with Ignition",
+    "statMembers": "Active Members",
+    "statInstallers": "Certified Installers",
+    "statCredit": "Annual Credit (Apex)",
+    "statAccess": "Member Support",
+    "privilegePerk1Title": "$100 Annual Product Credit",
+    "privilegePerk1Body": "Apex membership pays itself back. Every year, $100 in product credit hits your account automatically.",
+    "privilegePerk2Title": "Priority & Exclusive Access",
+    "privilegePerk2Body": "First access to limited inventory, unreleased technologies, and private Fireball events.",
+    "privilegePerk3Title": "Elite Status",
+    "privilegePerk3Body": "A premium black digital card that signals your standing within the Fireball ecosystem."
   },
   "joinClub": {
     "pageTitle": "Join Fireball Car club",
