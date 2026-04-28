@@ -160,7 +160,7 @@ export function PartnerCompany() {
   }
 
   return (
-    <section className="min-h-screen bg-[#141416] px-6 md:px-12 lg:px-16 pt-0 pb-24 text-white">
+    <section className="min-h-screen px-6 md:px-12 lg:px-16 pt-0 pb-24 text-white" style={{ backgroundColor: '#141416' }}>
       <div className="max-w-[1100px] mx-auto">
         <section className="relative min-h-[calc(62vh+8rem)] flex flex-col text-center">
           <div className="h-24 shrink-0" aria-hidden />
