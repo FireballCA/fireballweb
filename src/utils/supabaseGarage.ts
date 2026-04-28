@@ -60,9 +60,6 @@ export async function createGarageVehicle(input: {
   color?: string
   imageUrl?: string
   notes?: string
-  ceramicProtectionDate?: Date
-  protectionShop?: string
-  protectionProduct?: string
 }): Promise<GarageVehicleRow | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -73,14 +70,9 @@ export async function createGarageVehicle(input: {
     model: input.model,
     year: input.year,
   }
-  if (input.ceramicProtectionDate) {
-    payload.ceramic_protection_date = input.ceramicProtectionDate.toISOString()
-  }
   if (input.color?.trim()) payload.color = input.color.trim()
   if (input.imageUrl?.trim()) payload.image_url = input.imageUrl.trim()
   if (input.notes?.trim()) payload.notes = input.notes.trim()
-  if (input.protectionShop?.trim()) payload.protection_shop = input.protectionShop.trim()
-  if (input.protectionProduct?.trim()) payload.protection_product = input.protectionProduct.trim()
 
   const { data, error } = await supabase
     .from('garage_vehicles')
@@ -103,9 +95,6 @@ export async function updateGarageVehicle(id: string, input: {
   color?: string | null
   imageUrl?: string | null
   notes?: string | null
-  ceramicProtectionDate?: Date | null
-  protectionShop?: string | null
-  protectionProduct?: string | null
 }): Promise<GarageVehicleRow | null> {
   const payload: Record<string, unknown> = {}
   if (input.brand !== undefined) payload.brand = input.brand
@@ -114,13 +103,6 @@ export async function updateGarageVehicle(id: string, input: {
   if (input.color !== undefined) payload.color = input.color?.trim() || null
   if (input.imageUrl !== undefined) payload.image_url = input.imageUrl || null
   if (input.notes !== undefined) payload.notes = input.notes?.trim() || null
-  if ('ceramicProtectionDate' in input) {
-    payload.ceramic_protection_date = input.ceramicProtectionDate
-      ? input.ceramicProtectionDate.toISOString()
-      : null
-  }
-  if (input.protectionShop !== undefined) payload.protection_shop = input.protectionShop?.trim() || null
-  if (input.protectionProduct !== undefined) payload.protection_product = input.protectionProduct?.trim() || null
 
   const { data, error } = await supabase
     .from('garage_vehicles')

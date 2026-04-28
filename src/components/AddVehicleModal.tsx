@@ -231,9 +231,9 @@ export function AddVehicleModal({
         style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
       />
 
-      {/* Panel */}
+      {/* Panel — no overflow-hidden so dropdowns aren't clipped */}
       <div
-        className="relative w-full max-w-md rounded-[20px] overflow-hidden"
+        className="relative w-full max-w-md rounded-[20px]"
         style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -286,10 +286,10 @@ export function AddVehicleModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 pb-6 pt-2 flex gap-3">
+        <div className="px-6 pb-6 pt-3 flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 h-[44px] rounded-[10px] text-[15px] font-medium transition-all"
+            className="flex-1 h-[44px] rounded-[10px] text-[15px] font-semibold transition-all"
             style={{ background: '#f5f5f7', color: '#1d1d1f' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}

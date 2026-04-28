@@ -16,6 +16,7 @@ import {
   createGarageVehicle,
   updateGarageVehicle,
   deleteGarageVehicle,
+  uploadGarageVehicleImage,
 } from '@/utils/supabaseGarage'
 import { ensureShopifyCustomerForProfile } from '@/utils/shopifySync'
 import { getSafeReturnToPath } from '@/utils/safeReturnTo'
@@ -45,6 +46,7 @@ interface Vehicle {
   year: number
   color?: string
   imageUrl?: string
+  notes?: string
   ceramicProtectionDate?: Date
   protectionShop?: string
   protectionProduct?: string
@@ -266,192 +268,345 @@ function getTierForXp(xp: number) {
   return { current, next }
 }
 
+// ─── Light field helpers ───────────────────────────────────────────────────────
+
+function GarageInput({ label, optional, ...props }: { label: string; optional?: boolean } & React.InputHTMLAttributes<HTMLInputElement>) {
+  const [focused, setFocused] = useState(false)
+  return (
+    <div>
+      <label className="flex items-center gap-1.5 text-[13px] font-medium text-[#1d1d1f] mb-1.5">
+        {label}{optional && <span className="text-[#86868b] font-normal">(optional)</span>}
+      </label>
+      <input
+        {...props}
+        onFocus={(e) => { setFocused(true); props.onFocus?.(e) }}
+        onBlur={(e) => { setFocused(false); props.onBlur?.(e) }}
+        className="w-full h-[44px] rounded-[10px] px-3.5 text-[15px] text-[#1d1d1f] placeholder:text-[#86868b] outline-none transition-all"
+        style={{ background: '#fff', border: focused ? '1.5px solid #0071e3' : '1.5px solid #d2d2d7', boxShadow: focused ? '0 0 0 3px rgba(0,113,227,0.15)' : 'none', ...(props.style ?? {}) }}
+      />
+    </div>
+  )
+}
+
+function GarageImageField({ preview, onChange }: { preview: string | null; onChange: (file: File, url: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  return (
+    <div>
+      <label className="text-[13px] font-medium text-[#1d1d1f] mb-1.5 block">
+        Photo <span className="text-[#86868b] font-normal">(optional)</span>
+      </label>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="w-full h-[110px] rounded-[10px] flex flex-col items-center justify-center gap-2 transition-all overflow-hidden relative"
+        style={{ border: '1.5px dashed #d2d2d7', background: preview ? 'transparent' : '#f5f5f7' }}
+        onMouseEnter={(e) => { if (!preview) e.currentTarget.style.background = '#ebebf0' }}
+        onMouseLeave={(e) => { if (!preview) e.currentTarget.style.background = '#f5f5f7' }}
+      >
+        {preview ? (
+          <>
+            <img src={preview} alt="Vehicle" className="absolute inset-0 w-full h-full object-cover" />
+            <span className="relative z-10 flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium text-white" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a4 4 0 01-1.414.929l-3.536.707.707-3.536A4 4 0 019 13z" /></svg>
+              Change photo
+            </span>
+          </>
+        ) : (
+          <>
+            <svg className="w-6 h-6 text-[#86868b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            <span className="text-[13px] text-[#86868b]">Add a photo</span>
+          </>
+        )}
+      </button>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        const reader = new FileReader()
+        reader.onload = (ev) => onChange(file, ev.target?.result as string)
+        reader.readAsDataURL(file)
+      }} />
+    </div>
+  )
+}
+
+// ─── Vehicle edit / add-details modal (light mode) ────────────────────────────
+
 interface VehicleSettingsModalProps {
   vehicle: Vehicle
   onClose: () => void
-  onUpdate: (updates: { brand: string; model: string; year: number }) => void
+  onUpdate: (updates: Partial<Vehicle> & { brand: string; model: string; year: number }) => void
   onDelete: () => void
 }
 
 function VehicleSettingsModal({ vehicle, onClose, onUpdate, onDelete }: VehicleSettingsModalProps) {
-  const [brand, setBrand] = useState(vehicle.brand)
-  const [model, setModel] = useState(vehicle.model)
-  const [year, setYear] = useState(vehicle.year.toString())
+  const [color, setColor] = useState(vehicle.color ?? '')
+  const [notes, setNotes] = useState(vehicle.notes ?? '')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(vehicle.imageUrl ?? null)
+  const [saving, setSaving] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   useEffect(() => {
-    const previous = document.body.style.overflow
+    const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = previous
-    }
+    return () => { document.body.style.overflow = prev }
   }, [])
 
-  const lastProtection = vehicle.ceramicProtectionDate
-    ? vehicle.ceramicProtectionDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-    : null
-
-  const handleSave = () => {
-    const parsedYear = Number(year)
-    if (!brand.trim() || !model.trim() || Number.isNaN(parsedYear)) return
+  const handleSave = async () => {
+    setSaving(true)
+    let imageUrl: string | undefined = vehicle.imageUrl
+    if (imageFile) {
+      const uploaded = await uploadGarageVehicleImage(imageFile)
+      if (uploaded) imageUrl = uploaded
+    }
     onUpdate({
-      brand: brand.trim(),
-      model: model.trim(),
-      year: parsedYear,
+      brand: vehicle.brand,
+      model: vehicle.model,
+      year: vehicle.year,
+      color: color || undefined,
+      imageUrl,
+      notes: notes || undefined,
+    })
+    setSaving(false)
+  }
+
+
+  return (
+    <div className="fixed inset-0 z-[140] flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
+      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }} />
+      <div
+        className="relative w-full sm:max-w-lg rounded-t-[20px] sm:rounded-[20px]"
+        style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.25)', maxHeight: '92dvh', display: 'flex', flexDirection: 'column' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#f0f0f0] shrink-0">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#86868b]">My Garage</p>
+            <h3 className="text-[18px] font-semibold text-[#1d1d1f] leading-tight mt-0.5">
+              {vehicle.year} {vehicle.brand} {vehicle.model}
+            </h3>
+          </div>
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: '#f5f5f7' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')} onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}>
+            <svg className="w-4 h-4 text-[#1d1d1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto px-6 py-5 space-y-4 flex-1">
+          <GarageImageField preview={imagePreview} onChange={(f, u) => { setImageFile(f); setImagePreview(u) }} />
+
+          <GarageInput label="Color" optional value={color} onChange={(e) => setColor(e.target.value)} placeholder="e.g. Frozen Grey" />
+
+          <div>
+            <label className="flex items-center gap-1.5 text-[13px] font-medium text-[#1d1d1f] mb-1.5">
+              Notes <span className="text-[#86868b] font-normal">(optional)</span>
+            </label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any notes about this vehicle…" rows={2}
+              onFocus={(e) => { e.currentTarget.style.border = '1.5px solid #0071e3'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,113,227,0.15)' }}
+              onBlur={(e) => { e.currentTarget.style.border = '1.5px solid #d2d2d7'; e.currentTarget.style.boxShadow = 'none' }}
+              className="w-full rounded-[10px] px-3.5 py-3 text-[15px] text-[#1d1d1f] placeholder:text-[#86868b] outline-none resize-none transition-all"
+              style={{ background: '#fff', border: '1.5px solid #d2d2d7' }} />
+          </div>
+
+          {/* Protection section — read-only, set by installer */}
+          <div className="rounded-[14px] p-4 space-y-3" style={{ background: '#f5f5f7', border: '1.5px solid #e8e8ed' }}>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-[8px] flex items-center justify-center shrink-0" style={{ background: vehicle.ceramicProtectionDate ? '#e3f5e8' : '#ffeeed' }}>
+                <svg className="w-4 h-4" fill="none" stroke={vehicle.ceramicProtectionDate ? '#34c759' : '#ff3b30'} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold text-[#1d1d1f]">Ceramic Protection</p>
+                <p className="text-[11px] text-[#86868b]">Recorded by your installer after service</p>
+              </div>
+              {vehicle.ceramicProtectionDate ? (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ background: '#e3f5e8', color: '#1a8c3a' }}>Protected</span>
+              ) : (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ background: '#ffeeed', color: '#ff3b30' }}>Not protected</span>
+              )}
+            </div>
+            {vehicle.ceramicProtectionDate && (
+              <div className="space-y-2 pt-1">
+                {[
+                  { label: 'When', value: vehicle.ceramicProtectionDate.toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' }) },
+                  ...(vehicle.protectionShop ? [{ label: 'Where', value: vehicle.protectionShop }] : []),
+                  ...(vehicle.protectionProduct ? [{ label: 'Product', value: vehicle.protectionProduct }] : []),
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex items-baseline gap-2">
+                    <span className="text-[11px] font-semibold text-[#86868b] uppercase tracking-wider w-14 shrink-0">{label}</span>
+                    <span className="text-[13px] text-[#1d1d1f]">{value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Book Protection CTA */}
+          {!vehicle.ceramicProtectionDate && (
+            <a href="/products"
+              className="flex items-center justify-center gap-2 w-full h-[44px] rounded-[10px] text-[15px] font-semibold text-white transition-all"
+              style={{ background: '#0071e3' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#0077ed')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#0071e3')}>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+              Book Protection
+            </a>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="shrink-0 border-t border-[#f0f0f0] px-6 py-4">
+          {confirmDelete ? (
+            <div className="space-y-2">
+              <p className="text-[13px] text-[#1d1d1f] text-center font-medium">Remove this vehicle from your garage?</p>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setConfirmDelete(false)}
+                  className="flex-1 h-[44px] rounded-[10px] text-[15px] font-semibold transition-all"
+                  style={{ background: '#f5f5f7', color: '#1d1d1f' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')} onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}>
+                  Cancel
+                </button>
+                <button type="button" onClick={onDelete}
+                  className="flex-1 h-[44px] rounded-[10px] text-[15px] font-semibold transition-all"
+                  style={{ background: '#ff3b30', color: '#fff' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#e0362c')} onMouseLeave={(e) => (e.currentTarget.style.background = '#ff3b30')}>
+                  Remove
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setConfirmDelete(true)}
+                className="h-[44px] px-4 rounded-[10px] text-[15px] font-semibold transition-all"
+                style={{ background: '#fff1f0', color: '#ff3b30', border: '1.5px solid #ffd6d4' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#ffe5e3')} onMouseLeave={(e) => (e.currentTarget.style.background = '#fff1f0')}>
+                <svg className="w-4 h-4 inline mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                Remove
+              </button>
+              <button type="button" onClick={onClose}
+                className="flex-1 h-[44px] rounded-[10px] text-[15px] font-semibold transition-all"
+                style={{ background: '#f5f5f7', color: '#1d1d1f' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')} onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}>
+                Cancel
+              </button>
+              <button type="button" onClick={handleSave} disabled={saving}
+                className="flex-1 h-[44px] rounded-[10px] text-[15px] font-semibold transition-all disabled:opacity-50"
+                style={{ background: '#0071e3', color: '#fff' }}
+                onMouseEnter={(e) => { if (!saving) e.currentTarget.style.background = '#0077ed' }} onMouseLeave={(e) => (e.currentTarget.style.background = '#0071e3')}>
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Add-vehicle step-2 modal (details after make/model/year selection) ────────
+
+interface VehicleAddDetailsModalProps {
+  base: { brand: string; model: string; year: number }
+  onClose: () => void
+  onBack: () => void
+  onCreated: (v: Vehicle) => void
+}
+
+function VehicleAddDetailsModal({ base, onClose, onBack, onCreated }: VehicleAddDetailsModalProps) {
+  const [color, setColor] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
+
+  const handleSave = async () => {
+    setSaving(true)
+    let imageUrl: string | undefined
+    if (imageFile) {
+      const uploaded = await uploadGarageVehicleImage(imageFile)
+      if (uploaded) imageUrl = uploaded
+    }
+    const row = await createGarageVehicle({
+      brand: base.brand,
+      model: base.model,
+      year: base.year,
+      color: color || undefined,
+      imageUrl,
+    })
+    setSaving(false)
+    if (!row) return
+    onCreated({
+      id: row.id,
+      brand: row.brand,
+      model: row.model,
+      year: row.year,
+      color: row.color ?? undefined,
+      imageUrl: row.image_url ?? undefined,
+      ceramicProtectionDate: row.ceramic_protection_date ? new Date(row.ceramic_protection_date) : undefined,
+      protectionShop: row.protection_shop ?? undefined,
+      protectionProduct: row.protection_product ?? undefined,
     })
   }
 
+
   return (
-    <div className="fixed inset-0 z-[140] flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
+      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }} />
       <div
-        className="absolute inset-0"
-        style={{
-          background: 'rgba(0, 0, 0, 0.35)',
-          backdropFilter: 'blur(18px)',
-          WebkitBackdropFilter: 'blur(18px)',
-        }}
-      />
-      <div
-        className="relative max-w-2xl w-full rounded-3xl p-8"
-        style={{
-          background:
-            'linear-gradient(135deg, rgba(40, 40, 40, 0.96) 0%, rgba(22, 22, 22, 0.96) 100%)',
-          border: '1px solid rgba(255, 255, 255, 0.18)',
-          boxShadow:
-            '0 18px 45px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.18), inset 0 0 0 1px rgba(255,255,255,0.03)',
-        }}
+        className="relative w-full sm:max-w-lg rounded-t-[20px] sm:rounded-[20px]"
+        style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.25)', maxHeight: '92dvh', display: 'flex', flexDirection: 'column' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <div>
-            <p className="text-xs font-nav uppercase text-white/60 tracking-[0.18em]">
-              Vehicle settings
-            </p>
-            <h3 className="mt-2 text-xl text-white font-normal">
-              {vehicle.brand} <span className="font-bold">{vehicle.model}</span> {vehicle.year}
-            </h3>
+        <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-[#f0f0f0] shrink-0">
+          <button type="button" onClick={onBack} className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: '#f5f5f7' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')} onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}>
+            <svg className="w-4 h-4 text-[#1d1d1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          </button>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#86868b]">Adding to garage</p>
+            <h3 className="text-[17px] font-semibold text-[#1d1d1f] truncate">{base.year} {base.brand} {base.model}</h3>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-white/60 hover:text-white transition-colors"
-            aria-label="Close"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: '#f5f5f7' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')} onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}>
+            <svg className="w-4 h-4 text-[#1d1d1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-          <div>
-            <label className="block text-[11px] font-nav font-bold uppercase text-white/60 mb-1.5">
-              Brand
-            </label>
-            <input
-              value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/20 text-sm text-white focus:outline-none focus:border-white/70"
-            />
-          </div>
-          <div>
-            <label className="block text-[11px] font-nav font-bold uppercase text-white/60 mb-1.5">
-              Model
-            </label>
-            <input
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/20 text-sm text-white focus:outline-none focus:border-white/70"
-            />
-          </div>
-          <div>
-            <label className="block text-[11px] font-nav font-bold uppercase text-white/60 mb-1.5">
-              Year
-            </label>
-            <input
-              value={year}
-              onChange={(e) => setYear(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/20 text-sm text-white focus:outline-none focus:border-white/70"
-            />
+        <div className="overflow-y-auto px-6 py-5 space-y-4 flex-1">
+          <GarageImageField preview={imagePreview} onChange={(f, u) => { setImageFile(f); setImagePreview(u) }} />
+          <GarageInput label="Color" optional value={color} onChange={(e) => setColor(e.target.value)} placeholder="e.g. Frozen Grey" />
+          {/* Protection is recorded by the installer, not the user */}
+          <div className="rounded-[14px] p-4 flex items-center gap-3" style={{ background: '#f5f5f7', border: '1.5px solid #e8e8ed' }}>
+            <div className="w-7 h-7 rounded-[8px] flex items-center justify-center shrink-0" style={{ background: '#e3f5e8' }}>
+              <svg className="w-4 h-4" fill="none" stroke="#34c759" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-[#1d1d1f]">Ceramic Protection</p>
+              <p className="text-[11px] text-[#86868b]">Recorded by your installer after service</p>
+            </div>
           </div>
         </div>
 
-        {lastProtection && (
-        <div className="mt-5 border-t border-white/12 pt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-nav font-bold uppercase text-white/60 tracking-[0.18em]">
-              Last protected
-            </p>
-            <p className="mt-1 text-sm text-white">{lastProtection}</p>
-            {vehicle.protectionShop && (
-              <p className="mt-0.5 text-xs text-white/70 inline-flex items-center gap-1.5">
-                Applied at <span className="font-medium">{vehicle.protectionShop}</span>
-                <a
-                  href="#"
-                  onClick={(e) => e.preventDefault()}
-                  className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-white/25 text-white/80 hover:text-white hover:border-white/70 transition-colors"
-                  aria-label="Open business details"
-                >
-                  <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 17L17 7M9 7h8v8"
-                    />
-                  </svg>
-                </a>
-              </p>
-            )}
-            {vehicle.protectionProduct && (
-              <p className="mt-0.5 text-xs text-white/70">
-                Protected with{' '}
-                <span className="font-medium">{vehicle.protectionProduct}</span>
-              </p>
-            )}
-          </div>
-          <div className="flex flex-col items-stretch md:items-end gap-2 min-w-[240px]">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-white/25 bg-white/[0.05] text-[11px] font-nav uppercase tracking-[0.18em] text-white/85 hover:bg-white/[0.15] hover:border-white/60 transition-colors"
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 3v3m8-3v3M5 9h14M7 12h4m-4 4h4M5 5h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"
-                />
-              </svg>
-              Book your next appointment
-            </button>
-          </div>
-        </div>
-        )}
-
-        <div className="mt-6 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={onDelete}
-            className="px-4 py-2.5 rounded-xl border border-red-500/50 text-xs font-nav uppercase tracking-[0.16em] text-red-400 hover:bg-red-500/10 transition-colors"
-          >
-            Delete vehicle
+        <div className="shrink-0 border-t border-[#f0f0f0] px-6 py-4 flex gap-3">
+          <button type="button" onClick={onClose}
+            className="flex-1 h-[44px] rounded-[10px] text-[15px] font-semibold transition-all"
+            style={{ background: '#f5f5f7', color: '#1d1d1f' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')} onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}>
+            Cancel
           </button>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-white/20 text-xs font-nav uppercase tracking-[0.16em] text-white/80 hover:bg-white/5 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="px-4 py-2.5 rounded-xl bg-white text-black text-xs font-nav uppercase tracking-[0.16em] hover:bg-white/90 transition-colors"
-            >
-              Save changes
-            </button>
-          </div>
+          <button type="button" onClick={handleSave} disabled={saving}
+            className="flex-1 h-[44px] rounded-[10px] text-[15px] font-semibold transition-all disabled:opacity-50"
+            style={{ background: '#0071e3', color: '#fff' }}
+            onMouseEnter={(e) => { if (!saving) e.currentTarget.style.background = '#0077ed' }} onMouseLeave={(e) => (e.currentTarget.style.background = '#0071e3')}>
+            {saving ? 'Saving…' : 'Add to Garage'}
+          </button>
         </div>
       </div>
     </div>
@@ -492,6 +647,7 @@ export function AccountDashboard() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(false)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [settingsVehicle, setSettingsVehicle] = useState<Vehicle | null>(null)
+  const [pendingAdd, setPendingAdd] = useState<{ brand: string; model: string; year: number } | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [orderDetailsOrder, setOrderDetailsOrder] = useState<Order | null>(null)
   const [ordersCarouselIndex, setOrdersCarouselIndex] = useState(0)
@@ -1773,23 +1929,25 @@ export function AccountDashboard() {
 
               <div className="flex flex-col gap-5">
                 {/* ── My Garage ─────────────────────────────────────── */}
-                <article className="rounded-[2px] bg-[#F3F3F3] px-6 py-6">
+                <article className="rounded-[12px] bg-[#F3F3F3] px-5 py-5">
                   <div className="flex items-center justify-between mb-4">
                     <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">My Garage</p>
                     <button
                       type="button"
                       onClick={() => setCarModalOpen(true)}
-                      className="flex items-center gap-1.5 rounded-full bg-[#171717] px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-80"
+                      className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-semibold text-white transition-all active:scale-95"
+                      style={{ background: '#0071e3' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#0077ed')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = '#0071e3')}
                     >
-                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
-                      Add vehicle
+                      Add Vehicle
                     </button>
                   </div>
 
                   {vehicles.length === 0 ? (
-                    /* Empty state */
                     <button
                       type="button"
                       onClick={() => setCarModalOpen(true)}
@@ -1807,55 +1965,79 @@ export function AccountDashboard() {
                       </div>
                     </button>
                   ) : (
-                    /* Vehicle cards grid */
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="flex flex-col gap-3">
                       {vehicles.map((v) => (
-                        <button
-                          key={v.id}
-                          type="button"
-                          onClick={() => setSettingsVehicle(v)}
-                          className="group flex overflow-hidden rounded-xl bg-white text-left shadow-[0_1px_4px_rgba(0,0,0,0.08)] transition-shadow hover:shadow-[0_4px_14px_rgba(0,0,0,0.12)]"
-                        >
-                          {/* Photo / placeholder */}
-                          <div className="flex h-[88px] w-[88px] shrink-0 items-center justify-center bg-[#F0F0F0] text-center">
-                            {v.imageUrl ? (
-                              <img src={v.imageUrl} alt={`${v.brand} ${v.model}`} className="h-full w-full object-cover" />
-                            ) : (
-                              <div className="flex flex-col items-center gap-1">
-                                <svg className="h-6 w-6 text-[#BDBDBD]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div key={v.id} className="rounded-xl bg-white overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
+                          {/* Top row: image + info + edit button */}
+                          <button
+                            type="button"
+                            onClick={() => setSettingsVehicle(v)}
+                            className="flex w-full text-left transition-colors hover:bg-[#fafafa]"
+                          >
+                            <div className="flex h-[90px] w-[90px] shrink-0 items-center justify-center bg-[#F0F0F0] overflow-hidden">
+                              {v.imageUrl ? (
+                                <img src={v.imageUrl} alt={`${v.brand} ${v.model}`} className="h-full w-full object-cover" />
+                              ) : (
+                                <svg className="h-7 w-7 text-[#C8C8C8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
-                                <span className="text-[9px] font-medium text-[#BDBDBD]">No photo</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Info */}
-                          <div className="flex flex-1 flex-col justify-between px-4 py-3">
-                            <div>
-                              <p className="text-[13px] font-bold text-[#171717] leading-tight">
-                                {v.year} {v.brand} {v.model}
-                              </p>
-                              {v.color && (
-                                <p className="mt-0.5 text-[11px] text-[#8A8A8A]">{v.color}</p>
                               )}
                             </div>
-                            <div className="mt-2">
+                            <div className="flex flex-1 flex-col justify-center px-4 py-3 min-w-0">
+                              <p className="text-[14px] font-bold text-[#171717] leading-tight truncate">
+                                {v.year} {v.brand} {v.model}
+                              </p>
+                              {v.color && <p className="mt-0.5 text-[11px] text-[#8A8A8A]">{v.color}</p>}
                               {v.ceramicProtectionDate ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F5E9] px-2 py-0.5 text-[10px] font-semibold text-[#2E7D32]">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-[#4CAF50]" />
-                                  Coated
-                                </span>
+                                <div className="mt-2 flex flex-col gap-1">
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-[#E8F5E9] px-2 py-0.5 text-[10px] font-semibold text-[#2E7D32] w-fit">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-[#4CAF50]" />
+                                    Ceramic protected
+                                  </span>
+                                  <span className="text-[11px] text-[#8A8A8A]">
+                                    <span className="font-medium text-[#555]">When </span>
+                                    {v.ceramicProtectionDate.toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                  </span>
+                                  {v.protectionShop && (
+                                    <span className="text-[11px] text-[#8A8A8A] truncate">
+                                      <span className="font-medium text-[#555]">Where </span>
+                                      {v.protectionShop}
+                                    </span>
+                                  )}
+                                </div>
                               ) : (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-[#F5F5F5] px-2 py-0.5 text-[10px] font-semibold text-[#9E9E9E]">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-[#BDBDBD]" />
+                                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#FFF0EF] px-2 py-0.5 text-[10px] font-semibold text-[#D94032] w-fit">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B30]" />
                                   Not protected
                                 </span>
                               )}
                             </div>
-                          </div>
-                        </button>
+                            <div className="flex items-center pr-3 shrink-0">
+                              <svg className="h-4 w-4 text-[#C8C8C8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </div>
+                          </button>
+
+                          {/* Book Protection CTA for unprotected vehicles */}
+                          {!v.ceramicProtectionDate && (
+                            <div className="px-4 pb-3">
+                              <a
+                                href="/products"
+                                className="flex items-center justify-center gap-2 w-full h-[38px] rounded-[8px] text-[13px] font-semibold text-white transition-all"
+                                style={{ background: '#0071e3' }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = '#0077ed')}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = '#0071e3')}
+                              >
+                                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                                Book Protection
+                              </a>
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}
@@ -2057,26 +2239,19 @@ export function AccountDashboard() {
       <AddVehicleModal
         isOpen={carModalOpen}
         onClose={() => setCarModalOpen(false)}
-        onSelect={async (make, model, year) => {
-          const row = await createGarageVehicle({
-            brand: make,
-            model,
-            year,
-          })
-          if (!row) return
-          setVehicles((prev) => [
-            ...prev,
-            {
-              id: row.id,
-              brand: row.brand,
-              model: row.model,
-              year: row.year,
-              ceramicProtectionDate: row.ceramic_protection_date ? new Date(row.ceramic_protection_date) : undefined,
-              protectionShop: row.protection_shop ?? undefined,
-            },
-          ])
+        onSelect={(make, model, year) => {
+          setCarModalOpen(false)
+          setPendingAdd({ brand: make, model, year })
         }}
       />
+      {pendingAdd && (
+        <VehicleAddDetailsModal
+          base={pendingAdd}
+          onClose={() => setPendingAdd(null)}
+          onBack={() => { setPendingAdd(null); setCarModalOpen(true) }}
+          onCreated={(v) => { setVehicles((prev) => [...prev, v]); setPendingAdd(null) }}
+        />
+      )}
       <ProductsPurchasedSheet isOpen={productsPurchasedOpen} onClose={() => setProductsPurchasedOpen(false)} />
       {orderDetailsOrder && (
         <div
@@ -2166,9 +2341,9 @@ export function AccountDashboard() {
           onClose={() => setSettingsVehicle(null)}
           onUpdate={async (updates) => {
             const updated = await updateGarageVehicle(settingsVehicle.id, {
-              brand: updates.brand,
-              model: updates.model,
-              year: updates.year,
+              color: updates.color ?? null,
+              imageUrl: updates.imageUrl ?? null,
+              notes: updates.notes ?? null,
             })
             if (!updated) return
             setVehicles((prev) =>
@@ -2176,9 +2351,12 @@ export function AccountDashboard() {
                 v.id === settingsVehicle.id
                   ? {
                       ...v,
-                      brand: updates.brand,
-                      model: updates.model,
-                      year: updates.year,
+                      color: updates.color,
+                      imageUrl: updates.imageUrl,
+                      notes: updates.notes,
+                      ceramicProtectionDate: updates.ceramicProtectionDate,
+                      protectionShop: updates.protectionShop,
+                      protectionProduct: updates.protectionProduct,
                     }
                   : v
               )

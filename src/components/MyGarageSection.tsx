@@ -226,7 +226,7 @@ function DetailsModal({ mode, title, vehicle, onClose, onBack, onSaved }: Detail
         style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
       />
       <div
-        className="relative w-full sm:max-w-md rounded-t-[20px] sm:rounded-[20px] overflow-hidden"
+        className="relative w-full sm:max-w-md rounded-t-[20px] sm:rounded-[20px]"
         style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.25)', maxHeight: '92dvh' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -385,7 +385,7 @@ function DetailsModal({ mode, title, vehicle, onClose, onBack, onSaved }: Detail
         <div className="px-6 pb-6 pt-3 flex gap-3 border-t border-[#f0f0f0]">
           <button
             onClick={onClose}
-            className="flex-1 h-[44px] rounded-[10px] text-[15px] font-medium transition-all"
+            className="flex-1 h-[44px] rounded-[10px] text-[15px] font-semibold transition-all"
             style={{ background: '#f5f5f7', color: '#1d1d1f' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}
@@ -503,7 +503,7 @@ function DeleteConfirmModal({
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 h-[44px] rounded-[10px] text-[15px] font-medium transition-all"
+            className="flex-1 h-[44px] rounded-[10px] text-[15px] font-semibold transition-all"
             style={{ background: '#f5f5f7', color: '#1d1d1f' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}
@@ -560,15 +560,16 @@ function VehicleCard({
       initial="hidden"
       animate="show"
       exit="exit"
-      className="group relative flex flex-col overflow-hidden rounded-2xl"
+      // No overflow-hidden here — the dropdown needs to escape the card bounds
+      className="group relative flex flex-col rounded-2xl"
       style={{
         background: 'linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%)',
         border: '1px solid rgba(255,255,255,0.09)',
         boxShadow: '0 4px 24px rgba(0,0,0,0.45)',
       }}
     >
-      {/* Image */}
-      <div className="relative h-44 overflow-hidden bg-[#0d0d0d]">
+      {/* Image — overflow-hidden stays on the image wrapper only */}
+      <div className="relative h-44 overflow-hidden rounded-t-2xl bg-[#0d0d0d]">
         {vehicle.image_url ? (
           <img
             src={vehicle.image_url}
@@ -600,75 +601,77 @@ function VehicleCard({
             <span
               className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest"
               style={{
-                background: 'rgba(255,255,255,0.07)',
-                border: '1px solid rgba(255,255,255,0.14)',
-                color: 'rgba(255,255,255,0.5)',
+                background: 'rgba(255,59,48,0.15)',
+                border: '1px solid rgba(255,59,48,0.3)',
+                color: '#ff6b6b',
                 backdropFilter: 'blur(10px)',
               }}
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
-              No protection
+              <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+              Not protected
             </span>
           )}
         </div>
+      </div>
 
-        {/* Kebab */}
-        <div className="absolute right-3 top-3" ref={menuRef}>
-          <button
-            onClick={() => setShowMenu((v) => !v)}
-            className="flex h-7 w-7 items-center justify-center rounded-full transition-colors"
-            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)' }}
-          >
-            <span className="flex flex-col gap-[3px] items-center">
-              {[0, 1, 2].map((i) => (
-                <span key={i} className="h-[3px] w-[3px] rounded-full bg-white/80" />
-              ))}
-            </span>
-          </button>
+      {/* Kebab — outside image div so it's not clipped */}
+      <div className="absolute right-3 top-3" ref={menuRef}>
+        <button
+          onClick={() => setShowMenu((v) => !v)}
+          className="flex h-7 w-7 items-center justify-center rounded-full transition-colors"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(10px)' }}
+        >
+          <span className="flex flex-col gap-[3px] items-center">
+            {[0, 1, 2].map((i) => (
+              <span key={i} className="h-[3px] w-[3px] rounded-full bg-white/80" />
+            ))}
+          </span>
+        </button>
 
-          <AnimatePresence>
-            {showMenu && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: -4 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: -4 }}
-                transition={{ duration: 0.15 }}
-                className="absolute right-0 top-9 z-20 min-w-[150px] overflow-hidden rounded-[14px]"
-                style={{
-                  background: '#fff',
-                  border: '1px solid #e8e8ed',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-                }}
+        <AnimatePresence>
+          {showMenu && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: -6 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: -6 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-0 top-9 z-50 min-w-[160px] rounded-[14px] overflow-hidden"
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e5e5ea',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.1)',
+              }}
+            >
+              <button
+                onClick={() => { setShowMenu(false); onEdit(vehicle) }}
+                className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[14px] font-medium"
+                style={{ color: '#1d1d1f', background: 'transparent' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#f5f5f7')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
-                <button
-                  onClick={() => { setShowMenu(false); onEdit(vehicle) }}
-                  className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[14px] text-[#1d1d1f] transition-colors"
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f5f5f7')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <svg className="h-4 w-4 text-[#0071e3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                      d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a4 4 0 01-1.414.929l-3.536.707.707-3.536A4 4 0 019 13z" />
-                  </svg>
-                  Edit
-                </button>
-                <div style={{ height: 1, background: '#f0f0f0', margin: '0 12px' }} />
-                <button
-                  onClick={() => { setShowMenu(false); onDelete(vehicle) }}
-                  className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[14px] text-[#ff3b30] transition-colors"
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#fff1f0')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Remove
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                <svg className="h-[18px] w-[18px] shrink-0" fill="none" stroke="#0071e3" strokeWidth={1.8} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a4 4 0 01-1.414.929l-3.536.707.707-3.536A4 4 0 019 13z" />
+                </svg>
+                Edit vehicle
+              </button>
+              <div style={{ height: 1, background: '#f0f0f5', margin: '0' }} />
+              <button
+                onClick={() => { setShowMenu(false); onDelete(vehicle) }}
+                className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[14px] font-medium"
+                style={{ color: '#ff3b30', background: 'transparent' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#fff5f5')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                <svg className="h-[18px] w-[18px] shrink-0" fill="none" stroke="#ff3b30" strokeWidth={1.8} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Remove vehicle
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Card body */}
@@ -685,61 +688,57 @@ function VehicleCard({
         {/* Protection info block */}
         {coated ? (
           <div
-            className="rounded-xl p-3 space-y-2"
-            style={{ background: 'rgba(52,199,89,0.06)', border: '1px solid rgba(52,199,89,0.18)' }}
+            className="rounded-xl p-3 space-y-1.5"
+            style={{ background: 'rgba(52,199,89,0.07)', border: '1px solid rgba(52,199,89,0.2)' }}
           >
-            <div className="flex items-center gap-1.5 mb-1">
-              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="#4ade80" viewBox="0 0 24 24">
+            <div className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="#34c759" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
               <span className="text-[11px] font-semibold text-green-400 uppercase tracking-wider">Ceramic Protected</span>
             </div>
             {vehicle.ceramic_protection_date && (
-              <div className="flex items-center gap-2">
-                <svg className="h-3 w-3 shrink-0 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span className="text-[11px] text-white/50">
-                  <span className="text-white/30 mr-1">When</span>
-                  {formatDate(vehicle.ceramic_protection_date)}
-                </span>
+              <div className="flex items-baseline gap-2 pl-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-white/25 w-10 shrink-0">When</span>
+                <span className="text-[11px] text-white/55">{formatDate(vehicle.ceramic_protection_date)}</span>
               </div>
             )}
             {vehicle.protection_shop && (
-              <div className="flex items-center gap-2">
-                <svg className="h-3 w-3 shrink-0 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span className="text-[11px] text-white/50 truncate">
-                  <span className="text-white/30 mr-1">Where</span>
-                  {vehicle.protection_shop}
-                </span>
+              <div className="flex items-baseline gap-2 pl-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-white/25 w-10 shrink-0">Where</span>
+                <span className="text-[11px] text-white/55 truncate">{vehicle.protection_shop}</span>
               </div>
             )}
             {vehicle.protection_product && (
-              <div className="flex items-center gap-2">
-                <svg className="h-3 w-3 shrink-0 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                </svg>
-                <span className="text-[11px] text-white/50 truncate">
-                  {vehicle.protection_product}
-                </span>
+              <div className="flex items-baseline gap-2 pl-0.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-white/25 w-10 shrink-0">What</span>
+                <span className="text-[11px] text-white/55 truncate">{vehicle.protection_product}</span>
               </div>
             )}
           </div>
         ) : (
-          <div
-            className="rounded-xl px-3 py-2.5 flex items-center gap-2"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-          >
-            <svg className="w-3.5 h-3.5 shrink-0 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016zM12 9v2m0 4h.01" />
-            </svg>
-            <span className="text-[11px] text-white/30">No ceramic protection recorded</span>
+          <div className="flex flex-col gap-2.5">
+            <div
+              className="rounded-xl px-3 py-2.5 flex items-center gap-2"
+              style={{ background: 'rgba(255,59,48,0.07)', border: '1px solid rgba(255,59,48,0.18)' }}
+            >
+              <svg className="w-3.5 h-3.5 shrink-0 text-red-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+              <span className="text-[11px] text-red-400/70 font-medium">Not ceramic protected</span>
+            </div>
+            <a
+              href="/products"
+              className="flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-white transition-all active:scale-95"
+              style={{ background: '#0071e3' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#0077ed')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#0071e3')}
+            >
+              <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              Book Protection
+            </a>
           </div>
         )}
       </div>
@@ -767,7 +766,7 @@ function EmptyGarage({ onAdd }: { onAdd: () => void }) {
       </p>
       <button
         onClick={onAdd}
-        className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-all active:scale-95"
+        className="flex items-center gap-2 rounded-full px-5 py-2.5 text-[15px] font-semibold text-white transition-all active:scale-95"
         style={{ background: '#0071e3' }}
         onMouseEnter={(e) => (e.currentTarget.style.background = '#0077ed')}
         onMouseLeave={(e) => (e.currentTarget.style.background = '#0071e3')}
@@ -909,7 +908,7 @@ export function MyGarageSection() {
           {isLoggedIn && vehicles.length > 0 && (
             <button
               onClick={() => setShowAddFlow(true)}
-              className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition-all active:scale-95"
+              className="flex items-center gap-2 rounded-full px-5 py-2.5 text-[15px] font-semibold text-white transition-all active:scale-95"
               style={{ background: '#0071e3' }}
               onMouseEnter={(e) => (e.currentTarget.style.background = '#0077ed')}
               onMouseLeave={(e) => (e.currentTarget.style.background = '#0071e3')}
