@@ -16,6 +16,11 @@ const CATEGORY_IMAGE_OVERRIDES: Partial<Record<ShopNavCategoryId, string>> = {
   coatings: '/Assets/category/Coating.jpg',
   washing: '/Assets/category/Washing.png',
   waxes: '/Assets/category/Wax.jpg',
+  cleaners: '/Assets/category/Cleaner.png',
+  sealants: '/Assets/category/Sealants.webp',
+  dressings: '/Assets/category/Dressings.png',
+  accessories: '/Assets/category/Accesories.png',
+  towels: '/Assets/category/Towels.webp',
 }
 
 /** Même ordre que le menu Shop : 8 catégories. */

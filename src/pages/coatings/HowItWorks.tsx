@@ -484,7 +484,7 @@ export function HowItWorks() {
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link to="/coatings/find-installer" className={cn('inline-flex', appleButtonVisualClassName)}>
-              Book an Application
+              Find an Installer
             </Link>
             <SecondaryClipButton to="/coatings/compare" className="!border-carbon-900 !bg-carbon-900" idleTextClass="text-white" hoverTextClass="text-carbon-900">
               Compare Coatings
