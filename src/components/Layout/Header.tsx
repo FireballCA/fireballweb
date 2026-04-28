@@ -1,4 +1,4 @@
-import { useId, useState, useEffect, useMemo, useRef } from 'react'
+import { useId, useState, useEffect, useMemo, useRef, useContext } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -11,6 +11,7 @@ import { isShopPathname } from '@/utils/shopRoutes'
 import { isNavOverFullBleedHero } from '@/utils/navHeroOverlap'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { shopBrowseCategoryPath } from '@/constants/paths'
+import { LenisContext } from '@/components/LenisRoot'
 
 const CERAMIC_SECTIONS = [
   {
@@ -108,6 +109,7 @@ function FlagFR() {
 }
 
 export function Header() {
+  const lenis = useContext(LenisContext)
   const { i18n } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
@@ -604,6 +606,16 @@ export function Header() {
   useEffect(() => {
     setSearchQuery('')
   }, [location.pathname])
+
+  // Stopper Lenis quand le menu mobile est monté (Lenis bypass overflow:hidden)
+  useEffect(() => {
+    if (!lenis) return
+    if (isMobileMenuMounted) {
+      lenis.stop()
+    } else {
+      lenis.start()
+    }
+  }, [isMobileMenuMounted, lenis])
 
   // Bloquer totalement le scroll de fond quand le menu mobile est ouvert
   useEffect(() => {

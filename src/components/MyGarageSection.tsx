@@ -717,28 +717,14 @@ function VehicleCard({
             )}
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5">
-            <div
-              className="rounded-xl px-3 py-2.5 flex items-center gap-2"
-              style={{ background: 'rgba(255,59,48,0.07)', border: '1px solid rgba(255,59,48,0.18)' }}
-            >
-              <svg className="w-3.5 h-3.5 shrink-0 text-red-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-              </svg>
-              <span className="text-[11px] text-red-400/70 font-medium">Not ceramic protected</span>
-            </div>
-            <a
-              href="/products"
-              className="flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-white transition-all active:scale-95"
-              style={{ background: '#0071e3' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#0077ed')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '#0071e3')}
-            >
-              <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              Book Protection
-            </a>
+          <div
+            className="rounded-xl px-3 py-2.5 flex items-center gap-2"
+            style={{ background: 'rgba(255,59,48,0.07)', border: '1px solid rgba(255,59,48,0.18)' }}
+          >
+            <svg className="w-3.5 h-3.5 shrink-0 text-red-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <span className="text-[11px] text-red-400/70 font-medium">Not ceramic protected</span>
           </div>
         )}
       </div>
@@ -766,12 +752,12 @@ function EmptyGarage({ onAdd }: { onAdd: () => void }) {
       </p>
       <button
         onClick={onAdd}
-        className="flex items-center gap-2 rounded-full px-5 py-2.5 text-[15px] font-semibold text-white transition-all active:scale-95"
-        style={{ background: '#0071e3' }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = '#0077ed')}
-        onMouseLeave={(e) => (e.currentTarget.style.background = '#0071e3')}
+        className="flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold text-white transition-all active:scale-95"
+        style={{ background: '#1d1d1f' }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = '#333')}
+        onMouseLeave={(e) => (e.currentTarget.style.background = '#1d1d1f')}
       >
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
         Add your first vehicle
@@ -908,12 +894,12 @@ export function MyGarageSection() {
           {isLoggedIn && vehicles.length > 0 && (
             <button
               onClick={() => setShowAddFlow(true)}
-              className="flex items-center gap-2 rounded-full px-5 py-2.5 text-[15px] font-semibold text-white transition-all active:scale-95"
-              style={{ background: '#0071e3' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#0077ed')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '#0071e3')}
+              className="flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold text-white transition-all active:scale-95"
+              style={{ background: '#1d1d1f' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#333')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#1d1d1f')}
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               Add Vehicle
