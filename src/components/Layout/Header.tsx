@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCart } from '@/context/CartContext'
-import { CATEGORIES, PRODUCTS } from '@/data/products'
+import { CATEGORIES, PRODUCTS, SHOP_NAV_CATEGORY_IDS } from '@/data/products'
 import { isAuthenticated, getCurrentUserProfile } from '@/utils/supabaseAuth'
 import { FB_UNREAD_NOTIF_EVENT, readUnreadNotificationsFromStorage } from '@/utils/inAppNotificationsFlag'
 import { supabase } from '@/lib/supabase'
@@ -673,7 +673,7 @@ export function Header() {
       { id: 'page-car-club', label: 'Car club', to: '/car-club', kind: 'Page', keywords: ['club'] },
       { id: 'page-event', label: 'Events', to: '/event', kind: 'Page', keywords: ['events'] },
       { id: 'page-academy', label: 'Academy', to: '/academy', kind: 'Page', keywords: ['formation'] },
-      { id: 'page-company', label: 'Join Fireball', to: '/join-fireball', kind: 'Page', keywords: ['company', 'partner'] },
+      { id: 'page-company', label: 'Join Fireball', to: '/join', kind: 'Page', keywords: ['company', 'partner'] },
       { id: 'page-contact', label: 'Contact', to: '/contact', kind: 'Page', keywords: ['support'] },
       { id: 'page-about', label: 'About us', to: '/about', kind: 'Page', keywords: ['a propos', 'brand'] },
       { id: 'page-legal', label: 'Legal', to: '/legal', kind: 'Page', keywords: ['mentions', 'terms'] },
@@ -681,10 +681,11 @@ export function Header() {
       { id: 'page-cart', label: 'Cart', to: '/cart', kind: 'Page', keywords: ['checkout'] },
     ]
 
-    const categoryEntries: SearchEntry[] = CATEGORIES.map((category) => ({
+    const SEARCH_CATEGORY_IDS = new Set([...SHOP_NAV_CATEGORY_IDS, 'apparel'])
+    const categoryEntries: SearchEntry[] = CATEGORIES.filter((c) => SEARCH_CATEGORY_IDS.has(c.id)).map((category) => ({
       id: `category-${category.id}`,
       label: category.name,
-      to: category.id === 'coatings' ? shopBrowseCategoryPath('coatings') : `/shop/${category.id}`,
+      to: shopBrowseCategoryPath(category.id),
       kind: 'Category',
       subtitle: category.description,
       keywords: [category.id, 'category', 'shop'],
@@ -706,7 +707,7 @@ export function Header() {
   const popularSearches = useMemo(
     () =>
       searchEntries.filter((entry) =>
-        ['page-shop', 'category-revetements', 'page-car-club', 'page-academy'].includes(entry.id)
+        ['page-event', 'category-coatings', 'page-car-club', 'page-academy'].includes(entry.id)
       ),
     [searchEntries]
   )

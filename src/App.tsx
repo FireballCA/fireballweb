@@ -26,7 +26,6 @@ import { Contact } from '@/pages/Contact'
 import { Legal } from '@/pages/Legal'
 import { Academy } from '@/pages/Academy'
 import { TrainingRegistrationThankYou } from '@/pages/TrainingRegistrationThankYou'
-import { JoinFireball } from '@/pages/JoinFireball'
 import { JoinClub } from '@/pages/JoinClub'
 import { PartnerOnboarding } from '@/pages/partner/PartnerOnboarding'
 import { PartnerDashboardLayout } from '@/pages/partner/PartnerDashboardLayout'
@@ -85,7 +84,7 @@ function App() {
             <Route path="legal" element={<Legal />} />
             <Route path="academy/training-thank-you" element={<TrainingRegistrationThankYou />} />
             <Route path="academy" element={<Academy />} />
-            <Route path="join-fireball" element={<JoinFireball />} />
+            <Route path="join-fireball" element={<Navigate to="/join" replace />} />
             <Route path="join-club" element={<JoinClub />} />
             <Route path="join" element={<PartnerCompany />} />
             <Route path="account" element={<Account />} />
