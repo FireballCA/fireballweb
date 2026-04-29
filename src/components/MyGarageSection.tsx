@@ -197,7 +197,7 @@ function DetailsModal({ mode, title, vehicle, onClose, onBack, onSaved }: Detail
         color: color || undefined,
         imageUrl: imageUrl ?? undefined,
         notes: notes || undefined,
-        ceramicProtectionDate: ceramicDate,
+        ceramicProtectionDate: ceramicDate ?? undefined,
         protectionShop: protShop || undefined,
         protectionProduct: protProduct || undefined,
       })
@@ -218,6 +218,11 @@ function DetailsModal({ mode, title, vehicle, onClose, onBack, onSaved }: Detail
       onClose()
     }
   }
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
@@ -385,7 +390,7 @@ function DetailsModal({ mode, title, vehicle, onClose, onBack, onSaved }: Detail
         <div className="px-6 pb-6 pt-3 flex gap-3 border-t border-[#f0f0f0]">
           <button
             onClick={onClose}
-            className="flex-1 h-[44px] rounded-[10px] text-[15px] font-semibold transition-all"
+            className="rounded-full px-5 py-2.5 text-sm font-semibold transition-all active:scale-95"
             style={{ background: '#f5f5f7', color: '#1d1d1f' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}
@@ -395,10 +400,10 @@ function DetailsModal({ mode, title, vehicle, onClose, onBack, onSaved }: Detail
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 h-[44px] rounded-[10px] text-[15px] font-semibold transition-all disabled:opacity-50"
-            style={{ background: '#0071e3', color: '#fff' }}
-            onMouseEnter={(e) => { if (!saving) e.currentTarget.style.background = '#0077ed' }}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#0071e3')}
+            className="rounded-full px-5 py-2.5 text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+            style={{ background: '#1d1d1f', color: '#fff' }}
+            onMouseEnter={(e) => { if (!saving) e.currentTarget.style.background = '#333' }}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#1d1d1f')}
           >
             {saving ? 'Saving…' : mode === 'add' ? 'Add to Garage' : 'Save Changes'}
           </button>
@@ -476,6 +481,12 @@ function DeleteConfirmModal({
   onCancel: () => void
 }) {
   const [deleting, setDeleting] = useState(false)
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={onCancel}>
       <div
@@ -503,7 +514,7 @@ function DeleteConfirmModal({
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 h-[44px] rounded-[10px] text-[15px] font-semibold transition-all"
+            className="rounded-full px-5 py-2.5 text-sm font-semibold transition-all active:scale-95"
             style={{ background: '#f5f5f7', color: '#1d1d1f' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}
@@ -513,7 +524,7 @@ function DeleteConfirmModal({
           <button
             onClick={async () => { setDeleting(true); await onConfirm() }}
             disabled={deleting}
-            className="flex-1 h-[44px] rounded-[10px] text-[15px] font-semibold transition-all disabled:opacity-50"
+            className="rounded-full px-5 py-2.5 text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
             style={{ background: '#ff3b30', color: '#fff' }}
             onMouseEnter={(e) => { if (!deleting) e.currentTarget.style.background = '#e0362c' }}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#ff3b30')}
@@ -575,12 +586,15 @@ function VehicleCard({
             src={vehicle.image_url}
             alt={`${vehicle.brand} ${vehicle.model}`}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+              e.currentTarget.nextElementSibling?.classList.remove('hidden')
+            }}
           />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <CarIllustration />
-          </div>
-        )}
+        ) : null}
+        <div className={`flex h-full w-full items-center justify-center${vehicle.image_url ? ' hidden' : ''}`}>
+          <CarIllustration />
+        </div>
 
         {/* Protection badge */}
         <div className="absolute left-3 top-3">
@@ -752,7 +766,7 @@ function EmptyGarage({ onAdd }: { onAdd: () => void }) {
       </p>
       <button
         onClick={onAdd}
-        className="flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold text-white transition-all active:scale-95"
+        className="inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all active:scale-95"
         style={{ background: '#1d1d1f' }}
         onMouseEnter={(e) => (e.currentTarget.style.background = '#333')}
         onMouseLeave={(e) => (e.currentTarget.style.background = '#1d1d1f')}
@@ -894,7 +908,7 @@ export function MyGarageSection() {
           {isLoggedIn && vehicles.length > 0 && (
             <button
               onClick={() => setShowAddFlow(true)}
-              className="flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold text-white transition-all active:scale-95"
+              className="inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all active:scale-95"
               style={{ background: '#1d1d1f' }}
               onMouseEnter={(e) => (e.currentTarget.style.background = '#333')}
               onMouseLeave={(e) => (e.currentTarget.style.background = '#1d1d1f')}

@@ -46,6 +46,7 @@ import { FindInstaller } from '@/pages/coatings/FindInstaller'
 import { HowItWorks } from '@/pages/coatings/HowItWorks'
 import { CATEGORIES } from '@/data/products'
 import { NotFoundPage } from '@/components/NotFoundPage'
+import { AdminProvider } from '@/context/AdminContext'
 
 function LegacyProductRedirect() {
   const { slug } = useParams<{ slug: string }>()
@@ -61,6 +62,7 @@ function CategoryRoute() {
 
 function App() {
   return (
+    <AdminProvider>
     <NotificationsProvider>
       <CartProvider>
         <Routes>
@@ -279,6 +281,7 @@ function App() {
         </Routes>
       </CartProvider>
     </NotificationsProvider>
+    </AdminProvider>
   )
 }
 

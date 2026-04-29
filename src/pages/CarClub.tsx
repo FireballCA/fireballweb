@@ -1,4 +1,4 @@
-import { useCallback, useContext, type MouseEvent } from 'react'
+import { useCallback, useContext, useEffect, useState, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
@@ -6,6 +6,7 @@ import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 import { LenisContext } from '@/components/LenisRoot'
 import { cn } from '@/lib/utils'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { fetchCarClubSettings, subscribeCarClubSettings, type CarClubSettings } from '@/utils/supabaseCarClub'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 32 },
@@ -41,6 +42,33 @@ export function CarClub() {
   const lenis = useContext(LenisContext)
   usePageTitle('Car Club - Fireball Canada')
 
+  // i18n fallbacks
+  const i18nIgnitionFeatures = t('carClub.ignitionFeatures', { returnObjects: true }) as string[]
+  const i18nApexFeatures = t('carClub.apexFeatures', { returnObjects: true }) as string[]
+  const i18nIgnitionPrice = t('carClub.ignitionPrice') as string
+  const i18nApexPrice = t('carClub.apexPrice') as string
+
+  const [clubSettings, setClubSettings] = useState<CarClubSettings | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    fetchCarClubSettings().then((s) => { if (mounted && s) setClubSettings(s) })
+
+    const channel = subscribeCarClubSettings((s) => {
+      if (mounted) setClubSettings(s)
+    })
+
+    return () => {
+      mounted = false
+      channel.unsubscribe()
+    }
+  }, [])
+
+  const ignitionFeatures = clubSettings?.ignition_features ?? i18nIgnitionFeatures
+  const apexFeatures = clubSettings?.apex_features ?? i18nApexFeatures
+  const ignitionPrice = clubSettings?.ignition_price ?? i18nIgnitionPrice
+  const apexPrice = clubSettings?.apex_price ?? i18nApexPrice
+
   const scrollToMembershipCards = useCallback(
     (e: MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault()
@@ -54,9 +82,6 @@ export function CarClub() {
     },
     [lenis],
   )
-
-  const ignitionFeatures = t('carClub.ignitionFeatures', { returnObjects: true }) as string[]
-  const apexFeatures = t('carClub.apexFeatures', { returnObjects: true }) as string[]
 
   return (
     <div className="bg-black text-white">
@@ -172,7 +197,7 @@ export function CarClub() {
               />
               <span className="text-xs font-nav font-bold uppercase tracking-widest text-white/50 mb-2">{t('carClub.coreAccess')}</span>
               <h3 className="font-nav text-3xl font-bold text-white tracking-tight mb-1">{t('carClub.ignitionMember')}</h3>
-              <p className="text-white/90 font-semibold text-lg mb-2">{t('carClub.ignitionPrice')}</p>
+              <p className="text-white/90 font-semibold text-lg mb-2">{ignitionPrice}</p>
               <p className="text-white/70 text-sm max-w-sm mb-6">
                 {t('carClub.ignitionDesc')}
               </p>
@@ -230,7 +255,7 @@ export function CarClub() {
               />
               <span className="text-xs font-nav font-bold uppercase tracking-widest text-apex mb-2">{t('carClub.eliteTier')}</span>
               <h3 className="font-nav text-3xl font-bold text-white tracking-tight mb-1">{t('carClub.apexMember')}</h3>
-              <p className="text-white/90 font-semibold text-lg mb-2">{t('carClub.apexPrice')}</p>
+              <p className="text-white/90 font-semibold text-lg mb-2">{apexPrice}</p>
               <p className="text-white/70 text-sm max-w-sm mb-6">
                 {t('carClub.apexDesc')}
               </p>

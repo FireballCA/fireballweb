@@ -4,6 +4,7 @@ import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
 import { useEffect, useRef, useState } from 'react'
 import { LineupImageTransitionProvider } from '@/context/LineupImageTransitionContext'
 import { CookieConsentModal } from '@/components/CookieConsentModal'
+import { FloatingAdminFab } from '@/components/FloatingAdminFab'
 import { Header } from './Header'
 import { Footer } from './Footer'
 import { isShopPathname } from '@/utils/shopRoutes'
@@ -106,6 +107,7 @@ export function Layout() {
       </main>
       {showFooter && <Footer />}
       <CookieConsentModal />
+      <FloatingAdminFab />
     </div>
   )
 }

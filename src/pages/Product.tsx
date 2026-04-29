@@ -19,6 +19,7 @@ import { FireballLoading } from '@/components/FireballLoading'
 import { ProductDetailSkeleton } from '@/components/ui/ProductDetailSkeleton'
 import { useClipRevealHover, CLIP_REVEAL_BUTTON_BASE_CLASS } from '@/hooks/useClipRevealHover'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { ADMIN_OPEN_PRODUCT_EDITOR } from '@/components/FloatingAdminFab'
 
 const APPLE_BLUE = '#0485F7'
 const SLIDER_ACTIVE_BLACK = '#111111'
@@ -705,6 +706,26 @@ export function Product() {
     }
   }, [added])
 
+  // Must stay before early returns (Rules of Hooks)
+  useEffect(() => {
+    if (!isAdmin) return
+    const handler = () => {
+      const jsonC = slug ? getProductPageContent(slug) : null
+      const ov = (slug ? productPageOverrides[slug] : undefined) ?? null
+      setWhyDraft(ov?.why ?? jsonC?.why ?? '')
+      setHowToUseDraft(
+        Array.isArray(ov?.howToUseSteps ?? jsonC?.howToUseSteps)
+          ? (ov?.howToUseSteps ?? jsonC?.howToUseSteps ?? []).join('\n')
+          : '',
+      )
+      setProductPageSaveError('')
+      setAdminEditorOpen(true)
+    }
+    document.addEventListener(ADMIN_OPEN_PRODUCT_EDITOR, handler)
+    return () => document.removeEventListener(ADMIN_OPEN_PRODUCT_EDITOR, handler)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, slug, productPageOverrides])
+
   if (loading) {
     return <ProductDetailSkeleton />
   }
@@ -740,13 +761,6 @@ export function Product() {
   const pageContent = {
     why: override?.why ?? jsonContent?.why ?? null,
     howToUseSteps: override?.howToUseSteps ?? jsonContent?.howToUseSteps ?? null,
-  }
-
-  const openAdminEditor = () => {
-    setProductPageSaveError('')
-    setWhyDraft(pageContent.why ?? '')
-    setHowToUseDraft(Array.isArray(pageContent.howToUseSteps) ? pageContent.howToUseSteps.join('\n') : '')
-    setAdminEditorOpen(true)
   }
 
   const saveAdminEditor = async () => {
@@ -1091,18 +1105,6 @@ export function Product() {
 
           {/* Right: Product Information */}
           <div className="space-y-6">
-            {/* Admin quick edit (only admins) */}
-            {isAdmin && (
-              <div className="hidden lg:flex items-center justify-end">
-                <button
-                  type="button"
-                  onClick={openAdminEditor}
-                  className="inline-flex items-center gap-2 rounded-full border border-carbon-200 bg-carbon-50 px-4 py-2 text-xs font-semibold text-carbon-900 hover:bg-carbon-100 transition-colors"
-                >
-                  Admin: éditer Why / How to use
-                </button>
-              </div>
-            )}
             {/* Product Title */}
             {product.badge && (
               <span className="inline-block text-xs font-semibold text-chrome uppercase tracking-wide mb-2">
