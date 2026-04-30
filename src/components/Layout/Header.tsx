@@ -1397,7 +1397,7 @@ export function Header() {
             <div
               className="h-full border-t border-carbon-800 px-6 py-4 overflow-x-hidden"
               style={{
-                paddingTop: `${(isShopPage ? 64 : 80) + (bannerActive ? bannerHeightPx : 0)}px`,
+                paddingTop: `${48 + (bannerActive ? bannerHeightPx : 0)}px`,
                 backgroundColor: solidNavColor,
               }}
             >

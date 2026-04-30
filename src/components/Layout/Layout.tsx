@@ -1,7 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { LineupImageTransitionProvider } from '@/context/LineupImageTransitionContext'
 import { CookieConsentModal } from '@/components/CookieConsentModal'
 import { FloatingAdminFab } from '@/components/FloatingAdminFab'
@@ -33,6 +33,16 @@ export function Layout() {
     location.pathname === '/academy/training-thank-you'
   const isJoinClubPage = location.pathname === '/join-club' || location.pathname === '/join'
   const isShopPage = isShopPathname(location.pathname)
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 1024 : false,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)')
+    const h = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', h)
+    setIsMobile(mq.matches)
+    return () => mq.removeEventListener('change', h)
+  }, [])
 
   /** Même logique que Header : navbar sticky dans le flux — pas de pt sur main (évite double bande noire). */
   const isStickyNavPage =
@@ -57,27 +67,37 @@ export function Layout() {
         : isJoinClubPage || isCompanyInfoPage
           ? ''
           : isShopPage
-            ? 'pt-16'
+            ? 'lg:pt-16'
             : isContactPage
               ? 'lg:pt-20'
-              : 'pt-20'
+              : 'lg:pt-20'
 
   return (
     <div
       className={[
         'flex min-h-screen flex-col',
-        isContactPage ? 'max-lg:h-[100dvh] max-lg:max-h-[100dvh] max-lg:overflow-hidden' : '',
+        'max-lg:h-[100dvh] max-lg:overflow-hidden max-lg:bg-[#111111]',
       ]
         .filter(Boolean)
         .join(' ')}
     >
       {showHeader && <Header />}
+      {/* Mobile spacer — matches fixed header height so content starts below */}
+      {showHeader && (
+        <div
+          className="lg:hidden shrink-0"
+          style={{ height: 'var(--mobile-header-h, 3rem)' }}
+          aria-hidden
+        />
+      )}
       <main
+        {...(isMobile ? { 'data-lenis-prevent': true } : {})}
         className={[
           'flex-1',
           mainHeaderPadding,
+          'max-lg:overflow-y-auto max-lg:rounded-t-2xl max-lg:min-h-0 max-lg:-mt-3',
           isContactPage
-            ? 'flex min-h-0 w-full flex-col max-lg:mt-20 max-lg:h-[calc(100dvh-5rem)] max-lg:max-h-[calc(100dvh-5rem)] max-lg:overflow-hidden max-lg:flex-shrink-0'
+            ? 'flex min-h-0 w-full flex-col lg:mt-0 max-lg:h-full max-lg:flex-shrink-0'
             : '',
         ]
           .filter(Boolean)
