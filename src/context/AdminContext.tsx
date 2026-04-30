@@ -17,27 +17,34 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true
 
-    async function check() {
+    async function checkRole(uid: string) {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!mounted || !user) { setLoading(false); return }
         const { data } = await supabase
           .from('profiles')
           .select('role')
-          .eq('id', user.id)
+          .eq('id', uid)
           .maybeSingle()
         if (!mounted) return
-        setUserId(user.id)
+        setUserId(uid)
         setIsAdmin(String(data?.role ?? '').trim().toLowerCase() === 'admin')
+      } catch {
+        if (mounted) setIsAdmin(false)
       } finally {
         if (mounted) setLoading(false)
       }
     }
 
-    check()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      check()
+    // onAuthStateChange fires INITIAL_SESSION immediately — no need for a separate check() call.
+    // This avoids the double DB query that happened on every page load when logged in.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return
+      if (session?.user) {
+        void checkRole(session.user.id)
+      } else {
+        setIsAdmin(false)
+        setUserId(null)
+        setLoading(false)
+      }
     })
 
     return () => {

@@ -675,24 +675,16 @@ export function Header() {
     }
   }, [isMobileMenuMounted])
 
-  const opacity = (useSolidNav || isMobileBreakpoint) ? 1 : scrollProgress * 0.95
-  const borderOpacity = useSolidNav ? 0.45 : 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
   /** Aligné sur le footer (`bg-carbon-900` = #111111) */
   const solidNavColor = '#111111'
-  
-  const navBgStyle: React.CSSProperties = (useSolidNav || isMobileBreakpoint)
-    ? {
-        backgroundColor: solidNavColor,
-        backdropFilter: 'none',
-        borderBottom: `1px solid rgba(37, 37, 37, ${borderOpacity})`,
-        transition: 'background-color 0.12s ease-out, backdrop-filter 0.12s ease-out, border-bottom-color 0.12s ease-out',
-      }
-    : {
-        backgroundColor: `rgba(10, 10, 10, ${opacity})`,
-        backdropFilter: opacity > 0.01 ? 'blur(12px)' : 'none',
-        borderBottom: `1px solid rgba(37, 37, 37, ${borderOpacity})`,
-        transition: 'background-color 0.12s ease-out, backdrop-filter 0.12s ease-out, border-bottom-color 0.12s ease-out',
-      }
+
+  // Navbar is always solid — outer shell is bg-black so there's nothing to fade over
+  const navBgStyle: React.CSSProperties = {
+    backgroundColor: solidNavColor,
+    backdropFilter: 'none',
+    borderBottom: '1px solid rgba(37, 37, 37, 0.45)',
+    transition: 'background-color 0.12s ease-out, backdrop-filter 0.12s ease-out, border-bottom-color 0.12s ease-out',
+  }
 
   const navLink =
     'font-nav font-bold text-white transition-colors text-xs uppercase px-4 py-2 rounded-md hover:bg-carbon-700/20 group-hover:text-silver/70 hover:!text-white'
@@ -802,9 +794,7 @@ export function Header() {
       {/* Banner + Navbar: move as ONE block (no gap, smoother) */}
       <div
         id="site-header-stack"
-        className={`${
-          isAutoHideHeaderPage || isJoinClubPage || isAcademyPage ? 'max-lg:fixed' : 'sticky max-lg:fixed'
-        } top-0 left-0 right-0 ${
+        className={`fixed top-0 left-0 right-0 ${
           isMobileMenuMounted ? 'z-[10010]' : 'z-[120]'
         } transition-transform duration-300 ease-out will-change-transform`}
         style={{
@@ -852,7 +842,7 @@ export function Header() {
         )}
 
         <header
-          className={`${isAutoHideHeaderPage ? 'sticky' : ''} left-0 right-0${isDashboardPage ? ' max-lg:!bg-transparent max-lg:![border-bottom:none] max-lg:![backdrop-filter:none]' : ''}`}
+          className="left-0 right-0"
           style={{
             ...(isMobileMenuMounted
               ? {

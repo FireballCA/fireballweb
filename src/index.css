@@ -125,7 +125,7 @@ html.lenis-smooth body {
     scrollbar-gutter: stable;
   }
   body {
-    @apply bg-carbon-950 text-pearl font-sans antialiased;
+    @apply bg-black text-pearl font-sans antialiased;
     /* Améliorer les performances de scroll */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

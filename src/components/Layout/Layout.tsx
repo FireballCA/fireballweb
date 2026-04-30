@@ -7,7 +7,6 @@ import { CookieConsentModal } from '@/components/CookieConsentModal'
 import { FloatingAdminFab } from '@/components/FloatingAdminFab'
 import { Header } from './Header'
 import { Footer } from './Footer'
-import { isShopPathname } from '@/utils/shopRoutes'
 
 export function Layout() {
   const location = useLocation()
@@ -20,19 +19,9 @@ export function Layout() {
     location.pathname.startsWith('/account') ||
     location.pathname.startsWith('/business')
   const isContactPage = location.pathname === '/contact'
-  const isCompanyInfoPage =
-    location.pathname === '/contact' ||
-    location.pathname === '/press-kit' ||
-    location.pathname === '/about' ||
-    location.pathname === '/legal' ||
-    location.pathname === '/Legal-Notice' ||
-    location.pathname === '/Cookies' ||
-    location.pathname === '/Privacy' ||
-    location.pathname === '/Terms-of-Service' ||
-    location.pathname === '/cart' ||
-    location.pathname === '/academy/training-thank-you'
-  const isJoinClubPage = location.pathname === '/join-club' || location.pathname === '/join'
-  const isShopPage = isShopPathname(location.pathname)
+
+  const showHeader = !isAccountAuthPage
+  const showFooter = !isAnyAccountPage && !isContactPage
 
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 1024 : false,
@@ -45,74 +34,51 @@ export function Layout() {
     return () => mq.removeEventListener('change', h)
   }, [])
 
-  /** Même logique que Header : navbar sticky dans le flux — pas de pt sur main. */
-  const isStickyNavPage =
-    location.pathname.startsWith('/products/') ||
-    location.pathname.startsWith('/product/') ||
-    location.pathname.startsWith('/coating/') ||
-    location.pathname.startsWith('/coatings/') ||
-    location.pathname === '/all-coatings' ||
-    location.pathname === '/event' ||
-    location.pathname.startsWith('/event/')
-
-  const showHeader = !isAccountAuthPage
-  const showFooter = !isAnyAccountPage && !isContactPage
-
-  const mainHeaderPadding =
-    !showHeader
-      ? ''
-      : isStickyNavPage
-        ? ''
-        : isAnyAccountPage
-          ? ''
-        : isJoinClubPage || isCompanyInfoPage
-          ? ''
-          : isShopPage
-            ? 'lg:pt-16'
-            : isContactPage
-              ? 'lg:pt-20'
-              : 'lg:pt-20'
-
   return (
     /*
-     * MOBILE LAYOUT — iOS Shopify-style:
-     *   • Outer shell : pure black (bg-black), fixed height 100dvh, clips overflow
-     *   • Fixed navbar sits on top (z-120)
-     *   • Spacer = navbar height + extra chin → creates visible black breathing room
-     *   • Content card = bg-[#111111] + rounded-t-3xl → visually "floats" over the black chin
-     *   • Only the card scrolls (overflow-y-auto); no body scroll on mobile
+     * iOS Shopify-style layout — BOTH mobile and desktop:
      *
-     * DESKTOP LAYOUT — unchanged: sticky navbar, normal document flow.
+     * MOBILE (< lg):
+     *   • Outer shell : pure black, fixed 100dvh, clips overflow
+     *   • Fixed navbar on top (z-120)
+     *   • Spacer = navbar height + 16 px chin
+     *   • Content card = bg-[#111111] + rounded-t-3xl, scrolls via overflow-y-auto
+     *
+     * DESKTOP (≥ lg):
+     *   • Outer shell : pure black, min-h-screen, normal document scroll (Lenis)
+     *   • Fixed navbar on top (z-120)
+     *   • Spacer = navbar height + 16 px chin
+     *   • Content card = bg-[#111111] + rounded-t-3xl visible at top of page
+     *   • Rounded corners visible on load; scroll is handled by Lenis/window
      */
-    <div className="flex min-h-screen flex-col max-lg:h-[100dvh] max-lg:overflow-hidden max-lg:bg-black">
+    <div className="flex flex-col bg-black max-lg:h-[100dvh] max-lg:overflow-hidden lg:min-h-screen">
       {showHeader && <Header />}
 
       {/*
-       * Mobile spacer — pushes the card below the fixed navbar AND leaves a visible
+       * Spacer — pushes the card below the fixed navbar AND leaves a visible
        * black "chin" between the navbar bottom edge and the card's rounded corners.
-       * Height = --mobile-header-h (navbar + optional banner) + 28 px chin.
+       * Active on both mobile and desktop (header is fixed on both).
        */}
       {showHeader && (
         <div
-          className="lg:hidden shrink-0"
-          style={isMobile ? { height: 'calc(var(--mobile-header-h, 3.5rem) + 16px)' } : undefined}
+          className="shrink-0"
+          style={{ height: 'calc(var(--mobile-header-h, 3.5rem) + 16px)' }}
           aria-hidden
         />
       )}
 
       {/*
-       * Content card — the scrollable "sheet" with rounded top corners.
-       * bg-[#111111] against the outer bg-black makes the rounded corners visible.
-       * overflow-y-auto clips content to the rounded shape (standard CSS behaviour).
+       * Content card — rounded top corners visible against outer bg-black.
+       * Mobile : overflow-y-auto + min-h-0 → card is the scroll container.
+       * Desktop : no overflow constraint → Lenis/window scroll works normally.
        */}
       <div
         {...(isMobile ? { 'data-lenis-prevent': true } : {})}
-        className="flex flex-1 flex-col max-lg:overflow-y-auto max-lg:rounded-t-3xl max-lg:min-h-0 max-lg:bg-[#111111]"
+        className="flex flex-1 flex-col rounded-t-3xl bg-[#111111] max-lg:overflow-y-auto max-lg:min-h-0"
       >
         <main
           className={[
             'flex-1',
-            mainHeaderPadding,
             isContactPage ? 'flex min-h-0 w-full flex-col' : '',
           ]
             .filter(Boolean)

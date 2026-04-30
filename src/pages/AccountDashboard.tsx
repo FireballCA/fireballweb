@@ -889,6 +889,7 @@ export function AccountDashboard() {
 
   useEffect(() => {
     const checkAuthAndLoadProfile = async () => {
+      try {
       // Vérifier l'authentification Supabase
       const authenticated = await isAuthenticated()
       
@@ -1040,6 +1041,13 @@ export function AccountDashboard() {
         window.clearTimeout(subtitleTimer)
         window.clearTimeout(ctaTimer)
         window.clearTimeout(safetyTimer)
+      }
+      } catch (err) {
+        console.error('[AccountDashboard] Error during load:', err)
+        // En cas d'erreur réseau/Supabase, afficher quand même le dashboard
+        // plutôt que de laisser React crasher et recharger la page en boucle
+        setShowDashboard(true)
+        setDashboardDataLoaded(true)
       }
     }
 
