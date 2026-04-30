@@ -1384,10 +1384,11 @@ export function Header() {
       {/* Mobile menu */}
       {isMobileMenuMounted && typeof document !== 'undefined' && createPortal(
         <div
-          className="lg:hidden fixed inset-0 z-[9999] overflow-hidden pointer-events-none"
+          className="lg:hidden fixed left-0 right-0 bottom-0 z-[9999] overflow-hidden pointer-events-none"
+          style={{ top: 'var(--mobile-header-h, 3.5rem)' }}
         >
           <div
-            className={`absolute inset-0 transition-transform duration-[480ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
+            className={`absolute inset-0 transition-transform duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
               isMobileMenuVisible
                 ? 'translate-y-0 pointer-events-auto'
                 : '-translate-y-full pointer-events-none'
@@ -1397,7 +1398,6 @@ export function Header() {
             <div
               className="h-full border-t border-carbon-800 px-6 py-4 overflow-x-hidden"
               style={{
-                paddingTop: `${56 + (bannerActive ? bannerHeightPx : 0)}px`,
                 backgroundColor: solidNavColor,
               }}
             >
