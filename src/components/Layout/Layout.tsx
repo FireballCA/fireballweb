@@ -84,7 +84,7 @@ export function Layout() {
       */}
       <div
         {...(isMobile ? { 'data-lenis-prevent': true } : {})}
-        className="flex flex-1 flex-col max-lg:overflow-y-auto max-lg:rounded-t-2xl max-lg:min-h-0 max-lg:-mt-3"
+        className="flex flex-1 flex-col max-lg:overflow-y-auto max-lg:rounded-t-3xl max-lg:min-h-0 max-lg:-mt-6"
         style={isMobile && showHeader ? { paddingTop: 'var(--mobile-header-h, 3rem)' } : undefined}
       >
         <main

@@ -806,7 +806,7 @@ export function Header() {
           isAutoHideHeaderPage || isJoinClubPage || isAcademyPage ? 'max-lg:fixed' : 'sticky max-lg:fixed'
         } top-0 left-0 right-0 ${
           isMobileMenuMounted ? 'z-[10010]' : 'z-[120]'
-        } transition-transform duration-300 ease-out will-change-transform`}
+        } max-lg:pb-6 transition-transform duration-300 ease-out will-change-transform`}
         style={{
           transform:
             isMobileBreakpoint || isJoinClubPage || isAcademyPage || !(bannerActive && bannerHidden && bannerHeightPx > 0)
@@ -872,7 +872,7 @@ export function Header() {
         {anyMenuOpen && !menuOpen && (
           <div className="fixed inset-0 z-40 bg-black/15 pointer-events-none" aria-hidden />
         )}
-        <div className={`max-w-7xl mx-auto px-6 flex items-center justify-between ${isShopPage ? 'h-16 max-lg:h-12' : 'h-20 max-lg:h-12'}`}>
+        <div className={`max-w-7xl mx-auto px-6 flex items-center justify-between ${isShopPage ? 'h-16 max-lg:h-14' : 'h-20 max-lg:h-14'}`}>
         {/* Left: Logo + links */}
         <div className="flex items-center gap-10 h-full">
           <Link to="/" className="flex items-center h-12 w-auto select-none">
