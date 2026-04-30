@@ -125,6 +125,9 @@ export function Header() {
   const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [scrollProgress, setScrollProgress] = useState(0)
+  const [isMobileBreakpoint, setIsMobileBreakpoint] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 1024 : false,
+  )
   const lang = i18n.language === 'fr' ? 'FR' : 'EN'
   const [langOpen, setLangOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -607,6 +610,28 @@ export function Header() {
     setSearchQuery('')
   }, [location.pathname])
 
+  // Track mobile breakpoint for always-fixed navbar logic
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)')
+    const handler = (e: MediaQueryListEvent) => setIsMobileBreakpoint(e.matches)
+    mq.addEventListener('change', handler)
+    setIsMobileBreakpoint(mq.matches)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  // Expose total header height as CSS var so Layout.tsx spacer can match it
+  useEffect(() => {
+    const el = document.getElementById('site-header-stack')
+    if (!el) return
+    const update = () => {
+      document.documentElement.style.setProperty('--mobile-header-h', el.getBoundingClientRect().height + 'px')
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   // Stopper Lenis quand le menu mobile est monté (Lenis bypass overflow:hidden)
   useEffect(() => {
     if (!lenis) return
@@ -650,12 +675,12 @@ export function Header() {
     }
   }, [isMobileMenuMounted])
 
-  const opacity = useSolidNav ? 1 : scrollProgress * 0.95
+  const opacity = (useSolidNav || isMobileBreakpoint) ? 1 : scrollProgress * 0.95
   const borderOpacity = useSolidNav ? 0.45 : 0.15 + (scrollProgress * 0.35) // Toujours au moins 0.15 visible
   /** Aligné sur le footer (`bg-carbon-900` = #111111) */
   const solidNavColor = '#111111'
   
-  const navBgStyle: React.CSSProperties = useSolidNav
+  const navBgStyle: React.CSSProperties = (useSolidNav || isMobileBreakpoint)
     ? {
         backgroundColor: solidNavColor,
         backdropFilter: 'none',
@@ -778,13 +803,13 @@ export function Header() {
       <div
         id="site-header-stack"
         className={`${
-          isAutoHideHeaderPage || isJoinClubPage || isAcademyPage ? '' : 'sticky'
+          isAutoHideHeaderPage || isJoinClubPage || isAcademyPage ? 'max-lg:fixed' : 'sticky max-lg:fixed'
         } top-0 left-0 right-0 ${
           isMobileMenuMounted ? 'z-[10010]' : 'z-[120]'
         } transition-transform duration-300 ease-out will-change-transform`}
         style={{
           transform:
-            isJoinClubPage || isAcademyPage || !(bannerActive && bannerHidden && bannerHeightPx > 0)
+            isMobileBreakpoint || isJoinClubPage || isAcademyPage || !(bannerActive && bannerHidden && bannerHeightPx > 0)
               ? 'translateY(0)'
               : `translateY(-${bannerHeightPx}px)`,
         }}
@@ -847,7 +872,7 @@ export function Header() {
         {anyMenuOpen && !menuOpen && (
           <div className="fixed inset-0 z-40 bg-black/15 pointer-events-none" aria-hidden />
         )}
-        <div className={`max-w-7xl mx-auto px-6 flex items-center justify-between ${isShopPage ? 'h-16' : 'h-20'}`}>
+        <div className={`max-w-7xl mx-auto px-6 flex items-center justify-between ${isShopPage ? 'h-16 max-lg:h-12' : 'h-20 max-lg:h-12'}`}>
         {/* Left: Logo + links */}
         <div className="flex items-center gap-10 h-full">
           <Link to="/" className="flex items-center h-12 w-auto select-none">
