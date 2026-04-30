@@ -613,13 +613,17 @@ function VehicleAddDetailsModal({ base, onClose, onBack, onCreated }: VehicleAdd
 export function AccountDashboard() {
   const navigate = useNavigate()
   const location = useLocation()
-  const pageState =
-    (location.state as {
-      fromRegister?: boolean
-      welcomeName?: string
-      shopifySyncError?: string | null
-      redirectAfterWelcome?: string | null
-    } | null) || null
+  const pageState = useMemo(
+    () =>
+      (location.state as {
+        fromRegister?: boolean
+        welcomeName?: string
+        shopifySyncError?: string | null
+        redirectAfterWelcome?: string | null
+      } | null) || null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  )
   const redirectAfterWelcome = getSafeReturnToPath(pageState?.redirectAfterWelcome ?? null)
   const [fullName, setFullName] = useState('')
   const [xp, setXp] = useState(0)
@@ -1040,7 +1044,8 @@ export function AccountDashboard() {
     }
 
     checkAuthAndLoadProfile()
-  }, [pageState, navigate])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageState])
 
   useEffect(() => {
     if (!leaderboardOpen && !trophyOpen) return

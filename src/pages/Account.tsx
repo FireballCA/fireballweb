@@ -67,9 +67,9 @@ export function Account() {
     const previousHtmlHeight = document.documentElement.style.height
 
     document.body.style.overflow = 'hidden'
-    document.body.style.height = '100vh'
+    document.body.style.height = '100dvh'
     document.documentElement.style.overflow = 'hidden'
-    document.documentElement.style.height = '100vh'
+    document.documentElement.style.height = '100dvh'
 
     return () => {
       document.body.style.overflow = previousBodyOverflow
@@ -87,7 +87,8 @@ export function Account() {
       }
     }
     checkAuth()
-  }, [navigate, returnToPath])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [returnToPath])
 
   const getRedirectTo = () => {
     const base = `${window.location.origin}/account`

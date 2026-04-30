@@ -100,7 +100,8 @@ export function AccountRegister() {
       }
     }
     checkAuth()
-  }, [navigate, returnToPath])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [returnToPath])
 
   const getRedirectTo = () => {
     const base = `${window.location.origin}/account`
