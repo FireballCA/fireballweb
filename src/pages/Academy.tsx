@@ -200,7 +200,11 @@ export function Academy() {
       </AnimatePresence>
 
       <section
-        className="relative -mt-20 flex h-[92dvh] min-h-[92dvh] flex-col overflow-hidden px-6"
+        className="relative flex h-[92dvh] min-h-[92dvh] flex-col overflow-hidden px-6"
+        style={{
+          height: 'min(92dvh, var(--app-hero-h))',
+          minHeight: 'min(92dvh, var(--app-hero-h))',
+        }}
         aria-label="Hero"
       >
         <video

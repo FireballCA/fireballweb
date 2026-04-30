@@ -1,7 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { LineupImageTransitionProvider } from '@/context/LineupImageTransitionContext'
 import { CookieConsentModal } from '@/components/CookieConsentModal'
 import { FloatingAdminFab } from '@/components/FloatingAdminFab'
@@ -19,7 +19,6 @@ export function Layout() {
     location.pathname.startsWith('/account') ||
     location.pathname.startsWith('/business')
   const isContactPage = location.pathname === '/contact'
-  const isHomePage = location.pathname === '/'
 
   const showHeader = !isAccountAuthPage
   const showFooter = !isAnyAccountPage && !isContactPage
@@ -36,29 +35,8 @@ export function Layout() {
   }, [])
 
   return (
-    /*
-     * iOS Shopify-style layout — BOTH mobile and desktop:
-     *
-     * MOBILE (< lg):
-     *   • Outer shell : pure black, fixed 100dvh, clips overflow
-     *   • Fixed navbar on top (z-120)
-     *   • Spacer = navbar height + 16 px chin
-     *   • Content card = bg-[#111111] + rounded-t-3xl, scrolls via overflow-y-auto
-     *
-     * DESKTOP (≥ lg):
-     *   • Outer shell : pure black, min-h-screen, normal document scroll (Lenis)
-     *   • Fixed navbar on top (z-120)
-     *   • Spacer = navbar height + 16 px chin
-     *   • Content card = bg-[#111111] + rounded-t-3xl visible at top of page
-     *   • Rounded corners visible on load; scroll is handled by Lenis/window
-     */
     <div
-      className={[
-        'flex flex-col bg-black',
-        isHomePage ? 'max-lg:h-[100dvh] max-lg:overflow-hidden lg:min-h-screen' : 'h-[100dvh] overflow-hidden',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+      className="flex h-[100dvh] flex-col overflow-hidden bg-black"
     >
       {showHeader && <Header />}
 
@@ -71,27 +49,24 @@ export function Layout() {
         <div
           className="shrink-0"
           style={{
-            height: isHomePage
-              ? 'calc(var(--mobile-header-h, 3.5rem) + 16px)'
-              : 'calc(var(--mobile-header-h, 3.5rem) + 12px)',
+            height: 'calc(var(--mobile-header-h, 3.5rem) + 12px)',
           }}
           aria-hidden
         />
       )}
 
-      {/*
-       * Content card — rounded top corners visible against outer bg-black.
-       * Mobile : overflow-y-auto + min-h-0 → card is the scroll container.
-       * Desktop : no overflow constraint → Lenis/window scroll works normally.
-       */}
       <div
         id="app-scroll-root"
         {...(isMobile ? { 'data-lenis-prevent': true } : {})}
+        style={
+          {
+            '--app-hero-h': 'calc(100dvh - var(--mobile-header-h, 3.5rem) - 12px)',
+          } as CSSProperties
+        }
         className={[
           'flex flex-1 flex-col bg-[#111111]',
-          isHomePage
-            ? 'rounded-t-3xl'
-            : 'relative z-[1] -mt-2 min-h-0 overflow-y-auto overflow-x-hidden rounded-t-[30px] shadow-[0_-12px_26px_rgba(0,0,0,0.42)]',
+          'relative z-[1] -mt-2 rounded-t-[30px] shadow-[0_-12px_26px_rgba(0,0,0,0.42)]',
+          'min-h-0 overflow-y-auto overflow-x-hidden',
         ]
           .filter(Boolean)
           .join(' ')}

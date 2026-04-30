@@ -181,7 +181,6 @@ export function Header() {
 
   const showAccountNotifBang = loggedInForNotif && headerUnreadNotif && !isDashboardPage
 
-  const isContactPage = location.pathname === '/contact'
   const isShopPage = isShopPathname(location.pathname)
   const isProductPage =
     location.pathname.startsWith('/products/') ||
@@ -232,10 +231,8 @@ export function Header() {
   ])
   const lastBannerScrollYRef = useRef(0)
   const bannerRef = useRef<HTMLDivElement | null>(null)
-  const isEventDetailPage = location.pathname.startsWith('/event/') && location.pathname.length > '/event/'.length - 1
-  // Disable banners inside dashboards (member dashboard + business/admin) and event detail pages
-  const bannerAllowedByRoute =
-    !isContactPage && !isBusinessPage && !isDashboardPage && !isEventDetailPage
+  // Keep banners visible on special public pages too (contact, event detail, configurators).
+  const bannerAllowedByRoute = !isBusinessPage && !isDashboardPage
   const activeBanners = useMemo(
     () => banners.filter((b) => b.enabled && String(b.text || '').trim().length > 0),
     [banners],
@@ -564,7 +561,8 @@ export function Header() {
 
   // Bloquer totalement le scroll de fond quand le menu mobile est ouvert
   useEffect(() => {
-    if (!isMobileMenuMounted) {
+    const isMobileViewport = typeof window !== 'undefined' ? window.innerWidth < 1024 : false
+    if (!isMobileMenuMounted || !isMobileViewport) {
       return () => {
         // Cleanup toujours retourné pour éviter l'erreur React #310
       }

@@ -85,7 +85,14 @@ export function CarClub() {
 
   return (
     <div className="bg-black text-white">
-      <section className="relative -mt-20 flex h-[88vh] min-h-[680px] max-h-[980px] flex-col overflow-hidden bg-black">
+      <section
+        className="relative flex h-[88vh] min-h-[680px] max-h-[980px] flex-col overflow-hidden bg-black"
+        style={{
+          height: 'min(88vh, var(--app-hero-h))',
+          minHeight: 'min(680px, var(--app-hero-h))',
+          maxHeight: 'var(--app-hero-h)',
+        }}
+      >
         {/* Hero image */}
         <motion.div
           className="absolute inset-0 flex items-start justify-center pt-8 md:pt-12"

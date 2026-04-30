@@ -162,7 +162,7 @@ export function Event() {
   return (
     <div className="bg-black text-white">
       <section
-        className="relative -mt-20 flex h-[100dvh] min-h-[100dvh] flex-col overflow-hidden px-6"
+        className="relative flex h-[var(--app-hero-h)] min-h-[var(--app-hero-h)] flex-col overflow-hidden px-6"
         aria-label="Hero"
       >
         <video

@@ -159,9 +159,9 @@ export function EventDetail() {
   return (
     <div className="w-full min-w-0 bg-black text-white">
       {/* One viewport below site header: hero fills to bottom; countdown is below the fold */}
-      <div className="flex h-[calc(100dvh-5rem)] min-h-0 w-full flex-shrink-0 flex-col">
+      <div className="flex h-[var(--app-hero-h)] min-h-0 w-full flex-shrink-0 flex-col">
         <nav
-          className="sticky top-20 z-30 w-full shrink-0 border-b border-black/10 bg-white text-carbon-900 shadow-sm"
+          className="sticky top-0 z-30 w-full shrink-0 border-b border-black/10 bg-white text-carbon-900 shadow-sm"
           aria-label="Event date and location"
         >
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">

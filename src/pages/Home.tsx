@@ -165,10 +165,10 @@ export function Home() {
   }, [lenis])
 
   return (
-    <div className="relative">
-      {/* Hero pinned: video + hero content stay fixed, only lower sections scroll over it */}
+    <div className="relative overflow-x-hidden">
+      {/* Hero classique: section normale sans effet pinned/overlap */}
       <section
-        className="fixed inset-0 z-0 flex min-h-[100dvh] flex-col overflow-hidden bg-black"
+        className="relative flex h-[var(--app-hero-h)] min-h-[var(--app-hero-h)] flex-col overflow-hidden bg-black"
         aria-label="Hero"
       >
         <video
@@ -218,12 +218,8 @@ export function Home() {
         </div>
       </section>
 
-      {/* Content stack: starts 1 viewport below (minus main padding), then scrolls over the pinned hero */}
-      <div className="relative z-10 pointer-events-none">
-        {/* Spacer (transparent) MUST NOT block interactions with the pinned hero */}
-        <div className="h-[calc(100dvh-5rem)] pointer-events-none select-none" aria-hidden />
-        <div className="bg-carbon-950 pointer-events-auto">
-          <ProductCategoryLineup />
+      <div className="bg-carbon-950">
+        <ProductCategoryLineup />
 
           <HomeCollectionSection config={homeCollection} />
 
@@ -379,7 +375,6 @@ export function Home() {
               </div>
             </div>
           </section>
-        </div>
       </div>
     </div>
   )

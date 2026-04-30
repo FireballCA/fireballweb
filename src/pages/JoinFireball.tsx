@@ -96,7 +96,13 @@ export function JoinFireball() {
       <main className="bg-white text-carbon-900 min-h-screen">
 
         {/* Hero */}
-        <section className="relative -mt-20 flex h-[88dvh] min-h-[88dvh] flex-col overflow-hidden">
+        <section
+          className="relative flex h-[88dvh] min-h-[88dvh] flex-col overflow-hidden"
+          style={{
+            height: 'min(88dvh, var(--app-hero-h))',
+            minHeight: 'min(88dvh, var(--app-hero-h))',
+          }}
+        >
           <img
             src="/join-fireball-team.jpg"
             alt=""

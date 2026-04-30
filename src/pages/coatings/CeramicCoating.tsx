@@ -172,7 +172,12 @@ export function CeramicCoating() {
     <div className="w-full bg-white text-carbon-900">
       {/* Hero — fond image (comme avant) + disposition type Car Club */}
       <section
-        className="relative -mt-20 flex h-[min(88vh,920px)] min-h-[560px] max-h-[980px] flex-col overflow-hidden border-b border-carbon-200 bg-black"
+        className="relative flex h-[min(88vh,920px)] min-h-[560px] max-h-[980px] flex-col overflow-hidden border-b border-carbon-200 bg-black"
+        style={{
+          height: 'min(88vh, var(--app-hero-h))',
+          minHeight: 'min(560px, var(--app-hero-h))',
+          maxHeight: 'var(--app-hero-h)',
+        }}
         aria-label="Ceramic coatings"
       >
         <img

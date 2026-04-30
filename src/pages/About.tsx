@@ -16,6 +16,7 @@ export function About() {
 
     // Scroll reveal
     const reveals = document.querySelectorAll<HTMLElement>('.reveal')
+    const scrollRoot = document.getElementById('app-scroll-root')
     const revealObs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -24,7 +25,7 @@ export function About() {
           }
         })
       },
-      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' },
+      { threshold: 0.12, rootMargin: '0px 0px -40px 0px', root: scrollRoot ?? null },
     )
     reveals.forEach((el) => revealObs.observe(el))
 
@@ -60,7 +61,8 @@ export function About() {
     const tickStats = () => {
       const rect = statsEl.getBoundingClientRect()
       const scrolled = -rect.top
-      const totalTravel = statsEl.offsetHeight - window.innerHeight
+      const viewportHeight = scrollRoot?.clientHeight ?? window.innerHeight
+      const totalTravel = statsEl.offsetHeight - viewportHeight
       if (totalTravel <= 0) return
 
       const globalT = clamp(scrolled / totalTravel, 0, 1)
@@ -133,13 +135,14 @@ export function About() {
       })
     }
 
-    window.addEventListener('scroll', tickStats, { passive: true })
+    const scrollEventTarget: EventTarget = scrollRoot ?? window
+    scrollEventTarget.addEventListener('scroll', tickStats, { passive: true })
     window.addEventListener('resize', tickStats)
     tickStats()
 
     return () => {
       revealObs.disconnect()
-      window.removeEventListener('scroll', tickStats)
+      scrollEventTarget.removeEventListener('scroll', tickStats)
       window.removeEventListener('resize', tickStats)
     }
   }, [])
@@ -147,7 +150,7 @@ export function About() {
   return (
     <main className="bg-black text-white min-h-screen">
       {/* Hero section */}
-      <section className="relative min-h-[80vh] md:min-h-screen flex items-center justify-center overflow-hidden -mt-20">
+      <section className="relative min-h-[80vh] md:min-h-[var(--app-hero-h)] flex items-center justify-center overflow-hidden">
         <video
           className="absolute inset-0 w-full h-full object-cover"
           autoPlay
@@ -187,7 +190,7 @@ export function About() {
       <div className="divider" />
 
       {/* Section 2 — Cinematic stats scroll */}
-      <div className="stats-scroll" id="statsScroll">
+      <div className="stats-scroll" id="statsScroll" data-lenis-prevent>
         <div className="stats-sticky-container" id="statsSticky">
           <div className="stat-scene" id="scene0">
             <div className="stat-big-num" id="num0">
