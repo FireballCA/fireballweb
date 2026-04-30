@@ -33,6 +33,7 @@ export function Layout() {
     location.pathname === '/academy/training-thank-you'
   const isJoinClubPage = location.pathname === '/join-club' || location.pathname === '/join'
   const isShopPage = isShopPathname(location.pathname)
+
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 1024 : false,
   )
@@ -44,7 +45,7 @@ export function Layout() {
     return () => mq.removeEventListener('change', h)
   }, [])
 
-  /** Même logique que Header : navbar sticky dans le flux — pas de pt sur main (évite double bande noire). */
+  /** Même logique que Header : navbar sticky dans le flux — pas de pt sur main. */
   const isStickyNavPage =
     location.pathname.startsWith('/products/') ||
     location.pathname.startsWith('/product/') ||
@@ -73,27 +74,46 @@ export function Layout() {
               : 'lg:pt-20'
 
   return (
-    <div
-      className="flex min-h-screen flex-col max-lg:h-[100dvh] max-lg:overflow-hidden max-lg:bg-[#111111]"
-    >
+    /*
+     * MOBILE LAYOUT — iOS Shopify-style:
+     *   • Outer shell : pure black (bg-black), fixed height 100dvh, clips overflow
+     *   • Fixed navbar sits on top (z-120)
+     *   • Spacer = navbar height + extra chin → creates visible black breathing room
+     *   • Content card = bg-[#111111] + rounded-t-3xl → visually "floats" over the black chin
+     *   • Only the card scrolls (overflow-y-auto); no body scroll on mobile
+     *
+     * DESKTOP LAYOUT — unchanged: sticky navbar, normal document flow.
+     */
+    <div className="flex min-h-screen flex-col max-lg:h-[100dvh] max-lg:overflow-hidden max-lg:bg-black">
       {showHeader && <Header />}
+
       {/*
-        Mobile: single scrollable column (main + footer) sitting below the fixed navbar.
-        The -mt-3 + rounded-t-2xl creates the "card peeking behind navbar" effect.
-        Desktop: transparent flex-col wrapper preserving the existing sticky-footer layout.
-      */}
+       * Mobile spacer — pushes the card below the fixed navbar AND leaves a visible
+       * black "chin" between the navbar bottom edge and the card's rounded corners.
+       * Height = --mobile-header-h (navbar + optional banner) + 28 px chin.
+       */}
+      {showHeader && (
+        <div
+          className="lg:hidden shrink-0"
+          style={isMobile ? { height: 'calc(var(--mobile-header-h, 3.5rem) + 28px)' } : undefined}
+          aria-hidden
+        />
+      )}
+
+      {/*
+       * Content card — the scrollable "sheet" with rounded top corners.
+       * bg-[#111111] against the outer bg-black makes the rounded corners visible.
+       * overflow-y-auto clips content to the rounded shape (standard CSS behaviour).
+       */}
       <div
         {...(isMobile ? { 'data-lenis-prevent': true } : {})}
-        className="flex flex-1 flex-col max-lg:overflow-y-auto max-lg:rounded-t-3xl max-lg:min-h-0 max-lg:-mt-6"
-        style={isMobile && showHeader ? { paddingTop: 'var(--mobile-header-h, 3rem)' } : undefined}
+        className="flex flex-1 flex-col max-lg:overflow-y-auto max-lg:rounded-t-3xl max-lg:min-h-0 max-lg:bg-[#111111]"
       >
         <main
           className={[
             'flex-1',
             mainHeaderPadding,
-            isContactPage
-              ? 'flex min-h-0 w-full flex-col'
-              : '',
+            isContactPage ? 'flex min-h-0 w-full flex-col' : '',
           ]
             .filter(Boolean)
             .join(' ')}
@@ -122,6 +142,7 @@ export function Layout() {
         </main>
         {showFooter && <Footer />}
       </div>
+
       <CookieConsentModal />
       <FloatingAdminFab />
     </div>

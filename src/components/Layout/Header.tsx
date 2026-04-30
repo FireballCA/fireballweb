@@ -806,7 +806,7 @@ export function Header() {
           isAutoHideHeaderPage || isJoinClubPage || isAcademyPage ? 'max-lg:fixed' : 'sticky max-lg:fixed'
         } top-0 left-0 right-0 ${
           isMobileMenuMounted ? 'z-[10010]' : 'z-[120]'
-        } max-lg:pb-6 transition-transform duration-300 ease-out will-change-transform`}
+        } transition-transform duration-300 ease-out will-change-transform`}
         style={{
           transform:
             isMobileBreakpoint || isJoinClubPage || isAcademyPage || !(bannerActive && bannerHidden && bannerHeightPx > 0)
@@ -818,19 +818,19 @@ export function Header() {
         {bannerActive && (
           <div
             ref={bannerRef}
-            className="border-b border-carbon-800 bg-white text-carbon-900"
+            className="border-b border-white/[0.07] bg-[#111111] text-white"
           >
             <div className="max-w-7xl mx-auto px-6 py-2">
               <div className="flex items-center justify-center gap-2 flex-nowrap overflow-hidden">
-                <p className="min-w-0 text-center text-[11px] sm:text-sm font-nav font-bold text-carbon-900 truncate whitespace-nowrap">
+                <p className="min-w-0 text-center text-[11px] sm:text-sm font-nav font-bold text-white/80 truncate whitespace-nowrap">
                   {currentBanner?.text ?? ''}
                 </p>
                 {currentBanner?.button_to && currentBanner?.button_text ? (
                   <Link
                     to={currentBanner.button_to}
-                    className="shrink-0 group inline-flex items-center gap-1 text-[11px] sm:text-sm font-nav font-bold text-carbon-900 hover:text-carbon-700 transition-colors whitespace-nowrap"
+                    className="shrink-0 group inline-flex items-center gap-1 text-[11px] sm:text-sm font-nav font-bold text-white hover:text-white/70 transition-colors whitespace-nowrap"
                   >
-                    <span className="underline underline-offset-4 decoration-carbon-900/40 group-hover:decoration-carbon-900">
+                    <span className="underline underline-offset-4 decoration-white/40 group-hover:decoration-white">
                       {currentBanner.button_text}
                     </span>
                     <svg
@@ -840,7 +840,7 @@ export function Header() {
                       aria-hidden
                     >
                       <path
-                        fill="currentColor"
+                        fill="white"
                         d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z"
                       />
                     </svg>
@@ -1397,7 +1397,7 @@ export function Header() {
             <div
               className="h-full border-t border-carbon-800 px-6 py-4 overflow-x-hidden"
               style={{
-                paddingTop: `${48 + (bannerActive ? bannerHeightPx : 0)}px`,
+                paddingTop: `${56 + (bannerActive ? bannerHeightPx : 0)}px`,
                 backgroundColor: solidNavColor,
               }}
             >

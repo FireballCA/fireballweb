@@ -1,4 +1,4 @@
-import { useContext, useEffect } from 'react'
+import { useContext, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import Lenis from 'lenis'
 import { LenisContext } from '@/components/LenisRoot'
@@ -16,22 +16,29 @@ function scrollWindowAndDocumentToTop(lenis: Lenis | null) {
 export function ScrollToTop() {
   const location = useLocation()
   const lenis = useContext(LenisContext)
+  const lenisRef = useRef(lenis)
 
   useEffect(() => {
-    const run = () => scrollWindowAndDocumentToTop(lenis)
+    lenisRef.current = lenis
+  }, [lenis])
+
+  useEffect(() => {
+    const run = () => scrollWindowAndDocumentToTop(lenisRef.current)
 
     run()
     const t0 = window.setTimeout(run, 0)
+    let raf2 = 0
     const raf1 = requestAnimationFrame(() => {
       run()
-      requestAnimationFrame(run)
+      raf2 = requestAnimationFrame(run)
     })
 
     return () => {
       clearTimeout(t0)
       cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
     }
-  }, [location.pathname, location.search, location.hash, location.key, lenis])
+  }, [location.pathname, location.search, location.hash, location.key])
 
   return null
 }
