@@ -95,7 +95,7 @@ export function Layout() {
       {showHeader && (
         <div
           className="lg:hidden shrink-0"
-          style={isMobile ? { height: 'calc(var(--mobile-header-h, 3.5rem) + 28px)' } : undefined}
+          style={isMobile ? { height: 'calc(var(--mobile-header-h, 3.5rem) + 16px)' } : undefined}
           aria-hidden
         />
       )}
