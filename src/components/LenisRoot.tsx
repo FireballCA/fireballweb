@@ -17,10 +17,31 @@ export function LenisRoot({ children }: { children: ReactNode }) {
       return
     }
 
-    const instance = new Lenis(lenisExoticsStyleOptions)
-    setLenis(instance)
+    let instance: Lenis | null = null
+    let cancelled = false
+    let retryTimer: number | null = null
+
+    const initLenis = () => {
+      if (cancelled || instance) return
+      const wrapper = document.getElementById('app-scroll-root')
+      const content = document.getElementById('app-scroll-content')
+      if (!wrapper || !content) {
+        retryTimer = window.setTimeout(initLenis, 50)
+        return
+      }
+      instance = new Lenis({
+        ...lenisExoticsStyleOptions,
+        wrapper,
+        content,
+      })
+      setLenis(instance)
+    }
+
+    initLenis()
     return () => {
-      instance.destroy()
+      cancelled = true
+      if (retryTimer != null) window.clearTimeout(retryTimer)
+      if (instance) instance.destroy()
       setLenis(null)
     }
   }, [])

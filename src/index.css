@@ -122,7 +122,7 @@ html.lenis-smooth body {
     -webkit-overflow-scrolling: touch;
     -webkit-text-size-adjust: 100%;
     /* Réserve la gouttière du scrollbar : évite le décalage du centrage (navbar, bannières, max-w-7xl) quand la barre apparaît. */
-    scrollbar-gutter: stable;
+    scrollbar-gutter: auto;
   }
   body {
     @apply bg-black text-pearl font-sans antialiased;

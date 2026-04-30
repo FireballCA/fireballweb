@@ -8,7 +8,6 @@ import { isAuthenticated, getCurrentUserProfile } from '@/utils/supabaseAuth'
 import { FB_UNREAD_NOTIF_EVENT, readUnreadNotificationsFromStorage } from '@/utils/inAppNotificationsFlag'
 import { supabase } from '@/lib/supabase'
 import { isShopPathname } from '@/utils/shopRoutes'
-import { isNavOverFullBleedHero } from '@/utils/navHeroOverlap'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { shopBrowseCategoryPath } from '@/constants/paths'
 import { LenisContext } from '@/components/LenisRoot'
@@ -124,10 +123,6 @@ export function Header() {
   const [isMobileMenuMounted, setIsMobileMenuMounted] = useState(false)
   const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [scrollProgress, setScrollProgress] = useState(0)
-  const [isMobileBreakpoint, setIsMobileBreakpoint] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth < 1024 : false,
-  )
   const lang = i18n.language === 'fr' ? 'FR' : 'EN'
   const [langOpen, setLangOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -200,18 +195,10 @@ export function Header() {
   const isAutoHideHeaderPage = (isProductPage || isCoatingPage) && !isStandardNavCoatingPage
   const isBusinessPage =
     location.pathname.startsWith('/business') || location.pathname.startsWith('/account/business')
-  const isJoinClubPage = location.pathname === '/join-club'
-  const isAcademyPage = location.pathname === '/academy'
   /**
    * Fond plein dès le haut (même logique que le footer) : tout sauf accueil / about où le hero
    * passe sous la navbar fixe (transparence → opaque au scroll).
    */
-  const useSolidNav =
-    isDashboardPage ||
-    isContactPage ||
-    isProductPage ||
-    isCoatingPage ||
-    !isNavOverFullBleedHero(location.pathname)
   /** 0 = navbar visible, 1 = entièrement masquée (pages produit / coating, hors pages vitrines compare/how-it-works) */
   const [headerHideProgress, setHeaderHideProgress] = useState(0)
   const headerHideProgressRef = useRef(0)
@@ -243,10 +230,8 @@ export function Header() {
       button_to: '/contact',
     },
   ])
-  const [bannerHidden, setBannerHidden] = useState(false)
   const lastBannerScrollYRef = useRef(0)
   const bannerRef = useRef<HTMLDivElement | null>(null)
-  const [bannerHeightPx, setBannerHeightPx] = useState(0)
   const isEventDetailPage = location.pathname.startsWith('/event/') && location.pathname.length > '/event/'.length - 1
   // Disable banners inside dashboards (member dashboard + business/admin) and event detail pages
   const bannerAllowedByRoute =
@@ -259,25 +244,6 @@ export function Header() {
   const [bannerIndex, setBannerIndex] = useState(0)
   const currentBanner = activeBanners[Math.min(bannerIndex, Math.max(activeBanners.length - 1, 0))]
 
-  useEffect(() => {
-    if (!bannerActive) {
-      setBannerHeightPx(0)
-      return
-    }
-
-    const el = bannerRef.current
-    if (!el) return
-
-    const measure = () => {
-      const next = Math.round(el.getBoundingClientRect().height)
-      setBannerHeightPx(next)
-    }
-
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [bannerActive, banners, bannerIndex])
   const [featuredName, setFeaturedName] = useState('Featured Collection')
   const [featuredDescription, setFeaturedDescription] = useState('Découvrez notre sélection premium de produits haut de gamme')
   const [featuredImage, setFeaturedImage] = useState<string | null>(null)
@@ -384,43 +350,10 @@ export function Header() {
     return () => window.clearInterval(id)
   }, [bannerActive, activeBanners.length])
 
-  // Banner behavior: hide on scroll down, show on scroll up
+  // Keep this ref synced for potential future interactions tied to scroll direction.
   useEffect(() => {
-    if (!bannerActive || isJoinClubPage || isAcademyPage) return
-
     lastBannerScrollYRef.current = window.scrollY || window.pageYOffset || 0
-    let raf: number | null = null
-
-    const onScroll = () => {
-      if (raf != null) return
-      raf = requestAnimationFrame(() => {
-        raf = null
-        const y = window.scrollY || window.pageYOffset || 0
-        const last = lastBannerScrollYRef.current
-        const delta = y - last
-        lastBannerScrollYRef.current = y
-
-        // Always show near top
-        if (y < 24) {
-          if (bannerHidden) setBannerHidden(false)
-          return
-        }
-
-        // Threshold to avoid jitter
-        if (delta > 6) {
-          if (!bannerHidden) setBannerHidden(true)
-        } else if (delta < -6) {
-          if (bannerHidden) setBannerHidden(false)
-        }
-      })
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      if (raf != null) cancelAnimationFrame(raf)
-    }
-  }, [bannerActive, bannerHidden, isJoinClubPage, isAcademyPage])
+  }, [location.pathname])
 
   useEffect(() => {
     let cancelled = false
@@ -471,10 +404,6 @@ export function Header() {
 
     const onScroll = () => {
       const scrollY = window.scrollY || window.pageYOffset || 0
-      const maxScroll = 200
-      const progress = Math.min(scrollY / maxScroll, 1)
-      setScrollProgress(progress)
-
       if (!isAutoHideHeaderPage) {
         lastScrollYRef.current = scrollY
         return
@@ -610,15 +539,6 @@ export function Header() {
     setSearchQuery('')
   }, [location.pathname])
 
-  // Track mobile breakpoint for always-fixed navbar logic
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 1023px)')
-    const handler = (e: MediaQueryListEvent) => setIsMobileBreakpoint(e.matches)
-    mq.addEventListener('change', handler)
-    setIsMobileBreakpoint(mq.matches)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
-
   // Expose total header height as CSS var so Layout.tsx spacer can match it
   useEffect(() => {
     const el = document.getElementById('site-header-stack')
@@ -687,7 +607,7 @@ export function Header() {
   }
 
   const navLink =
-    'font-nav font-bold text-white transition-colors text-xs uppercase px-4 py-2 rounded-md hover:bg-carbon-700/20 group-hover:text-silver/70 hover:!text-white'
+    'font-nav font-bold text-white transition-colors text-[11px] uppercase px-3 py-1.5 rounded-md hover:bg-carbon-700/20 group-hover:text-silver/70 hover:!text-white'
   const anyMenuOpen = shopOpen || ceramicOpen || companyOpen || searchOpen || langOpen || menuOpen
 
   const normalizeSearchValue = (value: string) =>
@@ -798,10 +718,7 @@ export function Header() {
           isMobileMenuMounted ? 'z-[10010]' : 'z-[120]'
         } transition-transform duration-300 ease-out will-change-transform`}
         style={{
-          transform:
-            isMobileBreakpoint || isJoinClubPage || isAcademyPage || !(bannerActive && bannerHidden && bannerHeightPx > 0)
-              ? 'translateY(0)'
-              : `translateY(-${bannerHeightPx}px)`,
+          transform: 'translateY(0)',
         }}
       >
         {/* Navbar Banner */}
@@ -862,7 +779,7 @@ export function Header() {
         {anyMenuOpen && !menuOpen && (
           <div className="fixed inset-0 z-40 bg-black/15 pointer-events-none" aria-hidden />
         )}
-        <div className={`max-w-7xl mx-auto px-6 flex items-center justify-between ${isShopPage ? 'h-16 max-lg:h-14' : 'h-20 max-lg:h-14'}`}>
+        <div className={`max-w-7xl mx-auto px-6 flex items-center justify-between ${isShopPage ? 'h-14 max-lg:h-14' : 'h-16 max-lg:h-14'}`}>
         {/* Left: Logo + links */}
         <div className="flex items-center gap-10 h-full">
           <Link to="/" className="flex items-center h-12 w-auto select-none">
@@ -1102,6 +1019,9 @@ export function Header() {
             </Link>
             <Link to="/academy" className={navLink}>
               Academy
+            </Link>
+            <Link to="/service-builder" className={navLink}>
+              Service Builder
             </Link>
 
             <div
@@ -1617,6 +1537,13 @@ export function Header() {
               onClick={() => setMenuOpen(false)}
             >
               <span>Academy</span>
+            </Link>
+            <Link
+              to="/service-builder"
+              className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white border-b border-white/[0.06]"
+              onClick={() => setMenuOpen(false)}
+            >
+              <span>Service Builder</span>
             </Link>
 
             {/* Company (dropdown mobile) */}
