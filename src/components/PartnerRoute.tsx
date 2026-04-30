@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import { Navigate, useLocation } from 'react-router-dom'
-import { isAuthenticated, getCurrentUserProfile } from '@/utils/supabaseAuth'
+import { getCurrentUserProfile } from '@/utils/supabaseAuth'
 import { FireballLoading } from '@/components/FireballLoading'
 import { supabase } from '@/lib/supabase'
 
@@ -17,10 +18,10 @@ export function PartnerRoute({ children, requireOnboarded = true }: PartnerRoute
 
   useEffect(() => {
     let mounted = true
-    const check = async () => {
-      const auth = await isAuthenticated()
+
+    const runPartnerGate = async (session: Session | null) => {
       if (!mounted) return
-      if (!auth) {
+      if (!session) {
         setStatus('denied')
         setLoading(false)
         return
@@ -58,8 +59,16 @@ export function PartnerRoute({ children, requireOnboarded = true }: PartnerRoute
       }
       setLoading(false)
     }
-    check()
-    return () => { mounted = false }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'TOKEN_REFRESHED') return
+      void runPartnerGate(session)
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [requireOnboarded])
 
   if (loading) return <FireballLoading />

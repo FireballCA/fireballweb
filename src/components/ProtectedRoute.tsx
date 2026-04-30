@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Navigate } from 'react-router-dom'
-import { isAuthenticated } from '@/utils/supabaseAuth'
+import { supabase } from '@/lib/supabase'
 import { FireballLoading } from '@/components/FireballLoading'
 
 /** Duree minimale pour eviter un flash de page vide (on masque le temps de chargement reel) */
@@ -17,12 +17,19 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const mountedAt = useRef(Date.now())
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const auth = await isAuthenticated()
-      setAuthenticated(auth)
+    let cancelled = false
+    // Ne pas s’appuyer uniquement sur getSession() au montage : avant l’hydratation
+    // la session peut être null alors que INITIAL_SESSION arrive juste après — boucle
+    // /account/dashboard ↔ /account avec l’écran Account qui voit déjà la session.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (cancelled) return
+      setAuthenticated(!!session)
       setLoading(false)
+    })
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
     }
-    checkAuth()
   }, [])
 
   // Garder le loading au moins MIN_LOADING_MS, puis afficher le contenu si connecté

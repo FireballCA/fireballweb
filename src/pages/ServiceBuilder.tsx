@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AppleButton } from '@/components/ui/AppleButton'
 import { AppleSheet } from '@/components/ui/AppleSheet'
 import { GarageAddVehicleFlow } from '@/components/MyGarageSection'
+import { useNotifications } from '@/context/NotificationsContext'
 import { isAuthenticated } from '@/utils/supabaseAuth'
 import { fetchGarageVehicles, type GarageVehicleRow } from '@/utils/supabaseGarage'
 import {
@@ -119,6 +120,7 @@ const WAX_OPTIONS: Array<{
 ]
 
 export function ServiceBuilder() {
+  const { notify } = useNotifications()
   const [selectedVehicleSize, setSelectedVehicleSize] = useState<VehicleSize | null>(null)
   const [selectedPaintCondition, setSelectedPaintCondition] = useState<PaintCondition | null>(null)
   const [selectedCoatingId, setSelectedCoatingId] = useState<string | null>(null)
@@ -168,6 +170,12 @@ export function ServiceBuilder() {
     return vehicleBasePrice + paintAdjustment
   }, [selectedVehicleSize, selectedPaintCondition])
 
+  const canSend =
+    isLoggedIn &&
+    selectedVehicleSize !== null &&
+    selectedPaintCondition !== null &&
+    selectedCoatingId !== null
+
   const renderFivePointScale = (value: number) => {
     return (
       <div className="inline-flex items-center gap-1">
@@ -184,6 +192,37 @@ export function ServiceBuilder() {
 
   return (
     <section className="relative min-h-screen bg-[#f5f5f7] text-[#1d1d1f]">
+      {/* Bannière sous la navbar du site : prix à gauche, envoi à droite (3 requis : taille, peinture, coating — wax optionnel) */}
+      <div className="sticky top-0 z-[119] border-b border-black/[0.08] bg-[#f5f5f7]/92 backdrop-blur-md supports-[backdrop-filter]:bg-[#f5f5f7]/85">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-6 py-3.5 md:px-8">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e6e73]">Estimate</p>
+            <p className="truncate font-nav text-2xl font-bold tracking-tight text-[#1d1d1f] md:text-[28px]">
+              ${totalPrice}
+              <span className="ml-1 text-base font-semibold text-[#6e6e73] md:text-lg">CAD</span>
+            </p>
+          </div>
+          <AppleButton
+            disabled={!canSend}
+            className="shrink-0 !rounded-full !border-black !bg-black !px-6 !py-2.5 !text-[13px] !font-semibold !text-white hover:!border-[#2b2b2d] hover:!bg-[#2b2b2d] disabled:!cursor-not-allowed disabled:!border-black/20 disabled:!bg-black/25 disabled:!text-white/70"
+            onClick={() => {
+              const coatingName =
+                CERAMIC_COATING_SECTIONS.find((c) => c.id === selectedCoatingId)?.name ?? ''
+              const waxName = selectedWaxId
+                ? WAX_OPTIONS.find((w) => w.id === selectedWaxId)?.name ?? ''
+                : null
+              notify({
+                title: 'Configuration sent',
+                message: `${selectedVehicleSize} · ${selectedPaintCondition} · ${coatingName}${waxName ? ` · Wax: ${waxName}` : ''} — $${totalPrice} CAD`,
+                kind: 'success',
+              })
+            }}
+          >
+            Send
+          </AppleButton>
+        </div>
+      </div>
+
       <header className="relative isolate overflow-hidden border-b border-black/10">
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -215,7 +254,7 @@ export function ServiceBuilder() {
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-[1400px] px-6 py-12 pb-40 md:px-8 md:py-16">
+      <div className="mx-auto w-full max-w-[1400px] px-6 py-12 pb-16 md:px-8 md:py-16 md:pb-20">
         <div className="space-y-28 md:space-y-36">
           <article
             ref={vehicleStepRef}
@@ -429,39 +468,6 @@ export function ServiceBuilder() {
             </div>
           </article>
           ) : null}
-        </div>
-      </div>
-
-      <div className="fixed bottom-4 left-4 z-40">
-        <div className="w-[240px] rounded-2xl border border-black/10 bg-white/96 px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.14)] backdrop-blur">
-          <p className="text-xs uppercase tracking-[0.16em] text-[#6e6e73]">Prix</p>
-          <p className="text-2xl font-semibold text-[#1d1d1f]">${totalPrice}</p>
-          <p className="text-xs text-[#6e6e73]">
-            {selectedVehicleSize ? `Vehicule: ${selectedVehicleSize}` : 'Choisis une option'}
-          </p>
-          <p className="text-xs text-[#6e6e73]">
-            {selectedPaintCondition ? `Paint: ${selectedPaintCondition}` : 'Condition peinture non choisie'}
-          </p>
-          <p className="text-xs text-[#6e6e73]">
-            {selectedCoatingId
-              ? `Coating: ${
-                  CERAMIC_COATING_SECTIONS.find((coating) => coating.id === selectedCoatingId)?.name ?? 'Selected'
-                }`
-              : 'Coating non choisi'}
-          </p>
-          <p className="text-xs text-[#6e6e73]">
-            {selectedWaxId
-              ? `Wax: ${WAX_OPTIONS.find((wax) => wax.id === selectedWaxId)?.name ?? 'Selected'}`
-              : 'Wax non choisi'}
-          </p>
-          <div className="mt-3">
-            <AppleButton
-              className="w-full !border-black !bg-black !text-white hover:!border-[#2b2b2d] hover:!bg-[#2b2b2d]"
-              disabled={!isLoggedIn || !selectedVehicleSize}
-            >
-              Continuer
-            </AppleButton>
-          </div>
         </div>
       </div>
 

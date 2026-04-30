@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { setRememberDevice, supabase } from '@/lib/supabase'
-import { isAuthenticated } from '@/utils/supabaseAuth'
 import { getSafeReturnToPath } from '@/utils/safeReturnTo'
 import { createShopifyCustomer } from '@/utils/shopifySync'
 import { IOSCheckbox } from '@/components/IOSCheckbox'
@@ -93,15 +92,18 @@ export function AccountRegister() {
   }, [])
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const authenticated = await isAuthenticated()
-      if (authenticated) {
-        navigate(returnToPath ?? '/account/dashboard', { replace: true })
-      }
+    let cancelled = false
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return
+      if (!session) return
+      if (event !== 'INITIAL_SESSION' && event !== 'SIGNED_IN') return
+      navigate(returnToPath ?? '/account/dashboard', { replace: true })
+    })
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
     }
-    checkAuth()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [returnToPath])
+  }, [returnToPath, navigate])
 
   const getRedirectTo = () => {
     const base = `${window.location.origin}/account`
