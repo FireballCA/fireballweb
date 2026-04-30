@@ -160,9 +160,11 @@ interface DetailsModalProps {
   onClose: () => void
   onBack?: () => void
   onSaved: (v: GarageVehicleRow) => void
+  /** Contenu seul, sans overlay plein écran (ex. AppleSheet) */
+  embedded?: boolean
 }
 
-function DetailsModal({ mode, title, vehicle, onClose, onBack, onSaved }: DetailsModalProps) {
+function DetailsModal({ mode, title, vehicle, onClose, onBack, onSaved, embedded = false }: DetailsModalProps) {
   const [color, setColor] = useState(vehicle?.color ?? '')
   const [notes, setNotes] = useState(vehicle?.notes ?? '')
   const [protDate, setProtDate] = useState(
@@ -220,19 +222,19 @@ function DetailsModal({ mode, title, vehicle, onClose, onBack, onSaved }: Detail
   }
 
   useEffect(() => {
+    if (embedded) return
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
-  }, [])
+  }, [embedded])
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
+  const inner = (
       <div
-        className="absolute inset-0"
-        style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
-      />
-      <div
-        className="relative w-full sm:max-w-md rounded-t-[20px] sm:rounded-[20px]"
-        style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.25)', maxHeight: '92dvh' }}
+        className={`relative w-full ${embedded ? '' : 'sm:max-w-md'} ${embedded ? 'rounded-[20px]' : 'rounded-t-[20px] sm:rounded-[20px]'}`}
+        style={{
+          background: '#fff',
+          boxShadow: embedded ? 'none' : '0 24px 80px rgba(0,0,0,0.25)',
+          maxHeight: embedded ? 'min(72dvh, 640px)' : '92dvh',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -258,21 +260,27 @@ function DetailsModal({ mode, title, vehicle, onClose, onBack, onSaved }: Detail
               <h3 className="text-[18px] font-semibold text-[#1d1d1f] leading-tight">{title}</h3>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-            style={{ background: '#f5f5f7' }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}
-          >
-            <svg className="w-4 h-4 text-[#1d1d1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          {!embedded ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+              style={{ background: '#f5f5f7' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}
+            >
+              <svg className="h-4 w-4 text-[#1d1d1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          ) : null}
         </div>
 
         {/* Scrollable body */}
-        <div className="overflow-y-auto px-6 py-5 space-y-5" style={{ maxHeight: 'calc(92dvh - 160px)' }}>
+        <div
+          className="space-y-5 overflow-y-auto px-6 py-5"
+          style={{ maxHeight: embedded ? 'calc(min(72dvh, 640px) - 160px)' : 'calc(92dvh - 160px)' }}
+        >
           {/* Photo */}
           <ImageUploadField
             preview={imagePreview}
@@ -409,20 +417,35 @@ function DetailsModal({ mode, title, vehicle, onClose, onBack, onSaved }: Detail
           </button>
         </div>
       </div>
+  )
+
+  if (embedded) {
+    return <div className="w-full pb-2">{inner}</div>
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" onClick={onClose}>
+      <div
+        className="absolute inset-0"
+        style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
+      />
+      {inner}
     </div>
   )
 }
 
 // ─── Add Vehicle Flow ─────────────────────────────────────────────────────────
 
-function AddVehicleFlow({
+export function GarageAddVehicleFlow({
   isOpen,
   onClose,
   onSaved,
+  layout = 'modal',
 }: {
   isOpen: boolean
   onClose: () => void
   onSaved: (v: GarageVehicleRow) => void
+  layout?: 'modal' | 'embedded'
 }) {
   const [step, setStep] = useState<'select' | 'details'>('select')
   const [partial, setPartial] = useState<{ brand: string; model: string; year: number } | null>(null)
@@ -437,6 +460,7 @@ function AddVehicleFlow({
     return (
       <AddVehicleModal
         isOpen
+        layout={layout === 'embedded' ? 'embedded' : 'modal'}
         onClose={onClose}
         onSelect={(make, model, year) => {
           setPartial({ brand: make, model, year })
@@ -465,6 +489,7 @@ function AddVehicleFlow({
       onClose={onClose}
       onBack={() => setStep('select')}
       onSaved={onSaved}
+      embedded={layout === 'embedded'}
     />
   )
 }
@@ -945,7 +970,7 @@ export function MyGarageSection() {
       </div>
 
       {/* Add flow */}
-      <AddVehicleFlow
+      <GarageAddVehicleFlow
         isOpen={showAddFlow}
         onClose={() => setShowAddFlow(false)}
         onSaved={handleVehicleSaved}

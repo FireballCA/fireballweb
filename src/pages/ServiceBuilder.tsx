@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AppleButton } from '@/components/ui/AppleButton'
+import { AppleSheet } from '@/components/ui/AppleSheet'
+import { GarageAddVehicleFlow } from '@/components/MyGarageSection'
 import { isAuthenticated } from '@/utils/supabaseAuth'
+import { fetchGarageVehicles, type GarageVehicleRow } from '@/utils/supabaseGarage'
 import {
   CERAMIC_COATING_SECTIONS,
   COATING_SECTION_IMAGES,
@@ -123,6 +126,11 @@ export function ServiceBuilder() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(true)
   const vehicleStepRef = useRef<HTMLElement | null>(null)
+  const [garageSheetOpen, setGarageSheetOpen] = useState(false)
+  const [addVehicleSheetOpen, setAddVehicleSheetOpen] = useState(false)
+  const [garageVehicles, setGarageVehicles] = useState<GarageVehicleRow[]>([])
+  const [garageLoading, setGarageLoading] = useState(false)
+  const [importedVehicle, setImportedVehicle] = useState<GarageVehicleRow | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -137,6 +145,20 @@ export function ServiceBuilder() {
       cancelled = true
     }
   }, [])
+
+  const loadGarage = useCallback(async () => {
+    setGarageLoading(true)
+    try {
+      const rows = await fetchGarageVehicles()
+      setGarageVehicles(rows)
+    } finally {
+      setGarageLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (garageSheetOpen) void loadGarage()
+  }, [garageSheetOpen, loadGarage])
 
   const totalPrice = useMemo(() => {
     const vehicleBasePrice = VEHICLE_SIZES.find((size) => size.id === selectedVehicleSize)?.price ?? 0
@@ -205,6 +227,11 @@ export function ServiceBuilder() {
                 <p className="mt-2 text-sm text-[#424245]">
                   This helps us tailor the service to your vehicle
                 </p>
+                {importedVehicle ? (
+                  <p className="mt-2 text-sm font-medium text-[#0485F7]">
+                    From My Garage: {importedVehicle.year} {importedVehicle.brand} {importedVehicle.model}
+                  </p>
+                ) : null}
                 {!isLoggedIn && !isAuthLoading ? (
                   <p className="mt-2 text-sm text-[#424245]">
                     Sign in to unlock the next steps and start your configuration.
@@ -212,7 +239,11 @@ export function ServiceBuilder() {
                 ) : null}
               </div>
               {isLoggedIn ? (
-                <AppleButton className="!border-black !bg-black !text-white hover:!border-[#2b2b2d] hover:!bg-[#2b2b2d]">
+                <AppleButton
+                  type="button"
+                  className="!border-black !bg-black !text-white hover:!border-[#2b2b2d] hover:!bg-[#2b2b2d]"
+                  onClick={() => setGarageSheetOpen(true)}
+                >
                   Import yours
                 </AppleButton>
               ) : null}
@@ -433,6 +464,76 @@ export function ServiceBuilder() {
           </div>
         </div>
       </div>
+
+      <AppleSheet open={garageSheetOpen} onOpenChange={setGarageSheetOpen} title="My Garage" zIndex={55_000}>
+        <div className="px-4 pb-4">
+          {garageLoading ? (
+            <div className="flex justify-center py-12 text-sm text-[#86868b]">Loading…</div>
+          ) : garageVehicles.length === 0 ? (
+            <button
+              type="button"
+              onClick={() => setAddVehicleSheetOpen(true)}
+              className="flex w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[#d2d2d7] bg-[#fafafa] px-6 py-14 text-center transition hover:border-[#b0b0b5] hover:bg-[#f5f5f7]"
+            >
+              <span className="text-[15px] font-medium text-[#1d1d1f]">No vehicle in your garage yet</span>
+              <span className="max-w-xs text-[13px] text-[#86868b]">
+                Tap here to add your first vehicle — it will appear in My Garage and here.
+              </span>
+            </button>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {garageVehicles.map((v) => (
+                <li key={v.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImportedVehicle(v)
+                      setGarageSheetOpen(false)
+                    }}
+                    className="flex w-full items-center gap-4 rounded-2xl border border-black/[0.08] bg-white p-3 text-left shadow-sm transition hover:border-black/15 hover:shadow-md"
+                  >
+                    <div className="h-[72px] w-[104px] shrink-0 overflow-hidden rounded-xl bg-[#f5f5f7]">
+                      {v.image_url ? (
+                        <img src={v.image_url} alt="" className="h-full w-full object-cover" draggable={false} />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[11px] text-[#86868b]">
+                          No photo
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[17px] font-semibold tracking-tight text-[#1d1d1f]">
+                        {v.brand} {v.model}
+                      </p>
+                      <p className="mt-0.5 text-[14px] text-[#6e6e73]">{v.year}</p>
+                      {v.color ? (
+                        <p className="mt-1 truncate text-[12px] text-[#86868b]">{v.color}</p>
+                      ) : null}
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </AppleSheet>
+
+      <AppleSheet
+        open={addVehicleSheetOpen}
+        onOpenChange={setAddVehicleSheetOpen}
+        title="Add vehicle"
+        zIndex={55_100}
+      >
+        <GarageAddVehicleFlow
+          isOpen={addVehicleSheetOpen}
+          layout="embedded"
+          onClose={() => setAddVehicleSheetOpen(false)}
+          onSaved={() => {
+            setAddVehicleSheetOpen(false)
+            void loadGarage()
+          }}
+        />
+      </AppleSheet>
     </section>
   )
 }

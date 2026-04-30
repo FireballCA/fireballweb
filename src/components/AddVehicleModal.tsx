@@ -7,6 +7,8 @@ interface AddVehicleModalProps {
   currentMake?: string
   currentModel?: string
   currentYear?: number
+  /** Sans overlay plein écran — pour AppleSheet ou autre conteneur */
+  layout?: 'modal' | 'embedded'
 }
 
 interface Make {
@@ -149,6 +151,7 @@ export function AddVehicleModal({
   currentMake = '',
   currentModel = '',
   currentYear = new Date().getFullYear(),
+  layout = 'modal',
 }: AddVehicleModalProps) {
   const [selectedMake, setSelectedMake] = useState(currentMake)
   const [selectedModel, setSelectedModel] = useState(currentModel)
@@ -165,10 +168,11 @@ export function AddVehicleModal({
   }, [])()
 
   useEffect(() => {
+    if (layout === 'embedded') return
     if (isOpen) document.body.style.overflow = 'hidden'
     else document.body.style.overflow = ''
     return () => { document.body.style.overflow = '' }
-  }, [isOpen])
+  }, [isOpen, layout])
 
   useEffect(() => {
     if (isOpen && makes.length === 0) loadMakes()
@@ -213,7 +217,6 @@ export function AddVehicleModal({
   const handleConfirm = () => {
     if (selectedMake && selectedModel && selectedYear) {
       onSelect(selectedMake, selectedModel, selectedYear)
-      onClose()
     }
   }
 
@@ -223,41 +226,34 @@ export function AddVehicleModal({
   const modelOptions = models.map((m) => ({ value: m.Model_Name, label: m.Model_Name }))
   const yearOptions = years.map((y) => ({ value: y.toString(), label: y.toString() }))
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      {/* Backdrop */}
+  const panel = (
       <div
-        className="absolute inset-0"
-        style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
-      />
-
-      {/* Panel — no overflow-hidden so dropdowns aren't clipped */}
-      <div
-        className="relative w-full max-w-md rounded-[20px]"
-        style={{ background: '#fff', boxShadow: '0 24px 80px rgba(0,0,0,0.25)' }}
+        className={`relative w-full rounded-[20px] ${layout === 'modal' ? 'max-w-md' : ''}`}
+        style={{ background: '#fff', boxShadow: layout === 'modal' ? '0 24px 80px rgba(0,0,0,0.25)' : 'none' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-5 border-b border-[#f0f0f0]">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#86868b] mb-0.5">My Garage</p>
-            <h3 className="text-[20px] font-semibold text-[#1d1d1f]">Add a Vehicle</h3>
+        {layout === 'modal' ? (
+          <div className="flex items-center justify-between border-b border-[#f0f0f0] px-6 pb-5 pt-6">
+            <div>
+              <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-widest text-[#86868b]">My Garage</p>
+              <h3 className="text-[20px] font-semibold text-[#1d1d1f]">Add a Vehicle</h3>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+              style={{ background: '#f5f5f7' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}
+            >
+              <svg className="h-4 w-4 text-[#1d1d1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-            style={{ background: '#f5f5f7' }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#e8e8ed')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#f5f5f7')}
-          >
-            <svg className="w-4 h-4 text-[#1d1d1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+        ) : null}
 
-        {/* Body */}
-        <div className="px-6 py-5 space-y-4">
+        <div className={`space-y-4 px-6 py-5 ${layout === 'embedded' ? 'pt-2' : ''}`}>
           <LightSelect
             label="Make"
             value={selectedMake}
@@ -308,6 +304,19 @@ export function AddVehicleModal({
           </button>
         </div>
       </div>
+  )
+
+  if (layout === 'embedded') {
+    return <div className="w-full pb-2">{panel}</div>
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="absolute inset-0"
+        style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
+      />
+      {panel}
     </div>
   )
 }
