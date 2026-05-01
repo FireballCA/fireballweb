@@ -868,18 +868,6 @@ export function ServiceBuilder() {
 
           <div className="mt-4 flex items-center justify-end gap-3">
             <AppleButton
-              className="!border-[#ff3b3b]/25 !bg-white !text-[#ff3b3b]"
-              onClick={() =>
-                notify({
-                  title: 'Unable to send service request.',
-                  message: '',
-                  kind: 'error',
-                })
-              }
-            >
-              Show error notification
-            </AppleButton>
-            <AppleButton
               className="!border-black/20 !bg-white !text-[#1d1d1f]"
               onClick={() => setReviewSheetOpen(false)}
             >
