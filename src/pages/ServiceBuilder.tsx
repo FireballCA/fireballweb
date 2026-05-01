@@ -313,24 +313,20 @@ export function ServiceBuilder() {
     selectedCoatingId !== null
 
   const isReviewFormValid = useMemo(() => {
-    const hasVehicleModel = vehicleModelInput.trim().length > 0
-    const hasPhone = contactPhone.trim().length > 0
-    if (isLoggedIn) return hasVehicleModel
     return (
-      hasVehicleModel &&
-      hasPhone &&
       vehicleMakeInput.trim().length > 0 &&
+      vehicleModelInput.trim().length > 0 &&
       vehicleYearInput.trim().length > 0 &&
+      contactPhone.trim().length > 0 &&
       contactFirstName.trim().length > 0 &&
       contactLastName.trim().length > 0 &&
       contactEmail.trim().length > 0
     )
   }, [
-    isLoggedIn,
-    vehicleModelInput,
-    contactPhone,
     vehicleMakeInput,
+    vehicleModelInput,
     vehicleYearInput,
+    contactPhone,
     contactFirstName,
     contactLastName,
     contactEmail,
@@ -780,49 +776,30 @@ export function ServiceBuilder() {
           <section className="pt-4 pb-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e6e73]">Vehicle information</p>
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-              {!isLoggedIn ? (
-                <>
-                  <input
-                    value={vehicleMakeInput}
-                    onChange={(e) => setVehicleMakeInput(e.target.value)}
-                    placeholder="Vehicle make"
-                    className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
-                  />
-                  <input
-                    value={vehicleModelInput}
-                    onChange={(e) => setVehicleModelInput(e.target.value)}
-                    placeholder="Vehicle model"
-                    className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
-                  />
-                  <input
-                    value={vehicleYearInput}
-                    onChange={(e) => setVehicleYearInput(e.target.value)}
-                    placeholder="Vehicle year"
-                    className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
-                  />
-                </>
-              ) : (
-                <>
-                  <input
-                    value={vehicleModelInput}
-                    onChange={(e) => setVehicleModelInput(e.target.value)}
-                    placeholder="Vehicle model"
-                    className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
-                  />
-                  <input
-                    value={vehicleMakeInput}
-                    onChange={(e) => setVehicleMakeInput(e.target.value)}
-                    placeholder="Vehicle make (optional)"
-                    className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
-                  />
-                  <input
-                    value={vehicleYearInput}
-                    onChange={(e) => setVehicleYearInput(e.target.value)}
-                    placeholder="Vehicle year (optional)"
-                    className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
-                  />
-                </>
-              )}
+              <input
+                value={vehicleMakeInput}
+                onChange={(e) => setVehicleMakeInput(e.target.value)}
+                placeholder="Vehicle make"
+                required
+                aria-required
+                className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+              />
+              <input
+                value={vehicleModelInput}
+                onChange={(e) => setVehicleModelInput(e.target.value)}
+                placeholder="Vehicle model"
+                required
+                aria-required
+                className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+              />
+              <input
+                value={vehicleYearInput}
+                onChange={(e) => setVehicleYearInput(e.target.value)}
+                placeholder="Vehicle year"
+                required
+                aria-required
+                className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+              />
             </div>
           </section>
 
@@ -834,25 +811,39 @@ export function ServiceBuilder() {
               <input
                 value={contactFirstName}
                 onChange={(e) => setContactFirstName(e.target.value)}
-                placeholder={isLoggedIn ? 'First name (optional)' : 'First name'}
+                placeholder="First name"
+                required
+                aria-required
+                autoComplete="given-name"
                 className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
               />
               <input
                 value={contactLastName}
                 onChange={(e) => setContactLastName(e.target.value)}
-                placeholder={isLoggedIn ? 'Last name (optional)' : 'Last name'}
+                placeholder="Last name"
+                required
+                aria-required
+                autoComplete="family-name"
                 className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
               />
               <input
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
-                placeholder={isLoggedIn ? 'Email (optional)' : 'Email'}
+                placeholder="Email"
+                type="email"
+                required
+                aria-required
+                autoComplete="email"
                 className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
               />
               <input
                 value={contactPhone}
                 onChange={(e) => setContactPhone(e.target.value)}
                 placeholder="Contact phone number"
+                type="tel"
+                required
+                aria-required
+                autoComplete="tel"
                 className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
               />
             </div>
