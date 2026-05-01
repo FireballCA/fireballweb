@@ -147,6 +147,26 @@ const SERVICE_BUILDER_FAQS = [
   },
 ]
 
+/** Rail horizontal tactile (mobile), grille à partir de md — même idée que Product Lineup. */
+function ServiceBuilderChoiceRail({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="max-md:-mx-6 md:grid md:grid-cols-4 md:gap-4">
+      <div
+        className={cn(
+          'flex gap-4 overflow-x-auto overscroll-x-contain px-6 pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] snap-x snap-mandatory [&::-webkit-scrollbar]:hidden',
+          'md:contents md:gap-0 md:overflow-visible md:p-0 md:snap-none',
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
+/** Largeur d’une carte en slider : proche d’une colonne desktop, avec léger aperçu de la suivante. */
+const SB_MOBILE_CARD_ROW =
+  'max-md:snap-start max-md:shrink-0 max-md:w-[min(320px,calc(100vw-3rem))] md:w-auto md:min-w-0'
+
 function ServiceBuilderFAQItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
   return (
@@ -505,7 +525,7 @@ export function ServiceBuilder() {
               ) : null}
             </div>
 
-            <div className="grid grid-cols-4 gap-4">
+            <ServiceBuilderChoiceRail>
               {VEHICLE_SIZES.map((size) => {
                 const selected = selectedVehicleSize === size.id
                 return (
@@ -513,11 +533,13 @@ export function ServiceBuilder() {
                     key={size.id}
                     type="button"
                     onClick={() => setSelectedVehicleSize(size.id)}
-                    className={`rounded-2xl border p-3 text-left transition ${
+                    className={cn(
+                      SB_MOBILE_CARD_ROW,
+                      'touch-manipulation rounded-2xl border p-3 text-left transition',
                       selected
                         ? 'border-[#0485F7] bg-[#0485F7]/10 shadow-[0_8px_24px_rgba(4,133,247,0.12)]'
-                        : 'border-black/10 bg-white hover:bg-black/[0.015]'
-                    }`}
+                        : 'border-black/10 bg-white hover:bg-black/[0.015]',
+                    )}
                   >
                     <img
                       src="/Service Builder.jpg"
@@ -530,7 +552,7 @@ export function ServiceBuilder() {
                   </button>
                 )
               })}
-            </div>
+            </ServiceBuilderChoiceRail>
           </article>
 
           <article className="border-t border-black/10 pt-10 transition">
@@ -543,7 +565,7 @@ export function ServiceBuilder() {
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-4">
+            <ServiceBuilderChoiceRail>
               {PAINT_CONDITIONS.map((condition) => {
                 const selected = selectedPaintCondition === condition.id
                 return (
@@ -551,11 +573,13 @@ export function ServiceBuilder() {
                     key={condition.id}
                     type="button"
                     onClick={() => setSelectedPaintCondition(condition.id)}
-                    className={`rounded-2xl border p-3 text-left transition ${
+                    className={cn(
+                      SB_MOBILE_CARD_ROW,
+                      'touch-manipulation rounded-2xl border p-3 text-left transition',
                       selected
                         ? 'border-[#0485F7] bg-[#0485F7]/10 shadow-[0_8px_24px_rgba(4,133,247,0.12)]'
-                        : 'border-black/10 bg-white hover:bg-black/[0.015]'
-                    }`}
+                        : 'border-black/10 bg-white hover:bg-black/[0.015]',
+                    )}
                   >
                     <img
                       src={condition.image}
@@ -568,7 +592,7 @@ export function ServiceBuilder() {
                   </button>
                 )
               })}
-            </div>
+            </ServiceBuilderChoiceRail>
           </article>
 
           <article className="border-t border-black/10 pt-10 transition">
@@ -579,7 +603,7 @@ export function ServiceBuilder() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <ServiceBuilderChoiceRail>
               {CERAMIC_COATING_SECTIONS.map((coating) => {
                 const selected = selectedCoatingId === coating.id
                 return (
@@ -587,11 +611,13 @@ export function ServiceBuilder() {
                     key={coating.id}
                     type="button"
                     onClick={() => setSelectedCoatingId(coating.id)}
-                    className={`w-full rounded-2xl border p-3 text-left transition ${
+                    className={cn(
+                      SB_MOBILE_CARD_ROW,
+                      'w-full touch-manipulation rounded-2xl border p-3 text-left transition',
                       selected
                         ? 'border-[#0485F7] bg-[#0485F7]/10 shadow-[0_8px_24px_rgba(4,133,247,0.12)]'
-                        : 'border-black/10 bg-white hover:bg-black/[0.015]'
-                    }`}
+                        : 'border-black/10 bg-white hover:bg-black/[0.015]',
+                    )}
                   >
                     <img
                       src={COATING_SECTION_IMAGES[coating.id]}
@@ -610,7 +636,7 @@ export function ServiceBuilder() {
                   </button>
                 )
               })}
-            </div>
+            </ServiceBuilderChoiceRail>
           </article>
 
           <article className="border-t border-black/10 pt-10 transition">
@@ -625,7 +651,7 @@ export function ServiceBuilder() {
               Add extra gloss and depth with a premium wax layer
             </p>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <ServiceBuilderChoiceRail>
               {WAX_OPTIONS.map((wax) => {
                 const selected = selectedWaxId === wax.id
                 return (
@@ -633,11 +659,13 @@ export function ServiceBuilder() {
                     key={wax.id}
                     type="button"
                     onClick={() => setSelectedWaxId(wax.id)}
-                    className={`w-full rounded-2xl border p-3 text-left transition ${
+                    className={cn(
+                      SB_MOBILE_CARD_ROW,
+                      'w-full touch-manipulation rounded-2xl border p-3 text-left transition',
                       selected
                         ? 'border-[#0485F7] bg-[#0485F7]/10 shadow-[0_8px_24px_rgba(4,133,247,0.12)]'
-                        : 'border-black/10 bg-white hover:bg-black/[0.015]'
-                    }`}
+                        : 'border-black/10 bg-white hover:bg-black/[0.015]',
+                    )}
                   >
                     <div className="mb-3 h-40 w-full overflow-hidden rounded-xl bg-[#f6f6f7]">
                       <img
@@ -669,7 +697,7 @@ export function ServiceBuilder() {
                   </button>
                 )
               })}
-            </div>
+            </ServiceBuilderChoiceRail>
           </article>
         </div>
       </div>
