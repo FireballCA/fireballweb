@@ -4,6 +4,8 @@ import { AppleButton } from '@/components/ui/AppleButton'
 import { AppleSheet } from '@/components/ui/AppleSheet'
 import { GarageAddVehicleFlow } from '@/components/MyGarageSection'
 import { useNotifications } from '@/context/NotificationsContext'
+import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
+import { cn } from '@/lib/utils'
 import { isAuthenticated } from '@/utils/supabaseAuth'
 import { fetchGarageVehicles, type GarageVehicleRow } from '@/utils/supabaseGarage'
 import {
@@ -121,6 +123,7 @@ const WAX_OPTIONS: Array<{
 
 export function ServiceBuilder() {
   const { notify } = useNotifications()
+  const reduceMotion = useEffectiveReducedMotion()
   const [selectedVehicleSize, setSelectedVehicleSize] = useState<VehicleSize | null>(null)
   const [selectedPaintCondition, setSelectedPaintCondition] = useState<PaintCondition | null>(null)
   const [selectedCoatingId, setSelectedCoatingId] = useState<string | null>(null)
@@ -133,6 +136,23 @@ export function ServiceBuilder() {
   const [garageVehicles, setGarageVehicles] = useState<GarageVehicleRow[]>([])
   const [garageLoading, setGarageLoading] = useState(false)
   const [importedVehicle, setImportedVehicle] = useState<GarageVehicleRow | null>(null)
+  const heroRef = useRef<HTMLElement | null>(null)
+  const [heroPassed, setHeroPassed] = useState(false)
+
+  useEffect(() => {
+    const root = document.getElementById('app-scroll-root')
+    const hero = heroRef.current
+    if (!root || !hero) return
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        setHeroPassed(!entry.isIntersecting)
+      },
+      { root, threshold: 0 },
+    )
+    io.observe(hero)
+    return () => io.disconnect()
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -190,40 +210,13 @@ export function ServiceBuilder() {
     )
   }
 
+  const bannerTransition = reduceMotion
+    ? ''
+    : 'transition-[max-height,opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]'
+
   return (
     <section className="relative min-h-screen bg-[#f5f5f7] text-[#1d1d1f]">
-      {/* Bannière sous la navbar du site : prix à gauche, envoi à droite (3 requis : taille, peinture, coating — wax optionnel) */}
-      <div className="sticky top-0 z-[119] border-b border-black/[0.08] bg-[#f5f5f7]/92 backdrop-blur-md supports-[backdrop-filter]:bg-[#f5f5f7]/85">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-6 py-3.5 md:px-8">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e6e73]">Estimate</p>
-            <p className="truncate font-nav text-2xl font-bold tracking-tight text-[#1d1d1f] md:text-[28px]">
-              ${totalPrice}
-              <span className="ml-1 text-base font-semibold text-[#6e6e73] md:text-lg">CAD</span>
-            </p>
-          </div>
-          <AppleButton
-            disabled={!canSend}
-            className="shrink-0 !rounded-full !border-black !bg-black !px-6 !py-2.5 !text-[13px] !font-semibold !text-white hover:!border-[#2b2b2d] hover:!bg-[#2b2b2d] disabled:!cursor-not-allowed disabled:!border-black/20 disabled:!bg-black/25 disabled:!text-white/70"
-            onClick={() => {
-              const coatingName =
-                CERAMIC_COATING_SECTIONS.find((c) => c.id === selectedCoatingId)?.name ?? ''
-              const waxName = selectedWaxId
-                ? WAX_OPTIONS.find((w) => w.id === selectedWaxId)?.name ?? ''
-                : null
-              notify({
-                title: 'Configuration sent',
-                message: `${selectedVehicleSize} · ${selectedPaintCondition} · ${coatingName}${waxName ? ` · Wax: ${waxName}` : ''} — $${totalPrice} CAD`,
-                kind: 'success',
-              })
-            }}
-          >
-            Send
-          </AppleButton>
-        </div>
-      </div>
-
-      <header className="relative isolate overflow-hidden border-b border-black/10">
+      <header ref={heroRef} className="relative isolate overflow-hidden border-b border-black/10">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: "url('/Service Builder.jpg')" }}
@@ -254,14 +247,55 @@ export function ServiceBuilder() {
         </div>
       </header>
 
+      {/* Bannière prix / Send : uniquement après avoir dépassé le hero (slide depuis le haut) */}
+      <div
+        className={cn(
+          'sticky top-0 z-[119] overflow-hidden bg-[#f5f5f7]/95 backdrop-blur-md supports-[backdrop-filter]:bg-[#f5f5f7]/88',
+          bannerTransition,
+          heroPassed
+            ? 'max-h-[96px] translate-y-0 border-b border-black/[0.08] opacity-100'
+            : 'pointer-events-none max-h-0 -translate-y-full opacity-0',
+        )}
+        aria-hidden={!heroPassed}
+      >
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-6 py-3.5 md:px-8">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e6e73]">Estimate</p>
+            <p className="truncate font-nav text-2xl font-bold tracking-tight text-[#1d1d1f] md:text-[28px]">
+              ${totalPrice}
+              <span className="ml-1 text-base font-semibold text-[#6e6e73] md:text-lg">CAD</span>
+            </p>
+          </div>
+          <AppleButton
+            disabled={!canSend}
+            className="shrink-0 !rounded-full !px-6 !py-2.5 !text-[13px] disabled:!cursor-not-allowed disabled:!opacity-40"
+            onClick={() => {
+              const coatingName =
+                CERAMIC_COATING_SECTIONS.find((c) => c.id === selectedCoatingId)?.name ?? ''
+              const waxName = selectedWaxId
+                ? WAX_OPTIONS.find((w) => w.id === selectedWaxId)?.name ?? ''
+                : null
+              notify({
+                title: 'Configuration sent',
+                message: `${selectedVehicleSize} · ${selectedPaintCondition} · ${coatingName}${waxName ? ` · Wax: ${waxName}` : ''} — $${totalPrice} CAD`,
+                kind: 'success',
+              })
+            }}
+          >
+            Send
+          </AppleButton>
+        </div>
+      </div>
+
       <div className="mx-auto w-full max-w-[1400px] px-6 py-12 pb-16 md:px-8 md:py-16 md:pb-20">
         <div className="space-y-28 md:space-y-36">
           <article
             ref={vehicleStepRef}
             className="border-t border-black/10 pt-10 transition"
+            style={{ scrollMarginTop: heroPassed ? 72 : 0 }}
           >
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
+            <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+              <div className="min-w-0">
                 <h2 className="font-nav text-2xl font-bold">Start with your vehicle size</h2>
                 <p className="mt-2 text-sm text-[#424245]">
                   This helps us tailor the service to your vehicle
@@ -280,7 +314,7 @@ export function ServiceBuilder() {
               {isLoggedIn ? (
                 <AppleButton
                   type="button"
-                  className="!border-black !bg-black !text-white hover:!border-[#2b2b2d] hover:!bg-[#2b2b2d]"
+                  className="touch-manipulation min-h-[44px] w-full justify-center sm:w-auto sm:min-w-0 sm:shrink-0 !border-black !bg-black !text-white hover:!border-[#2b2b2d] hover:!bg-[#2b2b2d]"
                   onClick={() => setGarageSheetOpen(true)}
                 >
                   Import yours
@@ -471,7 +505,7 @@ export function ServiceBuilder() {
         </div>
       </div>
 
-      <AppleSheet open={garageSheetOpen} onOpenChange={setGarageSheetOpen} title="My Garage" zIndex={55_000}>
+      <AppleSheet open={garageSheetOpen} onOpenChange={setGarageSheetOpen} title="My Garage" zIndex={100_020}>
         <div className="px-4 pb-4">
           {garageLoading ? (
             <div className="flex justify-center py-12 text-sm text-[#86868b]">Loading…</div>
@@ -528,7 +562,7 @@ export function ServiceBuilder() {
         open={addVehicleSheetOpen}
         onOpenChange={setAddVehicleSheetOpen}
         title="Add vehicle"
-        zIndex={55_100}
+        zIndex={100_030}
       >
         <GarageAddVehicleFlow
           isOpen={addVehicleSheetOpen}
