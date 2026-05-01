@@ -147,6 +147,14 @@ const SERVICE_BUILDER_FAQS = [
   },
 ]
 
+/** Champs sur fond blanc (AppleSheet) : index.css impose autofill en texte blanc ; le body est text-pearl. */
+const SB_REVIEW_FIELD_BASE = cn(
+  'border border-black/10 bg-white text-sm !text-[#1d1d1f] caret-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]',
+  '[&:-webkit-autofill]:[-webkit-text-fill-color:#1d1d1f]',
+  '[&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_rgb(255,255,255)]',
+  '[&:-webkit-autofill]:[transition:background-color_99999s_ease-out_0s]',
+)
+
 /** Rail horizontal tactile (mobile), grille à partir de md — même idée que Product Lineup. */
 function ServiceBuilderChoiceRail({ children }: { children: React.ReactNode }) {
   return (
@@ -529,7 +537,9 @@ export function ServiceBuilder() {
                   <button
                     key={size.id}
                     type="button"
-                    onClick={() => setSelectedVehicleSize(size.id)}
+                    onClick={() =>
+                      setSelectedVehicleSize((prev) => (prev === size.id ? null : size.id))
+                    }
                     className={cn(
                       SB_MOBILE_CARD_ROW,
                       'touch-manipulation rounded-2xl border p-3 text-left transition',
@@ -569,7 +579,9 @@ export function ServiceBuilder() {
                   <button
                     key={condition.id}
                     type="button"
-                    onClick={() => setSelectedPaintCondition(condition.id)}
+                    onClick={() =>
+                      setSelectedPaintCondition((prev) => (prev === condition.id ? null : condition.id))
+                    }
                     className={cn(
                       SB_MOBILE_CARD_ROW,
                       'touch-manipulation rounded-2xl border p-3 text-left transition',
@@ -607,7 +619,9 @@ export function ServiceBuilder() {
                   <button
                     key={coating.id}
                     type="button"
-                    onClick={() => setSelectedCoatingId(coating.id)}
+                    onClick={() =>
+                      setSelectedCoatingId((prev) => (prev === coating.id ? null : coating.id))
+                    }
                     className={cn(
                       SB_MOBILE_CARD_ROW,
                       'w-full touch-manipulation rounded-2xl border p-3 text-left transition',
@@ -655,7 +669,7 @@ export function ServiceBuilder() {
                   <button
                     key={wax.id}
                     type="button"
-                    onClick={() => setSelectedWaxId(wax.id)}
+                    onClick={() => setSelectedWaxId((prev) => (prev === wax.id ? null : wax.id))}
                     className={cn(
                       SB_MOBILE_CARD_ROW,
                       'w-full touch-manipulation rounded-2xl border p-3 text-left transition',
@@ -727,7 +741,7 @@ export function ServiceBuilder() {
         desktopWidthClassName="max-w-5xl"
         avoidHeaderOffset
       >
-        <div className="px-4 pb-5">
+        <div className="px-4 pb-5 text-[#1d1d1f]">
           <div className="mb-5 rounded-[28px] bg-white px-4 py-4 shadow-[0_8px_22px_rgba(0,0,0,0.1)]">
             <div className="flex items-center gap-4">
               <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center text-[#0485F7]" aria-hidden>
@@ -783,7 +797,7 @@ export function ServiceBuilder() {
                 placeholder="Vehicle make"
                 required
                 aria-required
-                className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+                className={cn(SB_REVIEW_FIELD_BASE, 'h-11 rounded-xl px-3')}
               />
               <input
                 value={vehicleModelInput}
@@ -791,7 +805,7 @@ export function ServiceBuilder() {
                 placeholder="Vehicle model"
                 required
                 aria-required
-                className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+                className={cn(SB_REVIEW_FIELD_BASE, 'h-11 rounded-xl px-3')}
               />
               <input
                 value={vehicleYearInput}
@@ -799,7 +813,7 @@ export function ServiceBuilder() {
                 placeholder="Vehicle year"
                 required
                 aria-required
-                className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+                className={cn(SB_REVIEW_FIELD_BASE, 'h-11 rounded-xl px-3')}
               />
             </div>
           </section>
@@ -816,7 +830,7 @@ export function ServiceBuilder() {
                 required
                 aria-required
                 autoComplete="given-name"
-                className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+                className={cn(SB_REVIEW_FIELD_BASE, 'h-11 rounded-xl px-3')}
               />
               <input
                 value={contactLastName}
@@ -825,7 +839,7 @@ export function ServiceBuilder() {
                 required
                 aria-required
                 autoComplete="family-name"
-                className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+                className={cn(SB_REVIEW_FIELD_BASE, 'h-11 rounded-xl px-3')}
               />
               <input
                 value={contactEmail}
@@ -835,7 +849,7 @@ export function ServiceBuilder() {
                 required
                 aria-required
                 autoComplete="email"
-                className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+                className={cn(SB_REVIEW_FIELD_BASE, 'h-11 rounded-xl px-3')}
               />
               <input
                 value={contactPhone}
@@ -845,7 +859,7 @@ export function ServiceBuilder() {
                 required
                 aria-required
                 autoComplete="tel"
-                className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+                className={cn(SB_REVIEW_FIELD_BASE, 'h-11 rounded-xl px-3')}
               />
             </div>
           </section>
@@ -860,7 +874,7 @@ export function ServiceBuilder() {
                 onChange={(e) => setCustomMessage(e.target.value)}
                 placeholder="Add a custom message for our team (paint concerns, schedule preference, etc.)"
                 rows={4}
-                className="w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+                className={cn(SB_REVIEW_FIELD_BASE, 'w-full rounded-xl px-3 py-2.5')}
               />
               <div className="rounded-xl border border-dashed border-black/15 bg-[#fafafa] p-3">
                 <label className="block text-[12px] font-medium text-[#424245]">
