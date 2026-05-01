@@ -2,6 +2,11 @@
   "nav": {
     "ceramic": "Ceramic",
     "carClub": "Car Club",
+    "shop": "Shop",
+    "ceramicCoating": "Ceramic coating",
+    "events": "Events",
+    "academy": "Academy",
+    "serviceBuilder": "Service Builder",
     "company": "Company",
     "search": "Search",
     "login": "Log in",
@@ -10,10 +15,29 @@
     "bodyworkDesc": "Complete bodywork protection",
     "coatings": "Coatings",
     "sealants": "Sealants",
+    "waxes": "Waxes",
+    "dressings": "Dressings",
+    "washing": "Washing",
+    "cleaners": "Cleaners",
+    "towels": "Towels",
+    "accessories": "Accessories",
     "specialSurfaces": "SPECIAL SURFACES",
     "specialSurfacesDesc": "Wheels, glass & plastics",
     "wheels": "Wheels",
     "glass": "Glass",
+    "protectionSystems": "PROTECTION SYSTEMS",
+    "protectionSystemsDesc": "Surface durability & coating technologies",
+    "maintenancePrep": "MAINTENANCE & PREPARATION",
+    "maintenancePrepDesc": "Preparation, cleaning & system care",
+    "shopCoatingsTitle": "Shop Coatings",
+    "shopCoatingsDesc": "Explore and compare our full range of high-performance ceramic coatings.",
+    "learnConnectTitle": "Learn & Connect",
+    "learnConnectDesc": "Find certified installers and learn how ceramic coatings work.",
+    "allCoatings": "All Coatings",
+    "compareCoatings": "Compare Coatings",
+    "findInstaller": "Find Installer",
+    "howItWorks": "How It Works",
+    "exploreNow": "Explore now",
     "companySection": "COMPANY",
     "companyDesc": "Brand, recognition & story",
     "openCenter": "Open FIREBALL Center",
@@ -193,7 +217,31 @@
     "privilegePerk2Title": "Priority & Exclusive Access",
     "privilegePerk2Body": "First access to limited inventory, unreleased technologies, and private Fireball events.",
     "privilegePerk3Title": "Elite Status",
-    "privilegePerk3Body": "A premium black digital card that signals your standing within the Fireball ecosystem."
+    "privilegePerk3Body": "A premium black digital card that signals your standing within the Fireball ecosystem.",
+    "faqTitle": "Common questions",
+    "faqSubtitle": "Everything you need before joining.",
+    "faqs": [
+      {
+        "q": "What's the difference between Ignition and Apex membership?",
+        "a": "Ignition gives you core access to the Fireball Car Club community — exclusive events, member discounts, and early product drops. Apex is the elite tier: it includes everything in Ignition plus priority event access, premium member perks, and direct access to exclusive Apex-only experiences."
+      },
+      {
+        "q": "Can I upgrade from Ignition to Apex at any time?",
+        "a": "Yes. You can upgrade your membership at any time from your account dashboard. The prorated difference will be applied automatically, and your Apex benefits activate immediately upon upgrade."
+      },
+      {
+        "q": "Do I need to own a specific type of vehicle to join?",
+        "a": "Not at all. The Fireball Car Club is open to anyone who is passionate about car culture. Whether you drive a daily, a weekend project, or an exotic, you are welcome."
+      },
+      {
+        "q": "How do I access member-only events?",
+        "a": "Once your membership is active, exclusive event invitations are sent directly to your account email. Apex members receive priority access and reserved spots before general member registration opens."
+      },
+      {
+        "q": "Can I cancel my membership?",
+        "a": "You can cancel your membership at any time from your account settings. Your benefits remain active until the end of your current billing period."
+      }
+    ]
   },
   "joinClub": {
     "pageTitle": "Join Fireball Car club",
@@ -369,6 +417,75 @@
     "managePartners": "Manage Partners",
     "globalStats": "Global Statistics",
     "close": "Close"
+  },
+  "academy": {
+    "heroTitle": "Build your expertise.",
+    "heroSubtitle1": "Effective training is the foundation of a profitable business.",
+    "heroSubtitle2": "Master professional ceramic coating installation, grow your client base, and join an exclusive network of certified Fireball installers across Canada.",
+    "joinNextTraining": "Join next training",
+    "trainingDetails": "Training details",
+    "nextTraining": "Next Training :",
+    "secureYourSpot": "Secure your spot",
+    "nextAvailableSession": "Next available session",
+    "upcomingTraining": "Upcoming training",
+    "limitedSeats": "Limited seats. Registration handled through the academy flow.",
+    "viewDetails": "View details",
+    "featuredSessionDesc": "This is the main session to highlight first: clear date, location, and a stronger premium presentation so the next training feels like the primary action on the page.",
+    "sectionFeatures": "Everything you need to step up your business.",
+    "feature1StatLabel": "hands-on focus",
+    "feature1Title": "Real-world installation training",
+    "feature1Body": "Work in a true training environment with professional tools and products — the same techniques Fireball-certified installers use every day across Canada.",
+    "feature2StatLabel": "stronger positioning",
+    "feature2Title": "Certification that opens doors",
+    "feature2Body": "Earn recognized Fireball certification and market yourself with confidence: credibility with clients, partners, and your local detailing network.",
+    "feature3StatLabel": "exclusive access",
+    "feature3Title": "Unlock exclusive Fireball products",
+    "feature3Body": "Gain access to pro-only coatings and accessories reserved for trained installers, so your shop can offer protection clients cannot get anywhere else.",
+    "feature4StatLabel": "faster growth",
+    "feature4Title": "Built for business outcomes",
+    "feature4Body": "Learn how to price, package, and communicate your service so training translates directly into sales and retention.",
+    "whatYouLearn": "What you will learn",
+    "roadmap1Title": "Ceramic Coating Application",
+    "roadmap1Body": "Professional coating installation techniques.",
+    "roadmap1Tag": "Day 1 — Morning",
+    "roadmap2Title": "Surface Preparation",
+    "roadmap2Body": "Proper paint correction and preparation methods.",
+    "roadmap2Tag": "Day 1 — Afternoon",
+    "roadmap3Title": "Product Knowledge",
+    "roadmap3Body": "Understanding Fireball's coating technologies.",
+    "roadmap3Tag": "Day 2 — Morning",
+    "roadmap4Title": "Business Strategies",
+    "roadmap4Body": "How to position and sell professional protection services.",
+    "roadmap4Tag": "Certification Day",
+    "nextTrainingsTitle": "Our next trainings",
+    "nextTrainingsDesc": "The next available session takes the spotlight first, while upcoming dates stay easy to browse underneath in a cleaner event-list format.",
+    "fireballAcademy": "Fireball Academy",
+    "locationComingSoon": "Location coming soon",
+    "handsOnCertification": "Hands-on + certification",
+    "faqTitle": "Common questions",
+    "faqSubtitle": "Everything you need before registering.",
+    "faqs": [
+      {
+        "q": "Who is the Fireball Academy training designed for?",
+        "a": "The Academy is built for professional detailers, shop owners, and aspiring installers who want to earn Fireball certification and offer premium ceramic coating services. No prior coating experience is required — the program covers everything from fundamentals to advanced application."
+      },
+      {
+        "q": "How long is the training program?",
+        "a": "The standard Fireball Academy program runs over two full days. Day one covers ceramic coating application and surface preparation. Day two focuses on product knowledge, business strategy, and the hands-on certification assessment."
+      },
+      {
+        "q": "What certification do I receive after completing the program?",
+        "a": "Graduates receive official Fireball Canada certification, which authorizes you to sell and install Fireball ceramic coatings professionally. Certified installers are also listed in the Fireball installer network, helping clients find you directly."
+      },
+      {
+        "q": "What products will I work with during training?",
+        "a": "You'll train hands-on with the full Fireball ceramic coating lineup — including Butterfly, Butterfly Graphene, Silla, and Devil's Blood — using the same professional tools used by certified installers across Canada."
+      },
+      {
+        "q": "Are seats limited for each training session?",
+        "a": "Yes. Each session is intentionally kept small to ensure every participant gets direct, hands-on attention from the instructors. We recommend registering as early as possible to secure your spot."
+      }
+    ]
   },
   "common": {
     "loading": "Loading...",

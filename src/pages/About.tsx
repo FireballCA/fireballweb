@@ -190,7 +190,7 @@ export function About() {
       <div className="divider" />
 
       {/* Section 2 — Cinematic stats scroll */}
-      <div className="stats-scroll" id="statsScroll" data-lenis-prevent>
+      <div className="stats-scroll" id="statsScroll">
         <div className="stats-sticky-container" id="statsSticky">
           <div className="stat-scene" id="scene0">
             <div className="stat-big-num" id="num0">

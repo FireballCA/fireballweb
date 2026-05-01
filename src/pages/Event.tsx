@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, useInView } from 'framer-motion'
+import { AnimatePresence, motion, useInView } from 'framer-motion'
+import { IconChevronDown } from '@tabler/icons-react'
 import { LenisContext } from '@/components/LenisRoot'
 import { AppleButton } from '@/components/ui/AppleButton'
 import { supabase } from '@/lib/supabase'
@@ -131,6 +132,60 @@ function EventCard({ ev, index }: { ev: SiteEventConfig; index: number }) {
   )
 }
 
+const EVENT_FAQS = [
+  {
+    q: 'Are Fireball events open to everyone?',
+    a: 'Most Fireball events are open to the public. Private events are reserved for Car Club members or specific invite lists. The event listing clearly marks each event as PUBLIC or PRIVATE so you always know before you try to register.',
+  },
+  {
+    q: 'How do I register for an upcoming event?',
+    a: "Registration links are available directly on each event card. For public events, simply click the CTA to secure your spot. For Car Club member events, you'll need an active Ignition or Apex membership to access the registration page.",
+  },
+  {
+    q: 'Can I bring my daily driver?',
+    a: 'Absolutely. Fireball events celebrate all types of cars — from daily drivers to track builds and exotics. The more variety, the better the atmosphere.',
+  },
+  {
+    q: 'What can I expect at a Fireball event?',
+    a: 'Every Fireball event is built around community and car culture. Expect product showcases, live coating demonstrations, a curated car display, and the chance to meet certified Fireball installers and brand representatives.',
+  },
+  {
+    q: 'Will new events be added throughout the year?',
+    a: 'Yes. The events lineup is updated regularly as new dates are confirmed. We recommend joining the Car Club or checking this page frequently to stay ahead of announcements.',
+  },
+]
+
+function EventFAQItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="border-b border-white/10">
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        className="flex w-full items-center justify-between py-5 text-left"
+      >
+        <span className="pr-6 text-sm font-semibold text-white md:text-base">{q}</span>
+        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25 }} className="shrink-0">
+          <IconChevronDown size={16} className="text-white/40" />
+        </motion.div>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <p className="pb-5 text-sm leading-relaxed text-white/60">{a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 export function Event() {
   const lenis = useContext(LenisContext)
   const [events, setEvents] = useState<SiteEventConfig[]>(DEFAULT_SITE_EVENT_CONFIGS)
@@ -245,6 +300,26 @@ export function Event() {
             {events.map((ev, index) => (
               <EventCard key={ev.id} ev={ev} index={index} />
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-white/10 bg-[#0a0a0a] py-20 md:py-28">
+        <div className="mx-auto w-full max-w-7xl px-6">
+          <div className="grid gap-12 md:grid-cols-[280px_1fr]">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+                Common questions
+              </h2>
+              <p className="mt-2 text-sm text-white/50">
+                Everything you need before attending.
+              </p>
+            </div>
+            <div className="border-t border-white/10">
+              {EVENT_FAQS.map((f, i) => (
+                <EventFAQItem key={i} q={f.q} a={f.a} />
+              ))}
+            </div>
           </div>
         </div>
       </section>

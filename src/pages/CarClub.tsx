@@ -1,7 +1,8 @@
 import { useCallback, useContext, useEffect, useState, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
+import { IconChevronDown } from '@tabler/icons-react'
 import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 import { LenisContext } from '@/components/LenisRoot'
 import { cn } from '@/lib/utils'
@@ -37,10 +38,44 @@ const featureItem = {
   show: { opacity: 1, x: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
 }
 
+
+function CarClubFAQItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="border-b border-white/10">
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        className="flex w-full items-center justify-between py-5 text-left"
+      >
+        <span className="pr-6 text-sm font-semibold text-white md:text-base">{q}</span>
+        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25 }} className="shrink-0">
+          <IconChevronDown size={16} className="text-white/40" />
+        </motion.div>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <p className="pb-5 text-sm leading-relaxed text-white/60">{a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 export function CarClub() {
   const { t } = useTranslation()
   const lenis = useContext(LenisContext)
   usePageTitle('Car Club - Fireball Canada')
+
+  const carClubFaqs = t('carClub.faqs', { returnObjects: true }) as Array<{ q: string; a: string }>
 
   // i18n fallbacks
   const i18nIgnitionFeatures = t('carClub.ignitionFeatures', { returnObjects: true }) as string[]
@@ -300,6 +335,26 @@ export function CarClub() {
             </motion.div>
           </div>
 
+        </div>
+      </section>
+
+      <section className="border-t border-white/10 bg-[#0a0a0a] py-20 md:py-28">
+        <div className="mx-auto w-full max-w-7xl px-6">
+          <div className="grid gap-12 md:grid-cols-[280px_1fr]">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+                {t('carClub.faqTitle')}
+              </h2>
+              <p className="mt-2 text-sm text-white/50">
+                {t('carClub.faqSubtitle')}
+              </p>
+            </div>
+            <div className="border-t border-white/10">
+              {carClubFaqs.map((f, i) => (
+                <CarClubFAQItem key={i} q={f.q} a={f.a} />
+              ))}
+            </div>
+          </div>
         </div>
       </section>
     </div>

@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useId, useState } from 'react'
+import { useCallback, useContext, useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
+import { LenisContext } from '@/components/LenisRoot'
 
 const MOBILE_MQ = '(max-width: 1023px)'
+let activeSheetLocks = 0
+let previousHtmlOverflow = ''
+let previousBodyOverflow = ''
 
 export type AppleSheetProps = {
   open: boolean
@@ -12,6 +16,8 @@ export type AppleSheetProps = {
   /** Base z-index; nested sheets should use a higher value */
   zIndex?: number
   className?: string
+  desktopWidthClassName?: string
+  avoidHeaderOffset?: boolean
 }
 
 export function AppleSheet({
@@ -21,7 +27,10 @@ export function AppleSheet({
   children,
   zIndex = 55_000,
   className = '',
+  desktopWidthClassName = 'max-w-lg',
+  avoidHeaderOffset = false,
 }: AppleSheetProps) {
+  const lenis = useContext(LenisContext)
   const titleId = useId()
   const [mounted, setMounted] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -48,6 +57,28 @@ export function AppleSheet({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open, close])
+
+  useEffect(() => {
+    if (!open) return
+
+    activeSheetLocks += 1
+    if (activeSheetLocks === 1) {
+      previousHtmlOverflow = document.documentElement.style.overflow
+      previousBodyOverflow = document.body.style.overflow
+      document.documentElement.style.overflow = 'hidden'
+      document.body.style.overflow = 'hidden'
+    }
+    lenis?.stop()
+
+    return () => {
+      activeSheetLocks = Math.max(0, activeSheetLocks - 1)
+      if (activeSheetLocks === 0) {
+        document.documentElement.style.overflow = previousHtmlOverflow
+        document.body.style.overflow = previousBodyOverflow
+        lenis?.start()
+      }
+    }
+  }, [open, lenis])
 
   if (!mounted) return null
 
@@ -103,14 +134,14 @@ export function AppleSheet({
     >
       <div className="shrink-0 pt-2 sm:pt-3">{handleBar}</div>
       {headerRow}
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-1 pb-2">{children}</div>
+      <div className="mobile-no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-1 pb-2">{children}</div>
     </div>
   )
 
   const content = (
     <AnimatePresence>
       {open ? (
-        <div key="apple-sheet" className="fixed inset-0" style={{ zIndex }} role="presentation">
+        <div key="apple-sheet" className="fixed inset-0" style={{ zIndex }} role="presentation" data-lenis-prevent>
           <motion.div
             className="absolute inset-0"
             initial={{ opacity: 0 }}
@@ -122,9 +153,11 @@ export function AppleSheet({
           />
 
           {isMobile ? (
-            <div className="pointer-events-none absolute inset-0 flex flex-col justify-end p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,12px))] pl-[max(0.75rem,env(safe-area-inset-left,12px))] pr-[max(0.75rem,env(safe-area-inset-right,12px))]">
+            <div
+              className={`pointer-events-none absolute inset-0 flex flex-col p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,12px))] pl-[max(0.75rem,env(safe-area-inset-left,12px))] pr-[max(0.75rem,env(safe-area-inset-right,12px))] ${avoidHeaderOffset ? 'justify-start pt-[calc(var(--mobile-header-h,3.5rem)+18px)]' : 'justify-end'}`}
+            >
               <motion.div
-                className="pointer-events-auto flex max-h-[min(92dvh,880px)] min-h-0 w-full flex-col"
+                className={`pointer-events-auto flex min-h-0 w-full flex-col ${avoidHeaderOffset ? 'max-h-[calc(100dvh-var(--mobile-header-h,3.5rem)-2.25rem)]' : 'max-h-[min(92dvh,880px)]'}`}
                 initial={{ y: '108%', opacity: 0.98 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: '108%', opacity: 0.96 }}
@@ -140,9 +173,11 @@ export function AppleSheet({
               </motion.div>
             </div>
           ) : (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
+            <div
+              className={`pointer-events-none absolute inset-0 flex justify-center p-6 ${avoidHeaderOffset ? 'items-start pt-[calc(var(--mobile-header-h,3.5rem)+24px)]' : 'items-center'}`}
+            >
               <motion.div
-                className="pointer-events-auto flex max-h-[min(88dvh,720px)] w-full max-w-lg min-h-0 flex-col"
+                className={`pointer-events-auto flex w-full min-h-0 flex-col ${desktopWidthClassName} ${avoidHeaderOffset ? 'max-h-[calc(100dvh-var(--mobile-header-h,3.5rem)-3rem)]' : 'max-h-[min(88dvh,720px)]'}`}
                 initial={{ opacity: 0, scale: 0.96, y: 12 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.98, y: 10 }}

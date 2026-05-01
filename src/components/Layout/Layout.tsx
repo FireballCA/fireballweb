@@ -34,6 +34,11 @@ export function Layout() {
     return () => mq.removeEventListener('change', h)
   }, [])
 
+  /** Lenis + longues pages compte (dashboard, etc.) : scroll natif sur #app-scroll-root pour éviter blocages molette. */
+  const lenisPreventOnScrollRoot =
+    isMobile ||
+    (location.pathname.startsWith('/account/') && location.pathname !== '/account/register')
+
   return (
     <div
       className="flex h-[100dvh] flex-col overflow-hidden bg-black"
@@ -57,7 +62,7 @@ export function Layout() {
 
       <div
         id="app-scroll-root"
-        {...(isMobile ? { 'data-lenis-prevent': true } : {})}
+        {...(lenisPreventOnScrollRoot ? { 'data-lenis-prevent': true } : {})}
         style={
           {
             '--app-hero-h': 'calc(100dvh - var(--mobile-header-h, 3.5rem) - 12px)',

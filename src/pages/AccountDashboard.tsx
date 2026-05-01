@@ -1073,11 +1073,7 @@ export function AccountDashboard() {
     const loadLeaderboard = async () => {
       setLeaderboardLoading(true)
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id,first_name,last_name,xp')
-          .order('xp', { ascending: false })
-          .limit(200)
+        const { data, error } = await supabase.rpc('get_xp_leaderboard')
 
         if (error) {
           console.warn('Failed to load leaderboard:', error.message)

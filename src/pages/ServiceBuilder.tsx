@@ -1,5 +1,7 @@
+import { AnimatePresence, motion } from 'motion/react'
 import { Link } from 'react-router-dom'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { IconChevronDown } from '@tabler/icons-react'
 import { AppleButton } from '@/components/ui/AppleButton'
 import { AppleSheet } from '@/components/ui/AppleSheet'
 import { GarageAddVehicleFlow } from '@/components/MyGarageSection'
@@ -8,6 +10,7 @@ import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
 import { cn } from '@/lib/utils'
 import { isAuthenticated } from '@/utils/supabaseAuth'
 import { fetchGarageVehicles, type GarageVehicleRow } from '@/utils/supabaseGarage'
+import { XP_PER_DOLLAR } from '@/utils/supabaseXp'
 import {
   CERAMIC_COATING_SECTIONS,
   COATING_SECTION_IMAGES,
@@ -121,6 +124,60 @@ const WAX_OPTIONS: Array<{
   },
 ]
 
+const SERVICE_BUILDER_FAQS = [
+  {
+    q: 'Is the price estimate a final quote?',
+    a: 'The estimate is a starting price based on your vehicle size and paint condition. The final price is confirmed by your installer after an in-person inspection. Additional factors such as heavily contaminated paint or specialty surfaces may affect the final cost.',
+  },
+  {
+    q: 'What does paint condition affect in the estimate?',
+    a: 'Paint condition determines the level of correction work needed before the coating can be applied. Light imperfections require a one-stage polish, while heavy defects require multi-stage machine correction — each adding to the preparation time and cost.',
+  },
+  {
+    q: 'Can I modify or cancel my service request after sending?',
+    a: 'Yes. Since your request is reviewed manually by our team before any appointment is confirmed, you can contact us directly to update your configuration, change your coating choice, or cancel altogether at no charge.',
+  },
+  {
+    q: 'Do I earn XP for submitting a service request?',
+    a: 'XP is awarded once your service request is reviewed and approved by a certified installer — not at submission. The estimated XP shown during configuration gives you a preview of what you stand to earn when the service is completed.',
+  },
+  {
+    q: 'What happens after I send my service request?',
+    a: "Our team reviews your configuration and will follow up by email and phone to confirm details and schedule your appointment. You will also receive a request confirmation number to track your service in your account dashboard if you're signed in.",
+  },
+]
+
+function ServiceBuilderFAQItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="border-b border-black/10">
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        className="flex w-full items-center justify-between py-5 text-left"
+      >
+        <span className="pr-6 text-sm font-semibold text-[#1d1d1f] md:text-base">{q}</span>
+        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25 }} className="shrink-0">
+          <IconChevronDown size={16} className="text-[#86868b]" />
+        </motion.div>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <p className="pb-5 text-sm leading-relaxed text-[#424245]">{a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 export function ServiceBuilder() {
   const { notify } = useNotifications()
   const reduceMotion = useEffectiveReducedMotion()
@@ -136,8 +193,26 @@ export function ServiceBuilder() {
   const [garageVehicles, setGarageVehicles] = useState<GarageVehicleRow[]>([])
   const [garageLoading, setGarageLoading] = useState(false)
   const [importedVehicle, setImportedVehicle] = useState<GarageVehicleRow | null>(null)
+  const [reviewSheetOpen, setReviewSheetOpen] = useState(false)
+  const [successSheetOpen, setSuccessSheetOpen] = useState(false)
+  const [requestNumber, setRequestNumber] = useState('')
+  const [isSending, setIsSending] = useState(false)
+  const [contactFirstName, setContactFirstName] = useState('')
+  const [contactLastName, setContactLastName] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+  const [customMessage, setCustomMessage] = useState('')
+  const [uploadedVehicleImages, setUploadedVehicleImages] = useState<File[]>([])
+  const [vehicleMakeInput, setVehicleMakeInput] = useState('')
+  const [vehicleModelInput, setVehicleModelInput] = useState('')
+  const [vehicleYearInput, setVehicleYearInput] = useState('')
   const heroRef = useRef<HTMLElement | null>(null)
   const [heroPassed, setHeroPassed] = useState(false)
+
+  const refreshAuthState = useCallback(async () => {
+    const ok = await isAuthenticated()
+    setIsLoggedIn(ok)
+  }, [])
 
   useEffect(() => {
     const root = document.getElementById('app-scroll-root')
@@ -168,6 +243,23 @@ export function ServiceBuilder() {
     }
   }, [])
 
+  useEffect(() => {
+    const onFocus = () => {
+      void refreshAuthState()
+    }
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshAuthState()
+      }
+    }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [refreshAuthState])
+
   const loadGarage = useCallback(async () => {
     setGarageLoading(true)
     try {
@@ -190,11 +282,97 @@ export function ServiceBuilder() {
     return vehicleBasePrice + paintAdjustment
   }, [selectedVehicleSize, selectedPaintCondition])
 
-  const canSend =
-    isLoggedIn &&
+  const estimatedXp = useMemo(
+    () => Math.max(0, Math.round(totalPrice * XP_PER_DOLLAR)),
+    [totalPrice],
+  )
+
+  const canProceed =
     selectedVehicleSize !== null &&
     selectedPaintCondition !== null &&
     selectedCoatingId !== null
+
+  const isReviewFormValid = useMemo(() => {
+    const hasVehicleModel = vehicleModelInput.trim().length > 0
+    const hasPhone = contactPhone.trim().length > 0
+    if (isLoggedIn) return hasVehicleModel
+    return (
+      hasVehicleModel &&
+      hasPhone &&
+      vehicleMakeInput.trim().length > 0 &&
+      vehicleYearInput.trim().length > 0 &&
+      contactFirstName.trim().length > 0 &&
+      contactLastName.trim().length > 0 &&
+      contactEmail.trim().length > 0
+    )
+  }, [
+    isLoggedIn,
+    vehicleModelInput,
+    contactPhone,
+    vehicleMakeInput,
+    vehicleYearInput,
+    contactFirstName,
+    contactLastName,
+    contactEmail,
+  ])
+
+  const coatingName = useMemo(
+    () => CERAMIC_COATING_SECTIONS.find((c) => c.id === selectedCoatingId)?.name ?? '',
+    [selectedCoatingId],
+  )
+  const waxName = useMemo(
+    () => (selectedWaxId ? WAX_OPTIONS.find((w) => w.id === selectedWaxId)?.name ?? '' : ''),
+    [selectedWaxId],
+  )
+
+  useEffect(() => {
+    if (!importedVehicle) return
+    setVehicleMakeInput(importedVehicle.brand ?? '')
+    setVehicleModelInput(importedVehicle.model ?? '')
+    setVehicleYearInput(importedVehicle.year ? String(importedVehicle.year) : '')
+  }, [importedVehicle])
+
+  const generateRequestNumber = useCallback(() => {
+    const now = new Date()
+    const yyyy = now.getFullYear()
+    const rnd = Math.floor(100000 + Math.random() * 900000)
+    return `FB-SRV-${yyyy}-${rnd}`
+  }, [])
+
+  const handleSendService = useCallback(async () => {
+    if (!isReviewFormValid || isSending) return
+    setIsSending(true)
+    const generatedRequestNumber = generateRequestNumber()
+    setRequestNumber(generatedRequestNumber)
+    setReviewSheetOpen(false)
+    setSuccessSheetOpen(true)
+    setIsSending(false)
+    notify({ title: 'Service request sent successfully.', message: '', kind: 'success' })
+  }, [
+    isReviewFormValid,
+    isSending,
+    generateRequestNumber,
+    notify,
+    selectedVehicleSize,
+    selectedPaintCondition,
+    coatingName,
+    waxName,
+  ])
+
+  const handleCopyRequestNumber = useCallback(async () => {
+    if (!requestNumber) return
+    try {
+      await navigator.clipboard.writeText(requestNumber)
+      notify({ title: 'Request number copied.', message: '', kind: 'success' })
+    } catch {
+      notify({ title: 'Unable to copy request number.', message: '', kind: 'error' })
+    }
+  }, [requestNumber, notify])
+
+  const handleVehicleImagesChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? [])
+    setUploadedVehicleImages(files.slice(0, 6))
+  }, [])
 
   const renderFivePointScale = (value: number) => {
     return (
@@ -229,20 +407,36 @@ export function ServiceBuilder() {
 
         <div className="relative mx-auto flex min-h-[58vh] w-full max-w-[1400px] items-center justify-center px-6 py-14 text-center md:min-h-[64vh] md:px-8 md:py-20">
           <div className="max-w-2xl">
-            <h1 className="font-nav text-4xl font-bold leading-tight text-white md:text-6xl">
-              Configure your service
-            </h1>
-            <p className="mt-4 text-sm text-white md:text-base">
-              A simple way to plan, customize, and manage your vehicle care.
-            </p>
-            <AppleButton
-              className="mt-6 mx-auto"
-              onClick={() => {
-                vehicleStepRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              }}
+            <motion.h1
+              className="font-nav text-4xl font-bold leading-tight text-white md:text-6xl"
+              initial={reduceMotion ? false : { opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
             >
-              Get started
-            </AppleButton>
+              Configure your service
+            </motion.h1>
+            <motion.p
+              className="mt-4 text-sm text-white md:text-base"
+              initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.75, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            >
+              A simple way to plan, customize, and manage your vehicle care.
+            </motion.p>
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.75, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <AppleButton
+                className="mt-6 mx-auto"
+                onClick={() => {
+                  vehicleStepRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }}
+              >
+                Get started
+              </AppleButton>
+            </motion.div>
           </div>
         </div>
       </header>
@@ -267,22 +461,11 @@ export function ServiceBuilder() {
             </p>
           </div>
           <AppleButton
-            disabled={!canSend}
+            disabled={!canProceed}
             className="shrink-0 !rounded-full !px-6 !py-2.5 !text-[13px] disabled:!cursor-not-allowed disabled:!opacity-40"
-            onClick={() => {
-              const coatingName =
-                CERAMIC_COATING_SECTIONS.find((c) => c.id === selectedCoatingId)?.name ?? ''
-              const waxName = selectedWaxId
-                ? WAX_OPTIONS.find((w) => w.id === selectedWaxId)?.name ?? ''
-                : null
-              notify({
-                title: 'Configuration sent',
-                message: `${selectedVehicleSize} · ${selectedPaintCondition} · ${coatingName}${waxName ? ` · Wax: ${waxName}` : ''} — $${totalPrice} CAD`,
-                kind: 'success',
-              })
-            }}
+            onClick={() => setReviewSheetOpen(true)}
           >
-            Send
+            Next step
           </AppleButton>
         </div>
       </div>
@@ -307,7 +490,7 @@ export function ServiceBuilder() {
                 ) : null}
                 {!isLoggedIn && !isAuthLoading ? (
                   <p className="mt-2 text-sm text-[#424245]">
-                    Sign in to unlock the next steps and start your configuration.
+                    You can complete your service request without an account.
                   </p>
                 ) : null}
               </div>
@@ -322,15 +505,7 @@ export function ServiceBuilder() {
               ) : null}
             </div>
 
-            {!isLoggedIn && !isAuthLoading ? (
-              <div className="mb-6 flex flex-wrap items-center gap-3">
-                <Link to="/account" className="inline-flex">
-                  <AppleButton>Connection</AppleButton>
-                </Link>
-              </div>
-            ) : null}
-
-            <div className={`grid grid-cols-4 gap-4 ${isLoggedIn ? '' : 'pointer-events-none'}`}>
+            <div className="grid grid-cols-4 gap-4">
               {VEHICLE_SIZES.map((size) => {
                 const selected = selectedVehicleSize === size.id
                 return (
@@ -358,7 +533,6 @@ export function ServiceBuilder() {
             </div>
           </article>
 
-          {isLoggedIn ? (
           <article className="border-t border-black/10 pt-10 transition">
             <div className="mb-5">
               <div>
@@ -396,9 +570,7 @@ export function ServiceBuilder() {
               })}
             </div>
           </article>
-          ) : null}
 
-          {isLoggedIn ? (
           <article className="border-t border-black/10 pt-10 transition">
             <div className="mb-6">
               <h2 className="font-nav text-2xl font-bold">Choose your coating</h2>
@@ -440,9 +612,7 @@ export function ServiceBuilder() {
               })}
             </div>
           </article>
-          ) : null}
 
-          {isLoggedIn ? (
           <article className="border-t border-black/10 pt-10 transition">
             <div className="mb-6 flex items-center gap-3">
               <h2 className="font-nav text-2xl font-bold">Add a wax finish</h2>
@@ -501,9 +671,253 @@ export function ServiceBuilder() {
               })}
             </div>
           </article>
-          ) : null}
         </div>
       </div>
+
+      <section className="border-t border-black/10 bg-white py-20 md:py-28">
+        <div className="mx-auto w-full max-w-[1400px] px-6 md:px-8">
+          <div className="grid gap-12 md:grid-cols-[280px_1fr]">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-[#1d1d1f] md:text-3xl">
+                Common questions
+              </h2>
+              <p className="mt-2 text-sm text-[#6e6e73]">
+                Everything you need before configuring your service.
+              </p>
+            </div>
+            <div className="border-t border-black/10">
+              {SERVICE_BUILDER_FAQS.map((f, i) => (
+                <ServiceBuilderFAQItem key={i} q={f.q} a={f.a} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <AppleSheet
+        open={reviewSheetOpen}
+        onOpenChange={setReviewSheetOpen}
+        title="Final review"
+        zIndex={100_040}
+        desktopWidthClassName="max-w-5xl"
+        avoidHeaderOffset
+      >
+        <div className="px-4 pb-5">
+          <div className="mb-5 rounded-[28px] bg-white px-4 py-4 shadow-[0_8px_22px_rgba(0,0,0,0.1)]">
+            <div className="flex items-center gap-4">
+              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center text-[#0485F7]" aria-hidden>
+                <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" aria-hidden>
+                  <circle cx="10" cy="10" r="7.25" />
+                  <path d="M10 8.25v5" />
+                  <circle cx="10" cy="5.55" r="0.85" fill="currentColor" stroke="none" />
+                </svg>
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-[15px] font-semibold leading-tight text-[#0485F7]">
+                    {isLoggedIn ? 'Connected account' : 'Not connected'}
+                  </p>
+                  {!isLoggedIn ? (
+                    <Link to="/account" target="_blank" rel="noreferrer" className="shrink-0">
+                      <AppleButton className="!rounded-full !px-4 !py-2 !text-[12px]">Sign in</AppleButton>
+                    </Link>
+                  ) : null}
+                </div>
+                <p className="mt-1 text-[14px] leading-relaxed text-[#6b7280]">
+                  {isLoggedIn
+                    ? `You are eligible to earn +${estimatedXp} XP if this service request is approved.`
+                    : (
+                      <>
+                        Connect your account to be eligible for <span className="font-semibold text-[#1d1d1f]">+{estimatedXp} XP</span> if this service request is approved.
+                      </>
+                    )}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <section className="pb-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e6e73]">Service summary</p>
+            <div className="mt-3 space-y-1.5 text-[14px] text-[#2b2b2d]">
+              <p>Vehicle size: <span className="font-semibold">{selectedVehicleSize ?? '-'}</span></p>
+              <p>Paint condition: <span className="font-semibold">{selectedPaintCondition ?? '-'}</span></p>
+              <p>Coating: <span className="font-semibold">{coatingName || '-'}</span></p>
+              <p>Wax: <span className="font-semibold">{waxName || 'None'}</span></p>
+              <p className="pt-1 text-[17px] font-semibold text-[#1d1d1f]">Total estimate: ${totalPrice} CAD</p>
+            </div>
+          </section>
+
+          <div className="h-px bg-black/10" />
+
+          <section className="pt-4 pb-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e6e73]">Vehicle information</p>
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+              {!isLoggedIn ? (
+                <>
+                  <input
+                    value={vehicleMakeInput}
+                    onChange={(e) => setVehicleMakeInput(e.target.value)}
+                    placeholder="Vehicle make"
+                    className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+                  />
+                  <input
+                    value={vehicleModelInput}
+                    onChange={(e) => setVehicleModelInput(e.target.value)}
+                    placeholder="Vehicle model"
+                    className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+                  />
+                  <input
+                    value={vehicleYearInput}
+                    onChange={(e) => setVehicleYearInput(e.target.value)}
+                    placeholder="Vehicle year"
+                    className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+                  />
+                </>
+              ) : (
+                <>
+                  <input
+                    value={vehicleModelInput}
+                    onChange={(e) => setVehicleModelInput(e.target.value)}
+                    placeholder="Vehicle model"
+                    className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+                  />
+                  <input
+                    value={vehicleMakeInput}
+                    onChange={(e) => setVehicleMakeInput(e.target.value)}
+                    placeholder="Vehicle make (optional)"
+                    className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+                  />
+                  <input
+                    value={vehicleYearInput}
+                    onChange={(e) => setVehicleYearInput(e.target.value)}
+                    placeholder="Vehicle year (optional)"
+                    className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+                  />
+                </>
+              )}
+            </div>
+          </section>
+
+          <div className="h-px bg-black/10" />
+
+          <section className="pt-4 pb-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e6e73]">Contact information</p>
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <input
+                value={contactFirstName}
+                onChange={(e) => setContactFirstName(e.target.value)}
+                placeholder={isLoggedIn ? 'First name (optional)' : 'First name'}
+                className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+              />
+              <input
+                value={contactLastName}
+                onChange={(e) => setContactLastName(e.target.value)}
+                placeholder={isLoggedIn ? 'Last name (optional)' : 'Last name'}
+                className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+              />
+              <input
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder={isLoggedIn ? 'Email (optional)' : 'Email'}
+                className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+              />
+              <input
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                placeholder="Contact phone number"
+                className="h-11 rounded-xl border border-black/10 bg-white px-3 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+              />
+            </div>
+          </section>
+
+          <div className="h-px bg-black/10" />
+
+          <section className="pt-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e6e73]">Extra details</p>
+            <div className="mt-3 space-y-3">
+              <textarea
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                placeholder="Add a custom message for our team (paint concerns, schedule preference, etc.)"
+                rows={4}
+                className="w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]"
+              />
+              <div className="rounded-xl border border-dashed border-black/15 bg-[#fafafa] p-3">
+                <label className="block text-[12px] font-medium text-[#424245]">
+                  Add one or more photos of your vehicle
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleVehicleImagesChange}
+                  className="mt-2 block w-full text-sm text-[#424245] file:mr-3 file:rounded-lg file:border-0 file:bg-[#ececef] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#1d1d1f] hover:file:bg-[#e2e2e6]"
+                />
+                {uploadedVehicleImages.length > 0 ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {uploadedVehicleImages.map((file) => (
+                      <span key={file.name} className="rounded-full bg-white px-2.5 py-1 text-[11px] text-[#424245] border border-black/10">
+                        {file.name}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </section>
+
+          <div className="mt-4 flex items-center justify-end gap-3">
+            <AppleButton
+              className="!border-[#ff3b3b]/25 !bg-white !text-[#ff3b3b]"
+              onClick={() =>
+                notify({
+                  title: 'Unable to send service request.',
+                  message: '',
+                  kind: 'error',
+                })
+              }
+            >
+              Show error notification
+            </AppleButton>
+            <AppleButton
+              className="!border-black/20 !bg-white !text-[#1d1d1f]"
+              onClick={() => setReviewSheetOpen(false)}
+            >
+              Back
+            </AppleButton>
+            <AppleButton disabled={!isReviewFormValid || isSending} onClick={handleSendService}>
+              {isSending ? 'Sending…' : 'Send my service'}
+            </AppleButton>
+          </div>
+        </div>
+      </AppleSheet>
+
+      <AppleSheet open={successSheetOpen} onOpenChange={setSuccessSheetOpen} title="Request received" zIndex={100_050}>
+        <div className="px-4 pb-5">
+          <p className="text-xl font-semibold text-[#1d1d1f]">Thank you for sending your service request.</p>
+          <p className="mt-2 text-sm leading-relaxed text-[#424245]">
+            Our team will review your configuration and follow up shortly. You will receive updates by email and phone.
+            {isLoggedIn ? ' You will also see this request in your dashboard.' : ''}
+          </p>
+          <div className="mt-6 border-t border-black/10 pt-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6e6e73]">Request number</p>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <p className="font-mono text-[14px] font-semibold text-[#1d1d1f]">{requestNumber || '-'}</p>
+              <button
+                type="button"
+                onClick={handleCopyRequestNumber}
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f3f4f6] text-[#1d1d1f] transition hover:bg-[#e8e8ed]"
+                aria-label="Copy request number"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="11" height="11" rx="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </AppleSheet>
 
       <AppleSheet open={garageSheetOpen} onOpenChange={setGarageSheetOpen} title="My Garage" zIndex={100_020}>
         <div className="px-4 pb-4">

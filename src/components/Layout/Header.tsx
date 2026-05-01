@@ -12,49 +12,6 @@ import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { shopBrowseCategoryPath } from '@/constants/paths'
 import { LenisContext } from '@/components/LenisRoot'
 
-const CERAMIC_SECTIONS = [
-  {
-    title: 'Shop Coatings',
-    description: 'Explore and compare our full range of high-performance ceramic coatings.',
-    links: [
-      { label: 'All Coatings', to: '/all-coatings' },
-      { label: 'Compare Coatings', to: '/coatings/compare' },
-    ],
-  },
-  {
-    title: 'Learn & Connect',
-    description: 'Find certified installers and learn how ceramic coatings work.',
-    links: [
-      { label: 'Find Installer', to: '/coatings/find-installer' },
-      { label: 'How It Works', to: '/coatings/how-it-works' },
-    ],
-  },
-]
-
-const COMPANY_SECTIONS: Array<{
-  title: string
-  description: string
-  links: Array<{ label: string; to?: string; href?: string }>
-}> = [
-  {
-    title: 'COMPANY',
-    description: 'Brand, recognition & story',
-    links: [
-      { label: 'Join Fireball', to: '/join-fireball' },
-      { label: 'Merch', to: '/apparel' },
-      { label: 'About us', to: '/about' },
-    ],
-  },
-  {
-    title: 'CONNECT',
-    description: 'Media & direct contact',
-    links: [
-      { label: 'Contact us', to: '/contact' },
-      { label: 'Press kit', to: '/press-kit' },
-      { label: 'Legal', to: '/legal' },
-    ],
-  },
-]
 
 type SearchEntry = {
   id: string
@@ -109,7 +66,47 @@ function FlagFR() {
 
 export function Header() {
   const lenis = useContext(LenisContext)
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation()
+
+  const ceramicSections = useMemo(() => [
+    {
+      title: t('nav.shopCoatingsTitle'),
+      description: t('nav.shopCoatingsDesc'),
+      links: [
+        { label: t('nav.allCoatings'), to: '/all-coatings' },
+        { label: t('nav.compareCoatings'), to: '/coatings/compare' },
+      ],
+    },
+    {
+      title: t('nav.learnConnectTitle'),
+      description: t('nav.learnConnectDesc'),
+      links: [
+        { label: t('nav.findInstaller'), to: '/coatings/find-installer' },
+        { label: t('nav.howItWorks'), to: '/coatings/how-it-works' },
+      ],
+    },
+  ], [t])
+
+  const companySections = useMemo<Array<{ title: string; description: string; links: Array<{ label: string; to?: string; href?: string }> }>>(() => [
+    {
+      title: t('nav.companySection'),
+      description: t('nav.companyDesc'),
+      links: [
+        { label: t('nav.joinFireball'), to: '/join-fireball' },
+        { label: t('nav.merch'), to: '/apparel' },
+        { label: t('nav.aboutUs'), to: '/about' },
+      ],
+    },
+    {
+      title: t('nav.connect'),
+      description: t('nav.connectDesc'),
+      links: [
+        { label: t('nav.contactUs'), to: '/contact' },
+        { label: t('nav.pressKit'), to: '/press-kit' },
+        { label: t('nav.legal'), to: '/legal' },
+      ],
+    },
+  ], [t])
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -786,7 +783,7 @@ export function Header() {
 
           <nav className="hidden lg:flex items-center gap-1 pt-0.5 group h-full">
             <Link to="/car-club" className={navLink}>
-              Car club
+              {t('nav.carClub')}
             </Link>
 
             <div
@@ -795,7 +792,7 @@ export function Header() {
               onMouseLeave={() => setShopOpen(false)}
             >
               <button type="button" className={`${navLink} flex items-center gap-1 ${shopOpen ? '!bg-carbon-700/20 !text-white' : ''}`}>
-                Shop
+                {t('nav.shop')}
                 <svg
                   className={`w-4 h-4 transition-transform ${shopOpen ? 'rotate-180' : ''}`}
                   fill="none"
@@ -816,10 +813,10 @@ export function Header() {
                         {/* PROTECTION SYSTEMS */}
                         <div className="min-w-[200px]">
                           <h3 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">
-                            PROTECTION SYSTEMS
+                            {t('nav.protectionSystems')}
                           </h3>
                           <p className="text-sm text-carbon-600 mb-10">
-                            Surface durability & coating technologies
+                            {t('nav.protectionSystemsDesc')}
                           </p>
                           <ul className="space-y-1.5">
                             <li>
@@ -828,7 +825,7 @@ export function Header() {
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
-                                Coatings
+                                {t('nav.coatings')}
                                 <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
@@ -838,7 +835,7 @@ export function Header() {
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
-                                Sealants
+                                {t('nav.sealants')}
                                 <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
@@ -848,7 +845,7 @@ export function Header() {
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
-                                Waxes
+                                {t('nav.waxes')}
                                 <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
@@ -858,7 +855,7 @@ export function Header() {
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
-                                Dressings
+                                {t('nav.dressings')}
                                 <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
@@ -868,10 +865,10 @@ export function Header() {
                         {/* MAINTENANCE & PREPARATION */}
                         <div className="min-w-[220px]">
                           <h3 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">
-                            MAINTENANCE & PREPARATION
+                            {t('nav.maintenancePrep')}
                           </h3>
                           <p className="text-sm text-carbon-600 mb-10">
-                            Preparation, cleaning & system care
+                            {t('nav.maintenancePrepDesc')}
                           </p>
                           <ul className="space-y-1.5">
                             <li>
@@ -880,7 +877,7 @@ export function Header() {
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
-                                Washing
+                                {t('nav.washing')}
                                 <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
@@ -890,7 +887,7 @@ export function Header() {
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
-                                Cleaners
+                                {t('nav.cleaners')}
                                 <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
@@ -900,7 +897,7 @@ export function Header() {
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
-                                Towels
+                                {t('nav.towels')}
                                 <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
@@ -910,7 +907,7 @@ export function Header() {
                                 className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
                                 onClick={() => setShopOpen(false)}
                               >
-                                Accessories
+                                {t('nav.accessories')}
                                 <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
                               </Link>
                             </li>
@@ -950,7 +947,7 @@ export function Header() {
                             className="inline-flex items-center gap-0.5 text-sm font-nav font-bold text-blue-600 hover:text-blue-700 underline transition-colors"
                             onClick={() => setShopOpen(false)}
                           >
-                            Explore now
+                            {t('nav.exploreNow')}
                             <svg className="w-4 h-4 transform -rotate-45 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                             </svg>
@@ -969,7 +966,7 @@ export function Header() {
               onMouseLeave={() => setCeramicOpen(false)}
             >
               <button type="button" className={`${navLink} flex items-center gap-1 ${ceramicOpen ? '!bg-carbon-700/20 !text-white' : ''}`}>
-                Ceramic coating
+                {t('nav.ceramicCoating')}
                 <svg
                   className={`w-4 h-4 transition-transform ${ceramicOpen ? 'rotate-180' : ''}`}
                   fill="none"
@@ -986,7 +983,7 @@ export function Header() {
                       <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
                     </svg>
                     <div className="flex gap-12 px-8 py-5 rounded-b-2xl">
-                        {CERAMIC_SECTIONS.map((section) => (
+                        {ceramicSections.map((section) => (
                           <div key={section.title} className="min-w-[200px]">
                             <h3 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">{section.title}</h3>
                             <p className="text-sm text-carbon-600 mb-10">{section.description}</p>
@@ -1013,13 +1010,13 @@ export function Header() {
             </div>
 
             <Link to="/event" className={navLink}>
-              Events
+              {t('nav.events')}
             </Link>
             <Link to="/academy" className={navLink}>
-              Academy
+              {t('nav.academy')}
             </Link>
             <Link to="/service-builder" className={navLink}>
-              Service Builder
+              {t('nav.serviceBuilder')}
             </Link>
 
             <div
@@ -1028,7 +1025,7 @@ export function Header() {
               onMouseLeave={() => setCompanyOpen(false)}
             >
               <button type="button" className={`${navLink} flex items-center gap-1 ${companyOpen ? '!bg-carbon-700/20 !text-white' : ''}`}>
-                Company
+                {t('nav.company')}
                 <svg
                   className={`w-4 h-4 transition-transform ${companyOpen ? 'rotate-180' : ''}`}
                   fill="none"
@@ -1045,7 +1042,7 @@ export function Header() {
                       <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
                     </svg>
                     <div className="flex gap-12 px-8 py-5 rounded-b-2xl">
-                        {COMPANY_SECTIONS.map((section) => (
+                        {companySections.map((section) => (
                           <div key={section.title} className="min-w-[200px]">
                             <h3 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">{section.title}</h3>
                             <p className="text-sm text-carbon-600 mb-10">{section.description}</p>
@@ -1316,7 +1313,7 @@ export function Header() {
                 className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white border-b border-white/[0.06]"
                 onClick={() => setMenuOpen(false)}
               >
-                <span>Car club</span>
+                <span>{t('nav.carClub')}</span>
               </Link>
 
             {/* Shop + catégories (dropdown mobile) */}
@@ -1326,7 +1323,7 @@ export function Header() {
                 className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white"
                 onClick={() => setMobileShopOpen((open) => !open)}
               >
-                <span>Shop</span>
+                <span>{t('nav.shop')}</span>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="20"
@@ -1346,7 +1343,7 @@ export function Header() {
                 <div className="pl-4 pb-2 space-y-4 animate-fade-in">
                   <div className="space-y-1.5">
                     <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
-                      PROTECTION SYSTEMS
+                      {t('nav.protectionSystems')}
                     </p>
                     <div className="mt-1 space-y-1.5 pl-3">
                       <Link
@@ -1361,7 +1358,7 @@ export function Header() {
                             <path d="M2 9h20" />
                           </svg>
                         </span>
-                        <span>Coatings</span>
+                        <span>{t('nav.coatings')}</span>
                       </Link>
                       <Link
                         to="/sealants"
@@ -1375,7 +1372,7 @@ export function Header() {
                             <path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z" />
                           </svg>
                         </span>
-                        <span>Sealants</span>
+                        <span>{t('nav.sealants')}</span>
                       </Link>
                       <Link
                         to="/waxes"
@@ -1391,7 +1388,7 @@ export function Header() {
                             <path d="M5 20a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3 1 1 0 0 1-1 1H6a1 1 0 0 1-1-1" />
                           </svg>
                         </span>
-                        <span>Waxes</span>
+                        <span>{t('nav.waxes')}</span>
                       </Link>
                       <Link
                         to="/dressings"
@@ -1404,14 +1401,14 @@ export function Header() {
                             <path d="M12 2v20" />
                           </svg>
                         </span>
-                        <span>Dressings</span>
+                        <span>{t('nav.dressings')}</span>
                       </Link>
                     </div>
                   </div>
 
                   <div className="pt-3 border-t border-white/[0.06] space-y-1.5">
                     <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
-                      MAINTENANCE &amp; PREPARATION
+                      {t('nav.maintenancePrep')}
                     </p>
                     <div className="mt-1 space-y-1.5 pl-3">
                       <Link
@@ -1426,7 +1423,7 @@ export function Header() {
                             <path d="M10 12h4" />
                           </svg>
                         </span>
-                        <span>Washing</span>
+                        <span>{t('nav.washing')}</span>
                       </Link>
                       <Link
                         to="/cleaners"
@@ -1440,7 +1437,7 @@ export function Header() {
                             <path d="M9.969 17.031 21.378 5.624a1 1 0 0 0-3.002-3.002L6.967 14.031" />
                           </svg>
                         </span>
-                        <span>Cleaners</span>
+                        <span>{t('nav.cleaners')}</span>
                       </Link>
                       <Link
                         to="/towels"
@@ -1454,7 +1451,7 @@ export function Header() {
                             <path d="M9 7H2" />
                           </svg>
                         </span>
-                        <span>Towels</span>
+                        <span>{t('nav.towels')}</span>
                       </Link>
                       <Link
                         to="/accessories"
@@ -1466,7 +1463,7 @@ export function Header() {
                             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z" />
                           </svg>
                         </span>
-                        <span>Accessories</span>
+                        <span>{t('nav.accessories')}</span>
                       </Link>
                     </div>
                   </div>
@@ -1481,7 +1478,7 @@ export function Header() {
                 className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white"
                 onClick={() => setMobileCeramicOpen((open) => !open)}
               >
-                <span>Ceramic coating</span>
+                <span>{t('nav.ceramicCoating')}</span>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="20"
@@ -1499,7 +1496,7 @@ export function Header() {
               </button>
               {mobileCeramicOpen && (
                 <div className="pl-4 pb-2 space-y-4 animate-fade-in">
-                  {CERAMIC_SECTIONS.map((section) => (
+                  {ceramicSections.map((section) => (
                     <div key={section.title} className="space-y-1.5">
                       <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
                         {section.title}
@@ -1527,21 +1524,21 @@ export function Header() {
               className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white border-b border-white/[0.06]"
               onClick={() => setMenuOpen(false)}
             >
-              <span>Events</span>
+              <span>{t('nav.events')}</span>
             </Link>
             <Link
               to="/academy"
               className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white border-b border-white/[0.06]"
               onClick={() => setMenuOpen(false)}
             >
-              <span>Academy</span>
+              <span>{t('nav.academy')}</span>
             </Link>
             <Link
               to="/service-builder"
               className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white border-b border-white/[0.06]"
               onClick={() => setMenuOpen(false)}
             >
-              <span>Service Builder</span>
+              <span>{t('nav.serviceBuilder')}</span>
             </Link>
 
             {/* Company (dropdown mobile) */}
@@ -1551,7 +1548,7 @@ export function Header() {
                 className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white"
                 onClick={() => setMobileCompanyOpen((open) => !open)}
               >
-                <span>Company</span>
+                <span>{t('nav.company')}</span>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="20"
@@ -1571,7 +1568,7 @@ export function Header() {
                 <div className="pl-4 pb-1 space-y-4 animate-fade-in">
                   <div className="space-y-1.5">
                     <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
-                      Company
+                      {t('nav.companySection')}
                     </p>
                     <div className="mt-1 space-y-1.5 pl-3">
                       <Link
@@ -1598,7 +1595,7 @@ export function Header() {
                             <path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
                           </svg>
                         </span>
-                        <span>Join Fireball</span>
+                        <span>{t('nav.joinFireball')}</span>
                       </Link>
                       <Link
                         to="/apparel"
@@ -1620,7 +1617,7 @@ export function Header() {
                             <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
                           </svg>
                         </span>
-                        <span>Merch</span>
+                        <span>{t('nav.merch')}</span>
                       </Link>
                       <button
                         type="button"
@@ -1645,14 +1642,14 @@ export function Header() {
                             <circle cx="9" cy="7" r="4" />
                           </svg>
                         </span>
-                        <span>About us</span>
+                        <span>{t('nav.aboutUs')}</span>
                       </button>
                     </div>
                   </div>
 
                   <div className="pt-3 border-t border-white/[0.06] space-y-1.5">
                     <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
-                      Connect
+                      {t('nav.connect')}
                     </p>
                     <div className="mt-1 space-y-1.5 pl-3">
                       <Link
@@ -1678,7 +1675,7 @@ export function Header() {
                             <path d="M20 22v.01" />
                           </svg>
                         </span>
-                        <span>Contact us</span>
+                        <span>{t('nav.contactUs')}</span>
                       </Link>
                       <button
                         type="button"
@@ -1702,7 +1699,7 @@ export function Header() {
                             <path d="M12 15v5" />
                           </svg>
                         </span>
-                        <span>Press kit</span>
+                        <span>{t('nav.pressKit')}</span>
                       </button>
                       <button
                         type="button"
@@ -1728,7 +1725,7 @@ export function Header() {
                             <path d="m8.5 7.5 8 8" />
                           </svg>
                         </span>
-                        <span>Legal</span>
+                        <span>{t('nav.legal')}</span>
                       </button>
                     </div>
                   </div>
@@ -1760,7 +1757,7 @@ export function Header() {
                       <path d="m21 21-4.34-4.34" />
                       <circle cx="11" cy="11" r="8" />
                     </svg>
-                    <span>Search</span>
+                    <span>{t('nav.search')}</span>
                   </span>
                   {mobileSearchOpen && (
                     <svg

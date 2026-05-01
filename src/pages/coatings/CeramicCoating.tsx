@@ -214,19 +214,6 @@ export function CeramicCoating() {
                 >
                   Explore
                 </a>
-                <p className="flex items-center justify-end gap-1 text-[11px] leading-tight text-silver/45">
-                  <svg
-                    className="h-3.5 w-3.5 shrink-0 animate-bounce text-silver/50"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    aria-hidden
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                  <span>Scroll to discover the lineup</span>
-                </p>
               </div>
             </div>
           </div>

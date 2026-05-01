@@ -535,15 +535,18 @@ export function Product() {
   }, [product])
 
   // Détecter quand on passe en dessous des boutons CTA pour afficher la barre sticky
+  // en lisant le vrai conteneur de scroll de l'app (#app-scroll-root).
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout | null = null
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+    const scrollRoot = document.getElementById('app-scroll-root')
     
     const handleScroll = () => {
       const isMobile = window.innerWidth < 1024
       const footer = document.querySelector('footer')
+      const scrollTop = scrollRoot?.scrollTop ?? window.scrollY
 
       if (isMobile) {
-        let shouldShow = window.scrollY > 80
+        let shouldShow = scrollTop > 80
         if (footer && shouldShow) {
           const footerRect = footer.getBoundingClientRect()
           const viewportHeight = window.innerHeight
@@ -558,7 +561,7 @@ export function Product() {
       }
 
       if (!ctaButtonsRef.current) {
-        setShowStickyBar(window.scrollY > 150)
+        setShowStickyBar(scrollTop > 150)
         return
       }
 
@@ -586,14 +589,15 @@ export function Product() {
       }, 10)
     }
 
-    window.addEventListener('scroll', handleScroll, { passive: true })
+    const scrollTarget: HTMLElement | Window = scrollRoot ?? window
+    scrollTarget.addEventListener('scroll', handleScroll, { passive: true })
     handleScroll() // Vérifier au chargement
     
     return () => {
       if (timeoutId) {
         clearTimeout(timeoutId)
       }
-      window.removeEventListener('scroll', handleScroll)
+      scrollTarget.removeEventListener('scroll', handleScroll)
     }
   }, [])
 

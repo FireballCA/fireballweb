@@ -2,6 +2,11 @@
   "nav": {
     "ceramic": "Céramique",
     "carClub": "Car Club",
+    "shop": "Boutique",
+    "ceramicCoating": "Revêtement céramique",
+    "events": "Événements",
+    "academy": "Académie",
+    "serviceBuilder": "Créateur de service",
     "company": "Entreprise",
     "search": "Rechercher",
     "login": "Se connecter",
@@ -10,10 +15,29 @@
     "bodyworkDesc": "Protection complète de la carrosserie",
     "coatings": "Revêtements",
     "sealants": "Scellants",
+    "waxes": "Cires",
+    "dressings": "Dressings",
+    "washing": "Lavage",
+    "cleaners": "Nettoyants",
+    "towels": "Serviettes",
+    "accessories": "Accessoires",
     "specialSurfaces": "SURFACES SPÉCIALES",
     "specialSurfacesDesc": "Jantes, vitres et plastiques",
     "wheels": "Jantes",
     "glass": "Vitres",
+    "protectionSystems": "SYSTÈMES DE PROTECTION",
+    "protectionSystemsDesc": "Durabilité de surface et technologies de revêtement",
+    "maintenancePrep": "ENTRETIEN & PRÉPARATION",
+    "maintenancePrepDesc": "Préparation, nettoyage et entretien du système",
+    "shopCoatingsTitle": "Boutique Revêtements",
+    "shopCoatingsDesc": "Explorez et comparez notre gamme complète de revêtements céramiques haute performance.",
+    "learnConnectTitle": "Apprendre & Se connecter",
+    "learnConnectDesc": "Trouvez des installateurs certifiés et découvrez comment fonctionnent les revêtements céramiques.",
+    "allCoatings": "Tous les revêtements",
+    "compareCoatings": "Comparer les revêtements",
+    "findInstaller": "Trouver un installateur",
+    "howItWorks": "Comment ça marche",
+    "exploreNow": "Explorer maintenant",
     "companySection": "ENTREPRISE",
     "companyDesc": "Marque, reconnaissance et histoire",
     "openCenter": "Ouvrir un centre FIREBALL",
@@ -193,7 +217,31 @@
     "privilegePerk2Title": "Accès prioritaire et exclusif",
     "privilegePerk2Body": "Premier accès aux stocks limités, aux technologies inédites et aux événements privés Fireball.",
     "privilegePerk3Title": "Statut élite",
-    "privilegePerk3Body": "Une carte digitale noire premium qui marque votre rang au sein de l'écosystème Fireball."
+    "privilegePerk3Body": "Une carte digitale noire premium qui marque votre rang au sein de l'écosystème Fireball.",
+    "faqTitle": "Questions fréquentes",
+    "faqSubtitle": "Tout ce qu'il vous faut avant de rejoindre.",
+    "faqs": [
+      {
+        "q": "Quelle est la différence entre l'adhésion Ignition et Apex ?",
+        "a": "Ignition vous donne un accès de base à la communauté Fireball Car Club — événements exclusifs, réductions membres et avant-premières de produits. Apex est le niveau élite : il inclut tout ce qu'Ignition offre, plus un accès prioritaire aux événements, des avantages membres premium et un accès direct aux expériences exclusives Apex."
+      },
+      {
+        "q": "Puis-je passer d'Ignition à Apex à tout moment ?",
+        "a": "Oui. Vous pouvez mettre à niveau votre adhésion à tout moment depuis votre tableau de bord. La différence au prorata sera appliquée automatiquement et vos avantages Apex s'activent immédiatement après la mise à niveau."
+      },
+      {
+        "q": "Dois-je posséder un type de véhicule spécifique pour rejoindre ?",
+        "a": "Pas du tout. Le Fireball Car Club est ouvert à toute personne passionnée par la culture automobile. Que vous conduisiez un véhicule quotidien, un projet de week-end ou une voiture exotique, vous êtes le bienvenu."
+      },
+      {
+        "q": "Comment accéder aux événements réservés aux membres ?",
+        "a": "Une fois votre adhésion active, les invitations aux événements exclusifs sont envoyées directement à l'email de votre compte. Les membres Apex reçoivent un accès prioritaire et des places réservées avant l'ouverture de l'inscription générale."
+      },
+      {
+        "q": "Puis-je annuler mon adhésion ?",
+        "a": "Vous pouvez annuler votre adhésion à tout moment depuis les paramètres de votre compte. Vos avantages restent actifs jusqu'à la fin de votre période de facturation en cours."
+      }
+    ]
   },
   "joinClub": {
     "pageTitle": "Rejoindre le Fireball Car Club",
@@ -369,6 +417,75 @@
     "managePartners": "Gérer les partenaires",
     "globalStats": "Statistiques globales",
     "close": "Fermer"
+  },
+  "academy": {
+    "heroTitle": "Développez votre expertise.",
+    "heroSubtitle1": "Une formation efficace est la base d'une entreprise rentable.",
+    "heroSubtitle2": "Maîtrisez l'installation professionnelle de revêtement céramique, développez votre clientèle et rejoignez un réseau exclusif d'installateurs Fireball certifiés à travers le Canada.",
+    "joinNextTraining": "Rejoindre la prochaine formation",
+    "trainingDetails": "Détails de la formation",
+    "nextTraining": "Prochaine formation :",
+    "secureYourSpot": "Réservez votre place",
+    "nextAvailableSession": "Prochaine session disponible",
+    "upcomingTraining": "Formation à venir",
+    "limitedSeats": "Places limitées. Inscription via le parcours Academy.",
+    "viewDetails": "Voir les détails",
+    "featuredSessionDesc": "La session principale est mise en avant en premier : date claire, lieu, et une présentation premium renforcée pour que la prochaine formation devienne l'action principale de la page.",
+    "sectionFeatures": "Tout ce qu'il vous faut pour bâtir votre entreprise.",
+    "feature1StatLabel": "pratique",
+    "feature1Title": "Formation d'installation en conditions réelles",
+    "feature1Body": "Travaillez dans un véritable environnement de formation avec des outils et produits professionnels — les mêmes techniques utilisées chaque jour par les installateurs certifiés Fireball au Canada.",
+    "feature2StatLabel": "positionnement renforcé",
+    "feature2Title": "Une certification qui ouvre des portes",
+    "feature2Body": "Obtenez la certification officielle Fireball et commercialisez-vous avec confiance : crédibilité auprès des clients, partenaires et de votre réseau de detailing local.",
+    "feature3StatLabel": "accès exclusif",
+    "feature3Title": "Débloquez les produits Fireball exclusifs",
+    "feature3Body": "Accédez aux revêtements et accessoires pro réservés aux installateurs formés, pour que votre atelier propose une protection que les clients ne peuvent trouver nulle part ailleurs.",
+    "feature4StatLabel": "croissance rapide",
+    "feature4Title": "Conçu pour les résultats business",
+    "feature4Body": "Apprenez à tarifer, packager et communiquer votre service pour que la formation se traduise directement en ventes et en fidélisation.",
+    "whatYouLearn": "Ce que vous allez apprendre",
+    "roadmap1Title": "Application de revêtement céramique",
+    "roadmap1Body": "Techniques professionnelles d'installation de revêtement.",
+    "roadmap1Tag": "Jour 1 — Matin",
+    "roadmap2Title": "Préparation de surface",
+    "roadmap2Body": "Méthodes de correction et de préparation de peinture.",
+    "roadmap2Tag": "Jour 1 — Après-midi",
+    "roadmap3Title": "Connaissance des produits",
+    "roadmap3Body": "Comprendre les technologies de revêtement Fireball.",
+    "roadmap3Tag": "Jour 2 — Matin",
+    "roadmap4Title": "Stratégies d'entreprise",
+    "roadmap4Body": "Comment positionner et vendre des services de protection professionnels.",
+    "roadmap4Tag": "Jour de certification",
+    "nextTrainingsTitle": "Nos prochaines formations",
+    "nextTrainingsDesc": "La prochaine session disponible est mise en avant en premier, tandis que les dates à venir restent faciles à consulter en dessous dans un format liste plus épuré.",
+    "fireballAcademy": "Fireball Académie",
+    "locationComingSoon": "Lieu à confirmer",
+    "handsOnCertification": "Pratique + certification",
+    "faqTitle": "Questions fréquentes",
+    "faqSubtitle": "Tout ce qu'il vous faut avant de vous inscrire.",
+    "faqs": [
+      {
+        "q": "À qui s'adresse la formation Fireball Academy ?",
+        "a": "L'Academy est conçue pour les detailers professionnels, propriétaires d'atelier et aspirants installateurs qui souhaitent obtenir la certification Fireball et proposer des services premium de revêtement céramique. Aucune expérience préalable n'est requise — le programme couvre tout, des fondamentaux à l'application avancée."
+      },
+      {
+        "q": "Quelle est la durée du programme de formation ?",
+        "a": "Le programme standard Fireball Academy se déroule sur deux journées complètes. Le premier jour couvre l'application de revêtement céramique et la préparation de surface. Le deuxième jour porte sur la connaissance des produits, la stratégie d'entreprise et l'évaluation pratique pour la certification."
+      },
+      {
+        "q": "Quelle certification est délivrée à la fin du programme ?",
+        "a": "Les diplômés reçoivent la certification officielle Fireball Canada, qui vous autorise à vendre et installer professionnellement les revêtements céramiques Fireball. Les installateurs certifiés sont également référencés dans le réseau d'installateurs Fireball, permettant aux clients de vous trouver directement."
+      },
+      {
+        "q": "Avec quels produits vais-je travailler pendant la formation ?",
+        "a": "Vous vous formerez en pratique avec toute la gamme de revêtements céramiques Fireball — dont Butterfly, Butterfly Graphene, Silla et Devil's Blood — en utilisant les mêmes outils professionnels que les installateurs certifiés partout au Canada."
+      },
+      {
+        "q": "Les places sont-elles limitées pour chaque session de formation ?",
+        "a": "Oui. Chaque session est intentionnellement maintenue à taille réduite pour s'assurer que chaque participant bénéficie d'une attention directe et pratique des formateurs. Nous recommandons de s'inscrire le plus tôt possible pour garantir votre place."
+      }
+    ]
   },
   "common": {
     "loading": "Chargement...",

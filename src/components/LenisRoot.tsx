@@ -1,11 +1,13 @@
 import { createContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import Lenis from 'lenis'
 import { lenisExoticsStyleOptions } from '@/constants/lenisPreset'
+import { useLocation } from 'react-router-dom'
 
 export const LenisContext = createContext<Lenis | null>(null)
 
 export function LenisRoot({ children }: { children: ReactNode }) {
   const [lenis, setLenis] = useState<Lenis | null>(null)
+  const location = useLocation()
 
   useEffect(() => {
     // Safari mobile est sensible aux boucles de smooth-scroll (risque de crash/reload).
@@ -45,6 +47,16 @@ export function LenisRoot({ children }: { children: ReactNode }) {
       setLenis(null)
     }
   }, [])
+
+  useEffect(() => {
+    if (!lenis) return
+    const t0 = window.setTimeout(() => lenis.resize(), 0)
+    const t1 = window.setTimeout(() => lenis.resize(), 250)
+    return () => {
+      window.clearTimeout(t0)
+      window.clearTimeout(t1)
+    }
+  }, [lenis, location.pathname])
 
   const value = useMemo(() => lenis, [lenis])
 
