@@ -1,8 +1,7 @@
-import { useContext, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import type { UserProfile } from '@/utils/supabaseAuth'
-import { LenisContext } from '@/components/LenisRoot'
 import { AppleButton } from '@/components/ui/AppleButton'
 import { usePageTitle } from '@/hooks/usePageTitle'
 
@@ -10,7 +9,6 @@ const CONTACT_DRAFT_KEY = 'fireball_contact_form_draft'
 
 export function Contact() {
   const navigate = useNavigate()
-  const lenis = useContext(LenisContext)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [authChecked, setAuthChecked] = useState(false)
   const [name, setName] = useState('')
@@ -53,54 +51,16 @@ export function Contact() {
     load()
   }, [])
 
-  /** Mobile : pas de scroll page (viewport figé sous le header) */
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 1023px)')
-    const apply = () => {
-      if (!mq.matches) return
-      const html = document.documentElement
-      const body = document.body
-      html.style.overflow = 'hidden'
-      body.style.overflow = 'hidden'
-      html.style.overscrollBehavior = 'none'
-      body.style.overscrollBehavior = 'none'
-      lenis?.stop()
-    }
-    const clear = () => {
-      const html = document.documentElement
-      const body = document.body
-      html.style.overflow = ''
-      body.style.overflow = ''
-      html.style.overscrollBehavior = ''
-      body.style.overscrollBehavior = ''
-      lenis?.start()
-    }
-
-    const onChange = () => {
-      if (mq.matches) apply()
-      else clear()
-    }
-
-    onChange()
-    mq.addEventListener('change', onChange)
-    return () => {
-      mq.removeEventListener('change', onChange)
-      clear()
-    }
-  }, [lenis])
-
   const handleSignInClick = () => {
     try { sessionStorage.setItem(CONTACT_DRAFT_KEY, JSON.stringify({ name, email, subject, message })) } catch {}
     navigate('/account?returnTo=/contact')
   }
 
   return (
-    <div
-      className="flex w-full max-w-none min-w-0 flex-1 flex-col bg-white font-sans text-carbon-900 max-lg:h-full max-lg:min-h-0 max-lg:overflow-hidden lg:min-h-[calc(100dvh-5rem)] lg:overflow-y-auto"
-    >
-      <div className="flex min-h-0 flex-1 flex-col max-lg:overflow-hidden lg:min-h-0 lg:flex-row">
+    <div className="flex min-h-0 w-full max-w-none flex-1 flex-col bg-white font-sans text-carbon-900 max-lg:min-h-full lg:h-full lg:min-h-0 lg:overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col lg:h-full lg:min-h-0 lg:flex-row lg:overflow-hidden">
         {/* Left: Let's Talk + text + Sign in + social (social desktop only) */}
-        <div className="flex max-h-[42%] min-h-0 shrink-0 flex-col justify-start overflow-hidden px-6 pb-3 pt-10 max-lg:flex-none lg:max-h-none lg:w-1/2 lg:min-w-0 lg:flex-shrink-0 lg:pb-12 lg:pt-24 lg:px-12 xl:px-16 xl:pt-28">
+        <div className="flex min-h-0 shrink-0 flex-col justify-start px-6 pb-4 pt-8 lg:w-1/2 lg:min-w-0 lg:flex-shrink-0 lg:overflow-hidden lg:px-12 lg:pb-12 lg:pt-24 xl:px-16 xl:pt-28">
           <h1 className="text-3xl font-bold tracking-tight text-carbon-900 lg:text-4xl md:text-5xl xl:text-6xl">
             Let's Talk.
           </h1>
@@ -189,7 +149,7 @@ export function Contact() {
         </div>
 
         {/* Right: Contact Form */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-start overflow-hidden border-t border-carbon-900/10 px-6 py-4 max-lg:flex-1 lg:w-1/2 lg:justify-center lg:border-l lg:border-t-0 lg:px-12 lg:py-12 xl:px-16">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-start border-t border-carbon-900/10 px-6 py-4 lg:w-1/2 lg:justify-center lg:overflow-y-auto lg:border-l lg:border-t-0 lg:px-12 lg:py-12 xl:px-16">
           <h2 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-500 lg:text-xs">
             Contact Form
           </h2>
@@ -198,7 +158,7 @@ export function Contact() {
           </h3>
 
           <form
-            className="mt-3 min-h-0 flex-1 space-y-2 overflow-hidden lg:mt-6 lg:space-y-3 md:space-y-4"
+            className="mt-3 min-h-0 flex-1 space-y-2 lg:mt-6 lg:space-y-3 lg:overflow-hidden md:space-y-4"
             onSubmit={(e) => e.preventDefault()}
           >
             <div className="grid max-lg:grid-cols-2 max-lg:gap-2 lg:block">

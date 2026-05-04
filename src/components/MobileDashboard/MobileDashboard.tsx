@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { SHOPIFY_CUSTOMER_ORDERS_URL } from '@/constants/shopifyShopApp'
 import { MobilePageSheet } from '@/components/MobilePageSheet/MobilePageSheet'
 import { MobileSettingsContent } from '@/components/MobileSettingsContent/MobileSettingsContent'
+import { AppleSheet } from '@/components/ui/AppleSheet'
+import {
+  AcademyTrainingRequestCard,
+  AcademyTrainingRequestsEmpty,
+} from '@/components/AcademyTrainingRequestViews'
+import type { TrainingRequestRow } from '@/utils/trainingRequests'
 
 interface MobileDashboardProps {
   currentXp: number
@@ -12,6 +19,8 @@ interface MobileDashboardProps {
   onProductsPurchasedClick?: () => void
   onLeaderboardClick?: () => void
   onTrophyClick?: () => void
+  trainingRequests?: TrainingRequestRow[]
+  onAcademyPaymentRequest?: (row: TrainingRequestRow) => void
 }
 
 function IconPackage() {
@@ -50,6 +59,15 @@ function IconBuilding() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" /><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" /><path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" />
+    </svg>
+  )
+}
+
+function IconAcademy() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+      <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
     </svg>
   )
 }
@@ -184,10 +202,13 @@ export function MobileDashboard({
   onProductsPurchasedClick,
   onLeaderboardClick,
   onTrophyClick,
+  trainingRequests = [],
+  onAcademyPaymentRequest,
 }: MobileDashboardProps) {
   const currentTierIndex = getTierIndexFromLabel(tier)
   const [viewingTierIndex, setViewingTierIndex] = useState(currentTierIndex)
   const [activeSheet, setActiveSheet] = useState<'garage' | 'settings' | 'certified' | 'business' | null>(null)
+  const [academySheetOpen, setAcademySheetOpen] = useState(false)
 
   const sheetRef = useRef<HTMLDivElement>(null)
   // XP display in hero — slides up + fades
@@ -695,6 +716,12 @@ export function MobileDashboard({
               <span className="w-8" />
             </button>
 
+            <button type="button" onClick={() => setAcademySheetOpen(true)} className={navButtonClass}>
+              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconAcademy /></span>
+              <span className="flex-1 text-center font-nav font-semibold text-[13px]">Academy training</span>
+              <span className="w-8" />
+            </button>
+
             <button type="button" onClick={() => setActiveSheet('garage')} className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconGarage /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">My Garage</span>
@@ -727,6 +754,46 @@ export function MobileDashboard({
           </div>
         </div>
       </div>
+
+      <AppleSheet
+        open={academySheetOpen}
+        onOpenChange={setAcademySheetOpen}
+        title="Academy training"
+        zIndex={100_040}
+        desktopWidthClassName="max-w-lg"
+      >
+        <div className="px-3 pb-5 pt-1 sm:px-4">
+          {trainingRequests.length === 0 ? (
+            <AcademyTrainingRequestsEmpty />
+          ) : (
+            <div className="flex max-h-[min(70dvh,520px)] flex-col gap-3 overflow-y-auto overscroll-contain pr-0.5 [touch-action:pan-y]">
+              {trainingRequests.map((row) => (
+                <AcademyTrainingRequestCard
+                  key={row.id}
+                  row={row}
+                  onPaymentClick={
+                    onAcademyPaymentRequest
+                      ? (r) => {
+                          onAcademyPaymentRequest(r)
+                          setAcademySheetOpen(false)
+                        }
+                      : undefined
+                  }
+                />
+              ))}
+              <div className="pt-2">
+                <Link
+                  to="/academy?joinTraining=1"
+                  onClick={() => setAcademySheetOpen(false)}
+                  className="flex w-full items-center justify-center rounded-2xl border border-white/15 bg-white/[0.08] py-3 text-center font-nav font-semibold text-[13px] text-white transition hover:bg-white/[0.12]"
+                >
+                  Add another session
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+      </AppleSheet>
 
       {/* ── MobilePageSheets ── */}
       <MobilePageSheet isOpen={activeSheet === 'garage'} onClose={() => setActiveSheet(null)} title="My Garage" />

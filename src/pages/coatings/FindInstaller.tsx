@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState, type FormEvent, type WheelEvent } from 'react'
+import { ServiceBuilderQuickMapSheet } from '@/components/service-builder/ServiceBuilderQuickMapSheet'
+import type { StockistLocation } from '@/data/stockists'
 import Map, { Marker, Popup, type MapRef } from 'react-map-gl/maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
@@ -10,6 +12,7 @@ import {
   searchPhotonPlaces,
   type PhotonPlace,
 } from '@/utils/photonGeocode'
+import { cn } from '@/lib/utils'
 
 const photonCanadaOpts = {
   bbox: PHOTON_BBOX_CANADA,
@@ -27,9 +30,21 @@ export function FindInstaller() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedPlace, setSelectedPlace] = useState<PhotonPlace | null>(null)
   const [isSearching, setIsSearching] = useState(false)
+  const [quickServiceOpen, setQuickServiceOpen] = useState(false)
+  const [quickServiceShop, setQuickServiceShop] = useState<StockistLocation | null>(null)
   const mapRef = useRef<MapRef | null>(null)
   const searchWrapRef = useRef<HTMLDivElement | null>(null)
   const installers = useMemo(() => STOCKIST_LOCATIONS, [])
+  /** Non-dealers puis dealers : au même pixel, le dernier rendu reçoit le clic (les dealers n’étaient plus cliquables si un installateur était dessus). */
+  const stockistsForMap = useMemo(() => {
+    const rows = [...installers]
+    rows.sort((a, b) => {
+      const da = a.type === 'dealer' ? 1 : 0
+      const db = b.type === 'dealer' ? 1 : 0
+      return da - db
+    })
+    return rows
+  }, [installers])
   const activeInstaller = installers.find((i) => i.id === activeId) ?? null
 
   const preventPageScrollOnMapWheel = (e: WheelEvent<HTMLDivElement>) => {
@@ -250,7 +265,7 @@ export function FindInstaller() {
               attributionControl={false}
               onClick={() => setActiveId(null)}
             >
-              {installers.map((installer) => {
+              {stockistsForMap.map((installer) => {
                 const isDealer = installer.type === 'dealer'
                 return (
                   <Marker
@@ -263,15 +278,22 @@ export function FindInstaller() {
                       setActiveId(installer.id)
                     }}
                   >
-                    <button
-                      type="button"
-                      aria-label={installer.name}
-                      className={
-                        isDealer
-                          ? 'h-3.5 w-3.5 rounded-full border border-white/80 bg-[#0485F7] shadow-[0_0_10px_rgba(4,133,247,0.65)]'
-                          : 'h-3.5 w-3.5 rounded-full border border-white/80 bg-[#d9242f] shadow-[0_0_10px_rgba(217,36,47,0.65)]'
-                      }
-                    />
+                    <div
+                      className={cn(
+                        'flex cursor-pointer justify-center p-2 -m-2 touch-manipulation',
+                        isDealer ? 'relative z-[3]' : 'relative z-[2]',
+                      )}
+                    >
+                      <button
+                        type="button"
+                        aria-label={installer.name}
+                        className={
+                          isDealer
+                            ? 'h-3.5 w-3.5 shrink-0 rounded-full border border-white/80 bg-[#0485F7] shadow-[0_0_10px_rgba(4,133,247,0.65)]'
+                            : 'h-3.5 w-3.5 shrink-0 rounded-full border border-white/80 bg-[#d9242f] shadow-[0_0_10px_rgba(217,36,47,0.65)]'
+                        }
+                      />
+                    </div>
                   </Marker>
                 )
               })}
@@ -283,7 +305,12 @@ export function FindInstaller() {
                   closeOnClick={false}
                   onClose={() => setActiveId(null)}
                 >
-                  <div className="space-y-0.5">
+                  <div className="flex min-w-[220px] max-w-[min(92vw,300px)] flex-col gap-2">
+                    {activeInstaller.type === 'dealer' ? (
+                      <span className="inline-flex w-fit rounded-full bg-[#0485F7]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#0485F7]">
+                        Dealer
+                      </span>
+                    ) : null}
                     <p className="text-sm font-semibold text-carbon-900">{activeInstaller.name}</p>
                     <p className="text-xs text-carbon-600">
                       {[activeInstaller.address1, activeInstaller.city, activeInstaller.province, activeInstaller.postalCode]
@@ -292,7 +319,7 @@ export function FindInstaller() {
                     </p>
                     {activeInstaller.phone && (
                       <p className="inline-flex items-center gap-1.5 text-xs text-carbon-700">
-                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-[#0485F7]" aria-hidden>
+                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 text-[#0485F7]" aria-hidden>
                           <path
                             fill="currentColor"
                             d="M6.62 10.79a15.053 15.053 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.01-.24 11.36 11.36 0 0 0 3.56.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.33a1 1 0 0 1 1 1 11.36 11.36 0 0 0 .57 3.56 1 1 0 0 1-.24 1.01z"
@@ -301,12 +328,16 @@ export function FindInstaller() {
                         {activeInstaller.phone}
                       </p>
                     )}
-                    <Link
-                      to="/account/dashboard"
-                      className="mt-4 inline-flex w-[95%] items-center justify-center self-center rounded-full border border-[#0485F7] bg-[#0485F7] px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:border-[#3592F9] hover:bg-[#3592F9]"
+                    <button
+                      type="button"
+                      className="mt-1 inline-flex w-full items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] px-3 py-2 text-[11px] font-semibold text-white transition-colors hover:border-[#3592F9] hover:bg-[#3592F9]"
+                      onClick={() => {
+                        setQuickServiceShop(activeInstaller)
+                        setQuickServiceOpen(true)
+                      }}
                     >
-                      Add Vehicle
-                    </Link>
+                      Quick service
+                    </button>
                   </div>
                 </Popup>
               )}
@@ -337,6 +368,15 @@ export function FindInstaller() {
           </Link>
         </div>
       </div>
+
+      <ServiceBuilderQuickMapSheet
+        open={quickServiceOpen}
+        onOpenChange={(next) => {
+          setQuickServiceOpen(next)
+          if (!next) setQuickServiceShop(null)
+        }}
+        shop={quickServiceShop}
+      />
     </section>
   )
 }

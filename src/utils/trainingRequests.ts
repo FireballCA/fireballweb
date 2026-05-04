@@ -148,7 +148,7 @@ export async function fetchTrainingRequestsForDashboard(userId: string): Promise
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-    .limit(10)
+    .limit(30)
 
   if (error) {
     console.warn('training_requests fetch:', error.message)

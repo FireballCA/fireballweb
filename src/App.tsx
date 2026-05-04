@@ -223,7 +223,23 @@ function App() {
               }
             />
             <Route
+              path="account/business/admin/services"
+              element={
+                <ProtectedRoute>
+                  <BusinessPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="business/admin/configuration"
+              element={
+                <ProtectedRoute>
+                  <BusinessPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="business/admin/services"
               element={
                 <ProtectedRoute>
                   <BusinessPage />

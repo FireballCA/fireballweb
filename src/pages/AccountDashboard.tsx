@@ -21,19 +21,18 @@ import {
 import { ensureShopifyCustomerForProfile } from '@/utils/shopifySync'
 import { getSafeReturnToPath } from '@/utils/safeReturnTo'
 import { supabase } from '@/lib/supabase'
-import { cn } from '@/lib/utils'
 import { getClientCache, setClientCache } from '@/utils/clientCache'
 import { SHOPIFY_CUSTOMER_ORDERS_URL } from '@/constants/shopifyShopApp'
 import { fetchCustomerOrders, formatOrderRef, type CustomerOrder as Order } from '@/utils/customerOrders'
+import { fetchTrainingRequestsForDashboard, type TrainingRequestRow } from '@/utils/trainingRequests'
 import {
-  fetchTrainingRequestsForDashboard,
-  pickPrimaryTrainingRequestForDashboard,
-  type TrainingRequestRow,
-  type TrainingRequestStatus,
-} from '@/utils/trainingRequests'
+  AcademyTrainingRequestCard,
+  AcademyTrainingRequestsEmpty,
+} from '@/components/AcademyTrainingRequestViews'
 import { TrainingPaymentDueModal } from '@/components/TrainingPaymentDueModal'
 import { broadcastUnreadNotifications } from '@/utils/inAppNotificationsFlag'
 import { NotificationMessageWithStatusHighlight } from '@/utils/notificationTextHighlight'
+import { AppleCapsuleLabel } from '@/components/ui/AppleInfoPill'
 import {
   loadDismissedNotificationIds,
   saveDismissedNotificationIds,
@@ -106,59 +105,6 @@ type DashboardCacheSnapshot = {
 
 const ACCOUNT_DASHBOARD_CACHE_KEY = 'account_dashboard_snapshot_v1'
 const ACCOUNT_DASHBOARD_CACHE_TTL_MS = 1000 * 60 * 8
-
-function trainingStatusCopy(status: TrainingRequestStatus): {
-  badge: string
-  badgeClass: string
-  description: string
-} {
-  switch (status) {
-    case 'pending':
-      return {
-        badge: 'Under review',
-        badgeClass: 'bg-amber-100 text-amber-900 ring-1 ring-amber-200/80',
-        description:
-          'Fireball Canada is reviewing your training request. You will be notified by email when a decision is made.',
-      }
-    case 'approved':
-      return {
-        badge: 'Approved',
-        badgeClass: 'bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200/80',
-        description: 'Check your email for next steps. Payment instructions are sent only after approval.',
-      }
-    case 'payment_pending':
-      return {
-        badge: 'Payment due',
-        badgeClass: 'bg-orange-100 text-orange-900 ring-1 ring-orange-200/80',
-        description:
-          'Your seat is reserved pending payment. Check your email and your dashboard for instructions and reference.',
-      }
-    case 'paid':
-      return {
-        badge: 'Paid',
-        badgeClass: 'bg-sky-100 text-sky-900 ring-1 ring-sky-200/80',
-        description: 'Payment received. Our team will follow up with schedule and logistics.',
-      }
-    case 'declined':
-      return {
-        badge: 'Not approved',
-        badgeClass: 'bg-[#F3F3F3] text-[#4A4A4A] ring-1 ring-carbon-200/90',
-        description: 'See the message from our team in your email for details.',
-      }
-    case 'cancelled':
-      return {
-        badge: 'Cancelled',
-        badgeClass: 'bg-carbon-100 text-carbon-600 ring-1 ring-carbon-200/80',
-        description: 'This request is no longer active.',
-      }
-    default:
-      return {
-        badge: 'Closed',
-        badgeClass: 'bg-carbon-100 text-carbon-600',
-        description: '',
-      }
-  }
-}
 
 function OrdersEmptyStateSvg() {
   return (
@@ -639,7 +585,7 @@ export function AccountDashboard() {
   const [productsPurchasedOpen, setProductsPurchasedOpen] = useState(false)
   const [trainingRequests, setTrainingRequests] = useState<TrainingRequestRow[]>([])
   const [accountEmail, setAccountEmail] = useState<string | null>(null)
-  const [trainingPaymentModalOpen, setTrainingPaymentModalOpen] = useState(false)
+  const [trainingPaymentModalRequest, setTrainingPaymentModalRequest] = useState<TrainingRequestRow | null>(null)
   const [adminPanelOpen, setAdminPanelOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
@@ -1268,20 +1214,6 @@ export function AccountDashboard() {
   const personalLeaderboardIndex = leaderboardEntries.findIndex((entry) => entry.id === currentUserId)
   const personalLeaderboardRank = personalLeaderboardIndex >= 0 ? personalLeaderboardIndex + 1 : null
 
-  const highlightedTrainingRequest = useMemo(
-    () => pickPrimaryTrainingRequestForDashboard(trainingRequests),
-    [trainingRequests],
-  )
-  const paymentDueTrainingRequest = useMemo(() => {
-    const due = trainingRequests.filter((r) => r.status === 'payment_pending')
-    if (!due.length) return null
-    return [...due].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0]
-  }, [trainingRequests])
-  const hasActiveTrainingRequest = useMemo(
-    () => trainingRequests.some((r) => ['pending', 'approved', 'payment_pending'].includes(r.status)),
-    [trainingRequests],
-  )
-
   useEffect(() => {
     if (!currentUserId) return
     const ch = supabase
@@ -1419,10 +1351,10 @@ export function AccountDashboard() {
               <button
                 type="button"
                 onClick={scrollToDashboardNotifications}
-                className="fb-dashboard-notif-slide-pill pointer-events-auto flex max-w-[min(100%,22rem)] items-center gap-2 rounded-full border border-[#0485F7]/25 bg-white px-4 py-2.5 text-left text-[13px] font-medium leading-snug text-[#171717] shadow-[0_10px_36px_rgba(4,133,247,0.2)] transition hover:border-[#0485F7]/40 hover:shadow-[0_12px_40px_rgba(4,133,247,0.28)]"
+                className="fb-dashboard-notif-slide-pill pointer-events-auto flex max-w-[min(100%,22rem)] items-center gap-2.5 rounded-full border border-black/[0.08] bg-white px-4 py-2.5 text-left text-[13px] font-medium leading-snug text-[#171717] shadow-[0_8px_28px_rgba(0,0,0,0.1)] transition hover:border-black/[0.12] hover:shadow-[0_10px_32px_rgba(0,0,0,0.12)]"
                 aria-label="View notifications on dashboard"
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0485F7]/10 text-[#0485F7]">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e9e9eb] text-[#1d1d1f]">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width={24}
@@ -1433,7 +1365,7 @@ export function AccountDashboard() {
                     strokeWidth={2}
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="lucide lucide-bell-icon lucide-bell"
+                    className="h-5 w-5 shrink-0"
                     aria-hidden
                   >
                     <path d="M10.268 21a2 2 0 0 0 3.464 0" />
@@ -1467,6 +1399,8 @@ export function AccountDashboard() {
             onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}
             onLeaderboardClick={() => setLeaderboardOpen(true)}
             onTrophyClick={() => setTrophyOpen(true)}
+            trainingRequests={trainingRequests}
+            onAcademyPaymentRequest={(row) => setTrainingPaymentModalRequest(row)}
           />
 
           {/* Desktop hero (hidden on mobile) */}
@@ -1537,7 +1471,7 @@ export function AccountDashboard() {
                       <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
                     </svg>
                     {notificationCount > 0 ? (
-                      <span className="absolute -right-1 -top-0.5 flex min-h-[16px] min-w-[16px] items-center justify-center rounded bg-[#E11D48] px-[3px] text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-white">
+                      <span className="absolute -right-0.5 -top-0.5 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#FF3B30] px-1 text-[10px] font-semibold tabular-nums leading-none text-white ring-2 ring-white">
                         {notificationCount > 99 ? '99+' : notificationCount}
                       </span>
                     ) : null}
@@ -1692,80 +1626,24 @@ export function AccountDashboard() {
                 <article className="min-w-0 overflow-hidden rounded-2xl bg-[#F3F3F3] px-6 py-6 md:px-8 md:py-8">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Academy training</p>
-                    {!hasActiveTrainingRequest ? (
-                      <Link
-                        to="/academy?joinTraining=1"
-                        className="shrink-0 text-sm font-semibold text-[#0485F7] transition-colors hover:text-[#0366c7] hover:underline"
-                      >
-                        Request training
-                      </Link>
-                    ) : null}
+                    <Link
+                      to="/academy?joinTraining=1"
+                      className="shrink-0 text-sm font-semibold text-[#0485F7] transition-colors hover:text-[#0366c7] hover:underline"
+                    >
+                      {trainingRequests.length > 0 ? 'Add a session' : 'Request training'}
+                    </Link>
                   </div>
-                  {highlightedTrainingRequest ? (
-                    <div className="mt-5 min-w-0 max-w-full">
-                      {(() => {
-                        const t = trainingStatusCopy(highlightedTrainingRequest.status)
-                        return (
-                          <>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span
-                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${t.badgeClass}`}
-                              >
-                                {t.badge}
-                              </span>
-                            </div>
-                            <p className="mt-3 text-sm font-semibold text-[#171717] leading-snug">
-                              {highlightedTrainingRequest.session_label}
-                            </p>
-                            <p
-                              className="mt-1 block max-w-full min-w-0 break-all font-mono text-[11px] text-[#6B6B6B] [overflow-wrap:anywhere]"
-                              title={highlightedTrainingRequest.reference}
-                            >
-                              Ref. {highlightedTrainingRequest.reference}
-                            </p>
-                            <p className="mt-3 text-sm leading-relaxed text-[#4A4A4A]">{t.description}</p>
-                            {highlightedTrainingRequest.status === 'payment_pending' &&
-                            highlightedTrainingRequest.payment_instructions ? (
-                              <div className="mt-3 rounded-xl border border-orange-200/80 bg-white/80 px-3 py-2.5">
-                                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-orange-800/90">
-                                  Instructions
-                                </p>
-                                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-[#4A4A4A]">
-                                  {highlightedTrainingRequest.payment_instructions}
-                                </p>
-                              </div>
-                            ) : null}
-                            {highlightedTrainingRequest.status === 'payment_pending' ? (
-                              <div className="mt-4">
-                                <button
-                                  type="button"
-                                  onClick={() => setTrainingPaymentModalOpen(true)}
-                                  className={cn(
-                                    'inline-flex w-full items-center justify-center rounded-full bg-[#0485F7] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0366c7] sm:w-auto',
-                                  )}
-                                >
-                                  Confirm your place
-                                </button>
-                                <p className="mt-2 text-xs text-[#6B6B6B]">
-                                  Paiement sécurisé dans un nouvel onglet lorsque le lien Stripe est configuré pour le site.
-                                </p>
-                              </div>
-                            ) : null}
-                          </>
-                        )
-                      })()}
-                    </div>
+                  {trainingRequests.length === 0 ? (
+                    <AcademyTrainingRequestsEmpty className="mt-5" />
                   ) : (
-                    <div className="mt-5">
-                      <p className="text-sm leading-relaxed text-[#4A4A4A]">
-                        You don&apos;t have a training request on file. Submit a request for a future session — no payment on the form;
-                        Fireball Canada will approve or decline by email.
-                      </p>
-                      <div className="mt-4">
-                        <Link to="/academy?joinTraining=1" className={cn('inline-flex justify-center', appleButtonClassName)}>
-                          Open Academy
-                        </Link>
-                      </div>
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                      {trainingRequests.map((row) => (
+                        <AcademyTrainingRequestCard
+                          key={row.id}
+                          row={row}
+                          onPaymentClick={(r) => setTrainingPaymentModalRequest(r)}
+                        />
+                      ))}
                     </div>
                   )}
                 </article>
@@ -1779,10 +1657,10 @@ export function AccountDashboard() {
                     <div className="flex items-center gap-2">
                       <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Notifications</p>
                     {notificationCount > 0 ? (
-                      <span className="inline-flex items-center rounded-full bg-[#0485F7] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-sm">
-                          {notificationCount} new
-                        </span>
-                      ) : null}
+                      <AppleCapsuleLabel>
+                        {notificationCount === 1 ? '1 new' : `${notificationCount} new`}
+                      </AppleCapsuleLabel>
+                    ) : null}
                     </div>
                     {notificationCount > 0 ? (
                       <button
@@ -1842,12 +1720,9 @@ export function AccountDashboard() {
               </div>
 
               <TrainingPaymentDueModal
-                open={trainingPaymentModalOpen}
-                onClose={() => setTrainingPaymentModalOpen(false)}
-                request={
-                  paymentDueTrainingRequest ??
-                  (highlightedTrainingRequest?.status === 'payment_pending' ? highlightedTrainingRequest : null)
-                }
+                open={!!trainingPaymentModalRequest}
+                onClose={() => setTrainingPaymentModalRequest(null)}
+                request={trainingPaymentModalRequest}
                 memberEmail={accountEmail}
               />
 

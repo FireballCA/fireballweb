@@ -40,6 +40,9 @@ export function Layout() {
     isMobile ||
     (location.pathname.startsWith('/account/') && location.pathname !== '/account/register')
 
+  /** Contact desktop : une seule hauteur viewport, pas de scroll sur #app-scroll-root. */
+  const contactDesktopNoScroll = isContactPage && !isMobile
+
   return (
     <div
       className="flex h-[100dvh] flex-col overflow-hidden bg-black"
@@ -70,14 +73,23 @@ export function Layout() {
           } as CSSProperties
         }
         className={[
-          'flex flex-1 flex-col min-h-0 overflow-y-auto overflow-x-hidden relative z-[1]',
+          'flex flex-1 flex-col min-h-0 overflow-x-hidden relative z-[1]',
+          contactDesktopNoScroll ? 'overflow-hidden' : 'overflow-y-auto',
           '-mt-2 rounded-t-[30px] shadow-[0_-12px_26px_rgba(0,0,0,0.42)]',
-          isCarClubPage ? 'bg-black' : 'bg-[#111111]',
+          isCarClubPage ? 'bg-black' : isContactPage && isMobile ? 'bg-white' : 'bg-[#111111]',
         ]
           .filter(Boolean)
           .join(' ')}
       >
-        <div id="app-scroll-content" className="flex min-h-full flex-col">
+        <div
+          id="app-scroll-content"
+          className={[
+            'flex flex-col',
+            contactDesktopNoScroll ? 'min-h-0 flex-1' : 'min-h-full',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
           <main
             className={[
               'flex-1',
@@ -90,6 +102,7 @@ export function Layout() {
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={location.key}
+                  className={isContactPage ? 'flex min-h-0 w-full flex-1 flex-col' : undefined}
                   initial={
                     !reduceMotion && (location.state as { pageTransition?: string } | null | undefined)?.pageTransition === 'slideUp'
                       ? { y: 64, opacity: 0 }

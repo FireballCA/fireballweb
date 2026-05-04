@@ -1,180 +1,17 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { Link } from 'react-router-dom'
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { IconChevronDown } from '@tabler/icons-react'
 import { AppleButton } from '@/components/ui/AppleButton'
 import { AppleSheet } from '@/components/ui/AppleSheet'
 import { GarageAddVehicleFlow } from '@/components/MyGarageSection'
 import { useNotifications } from '@/context/NotificationsContext'
 import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
+import { useServiceBuilderForm } from '@/hooks/useServiceBuilderForm'
 import { cn } from '@/lib/utils'
-import { isAuthenticated } from '@/utils/supabaseAuth'
-import { fetchGarageVehicles, type GarageVehicleRow } from '@/utils/supabaseGarage'
-import { XP_PER_DOLLAR } from '@/utils/supabaseXp'
-import {
-  CERAMIC_COATING_SECTIONS,
-  COATING_SECTION_IMAGES,
-} from '@/data/ceramicCoatingSections'
-
-type VehicleSize = 'Compact' | 'Normal' | 'Large' | 'Exotic'
-type PaintCondition = 'Like New' | 'Light Imperfections' | 'Moderate Defects' | 'Heavy Defects'
-
-const VEHICLE_SIZES: Array<{ id: VehicleSize; label: string; price: number }> = [
-  { id: 'Compact', label: 'Compact', price: 149 },
-  { id: 'Normal', label: 'Normal', price: 199 },
-  { id: 'Large', label: 'Large', price: 259 },
-  { id: 'Exotic', label: 'Exotic', price: 399 },
-]
-
-const PAINT_CONDITIONS: Array<{
-  id: PaintCondition
-  title: string
-  description: string
-  adjustment: number
-  image: string
-}> = [
-  {
-    id: 'Like New',
-    title: 'Like New',
-    description: 'No visible defects. Paint is in excellent condition.',
-    adjustment: 0,
-    image: '/servicebuilder/New.jpg',
-  },
-  {
-    id: 'Light Imperfections',
-    title: 'Light Imperfections',
-    description: 'Minor swirl marks or light surface scratches.',
-    adjustment: 69,
-    image: '/servicebuilder/Light.jpg',
-  },
-  {
-    id: 'Moderate Defects',
-    title: 'Moderate Defects',
-    description: 'Visible scratches, swirls, and dullness.',
-    adjustment: 149,
-    image: '/servicebuilder/Moderate.jpg',
-  },
-  {
-    id: 'Heavy Defects',
-    title: 'Heavy Defects',
-    description: 'Deep scratches, oxidation, or heavily damaged paint.',
-    adjustment: 249,
-    image: '/servicebuilder/Heavy.jpg',
-  },
-]
-
-const WAX_OPTIONS: Array<{
-  id: string
-  name: string
-  image: string
-  ratings: {
-    hydrophobicity: number
-    slickness: number
-    gloss: number
-    application: number
-  }
-}> = [
-  {
-    id: 'brazil-wax',
-    name: 'Brazil Wax',
-    image: '/servicebuilder/Wax_Graphene.webp',
-    ratings: { hydrophobicity: 5, slickness: 3, gloss: 5, application: 4 },
-  },
-  {
-    id: 'butter-wax-130g',
-    name: 'Butter Wax',
-    image: '/servicebuilder/Wax_Butter.webp',
-    ratings: { hydrophobicity: 5, slickness: 3, gloss: 5, application: 4 },
-  },
-  {
-    id: 'cherry-blossom-wax',
-    name: 'Cherry Blossom Wax',
-    image: '/servicebuilder/Wax_Cherry.webp',
-    ratings: { hydrophobicity: 4, slickness: 3, gloss: 5, application: 4 },
-  },
-  {
-    id: 'fusion-wax-130g',
-    name: 'Fusion Wax',
-    image: '/servicebuilder/Wax_Fusion.webp',
-    ratings: { hydrophobicity: 5, slickness: 1, gloss: 5, application: 2 },
-  },
-  {
-    id: 'ghost-wax',
-    name: 'Ghost Wax',
-    image: '/servicebuilder/Wax_Ghost.webp',
-    ratings: { hydrophobicity: 5, slickness: 2, gloss: 4, application: 4 },
-  },
-  {
-    id: 'liberty-wax-130g',
-    name: 'Liberty Wax',
-    image: '/servicebuilder/Wax_Lib.png',
-    ratings: { hydrophobicity: 5, slickness: 4, gloss: 4, application: 5 },
-  },
-  {
-    id: 'sexy-lady-wax',
-    name: 'Sexy Lady Wax',
-    image: '/servicebuilder/Wax_Lady.webp',
-    ratings: { hydrophobicity: 5, slickness: 3, gloss: 5, application: 4 },
-  },
-  {
-    id: 'wheel-wax-130g',
-    name: 'Wheel Wax',
-    image: '/servicebuilder/Wax_Wheel.webp',
-    ratings: { hydrophobicity: 4, slickness: 3, gloss: 4, application: 3 },
-  },
-]
-
-const SERVICE_BUILDER_FAQS = [
-  {
-    q: 'Is the price estimate a final quote?',
-    a: 'The estimate is a starting price based on your vehicle size and paint condition. The final price is confirmed by your installer after an in-person inspection. Additional factors such as heavily contaminated paint or specialty surfaces may affect the final cost.',
-  },
-  {
-    q: 'What does paint condition affect in the estimate?',
-    a: 'Paint condition determines the level of correction work needed before the coating can be applied. Light imperfections require a one-stage polish, while heavy defects require multi-stage machine correction — each adding to the preparation time and cost.',
-  },
-  {
-    q: 'Can I modify or cancel my service request after sending?',
-    a: 'Yes. Since your request is reviewed manually by our team before any appointment is confirmed, you can contact us directly to update your configuration, change your coating choice, or cancel altogether at no charge.',
-  },
-  {
-    q: 'Do I earn XP for submitting a service request?',
-    a: 'XP is awarded once your service request is reviewed and approved by a certified installer — not at submission. The estimated XP shown during configuration gives you a preview of what you stand to earn when the service is completed.',
-  },
-  {
-    q: 'What happens after I send my service request?',
-    a: "Our team reviews your configuration and will follow up by email and phone to confirm details and schedule your appointment. You will also receive a request confirmation number to track your service in your account dashboard if you're signed in.",
-  },
-]
-
-/** Champs sur fond blanc (AppleSheet) : index.css impose autofill en texte blanc ; le body est text-pearl. */
-const SB_REVIEW_FIELD_BASE = cn(
-  'border border-black/10 bg-white text-sm !text-[#1d1d1f] caret-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0485F7]',
-  '[&:-webkit-autofill]:[-webkit-text-fill-color:#1d1d1f]',
-  '[&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_rgb(255,255,255)]',
-  '[&:-webkit-autofill]:[transition:background-color_99999s_ease-out_0s]',
-)
-
-/** Rail horizontal tactile (mobile), grille à partir de md — même idée que Product Lineup. */
-function ServiceBuilderChoiceRail({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="max-md:-mx-6 md:grid md:grid-cols-4 md:gap-4">
-      <div
-        className={cn(
-          'flex gap-4 overflow-x-auto overscroll-x-contain pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] snap-x snap-mandatory [&::-webkit-scrollbar]:hidden',
-          'max-md:pl-8 max-md:pr-6 max-md:scroll-pl-8 max-md:scroll-pr-6',
-          'md:contents md:gap-0 md:overflow-visible md:p-0 md:scroll-p-0 md:snap-none',
-        )}
-      >
-        {children}
-      </div>
-    </div>
-  )
-}
-
-/** Largeur d’une carte en slider : proche d’une colonne desktop, avec léger aperçu de la suivante. */
-const SB_MOBILE_CARD_ROW =
-  'max-md:snap-start max-md:shrink-0 max-md:w-[min(320px,calc(100vw-4.25rem))] md:w-auto md:min-w-0'
+import { getCurrentUserProfile } from '@/utils/supabaseAuth'
+import { SERVICE_BUILDER_FAQS } from '@/constants/serviceBuilderCatalog'
+import { ServiceBuilderConfigurationBody } from '@/components/service-builder/ServiceBuilderConfigurationBody'
+import { ServiceBuilderReviewSheetContent } from '@/components/service-builder/ServiceBuilderReviewSheetContent'
 
 function ServiceBuilderFAQItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
@@ -210,38 +47,35 @@ function ServiceBuilderFAQItem({ q, a }: { q: string; a: string }) {
 export function ServiceBuilder() {
   const { notify } = useNotifications()
   const reduceMotion = useEffectiveReducedMotion()
-  const [selectedVehicleSize, setSelectedVehicleSize] = useState<VehicleSize | null>(null)
-  const [selectedPaintCondition, setSelectedPaintCondition] = useState<PaintCondition | null>(null)
-  const [selectedCoatingId, setSelectedCoatingId] = useState<string | null>(null)
-  const [selectedWaxId, setSelectedWaxId] = useState<string | null>(null)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [isAuthLoading, setIsAuthLoading] = useState(true)
   const vehicleStepRef = useRef<HTMLElement | null>(null)
-  const [garageSheetOpen, setGarageSheetOpen] = useState(false)
-  const [addVehicleSheetOpen, setAddVehicleSheetOpen] = useState(false)
-  const [garageVehicles, setGarageVehicles] = useState<GarageVehicleRow[]>([])
-  const [garageLoading, setGarageLoading] = useState(false)
-  const [importedVehicle, setImportedVehicle] = useState<GarageVehicleRow | null>(null)
-  const [reviewSheetOpen, setReviewSheetOpen] = useState(false)
-  const [successSheetOpen, setSuccessSheetOpen] = useState(false)
-  const [requestNumber, setRequestNumber] = useState('')
-  const [isSending, setIsSending] = useState(false)
-  const [contactFirstName, setContactFirstName] = useState('')
-  const [contactLastName, setContactLastName] = useState('')
-  const [contactEmail, setContactEmail] = useState('')
-  const [contactPhone, setContactPhone] = useState('')
-  const [customMessage, setCustomMessage] = useState('')
-  const [uploadedVehicleImages, setUploadedVehicleImages] = useState<File[]>([])
-  const [vehicleMakeInput, setVehicleMakeInput] = useState('')
-  const [vehicleModelInput, setVehicleModelInput] = useState('')
-  const [vehicleYearInput, setVehicleYearInput] = useState('')
   const heroRef = useRef<HTMLElement | null>(null)
   const [heroPassed, setHeroPassed] = useState(false)
 
-  const refreshAuthState = useCallback(async () => {
-    const ok = await isAuthenticated()
-    setIsLoggedIn(ok)
-  }, [])
+  const f = useServiceBuilderForm()
+  const {
+    isLoggedIn,
+    garageSheetOpen,
+    setGarageSheetOpen,
+    addVehicleSheetOpen,
+    setAddVehicleSheetOpen,
+    garageVehicles,
+    garageLoading,
+    setImportedVehicle,
+    reviewSheetOpen,
+    setReviewSheetOpen,
+    successSheetOpen,
+    setSuccessSheetOpen,
+    requestNumber,
+    isSending,
+    setIsSending,
+    setContactFirstName,
+    setContactLastName,
+    setContactEmail,
+    loadGarage,
+    totalPrice,
+    canProceed,
+    submitServiceRequest,
+  } = f
 
   useEffect(() => {
     const root = document.getElementById('app-scroll-root')
@@ -260,129 +94,34 @@ export function ServiceBuilder() {
 
   useEffect(() => {
     let cancelled = false
-    isAuthenticated()
-      .then((ok) => {
-        if (!cancelled) setIsLoggedIn(ok)
-      })
-      .finally(() => {
-        if (!cancelled) setIsAuthLoading(false)
-      })
+    void getCurrentUserProfile().then((p) => {
+      if (!p || cancelled) return
+      const fn = (p.first_name || '').trim()
+      const ln = (p.last_name || '').trim()
+      const em = (p.email || '').trim()
+      if (fn) setContactFirstName((c) => c.trim() || fn)
+      if (ln) setContactLastName((c) => c.trim() || ln)
+      if (em) setContactEmail((c) => c.trim() || em)
+    })
     return () => {
       cancelled = true
     }
-  }, [])
-
-  useEffect(() => {
-    const onFocus = () => {
-      void refreshAuthState()
-    }
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        void refreshAuthState()
-      }
-    }
-    window.addEventListener('focus', onFocus)
-    document.addEventListener('visibilitychange', onVisibilityChange)
-    return () => {
-      window.removeEventListener('focus', onFocus)
-      document.removeEventListener('visibilitychange', onVisibilityChange)
-    }
-  }, [refreshAuthState])
-
-  const loadGarage = useCallback(async () => {
-    setGarageLoading(true)
-    try {
-      const rows = await fetchGarageVehicles()
-      setGarageVehicles(rows)
-    } finally {
-      setGarageLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (garageSheetOpen) void loadGarage()
-  }, [garageSheetOpen, loadGarage])
-
-  const totalPrice = useMemo(() => {
-    const vehicleBasePrice = VEHICLE_SIZES.find((size) => size.id === selectedVehicleSize)?.price ?? 0
-    const paintAdjustment = PAINT_CONDITIONS.find(
-      (condition) => condition.id === selectedPaintCondition
-    )?.adjustment ?? 0
-    return vehicleBasePrice + paintAdjustment
-  }, [selectedVehicleSize, selectedPaintCondition])
-
-  const estimatedXp = useMemo(
-    () => Math.max(0, Math.round(totalPrice * XP_PER_DOLLAR)),
-    [totalPrice],
-  )
-
-  const canProceed =
-    selectedVehicleSize !== null &&
-    selectedPaintCondition !== null &&
-    selectedCoatingId !== null
-
-  const isReviewFormValid = useMemo(() => {
-    return (
-      vehicleMakeInput.trim().length > 0 &&
-      vehicleModelInput.trim().length > 0 &&
-      vehicleYearInput.trim().length > 0 &&
-      contactPhone.trim().length > 0 &&
-      contactFirstName.trim().length > 0 &&
-      contactLastName.trim().length > 0 &&
-      contactEmail.trim().length > 0
-    )
-  }, [
-    vehicleMakeInput,
-    vehicleModelInput,
-    vehicleYearInput,
-    contactPhone,
-    contactFirstName,
-    contactLastName,
-    contactEmail,
-  ])
-
-  const coatingName = useMemo(
-    () => CERAMIC_COATING_SECTIONS.find((c) => c.id === selectedCoatingId)?.name ?? '',
-    [selectedCoatingId],
-  )
-  const waxName = useMemo(
-    () => (selectedWaxId ? WAX_OPTIONS.find((w) => w.id === selectedWaxId)?.name ?? '' : ''),
-    [selectedWaxId],
-  )
-
-  useEffect(() => {
-    if (!importedVehicle) return
-    setVehicleMakeInput(importedVehicle.brand ?? '')
-    setVehicleModelInput(importedVehicle.model ?? '')
-    setVehicleYearInput(importedVehicle.year ? String(importedVehicle.year) : '')
-  }, [importedVehicle])
-
-  const generateRequestNumber = useCallback(() => {
-    const now = new Date()
-    const yyyy = now.getFullYear()
-    const rnd = Math.floor(100000 + Math.random() * 900000)
-    return `FB-SRV-${yyyy}-${rnd}`
-  }, [])
+  }, [setContactEmail, setContactFirstName, setContactLastName])
 
   const handleSendService = useCallback(async () => {
-    if (!isReviewFormValid || isSending) return
-    setIsSending(true)
-    const generatedRequestNumber = generateRequestNumber()
-    setRequestNumber(generatedRequestNumber)
-    setReviewSheetOpen(false)
-    setSuccessSheetOpen(true)
-    setIsSending(false)
+    if (!f.isReviewFormValid || f.isSending) return
+    f.setIsSending(true)
+    const result = await f.submitServiceRequest({ source: 'service_builder' })
+    f.setIsSending(false)
+    if (!result.ok) {
+      notify({ title: 'Unable to save your request.', message: result.error, kind: 'error' })
+      return
+    }
+    f.setRequestNumber(result.reference)
+    f.setReviewSheetOpen(false)
+    f.setSuccessSheetOpen(true)
     notify({ title: 'Service request sent successfully.', message: '', kind: 'success' })
-  }, [
-    isReviewFormValid,
-    isSending,
-    generateRequestNumber,
-    notify,
-    selectedVehicleSize,
-    selectedPaintCondition,
-    coatingName,
-    waxName,
-  ])
+  }, [f, notify])
 
   const handleCopyRequestNumber = useCallback(async () => {
     if (!requestNumber) return
@@ -393,25 +132,6 @@ export function ServiceBuilder() {
       notify({ title: 'Unable to copy request number.', message: '', kind: 'error' })
     }
   }, [requestNumber, notify])
-
-  const handleVehicleImagesChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? [])
-    setUploadedVehicleImages(files.slice(0, 6))
-  }, [])
-
-  const renderFivePointScale = (value: number) => {
-    return (
-      <div className="inline-flex items-center gap-1">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <span
-            key={index}
-            className={`h-1.5 w-1.5 rounded-full ${index < value ? 'bg-[#0485F7]' : 'bg-black/15'}`}
-            aria-hidden
-          />
-        ))}
-      </div>
-    )
-  }
 
   const bannerTransition = reduceMotion
     ? ''
@@ -497,219 +217,12 @@ export function ServiceBuilder() {
 
       <div className="mx-auto w-full max-w-[1400px] px-6 py-12 pb-16 md:px-8 md:py-16 md:pb-20">
         <div className="space-y-28 md:space-y-36">
-          <article
-            ref={vehicleStepRef}
-            className="border-t border-black/10 pt-10 transition"
-            style={{ scrollMarginTop: heroPassed ? 72 : 0 }}
-          >
-            <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-              <div className="min-w-0">
-                <h2 className="font-nav text-2xl font-bold">Start with your vehicle size</h2>
-                <p className="mt-2 text-sm text-[#424245]">
-                  This helps us tailor the service to your vehicle
-                </p>
-                {importedVehicle ? (
-                  <p className="mt-2 text-sm font-medium text-[#0485F7]">
-                    From My Garage: {importedVehicle.year} {importedVehicle.brand} {importedVehicle.model}
-                  </p>
-                ) : null}
-                {!isLoggedIn && !isAuthLoading ? (
-                  <p className="mt-2 text-sm text-[#424245]">
-                    You can complete your service request without an account.
-                  </p>
-                ) : null}
-              </div>
-              {isLoggedIn ? (
-                <AppleButton
-                  type="button"
-                  className="touch-manipulation min-h-[44px] w-full justify-center sm:w-auto sm:min-w-0 sm:shrink-0 !border-black !bg-black !text-white hover:!border-[#2b2b2d] hover:!bg-[#2b2b2d]"
-                  onClick={() => setGarageSheetOpen(true)}
-                >
-                  Import yours
-                </AppleButton>
-              ) : null}
-            </div>
-
-            <ServiceBuilderChoiceRail>
-              {VEHICLE_SIZES.map((size) => {
-                const selected = selectedVehicleSize === size.id
-                return (
-                  <button
-                    key={size.id}
-                    type="button"
-                    onClick={() =>
-                      setSelectedVehicleSize((prev) => (prev === size.id ? null : size.id))
-                    }
-                    className={cn(
-                      SB_MOBILE_CARD_ROW,
-                      'touch-manipulation rounded-2xl border p-3 text-left transition',
-                      selected
-                        ? 'border-[#0485F7] bg-[#0485F7]/10 shadow-[0_8px_24px_rgba(4,133,247,0.12)]'
-                        : 'border-black/10 bg-white hover:bg-black/[0.015]',
-                    )}
-                  >
-                    <img
-                      src="/Service Builder.jpg"
-                      alt={size.label}
-                      className="mb-3 h-36 w-full rounded-xl object-cover"
-                      draggable={false}
-                    />
-                    <p className="font-nav text-lg font-bold">{size.label}</p>
-                    <p className="text-sm text-[#6e6e73]">Starting at ${size.price}</p>
-                  </button>
-                )
-              })}
-            </ServiceBuilderChoiceRail>
-          </article>
-
-          <article className="border-t border-black/10 pt-10 transition">
-            <div className="mb-5">
-              <div>
-                <h2 className="font-nav text-2xl font-bold">Evaluate your paint condition</h2>
-                <p className="mt-2 text-sm text-[#424245]">
-                  This helps us determine the level of correction needed.
-                </p>
-              </div>
-            </div>
-
-            <ServiceBuilderChoiceRail>
-              {PAINT_CONDITIONS.map((condition) => {
-                const selected = selectedPaintCondition === condition.id
-                return (
-                  <button
-                    key={condition.id}
-                    type="button"
-                    onClick={() =>
-                      setSelectedPaintCondition((prev) => (prev === condition.id ? null : condition.id))
-                    }
-                    className={cn(
-                      SB_MOBILE_CARD_ROW,
-                      'touch-manipulation rounded-2xl border p-3 text-left transition',
-                      selected
-                        ? 'border-[#0485F7] bg-[#0485F7]/10 shadow-[0_8px_24px_rgba(4,133,247,0.12)]'
-                        : 'border-black/10 bg-white hover:bg-black/[0.015]',
-                    )}
-                  >
-                    <img
-                      src={condition.image}
-                      alt={condition.title}
-                      className="mb-3 h-36 w-full rounded-xl object-cover"
-                      draggable={false}
-                    />
-                    <p className="font-nav text-lg font-bold">{condition.title}</p>
-                    <p className="mt-1 text-sm text-[#424245]">{condition.description}</p>
-                  </button>
-                )
-              })}
-            </ServiceBuilderChoiceRail>
-          </article>
-
-          <article className="border-t border-black/10 pt-10 transition">
-            <div className="mb-6">
-              <h2 className="font-nav text-2xl font-bold">Choose your coating</h2>
-              <p className="mt-2 text-sm text-[#424245]">
-                Compare durability, gloss, and performance to find the right protection for your vehicle
-              </p>
-            </div>
-
-            <ServiceBuilderChoiceRail>
-              {CERAMIC_COATING_SECTIONS.map((coating) => {
-                const selected = selectedCoatingId === coating.id
-                return (
-                  <button
-                    key={coating.id}
-                    type="button"
-                    onClick={() =>
-                      setSelectedCoatingId((prev) => (prev === coating.id ? null : coating.id))
-                    }
-                    className={cn(
-                      SB_MOBILE_CARD_ROW,
-                      'w-full touch-manipulation rounded-2xl border p-3 text-left transition',
-                      selected
-                        ? 'border-[#0485F7] bg-[#0485F7]/10 shadow-[0_8px_24px_rgba(4,133,247,0.12)]'
-                        : 'border-black/10 bg-white hover:bg-black/[0.015]',
-                    )}
-                  >
-                    <img
-                      src={COATING_SECTION_IMAGES[coating.id]}
-                      alt={coating.name}
-                      className="mb-3 h-40 w-full rounded-xl object-contain bg-[#f6f6f7]"
-                      draggable={false}
-                    />
-                    <p className="font-nav text-lg font-bold">{coating.name}</p>
-                    <p className="text-sm text-[#6e6e73]">{coating.years} durability</p>
-                    <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-[#424245]">
-                      <p>Hardness: {coating.gauges.hardness}%</p>
-                      <p>Gloss: {coating.gauges.gloss}%</p>
-                      <p>Resistance: {coating.gauges.resistance}%</p>
-                      <p>Hydrophobicity: {coating.gauges.hydrophobicity}%</p>
-                    </div>
-                  </button>
-                )
-              })}
-            </ServiceBuilderChoiceRail>
-          </article>
-
-          <article className="border-t border-black/10 pt-10 transition">
-            <div className="mb-6 flex items-center gap-3">
-              <h2 className="font-nav text-2xl font-bold">Add a wax finish</h2>
-              <span className="select-none inline-flex items-center gap-2 rounded-full bg-[#e9e9eb] px-3 py-1.5 text-xs font-semibold leading-none text-[#0485F7]">
-                <span className="h-1 w-1 rounded-full bg-[#0485F7]" aria-hidden />
-                <span>Extra</span>
-              </span>
-            </div>
-            <p className="mb-6 text-sm text-[#424245]">
-              Add extra gloss and depth with a premium wax layer
-            </p>
-
-            <ServiceBuilderChoiceRail>
-              {WAX_OPTIONS.map((wax) => {
-                const selected = selectedWaxId === wax.id
-                return (
-                  <button
-                    key={wax.id}
-                    type="button"
-                    onClick={() => setSelectedWaxId((prev) => (prev === wax.id ? null : wax.id))}
-                    className={cn(
-                      SB_MOBILE_CARD_ROW,
-                      'w-full touch-manipulation rounded-2xl border p-3 text-left transition',
-                      selected
-                        ? 'border-[#0485F7] bg-[#0485F7]/10 shadow-[0_8px_24px_rgba(4,133,247,0.12)]'
-                        : 'border-black/10 bg-white hover:bg-black/[0.015]',
-                    )}
-                  >
-                    <div className="mb-3 h-40 w-full overflow-hidden rounded-xl bg-[#f6f6f7]">
-                      <img
-                        src={wax.image}
-                        alt={wax.name}
-                        className="h-full w-full scale-[1.03] object-cover object-center"
-                        draggable={false}
-                      />
-                    </div>
-                    <p className="font-nav text-sm font-bold leading-snug">{wax.name}</p>
-                    <div className="mt-3 space-y-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5c5c61]">
-                      <div className="flex items-center justify-between gap-3">
-                        <span>Hydrophobicity</span>
-                        {renderFivePointScale(wax.ratings.hydrophobicity)}
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span>Slickness</span>
-                        {renderFivePointScale(wax.ratings.slickness)}
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span>Gloss</span>
-                        {renderFivePointScale(wax.ratings.gloss)}
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span>Application</span>
-                        {renderFivePointScale(wax.ratings.application)}
-                      </div>
-                    </div>
-                  </button>
-                )
-              })}
-            </ServiceBuilderChoiceRail>
-          </article>
+          <ServiceBuilderConfigurationBody
+            form={f}
+            vehicleStepRef={vehicleStepRef}
+            showGarageImport
+            firstSectionScrollMarginTopPx={heroPassed ? 72 : 0}
+          />
         </div>
       </div>
 
@@ -725,8 +238,8 @@ export function ServiceBuilder() {
               </p>
             </div>
             <div className="border-t border-black/10">
-              {SERVICE_BUILDER_FAQS.map((f, i) => (
-                <ServiceBuilderFAQItem key={i} q={f.q} a={f.a} />
+              {SERVICE_BUILDER_FAQS.map((faq, i) => (
+                <ServiceBuilderFAQItem key={i} q={faq.q} a={faq.a} />
               ))}
             </div>
           </div>
@@ -741,177 +254,7 @@ export function ServiceBuilder() {
         desktopWidthClassName="max-w-5xl"
         avoidHeaderOffset
       >
-        <div className="px-4 pb-5 text-[#1d1d1f]">
-          <div className="mb-5 rounded-[28px] bg-white px-4 py-4 shadow-[0_8px_22px_rgba(0,0,0,0.1)]">
-            <div className="flex items-center gap-4">
-              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center text-[#0485F7]" aria-hidden>
-                <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" aria-hidden>
-                  <circle cx="10" cy="10" r="7.25" />
-                  <path d="M10 8.25v5" />
-                  <circle cx="10" cy="5.55" r="0.85" fill="currentColor" stroke="none" />
-                </svg>
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-[15px] font-semibold leading-tight text-[#0485F7]">
-                    {isLoggedIn ? 'Connected account' : 'Not connected'}
-                  </p>
-                  {!isLoggedIn ? (
-                    <Link to="/account" target="_blank" rel="noreferrer" className="shrink-0">
-                      <AppleButton className="!rounded-full !px-4 !py-2 !text-[12px]">Sign in</AppleButton>
-                    </Link>
-                  ) : null}
-                </div>
-                <p className="mt-1 text-[14px] leading-relaxed text-[#6b7280]">
-                  {isLoggedIn
-                    ? `You are eligible to earn +${estimatedXp} XP if this service request is approved.`
-                    : (
-                      <>
-                        Connect your account to be eligible for <span className="font-semibold text-[#1d1d1f]">+{estimatedXp} XP</span> if this service request is approved.
-                      </>
-                    )}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <section className="pb-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e6e73]">Service summary</p>
-            <div className="mt-3 space-y-1.5 text-[14px] text-[#2b2b2d]">
-              <p>Vehicle size: <span className="font-semibold">{selectedVehicleSize ?? '-'}</span></p>
-              <p>Paint condition: <span className="font-semibold">{selectedPaintCondition ?? '-'}</span></p>
-              <p>Coating: <span className="font-semibold">{coatingName || '-'}</span></p>
-              <p>Wax: <span className="font-semibold">{waxName || 'None'}</span></p>
-              <p className="pt-1 text-[17px] font-semibold text-[#1d1d1f]">Total estimate: ${totalPrice} CAD</p>
-            </div>
-          </section>
-
-          <div className="h-px bg-black/10" />
-
-          <section className="pt-4 pb-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e6e73]">Vehicle information</p>
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-              <input
-                value={vehicleMakeInput}
-                onChange={(e) => setVehicleMakeInput(e.target.value)}
-                placeholder="Vehicle make"
-                required
-                aria-required
-                className={cn(SB_REVIEW_FIELD_BASE, 'h-11 rounded-xl px-3')}
-              />
-              <input
-                value={vehicleModelInput}
-                onChange={(e) => setVehicleModelInput(e.target.value)}
-                placeholder="Vehicle model"
-                required
-                aria-required
-                className={cn(SB_REVIEW_FIELD_BASE, 'h-11 rounded-xl px-3')}
-              />
-              <input
-                value={vehicleYearInput}
-                onChange={(e) => setVehicleYearInput(e.target.value)}
-                placeholder="Vehicle year"
-                required
-                aria-required
-                className={cn(SB_REVIEW_FIELD_BASE, 'h-11 rounded-xl px-3')}
-              />
-            </div>
-          </section>
-
-          <div className="h-px bg-black/10" />
-
-          <section className="pt-4 pb-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e6e73]">Contact information</p>
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input
-                value={contactFirstName}
-                onChange={(e) => setContactFirstName(e.target.value)}
-                placeholder="First name"
-                required
-                aria-required
-                autoComplete="given-name"
-                className={cn(SB_REVIEW_FIELD_BASE, 'h-11 rounded-xl px-3')}
-              />
-              <input
-                value={contactLastName}
-                onChange={(e) => setContactLastName(e.target.value)}
-                placeholder="Last name"
-                required
-                aria-required
-                autoComplete="family-name"
-                className={cn(SB_REVIEW_FIELD_BASE, 'h-11 rounded-xl px-3')}
-              />
-              <input
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                placeholder="Email"
-                type="email"
-                required
-                aria-required
-                autoComplete="email"
-                className={cn(SB_REVIEW_FIELD_BASE, 'h-11 rounded-xl px-3')}
-              />
-              <input
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-                placeholder="Contact phone number"
-                type="tel"
-                required
-                aria-required
-                autoComplete="tel"
-                className={cn(SB_REVIEW_FIELD_BASE, 'h-11 rounded-xl px-3')}
-              />
-            </div>
-          </section>
-
-          <div className="h-px bg-black/10" />
-
-          <section className="pt-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e6e73]">Extra details</p>
-            <div className="mt-3 space-y-3">
-              <textarea
-                value={customMessage}
-                onChange={(e) => setCustomMessage(e.target.value)}
-                placeholder="Add a custom message for our team (paint concerns, schedule preference, etc.)"
-                rows={4}
-                className={cn(SB_REVIEW_FIELD_BASE, 'w-full rounded-xl px-3 py-2.5')}
-              />
-              <div className="rounded-xl border border-dashed border-black/15 bg-[#fafafa] p-3">
-                <label className="block text-[12px] font-medium text-[#424245]">
-                  Add one or more photos of your vehicle
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleVehicleImagesChange}
-                  className="mt-2 block w-full text-sm text-[#424245] file:mr-3 file:rounded-lg file:border-0 file:bg-[#ececef] file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#1d1d1f] hover:file:bg-[#e2e2e6]"
-                />
-                {uploadedVehicleImages.length > 0 ? (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {uploadedVehicleImages.map((file) => (
-                      <span key={file.name} className="rounded-full bg-white px-2.5 py-1 text-[11px] text-[#424245] border border-black/10">
-                        {file.name}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </section>
-
-          <div className="mt-4 flex items-center justify-end gap-3">
-            <AppleButton
-              className="!border-black/20 !bg-white !text-[#1d1d1f]"
-              onClick={() => setReviewSheetOpen(false)}
-            >
-              Back
-            </AppleButton>
-            <AppleButton disabled={!isReviewFormValid || isSending} onClick={handleSendService}>
-              {isSending ? 'Sending…' : 'Send my service'}
-            </AppleButton>
-          </div>
-        </div>
+        <ServiceBuilderReviewSheetContent form={f} shopLocationTag={null} onSend={handleSendService} />
       </AppleSheet>
 
       <AppleSheet open={successSheetOpen} onOpenChange={setSuccessSheetOpen} title="Request received" zIndex={100_050}>

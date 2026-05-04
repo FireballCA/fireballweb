@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useId, useState } from 'react'
+import { useCallback, useContext, useEffect, useId, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { LenisContext } from '@/components/LenisRoot'
 import { AppleButton, appleButtonVisualClassName } from '@/components/ui/AppleButton'
@@ -27,6 +27,8 @@ export const TRAINING_REGISTRATION_PRICE = `$${TRAINING_BASE_PRICE_CAD.toLocaleS
 
 /** XP affiché pour l’inscription à la formation (placeholder). */
 export const TRAINING_REGISTRATION_XP = 500
+
+const TRAINING_BLOCKING_STATUSES = new Set<string>(['pending', 'approved', 'payment_pending', 'paid'])
 
 type Step = 1 | 2
 
@@ -148,31 +150,32 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
     phone.trim().length > 0 &&
     message.trim().length > 0
 
-  const parseSessionStartFromLabel = (label: string): Date | null => {
-    const raw = String(label || '').trim()
-    if (!raw) return null
-    const firstChunk = raw.split('-')[0]?.trim() ?? raw
-    const withYear = /\b\d{4}\b/.test(firstChunk) ? firstChunk : `${firstChunk} ${new Date().getFullYear()}`
-    const t = Date.parse(withYear)
-    if (Number.isNaN(t)) return null
-    return new Date(t)
-  }
+  const sessionIdsWithActiveRequest = useMemo(() => {
+    const ids = new Set<string>()
+    for (const r of existingTrainingRequests) {
+      if (r.session_id && TRAINING_BLOCKING_STATUSES.has(String(r.status))) ids.add(r.session_id)
+    }
+    return ids
+  }, [existingTrainingRequests])
 
-  const now = new Date()
-  const blockingStatuses = new Set(['pending', 'approved', 'payment_pending', 'paid'])
-  const blockingExistingRequest = existingTrainingRequests.find((r) => {
-    if (!blockingStatuses.has(String(r.status))) return false
-    const d = parseSessionStartFromLabel(r.session_label)
-    if (!d) return true
-    return d.getTime() >= now.getTime()
-  })
-  const hasOngoingTrainingRequest = Boolean(blockingExistingRequest)
-  const canGoToNextStep = formValid && !!profile && !hasOngoingTrainingRequest
+  useEffect(() => {
+    if (selectedSessionId && sessionIdsWithActiveRequest.has(selectedSessionId)) {
+      setSelectedSessionId('')
+    }
+  }, [selectedSessionId, sessionIdsWithActiveRequest])
+
+  /** Une seule demande active par session (même `session_id`) — d’autres dates / sessions restent autorisées. */
+  const hasBlockingRequestForSelectedSession =
+    selectedSessionId !== '' &&
+    existingTrainingRequests.some(
+      (r) => TRAINING_BLOCKING_STATUSES.has(String(r.status)) && r.session_id === selectedSessionId,
+    )
+  const canGoToNextStep = formValid && !!profile && !hasBlockingRequestForSelectedSession
 
   const selectedSession = trainingSessions.find((o) => o.id === selectedSessionId)
 
   const handleSubmitRequest = async () => {
-    if (!profile || !email.trim() || hasOngoingTrainingRequest) return
+    if (!profile || !email.trim() || hasBlockingRequestForSelectedSession) return
     setRequestSaveError(null)
     setRequestSubmitting(true)
     try {
@@ -270,58 +273,46 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
             <fieldset className="fb-training-session-picker mt-7">
               <legend className={sectionLabelClass}>Training date</legend>
               <div className="mt-3 space-y-1 rounded-2xl bg-[#f2f2f7] p-1.5 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
-                {trainingSessions.map((opt) => {
-                  const inputId = `${baseId}-session-${opt.id}`
-                  const selected = selectedSessionId === opt.id
-                  return (
-                    <label
-                      key={opt.id}
-                      htmlFor={inputId}
-                      className={cn(
-                        'flex cursor-pointer items-start gap-3 rounded-[13px] px-3.5 py-3.5 outline-none transition sm:py-4',
-                        selected
-                          ? 'bg-[#0485F7]/10 shadow-[inset_0_0_0_1px_rgba(4,133,247,0.22)]'
-                          : 'hover:bg-black/[0.03] active:bg-black/[0.05]',
-                      )}
-                    >
-                      <input
-                        id={inputId}
-                        type="radio"
-                        name={`${baseId}-training-session`}
-                        value={opt.id}
-                        checked={selectedSessionId === opt.id}
-                        onChange={() => setSelectedSessionId(opt.id)}
-                        className="mt-1 h-4 w-4 shrink-0 cursor-pointer border-neutral-300 accent-[#0485F7] shadow-none outline-none ring-0 ring-offset-0 focus:outline-none focus:shadow-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-                      />
+                  {trainingSessions.map((opt) => {
+                    const inputId = `${baseId}-session-${opt.id}`
+                    const selected = selectedSessionId === opt.id
+                    const sessionAlreadyRequested = sessionIdsWithActiveRequest.has(opt.id)
+                    return (
+                      <label
+                        key={opt.id}
+                        htmlFor={inputId}
+                        className={cn(
+                          'flex items-start gap-3 rounded-[13px] px-3.5 py-3.5 outline-none transition sm:py-4',
+                          sessionAlreadyRequested
+                            ? 'cursor-not-allowed opacity-50'
+                            : 'cursor-pointer hover:bg-black/[0.03] active:bg-black/[0.05]',
+                          selected && 'bg-[#0485F7]/10 shadow-[inset_0_0_0_1px_rgba(4,133,247,0.22)]',
+                        )}
+                      >
+                        <input
+                          id={inputId}
+                          type="radio"
+                          name={`${baseId}-training-session`}
+                          value={opt.id}
+                          checked={selectedSessionId === opt.id}
+                          disabled={sessionAlreadyRequested}
+                          onChange={() => setSelectedSessionId(opt.id)}
+                          className="mt-1 h-4 w-4 shrink-0 cursor-pointer border-neutral-300 accent-[#0485F7] shadow-none outline-none ring-0 ring-offset-0 focus:outline-none focus:shadow-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed"
+                        />
                       <span className="min-w-0 flex-1">
                         <span className="block text-[15px] font-semibold tracking-tight text-[#1d1d1f]">{opt.label}</span>
-                        {opt.hint ? <span className="mt-1 block text-[13px] leading-snug text-neutral-500">{opt.hint}</span> : null}
-                      </span>
-                    </label>
+                          {opt.hint ? <span className="mt-1 block text-[13px] leading-snug text-neutral-500">{opt.hint}</span> : null}
+                          {sessionAlreadyRequested ? (
+                            <span className="mt-1 block text-[11px] font-medium text-amber-800/90">Active request already on file for this session.</span>
+                          ) : null}
+                        </span>
+                      </label>
                   )
                 })}
               </div>
             </fieldset>
 
-            {profile ? (
-              <div className="mt-8 rounded-2xl bg-[#f2f2f7] px-4 py-4 sm:px-5 sm:py-5">
-                <p className="text-[13px] font-semibold text-[#1d1d1f]">Account</p>
-                <p className="mt-2 text-[14px] leading-relaxed text-neutral-600">
-                  You are signed in. Continue with your training request below.
-                </p>
-                <div className="mt-4">
-                  <span
-                    aria-disabled
-                    className={cn(
-                      'inline-flex cursor-not-allowed select-none justify-center opacity-40',
-                      appleButtonVisualClassName,
-                    )}
-                  >
-                    Connection
-                  </span>
-                </div>
-              </div>
-            ) : (
+            {!profile ? (
               <div className="mt-8 rounded-2xl bg-[#f2f2f7] px-4 py-4 sm:px-5 sm:py-5">
                 <p className="text-[13px] font-semibold text-[#1d1d1f]">Account</p>
                 <p className="mt-2 text-[14px] leading-relaxed text-neutral-600">
@@ -333,7 +324,7 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
                   </Link>
                 </div>
               </div>
-            )}
+            ) : null}
 
             <form
               className="mt-8 space-y-4"
@@ -343,11 +334,11 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
               }}
             >
               <h3 className={sectionLabelClass}>Your details</h3>
-              {hasOngoingTrainingRequest ? (
-                <p className="rounded-[14px] bg-amber-50 px-3.5 py-3 text-[14px] text-amber-900 shadow-[inset_0_0_0_1px_rgba(217,119,6,0.25)]">
-                  You already have a training request in progress for a future session. You can submit a new request after this training is completed.
-                </p>
-              ) : null}
+              {hasBlockingRequestForSelectedSession ? (
+                  <p className="rounded-[14px] bg-amber-50 px-3.5 py-3 text-[14px] text-amber-900 shadow-[inset_0_0_0_1px_rgba(217,119,6,0.25)]">
+                    You already have an active request for this session. Choose another training date or wait until this request is completed or closed.
+                  </p>
+                ) : null}
 
               <div>
                 <label htmlFor={`${baseId}-name`} className={labelClass}>
@@ -418,9 +409,9 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
                 </AppleButton>
                 {!profile ? (
                   <p className="mt-2 text-xs text-neutral-500">Sign in using Connection above to enable Next steps.</p>
-                ) : hasOngoingTrainingRequest ? (
-                  <p className="mt-2 text-xs text-neutral-500">A request is already active for an upcoming training session.</p>
-                ) : !formValid ? (
+                ) : hasBlockingRequestForSelectedSession ? (
+                    <p className="mt-2 text-xs text-neutral-500">You already have an active request for the selected session. Pick another date to continue.</p>
+                  ) : !formValid ? (
                   <p className="mt-2 text-xs text-neutral-500">Complete all required fields to continue.</p>
                 ) : null}
               </div>

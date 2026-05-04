@@ -69,7 +69,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
                 key={n.id}
                 className="pointer-events-auto flex items-center gap-3 rounded-[28px] bg-white px-4 py-3.5 shadow-[0_10px_26px_rgba(0,0,0,0.12)] animate-slide-up"
               >
-                <span className={`inline-flex h-5 w-5 flex-shrink-0 items-center justify-center ${iconClass}`}>
+                <span
+                  className={`inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#e9e9eb] ${iconClass}`}
+                >
                   {isSuccess ? (
                     <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                       <circle cx="10" cy="10" r="7.25" />

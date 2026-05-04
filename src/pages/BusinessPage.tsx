@@ -9,6 +9,7 @@ import {
   IconSettings,
   IconShieldLock,
   IconChevronRight,
+  IconTool,
 } from '@tabler/icons-react'
 import { DateField, DateRangePicker, RangeCalendar } from '@heroui/react'
 import { parseDate as parseCalendarDate, type DateValue } from '@internationalized/date'
@@ -16,6 +17,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { BusinessClientsPage } from '@/pages/business/BusinessClientsPage'
 import { AdminPanelContent } from '@/components/AdminPanelSheet'
 import { AdminConfigurationPage } from '@/components/business/admin/AdminPages'
+import { AdminServiceRequestsPage } from '@/components/business/admin/AdminServiceRequestsPage'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { supabase } from '@/lib/supabase'
 import { FireballLoading } from '@/components/FireballLoading'
@@ -2069,15 +2071,17 @@ export function BusinessPage() {
     location.pathname.includes('/business/clients') || location.pathname.includes('/account/business/clients')
   const adminSection = location.pathname.includes('/admin/partners')
     ? 'partners'
-    : location.pathname.includes('/admin/notifications')
-      ? 'notifications'
-      : location.pathname.includes('/admin/announcements')
-        ? 'announcements'
-        : location.pathname.includes('/admin/products')
-          ? 'products'
-          : location.pathname.includes('/admin/configuration')
-            ? 'configuration'
-            : 'stats'
+    : location.pathname.includes('/admin/services')
+      ? 'services'
+      : location.pathname.includes('/admin/notifications')
+        ? 'notifications'
+        : location.pathname.includes('/admin/announcements')
+          ? 'announcements'
+          : location.pathname.includes('/admin/products')
+            ? 'products'
+            : location.pathname.includes('/admin/configuration')
+              ? 'configuration'
+              : 'stats'
 
   const [companyNameInput, setCompanyNameInput] = useState(initialCache?.companyNameInput ?? '')
   const [companyLogo, setCompanyLogo] = useState(initialCache?.companyLogo ?? '')
@@ -2739,6 +2743,7 @@ export function BusinessPage() {
     ? [
         { label: 'Stats', href: '/business/admin/stats', icon: <IconChartBar className="h-4 w-4 shrink-0 text-red-400" /> },
         { label: 'Partners', href: '/business/admin/partners', icon: <IconUsers className="h-4 w-4 shrink-0 text-red-400" /> },
+        { label: 'Services', href: '/business/admin/services', icon: <IconTool className="h-4 w-4 shrink-0 text-red-400" /> },
         { label: 'Configuration', href: '/business/admin/configuration', icon: <IconSettings className="h-4 w-4 shrink-0 text-red-400" /> },
       ]
     : []
@@ -2845,6 +2850,8 @@ export function BusinessPage() {
                     >
                       {adminSection === 'partners' ? (
                         <AdminPanelContent section="partners" />
+                      ) : adminSection === 'services' ? (
+                        <AdminServiceRequestsPage />
                       ) : adminSection === 'configuration' ||
                         adminSection === 'notifications' ||
                         adminSection === 'announcements' ||
