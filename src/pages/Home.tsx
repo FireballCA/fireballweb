@@ -37,6 +37,7 @@ function useCountdown(targetIso: string, enabled = true) {
 export function Home() {
   const lenis = useContext(LenisContext)
   const [isMobileViewport, setIsMobileViewport] = useState(false)
+  const [reloadGuardActive, setReloadGuardActive] = useState(false)
   const [homeCollection, setHomeCollection] = useState<HomeCollectionResolved>(() =>
     resolveHomeCollection(null),
   )
@@ -49,7 +50,7 @@ export function Home() {
     href: '/event/fireball-after-party',
     imageSrc: '/Assets/FireballAfterParty.png',
   }
-  const useSafeMobileLanding = isMobileViewport
+  const useSafeMobileLanding = isMobileViewport || reloadGuardActive
   const countdown = useCountdown(nextEvent.startsAt, !useSafeMobileLanding)
 
   usePageTitle('Fireball Canada')
@@ -123,6 +124,23 @@ export function Home() {
   }, [])
 
   useEffect(() => {
+    if (!isMobileViewport) return
+    try {
+      const key = 'fb_mobile_home_reload_guard'
+      const now = Date.now()
+      const raw = sessionStorage.getItem(key)
+      const prev = raw ? (JSON.parse(raw) as { count: number; lastTs: number }) : { count: 0, lastTs: 0 }
+      const count = now - prev.lastTs < 8000 ? prev.count + 1 : 1
+      sessionStorage.setItem(key, JSON.stringify({ count, lastTs: now }))
+      if (count >= 4) {
+        setReloadGuardActive(true)
+      }
+    } catch {
+      // noop
+    }
+  }, [isMobileViewport])
+
+  useEffect(() => {
     const onDocClick = (event: MouseEvent) => {
       if (!calendarMenuRef.current?.contains(event.target as Node)) {
         setCalendarMenuOpen(false)
@@ -135,6 +153,12 @@ export function Home() {
   }, [calendarMenuOpen])
 
   useEffect(() => {
+    if (useSafeMobileLanding) {
+      return () => {
+        // Cleanup toujours retourné pour éviter l'erreur React #310
+      }
+    }
+
     const load = async () => {
       try {
         const { data } = await supabase
@@ -163,7 +187,7 @@ export function Home() {
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [])
+  }, [useSafeMobileLanding])
 
   const scrollToProductLineup = useCallback(() => {
     const el = document.getElementById('product-lineup')
