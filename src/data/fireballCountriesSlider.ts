@@ -1,13 +1,13 @@
 import type { VoyagerSlide } from '@/components/VoyagerCoatingsSlider/VoyagerCoatingsSlider'
 
-/** Unsplash — paysages haute résolution (w=2400). */
+/** Unsplash — largeur modérée pour limiter la mémoire (nombreux pays sur la landing). */
 function u(photoId: string) {
-  return `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=2400&q=85`
+  return `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=1600&q=80`
 }
 
-/** Pexels — photos HD (usage conforme aux conditions Pexels). */
+/** Pexels — photos (usage conforme aux conditions Pexels). */
 function p(photoId: number) {
-  return `https://images.pexels.com/photos/${photoId}/pexels-photo-${photoId}.jpeg?auto=compress&cs=tinysrgb&dpr=2&w=2400`
+  return `https://images.pexels.com/photos/${photoId}/pexels-photo-${photoId}.jpeg?auto=compress&cs=tinysrgb&dpr=2&w=1600`
 }
 
 /**

@@ -2,8 +2,9 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'r
 import { Link } from 'react-router-dom'
 import { siApple, siGoogle, siAndroid } from 'simple-icons'
 import { ProductCategoryLineup } from '@/components/ProductCategoryLineup'
-import { HomeBeliefStatsSection } from '@/components/HomeBeliefStatsSection'
 import { HomeCollectionSection } from '@/components/HomeCollectionSection'
+import { VoyagerWorldwideScrollSection } from '@/components/VoyagerWorldwideScroll/VoyagerWorldwideScrollSection'
+import { FIREBALL_COUNTRY_SLIDES } from '@/data/fireballCountriesSlider'
 import { LenisContext } from '@/components/LenisRoot'
 import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
 import { supabase } from '@/lib/supabase'
@@ -258,7 +259,12 @@ export function Home() {
         </div>
       </section>
 
-      <HomeBeliefStatsSection />
+      <VoyagerWorldwideScrollSection
+        slides={FIREBALL_COUNTRY_SLIDES}
+        eyebrow="Global footprint"
+        heading="Trusted worldwide"
+        description="From Korea to the Americas, Europe, the Middle East, and the Pacific — Fireball is chosen wherever finish, durability, and professional results matter."
+      />
 
       <div className="bg-carbon-950">
         <ProductCategoryLineup />

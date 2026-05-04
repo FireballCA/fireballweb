@@ -161,7 +161,14 @@ export function VoyagerCoatingsSlider({ slides, className = '', onActiveChange }
   }, [getOffset])
 
   useEffect(() => {
-    void preloadSlideImages(slides.map((s) => s.image))
+    const urls = slides.map((s) => s.image)
+    /** Au-delà de ce seuil, précharger toutes les images en parallèle provoque OOM / gel (ex. slider pays). */
+    const maxBulkPreload = 12
+    if (urls.length <= maxBulkPreload) {
+      void preloadSlideImages(urls)
+    } else {
+      void preloadSlideImages(urls.slice(0, 4))
+    }
   }, [slides])
 
   const idxAfterNext = n > 0 ? (active + 2) % n : 0
