@@ -2,6 +2,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'r
 import { Link } from 'react-router-dom'
 import { siApple, siGoogle, siAndroid } from 'simple-icons'
 import { ProductCategoryLineup } from '@/components/ProductCategoryLineup'
+import { HomeBeliefStatsSection } from '@/components/HomeBeliefStatsSection'
 import { HomeCollectionSection } from '@/components/HomeCollectionSection'
 import { LenisContext } from '@/components/LenisRoot'
 import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
@@ -31,7 +32,6 @@ function useCountdown(targetIso: string, enabled = true) {
   return { days, hours, minutes, seconds, expired: diff <= 0 }
 }
 
-/** Landing incrémentale : hero + sections réactivées une par une (debug refresh). */
 export function Home() {
   const lenis = useContext(LenisContext)
   usePageTitle('Fireball Canada')
@@ -173,7 +173,7 @@ export function Home() {
   }, [lenis])
 
   return (
-    <main className="relative min-h-0 overflow-x-hidden bg-carbon-950 text-white">
+    <main className="relative min-h-0 overflow-x-clip bg-carbon-950 text-white">
       <section
         className="relative flex h-[var(--app-hero-h)] min-h-[var(--app-hero-h)] flex-col overflow-hidden bg-black"
         aria-label="Hero"
@@ -257,6 +257,8 @@ export function Home() {
           <span className="mx-auto block h-12 w-px animate-pulse bg-current" />
         </div>
       </section>
+
+      <HomeBeliefStatsSection />
 
       <div className="bg-carbon-950">
         <ProductCategoryLineup />
