@@ -193,6 +193,50 @@ export function Home() {
     }
   }, [lenis])
 
+  if (useSafeMobileLanding) {
+    return (
+      <div className="relative overflow-x-hidden bg-carbon-950">
+        <section
+          className="relative flex h-[var(--app-hero-h)] min-h-[var(--app-hero-h)] flex-col overflow-hidden bg-black"
+          aria-label="Hero"
+        >
+          <img
+            src="/Assets/Carclub Hero.png"
+            alt=""
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+            draggable={false}
+          />
+          <div className="pointer-events-none absolute inset-0 bg-black/50" aria-hidden />
+
+          <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col items-center justify-center px-5 pb-20 pt-16 text-center sm:px-6">
+            <h1 className="max-w-xl font-nav text-4xl font-bold leading-[1.05] tracking-tight text-pearl sm:text-5xl">
+              From Detail
+              <br />
+              To Perfection.
+            </h1>
+            <p className="mt-5 max-w-md text-sm font-light leading-relaxed text-silver/80">
+              Crafted for those who demand precision, performance, and flawless results.
+            </p>
+            <div className="mt-7 flex w-full max-w-sm flex-col gap-3">
+              <Link
+                to="/shop"
+                className={cn('inline-flex w-full items-center justify-center', appleButtonVisualClassName)}
+              >
+                Explore Products
+              </Link>
+              <Link
+                to="/event"
+                className="inline-flex w-full items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/15"
+              >
+                See events
+              </Link>
+            </div>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
   return (
     <div className="relative overflow-x-hidden">
       {/* Hero classique: section normale sans effet pinned/overlap */}

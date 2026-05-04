@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useEffect, useMemo, useRef, useState, type FormEvent, type WheelEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type TouchEvent, type WheelEvent } from 'react'
 import { ServiceBuilderQuickMapSheet } from '@/components/service-builder/ServiceBuilderQuickMapSheet'
 import type { StockistLocation } from '@/data/stockists'
 import Map, { Marker, Popup, type MapRef } from 'react-map-gl/maplibre'
@@ -49,6 +49,12 @@ export function FindInstaller() {
 
   const preventPageScrollOnMapWheel = (e: WheelEvent<HTMLDivElement>) => {
     // Keep wheel interaction inside the map (zoom) without scrolling the page.
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const preventPageScrollOnMapTouchMove = (e: TouchEvent<HTMLDivElement>) => {
+    // Prevent the parent page scroll while dragging/zooming on the map.
     e.stopPropagation()
   }
 
@@ -252,8 +258,9 @@ export function FindInstaller() {
           {searchHint && <p className="mb-2 px-2 text-xs text-silver/60">{searchHint}</p>}
           {searchError && <p className="mb-2 px-2 text-xs text-red-300">{searchError}</p>}
           <div
-            className="find-installer-map h-[360px] w-full overflow-hidden rounded-xl md:h-[520px]"
-            onWheel={preventPageScrollOnMapWheel}
+            className="find-installer-map h-[360px] w-full overflow-hidden rounded-xl touch-none overscroll-contain md:h-[520px]"
+            onWheelCapture={preventPageScrollOnMapWheel}
+            onTouchMoveCapture={preventPageScrollOnMapTouchMove}
           >
             <Map
               ref={mapRef}
@@ -355,18 +362,6 @@ export function FindInstaller() {
           </div>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-white/10 bg-carbon-900/70 p-5 md:p-6">
-          <h2 className="text-xl font-semibold text-white md:text-2xl">Save your vehicle and track your services.</h2>
-          <p className="mt-2 text-sm text-silver/75 md:text-base">
-            Add your car to My Garage for a personalized experience.
-          </p>
-          <Link
-            to="/account/dashboard"
-            className="mt-4 inline-flex items-center justify-center rounded-full border border-[#0485F7] bg-[#0485F7] px-4 py-2 text-xs font-semibold text-white transition-colors hover:border-[#3592F9] hover:bg-[#3592F9]"
-          >
-            Open My Garage
-          </Link>
-        </div>
       </div>
 
       <ServiceBuilderQuickMapSheet
