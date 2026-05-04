@@ -115,10 +115,11 @@ function IconLock() {
 
 const BADGE_SIZE_EXPANDED = 170
 const BADGE_SIZE_COLLAPSED = 290
-const SHEET_TOP = 330              // increased to give more room for impact tier text
+const SHEET_TOP = 348              // zone blanche hero (XP + badge) — un peu plus haut après correction navbar
 const PEEK_PX = 72
 const SNAP_THRESHOLD = 60
-const STICKY_BAR_TOP = 60         // px from top — just under the navbar
+/** Sous la navbar fixe : le conteneur dashboard commence déjà sous le spacer Layout ; petit offset suffit */
+const STICKY_BAR_TOP = 14
 const SIDE_PADDING = 20           // matches px-5 on buttons
 
 const MOBILE_TIERS = [
@@ -437,7 +438,7 @@ export function MobileDashboard({
 
   return (
     <div
-      className="lg:hidden w-full -mt-20 relative"
+      className="lg:hidden w-full relative"
       style={{ height: '100dvh', overflow: 'hidden', touchAction: 'none' }}
     >
       {/* ── Section 1: white hero — click collapses section 2 ── */}
@@ -453,8 +454,12 @@ export function MobileDashboard({
         {/* XP display — slides up + fades out on collapse */}
         <div
           ref={xpContainerRef}
-          className="absolute inset-x-0 top-0 flex flex-col items-center justify-center pointer-events-none"
-          style={{ height: SHEET_TOP }}
+          className="absolute inset-x-0 top-0 flex flex-col items-center justify-center pointer-events-none px-4"
+          style={{
+            height: SHEET_TOP,
+            paddingTop: 'max(12px, env(safe-area-inset-top, 0px))',
+            boxSizing: 'border-box',
+          }}
         >
           <div className="flex items-start leading-none">
             <span
