@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { motion } from 'motion/react'
 import { siApple, siGoogle, siAndroid } from 'simple-icons'
 import { ProductCategoryLineup } from '@/components/ProductCategoryLineup'
 import { HomeCollectionSection } from '@/components/HomeCollectionSection'
@@ -13,6 +13,10 @@ import type { HomeCollectionResolved } from '@/constants/homeCollection'
 import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 import { cn } from '@/lib/utils'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
+
+const EASE_PREMIUM = [0.16, 1, 0.3, 1] as const
+const EASE_SNAPPY = [0.22, 1, 0.36, 1] as const
 
 function useCountdown(targetIso: string, enabled = true) {
   const target = useMemo(() => new Date(targetIso).getTime(), [targetIso])
@@ -35,6 +39,7 @@ function useCountdown(targetIso: string, enabled = true) {
 
 export function Home() {
   const lenis = useContext(LenisContext)
+  const reduceMotion = useEffectiveReducedMotion()
   usePageTitle('Fireball Canada')
 
   const [isMobileViewport, setIsMobileViewport] = useState(false)
@@ -163,6 +168,97 @@ export function Home() {
 
   const heroLite = isMobileViewport
 
+  const heroStaggerVariants = useMemo(
+    () => ({
+      hidden: {},
+      visible: {
+        transition: {
+          staggerChildren: reduceMotion ? 0 : 0.1,
+          delayChildren: reduceMotion ? 0 : 0.28,
+        },
+      },
+    }),
+    [reduceMotion],
+  )
+
+  const heroLineVariants = useMemo(
+    () => ({
+      hidden: {
+        opacity: reduceMotion ? 1 : 0,
+        y: reduceMotion ? 0 : 44,
+        filter: reduceMotion ? 'none' : ('blur(14px)' as const),
+      },
+      visible: {
+        opacity: 1,
+        y: 0,
+        filter: 'blur(0px)' as const,
+        transition: { duration: reduceMotion ? 0 : 0.72, ease: EASE_PREMIUM },
+      },
+    }),
+    [reduceMotion],
+  )
+
+  const scrollUp = useMemo(
+    () => ({
+      initial: reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 52 },
+      whileInView: { opacity: 1, y: 0, transition: { duration: reduceMotion ? 0 : 0.68, ease: EASE_SNAPPY } },
+      viewport: { once: true, amount: 0.14, margin: '0px 0px -8% 0px' } as const,
+    }),
+    [reduceMotion],
+  )
+
+  const scrollFromLeft = useMemo(
+    () => ({
+      initial: reduceMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: -56 },
+      whileInView: {
+        opacity: 1,
+        x: 0,
+        transition: { duration: reduceMotion ? 0 : 0.72, ease: EASE_SNAPPY },
+      },
+      viewport: { once: true, amount: 0.12, margin: '0px 0px -10% 0px' } as const,
+    }),
+    [reduceMotion],
+  )
+
+  const scrollFromRight = useMemo(
+    () => ({
+      initial: reduceMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 64 },
+      whileInView: { opacity: 1, x: 0, transition: { duration: reduceMotion ? 0 : 0.75, ease: EASE_PREMIUM } },
+      viewport: { once: true, amount: 0.1, margin: '0px 0px -12% 0px' } as const,
+    }),
+    [reduceMotion],
+  )
+
+  const scrollScale = useMemo(
+    () => ({
+      initial: reduceMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 40, scale: 0.94 },
+      whileInView: {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        transition: { duration: reduceMotion ? 0 : 0.7, ease: EASE_SNAPPY },
+      },
+      viewport: { once: true, amount: 0.18 } as const,
+    }),
+    [reduceMotion],
+  )
+
+  const scrollBlurIn = useMemo(
+    () => ({
+      initial: reduceMotion
+        ? { opacity: 1, y: 0 }
+        : { opacity: 0, y: 36, filter: 'blur(16px)' },
+      whileInView: {
+        opacity: 1,
+        y: 0,
+        filter: 'blur(0px)',
+        transition: { duration: reduceMotion ? 0 : 0.8, ease: EASE_PREMIUM },
+      },
+      viewport: { once: true, amount: 0.15 } as const,
+    }),
+    [reduceMotion],
+  )
+
   const scrollToProductLineup = useCallback(() => {
     const el = document.getElementById('product-lineup')
     if (!el) return
@@ -174,139 +270,217 @@ export function Home() {
   }, [lenis])
 
   return (
-    <main className="relative min-h-0 overflow-x-clip bg-carbon-950 text-white">
+    <motion.main
+      className="relative min-h-0 overflow-x-clip bg-carbon-950 text-white"
+      initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: reduceMotion ? 0 : 0.48, ease: EASE_SNAPPY }}
+    >
       <section
         className="relative flex h-[var(--app-hero-h)] min-h-[var(--app-hero-h)] flex-col overflow-hidden bg-black"
         aria-label="Hero"
       >
-        {heroLite ? (
-          <img
-            src="/Assets/Carclub Hero.png"
-            alt=""
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-            draggable={false}
-          />
-        ) : (
-          <video
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-            autoPlay
-            loop
-            muted
-            playsInline
-          >
-            <source src="/videoplayback.mp4" type="video/mp4" />
-          </video>
-        )}
-        <div className="pointer-events-none absolute inset-0 bg-black/45" aria-hidden />
-
-        <div
-          className={cn(
-            'relative z-10 flex min-h-0 w-full flex-1 flex-col justify-center px-5 pb-24 pt-20 sm:px-6 md:justify-end md:pb-28 md:pt-16',
-            !heroLite && 'animate-slide-up',
-          )}
+        <motion.div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          initial={reduceMotion ? false : { scale: 1.14, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: reduceMotion ? 0 : 1.18, ease: EASE_PREMIUM }}
         >
-          <div className="mx-auto flex w-full max-w-[90rem] flex-col items-center gap-8 text-center md:flex-row md:items-end md:justify-between md:gap-12 md:text-left">
+          {heroLite ? (
+            <img
+              src="/Assets/Carclub Hero.png"
+              alt=""
+              className="h-full w-full object-cover"
+              draggable={false}
+            />
+          ) : (
+            <video className="h-full w-full object-cover" autoPlay loop muted playsInline>
+              <source src="/videoplayback.mp4" type="video/mp4" />
+            </video>
+          )}
+        </motion.div>
+        <motion.div
+          className="pointer-events-none absolute inset-0 bg-black/45"
+          aria-hidden
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: reduceMotion ? 0 : 0.85, ease: EASE_PREMIUM, delay: reduceMotion ? 0 : 0.08 }}
+        />
+
+        <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col justify-center px-5 pb-24 pt-20 sm:px-6 md:justify-end md:pb-28 md:pt-16">
+          <motion.div
+            className="mx-auto flex w-full max-w-[90rem] flex-col items-center gap-8 text-center md:flex-row md:items-end md:justify-between md:gap-12 md:text-left"
+            initial="hidden"
+            animate="visible"
+            variants={heroStaggerVariants}
+          >
             <h1 className="max-w-xl font-nav text-4xl font-bold leading-[1.05] tracking-tight text-pearl sm:text-5xl md:max-w-lg md:self-start md:text-6xl lg:text-7xl">
-              <span className={heroLite ? '' : 'hero-ground-line hero-ground-line--clean'}>
-                <span className={heroLite ? '' : 'hero-ground-text'}>From Detail</span>
-              </span>
-              <span className={cn('mt-1.5 sm:mt-2', heroLite ? '' : 'hero-ground-line hero-ground-line--clean')}>
-                <span className={heroLite ? '' : 'hero-ground-text hero-ground-text--delay'}>To Perfection.</span>
-              </span>
+              <motion.span className="block overflow-hidden" variants={heroLineVariants}>
+                <span className="block">From Detail</span>
+              </motion.span>
+              <motion.span className="mt-1.5 block overflow-hidden sm:mt-2" variants={heroLineVariants}>
+                <span className="block">To Perfection.</span>
+              </motion.span>
             </h1>
             <div className="flex w-full max-w-lg shrink-0 flex-col items-center gap-6 text-center md:max-w-none md:w-auto md:items-end md:text-right">
-              <span className={heroLite ? '' : 'hero-ground-line hero-ground-line--clean'}>
-                <p
+              <motion.p
+                variants={heroLineVariants}
+                className="mx-auto max-w-md text-pretty text-sm font-light leading-relaxed text-silver/80 md:mx-0 md:text-base lg:text-lg"
+              >
+                Crafted for those who demand precision, performance, and flawless results.
+              </motion.p>
+              <motion.div variants={heroLineVariants} className="inline-flex w-full max-w-sm md:max-w-none md:items-end">
+                <button
+                  type="button"
+                  onClick={scrollToProductLineup}
                   className={cn(
-                    'mx-auto max-w-md text-pretty text-sm font-light leading-relaxed text-silver/80 md:mx-0 md:text-base lg:text-lg',
-                    heroLite ? '' : 'hero-ground-text hero-ground-text--delay-2',
+                    'inline-flex w-full cursor-pointer items-center justify-center whitespace-nowrap max-md:min-h-[48px] max-md:px-6 max-md:py-3 max-md:text-sm md:w-auto',
+                    appleButtonVisualClassName,
                   )}
                 >
-                  Crafted for those who demand precision, performance, and flawless results.
-                </p>
-              </span>
-              <span className={heroLite ? '' : 'hero-ground-line hero-ground-line--clean'}>
-                <span
-                  className={cn(
-                    'inline-flex w-full max-w-sm flex-col gap-3 md:max-w-none md:items-end',
-                    heroLite ? '' : 'hero-ground-text hero-ground-text--delay-3',
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={scrollToProductLineup}
-                    className={cn(
-                      'inline-flex w-full cursor-pointer items-center justify-center whitespace-nowrap max-md:min-h-[48px] max-md:px-6 max-md:py-3 max-md:text-sm md:w-auto',
-                      appleButtonVisualClassName,
-                    )}
-                  >
-                    Explore Products
-                  </button>
-                  <Link
-                    to="/event"
-                    className="inline-flex w-full items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-white/15 md:w-auto"
-                  >
-                    See events
-                  </Link>
-                </span>
-              </span>
+                  Explore Products
+                </button>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
         </div>
 
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-silver/40 md:bottom-8">
+        <motion.div
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 text-silver/40 md:bottom-8"
+          initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduceMotion ? 0 : 0.55, ease: EASE_SNAPPY, delay: reduceMotion ? 0 : 0.85 }}
+        >
           <span className="mx-auto block h-12 w-px animate-pulse bg-current" />
-        </div>
+        </motion.div>
       </section>
 
-      <VoyagerWorldwideScrollSection
-        slides={FIREBALL_COUNTRY_SLIDES}
-        eyebrow="Global footprint"
-        heading="Trusted worldwide"
-        description="From Korea to the Americas, Europe, the Middle East, and the Pacific — Fireball is chosen wherever finish, durability, and professional results matter."
-      />
-
       <div className="bg-carbon-950">
-        <ProductCategoryLineup />
-        <HomeCollectionSection config={homeCollection} />
+        <motion.div {...scrollFromLeft}>
+          <ProductCategoryLineup />
+        </motion.div>
+        <motion.div {...scrollScale}>
+          <HomeCollectionSection config={homeCollection} />
+        </motion.div>
+
+        <motion.div {...scrollBlurIn}>
+          <VoyagerWorldwideScrollSection
+            slides={FIREBALL_COUNTRY_SLIDES}
+            eyebrow="Global footprint"
+            heading="Trusted worldwide"
+            description="From Korea to the Americas, Europe, the Middle East, and the Pacific — Fireball is chosen wherever finish, durability, and professional results matter."
+          />
+        </motion.div>
 
         <section className="bg-white py-16 sm:py-20">
-          <div className="mx-auto max-w-7xl px-4 md:px-6">
-            <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-              <h2 className="font-sans text-3xl font-bold tracking-tight text-carbon-900 md:text-5xl">
+          <motion.div className="mx-auto max-w-7xl px-4 md:px-6" {...scrollUp}>
+            <motion.div
+              className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between"
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.2 }}
+              variants={{
+                hidden: {},
+                show: {
+                  transition: { staggerChildren: reduceMotion ? 0 : 0.08, delayChildren: reduceMotion ? 0 : 0.06 },
+                },
+              }}
+            >
+              <motion.h2
+                variants={{
+                  hidden: { opacity: reduceMotion ? 1 : 0, x: reduceMotion ? 0 : -24 },
+                  show: {
+                    opacity: 1,
+                    x: 0,
+                    transition: { duration: reduceMotion ? 0 : 0.55, ease: EASE_SNAPPY },
+                  },
+                }}
+                className="font-sans text-3xl font-bold tracking-tight text-carbon-900 md:text-5xl"
+              >
                 Our next events
-              </h2>
-              <div className="flex items-center gap-4 text-carbon-900 sm:gap-6">
+              </motion.h2>
+              <motion.div
+                variants={{
+                  hidden: { opacity: reduceMotion ? 1 : 0, x: reduceMotion ? 0 : 28 },
+                  show: {
+                    opacity: 1,
+                    x: 0,
+                    transition: { duration: reduceMotion ? 0 : 0.55, ease: EASE_SNAPPY },
+                  },
+                }}
+                className="flex items-center gap-4 text-carbon-900 sm:gap-6"
+              >
                 {[
                   { label: 'D', value: countdown.days },
                   { label: 'H', value: countdown.hours },
                   { label: 'M', value: countdown.minutes },
                   { label: 'S', value: countdown.seconds },
-                ].map((item) => (
-                  <div key={item.label} className="text-center">
+                ].map((item, i) => (
+                  <motion.div
+                    key={item.label}
+                    variants={{
+                      hidden: { opacity: reduceMotion ? 1 : 0, y: reduceMotion ? 0 : 20 },
+                      show: {
+                        opacity: 1,
+                        y: 0,
+                        transition: {
+                          duration: reduceMotion ? 0 : 0.45,
+                          ease: EASE_SNAPPY,
+                          delay: reduceMotion ? 0 : 0.05 * i,
+                        },
+                      },
+                    }}
+                    className="text-center"
+                  >
                     <div className="font-nav text-xl font-bold tabular-nums sm:text-2xl">
                       {String(item.value).padStart(2, '0')}
                     </div>
                     <div className="text-[10px] uppercase tracking-[0.18em] text-carbon-500">{item.label}</div>
-                  </div>
+                  </motion.div>
                 ))}
-              </div>
-            </div>
-          </div>
-          <div className="mx-auto mt-8 max-w-7xl px-4 md:px-6">
+              </motion.div>
+            </motion.div>
+          </motion.div>
+          <motion.div className="mx-auto mt-8 max-w-7xl px-4 md:px-6" {...scrollFromRight}>
             <div className="overflow-hidden rounded-2xl border border-carbon-200 bg-white">
               <div className="relative aspect-[16/7] min-h-[260px] sm:min-h-[320px]">
-                <img
+                <motion.img
                   src={nextEvent.imageSrc}
                   alt={nextEvent.title}
                   className="absolute inset-0 h-full w-full object-cover"
+                  initial={reduceMotion ? false : { scale: 1.06, opacity: 0.85 }}
+                  whileInView={{ scale: 1, opacity: 1 }}
+                  viewport={{ once: true, amount: 0.35 }}
+                  transition={{ duration: reduceMotion ? 0 : 0.9, ease: EASE_PREMIUM }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/20 to-black/10" aria-hidden />
 
                 <div className="absolute inset-x-0 bottom-0 z-10 p-5 sm:p-6">
-                  <h3 className="font-nav text-4xl font-bold text-white sm:text-4xl">{nextEvent.title}</h3>
-                  <p className="mt-1 text-white/80">{nextEvent.location}</p>
-                  <div className="mt-5">
+                  <motion.h3
+                    className="font-nav text-4xl font-bold text-white sm:text-4xl"
+                    initial={reduceMotion ? false : { opacity: 0, y: 22 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.5 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.5, ease: EASE_SNAPPY, delay: reduceMotion ? 0 : 0.08 }}
+                  >
+                    {nextEvent.title}
+                  </motion.h3>
+                  <motion.p
+                    className="mt-1 text-white/80"
+                    initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.45 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.45, ease: EASE_SNAPPY, delay: reduceMotion ? 0 : 0.16 }}
+                  >
+                    {nextEvent.location}
+                  </motion.p>
+                  <motion.div
+                    className="mt-5"
+                    initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.4 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.5, ease: EASE_SNAPPY, delay: reduceMotion ? 0 : 0.24 }}
+                  >
                     <div className="relative flex w-full items-center gap-2">
                       <SecondaryClipButton to={nextEvent.href} idleTextClass="text-white" hoverTextClass="text-black">
                         See event details
@@ -394,13 +568,13 @@ export function Home() {
                         )}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         </section>
       </div>
-    </main>
+    </motion.main>
   )
 }
