@@ -10,7 +10,15 @@ export function LenisRoot({ children }: { children: ReactNode }) {
   const location = useLocation()
 
   useEffect(() => {
-    // Safari mobile est sensible aux boucles de smooth-scroll (risque de crash/reload).
+    // Garde-fou global mobile : on désactive Lenis pour éviter les boucles/crash
+    // observées sur certains navigateurs mobiles (même hors Safari).
+    const isMobileViewport = window.matchMedia('(max-width: 1023px)').matches
+    if (isMobileViewport) {
+      setLenis(null)
+      return
+    }
+
+    // Safari iOS reste explicitement exclu.
     const ua = navigator.userAgent
     const isIOS = /iPad|iPhone|iPod/.test(ua)
     const isSafari = /^((?!chrome|android).)*safari/i.test(ua)

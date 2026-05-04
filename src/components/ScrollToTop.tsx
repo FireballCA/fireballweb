@@ -27,16 +27,11 @@ export function ScrollToTop() {
 
     run()
     const t0 = window.setTimeout(run, 0)
-    let raf2 = 0
-    const raf1 = requestAnimationFrame(() => {
-      run()
-      raf2 = requestAnimationFrame(run)
-    })
+    const t1 = window.setTimeout(run, 120)
 
     return () => {
       clearTimeout(t0)
-      cancelAnimationFrame(raf1)
-      cancelAnimationFrame(raf2)
+      clearTimeout(t1)
     }
   }, [location.pathname, location.search, location.hash, location.key])
 

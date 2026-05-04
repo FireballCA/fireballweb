@@ -14,12 +14,10 @@ if (FORCE_FULL_SITE_MOTION && typeof document !== 'undefined') {
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <LenisRoot>
-        <ScrollToTop />
-        <App />
-      </LenisRoot>
-    </BrowserRouter>
-  </React.StrictMode>,
+  <BrowserRouter>
+    <LenisRoot>
+      <ScrollToTop />
+      <App />
+    </LenisRoot>
+  </BrowserRouter>,
 )
