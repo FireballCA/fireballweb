@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ProductCategoryLineup } from '@/components/ProductCategoryLineup'
+import { LenisContext } from '@/components/LenisRoot'
 import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 import { cn } from '@/lib/utils'
 import { usePageTitle } from '@/hooks/usePageTitle'
 
-/**
- * Baseline landing : hero uniquement (debug refresh / cache).
- * Réintroduire les sections une par une au-dessous de cette section.
- */
+/** Landing incrémentale : hero + sections réactivées une par une (debug refresh). */
 export function Home() {
+  const lenis = useContext(LenisContext)
   usePageTitle('Fireball Canada')
 
   const [isMobileViewport, setIsMobileViewport] = useState(false)
@@ -22,6 +22,16 @@ export function Home() {
   }, [])
 
   const heroLite = isMobileViewport
+
+  const scrollToProductLineup = useCallback(() => {
+    const el = document.getElementById('product-lineup')
+    if (!el) return
+    if (lenis) {
+      lenis.scrollTo(el, { offset: -96, duration: 1.15 })
+    } else {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [lenis])
 
   return (
     <main className="relative min-h-0 overflow-x-hidden bg-carbon-950 text-white">
@@ -82,15 +92,16 @@ export function Home() {
                     heroLite ? '' : 'hero-ground-text hero-ground-text--delay-3',
                   )}
                 >
-                  <Link
-                    to="/shop"
+                  <button
+                    type="button"
+                    onClick={scrollToProductLineup}
                     className={cn(
                       'inline-flex w-full cursor-pointer items-center justify-center whitespace-nowrap max-md:min-h-[48px] max-md:px-6 max-md:py-3 max-md:text-sm md:w-auto',
                       appleButtonVisualClassName,
                     )}
                   >
                     Explore Products
-                  </Link>
+                  </button>
                   <Link
                     to="/event"
                     className="inline-flex w-full items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-white/15 md:w-auto"
@@ -107,6 +118,10 @@ export function Home() {
           <span className="mx-auto block h-12 w-px animate-pulse bg-current" />
         </div>
       </section>
+
+      <div className="bg-carbon-950">
+        <ProductCategoryLineup />
+      </div>
     </main>
   )
 }
