@@ -115,12 +115,14 @@ function IconLock() {
 
 const BADGE_SIZE_EXPANDED = 170
 const BADGE_SIZE_COLLAPSED = 290
-const SHEET_TOP = 348              // zone blanche hero (XP + badge) — un peu plus haut après correction navbar
+const SHEET_TOP = 324              // menu remonté pour éviter d'avoir à scroller la page
 const PEEK_PX = 72
 const SNAP_THRESHOLD = 60
 /** Sous la navbar fixe : le conteneur dashboard commence déjà sous le spacer Layout ; petit offset suffit */
 const STICKY_BAR_TOP = 14
 const SIDE_PADDING = 20           // matches px-5 on buttons
+const TIER_BADGES_PRELOAD_COOKIE = 'fb_tier_badges_preloaded'
+const TIER_BADGES_PRELOAD_COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // 30 jours
 
 const MOBILE_TIERS = [
   {
@@ -365,9 +367,61 @@ export function MobileDashboard({
     maxSheetYRef.current = computeMaxY()
     applySheetTransform(0, false)
 
-    const prev = document.body.style.overflow
+    const prevBodyOverflow = document.body.style.overflow
+    const prevHtmlOverflow = document.documentElement.style.overflow
+    const scrollRoot = document.getElementById('app-scroll-root') as HTMLElement | null
+    const prevScrollRootOverflow = scrollRoot?.style.overflowY ?? ''
+    const prevScrollRootTouchAction = scrollRoot?.style.touchAction ?? ''
+
+    // Bloquer le scroll de page : seule la zone "avantages" reste scrollable.
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
+    document.documentElement.style.overflow = 'hidden'
+    if (scrollRoot) {
+      scrollRoot.style.overflowY = 'hidden'
+      scrollRoot.style.touchAction = 'none'
+    }
+    return () => {
+      document.body.style.overflow = prevBodyOverflow
+      document.documentElement.style.overflow = prevHtmlOverflow
+      if (scrollRoot) {
+        scrollRoot.style.overflowY = prevScrollRootOverflow
+        scrollRoot.style.touchAction = prevScrollRootTouchAction
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    // Précharge tous les badges tiers au chargement du dashboard.
+    // Le cookie sert de flag persistant ; les images restent ensuite en cache navigateur.
+    let cancelled = false
+    const preload = async () => {
+      const tasks = MOBILE_TIERS.map(
+        (tierItem) =>
+          new Promise<void>((resolve) => {
+            const img = new Image()
+            img.decoding = 'async'
+            img.onload = () => resolve()
+            img.onerror = () => resolve()
+            img.src = tierItem.badgeSrc
+            if (img.complete) resolve()
+          }),
+      )
+      await Promise.all(tasks)
+      if (cancelled) return
+      document.cookie = `${TIER_BADGES_PRELOAD_COOKIE}=1; max-age=${TIER_BADGES_PRELOAD_COOKIE_MAX_AGE}; path=/; samesite=lax`
+    }
+
+    const hasPreloadedCookie = document.cookie.includes(`${TIER_BADGES_PRELOAD_COOKIE}=1`)
+    if (hasPreloadedCookie) {
+      void preload()
+      return () => {
+        cancelled = true
+      }
+    }
+    void preload()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -682,9 +736,9 @@ export function MobileDashboard({
           <div className="rounded-full bg-white/30" style={{ width: 96, height: 6 }} />
         </div>
 
-        {/* Scrollable nav content */}
-        <div className="overflow-y-auto" style={{ maxHeight: `calc(100dvh - ${SHEET_TOP + 44}px)`, touchAction: 'pan-y' }}>
-          <div className="px-5 pb-20 flex flex-col gap-2.5" style={{ paddingTop: 16 }}>
+        {/* Menu fixe (non-scroll) */}
+        <div className="overflow-hidden" style={{ maxHeight: `calc(100dvh - ${SHEET_TOP + 44}px)`, touchAction: 'none' }}>
+          <div className="px-5 pb-8 flex flex-col gap-2.5" style={{ paddingTop: 8 }}>
             <a
               href={SHOPIFY_CUSTOMER_ORDERS_URL}
               target="_blank"
