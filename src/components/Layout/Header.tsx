@@ -187,6 +187,17 @@ export function Header() {
   const [headerAvatarUrl, setHeaderAvatarUrl] = useState<string | null>(null)
   const [headerUserInitial, setHeaderUserInitial] = useState<string | null>(null)
   const [headerUserName, setHeaderUserName] = useState<string | null>(null)
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < 1024 : false,
+  )
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)')
+    const sync = () => setIsMobileViewport(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -229,6 +240,7 @@ export function Header() {
   }, [])
 
   const showAccountNotifBang = loggedInForNotif && headerUnreadNotif && !isDashboardPage
+  const isSafeMobileHome = isMobileViewport && location.pathname === '/' && loggedInForNotif
 
   const isShopPage = isShopPathname(location.pathname)
   const isProductPage =
@@ -297,6 +309,13 @@ export function Header() {
 
   // Load announcement settings
   useEffect(() => {
+    if (isSafeMobileHome) {
+      setBanners([])
+      return () => {
+        // Cleanup toujours retourné pour éviter l'erreur React #310
+      }
+    }
+
     const loadAnnouncements = async () => {
       try {
         const { data, error } = await supabase
@@ -312,8 +331,6 @@ export function Header() {
 
         if (data?.value) {
           const settings = data.value as any
-          console.log('Loaded announcement settings:', settings)
-
           // New multi-banners
           if (Array.isArray(settings.navbar_banners) && settings.navbar_banners.length > 0) {
             setBanners(
@@ -347,24 +364,18 @@ export function Header() {
           
           // Use the saved values, or fallback to defaults only if they are null/undefined
           if (settings.featured_collection_name !== null && settings.featured_collection_name !== undefined) {
-            console.log('Setting featured name from DB:', settings.featured_collection_name)
             setFeaturedName(settings.featured_collection_name)
           } else {
-            console.log('Using default featured name')
             setFeaturedName('Featured Collection')
           }
           
           if (settings.featured_collection_description !== null && settings.featured_collection_description !== undefined) {
-            console.log('Setting featured description from DB:', settings.featured_collection_description)
             setFeaturedDescription(settings.featured_collection_description)
           } else {
-            console.log('Using default featured description')
             setFeaturedDescription('Découvrez notre sélection premium de produits haut de gamme')
           }
           
           setFeaturedImage(settings.featured_collection_image || null)
-        } else {
-          console.log('No announcement settings found in database, using defaults')
         }
       } catch (err) {
         console.error('Error loading announcements:', err)
@@ -384,17 +395,18 @@ export function Header() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
+  }, [isSafeMobileHome])
 
   // Rotation (only among active banners)
   useEffect(() => {
+    if (isSafeMobileHome) return
     if (!bannerActive) return
     if (activeBanners.length <= 1) return
     const id = window.setInterval(() => {
       setBannerIndex((i) => (i + 1) % activeBanners.length)
     }, 6500)
     return () => window.clearInterval(id)
-  }, [bannerActive, activeBanners.length])
+  }, [bannerActive, activeBanners.length, isSafeMobileHome])
 
   // Keep this ref synced for potential future interactions tied to scroll direction.
   useEffect(() => {
@@ -402,6 +414,13 @@ export function Header() {
   }, [location.pathname])
 
   useEffect(() => {
+    if (isSafeMobileHome) {
+      setSearchableProducts(PRODUCTS)
+      return () => {
+        // Cleanup toujours retourné pour éviter l'erreur React #310
+      }
+    }
+
     let cancelled = false
 
     const loadSearchProducts = async () => {
@@ -421,7 +440,7 @@ export function Header() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [isSafeMobileHome])
 
   useEffect(() => {
     if (menuOpen || shopOpen || ceramicOpen || companyOpen || searchOpen || langOpen) {
