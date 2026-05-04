@@ -619,7 +619,6 @@ export function AccountDashboard() {
   } | null>(null)
   const dashboardNotificationsRef = useRef<HTMLElement | null>(null)
   const [demoNotificationsDismissed, setDemoNotificationsDismissed] = useState(false)
-  const [slidePillVisible, setSlidePillVisible] = useState(false)
   const [adminXpSnapSaving, setAdminXpSnapSaving] = useState(false)
   const [dismissedNotificationIds, setDismissedNotificationIds] = useState<string[]>([])
 
@@ -732,22 +731,8 @@ export function AccountDashboard() {
   }, [notifications, dismissedNotificationIds])
 
   useEffect(() => {
-    if (notificationCount === 0) {
-      setSlidePillVisible(false)
-      return
-    }
-    setSlidePillVisible(true)
-    const id = window.setTimeout(() => setSlidePillVisible(false), 5000)
-    return () => window.clearTimeout(id)
-  }, [notificationCount])
-
-  useEffect(() => {
     broadcastUnreadNotifications(notificationCount > 0)
   }, [notificationCount])
-
-  const scrollToDashboardNotifications = () => {
-    dashboardNotificationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
 
   const clearSingleNotification = async (id: string) => {
     if (isDemoNotificationId(id)) {
@@ -1347,40 +1332,6 @@ export function AccountDashboard() {
 
       {showDashboard && (
         <div className="w-full relative bg-white">
-          {slidePillVisible && notificationCount > 0 && (
-            <div className="pointer-events-none fixed inset-x-0 top-0 z-[92] flex justify-end px-4 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-8">
-              <button
-                type="button"
-                onClick={scrollToDashboardNotifications}
-                className="fb-dashboard-notif-slide-pill pointer-events-auto flex max-w-[min(100%,22rem)] items-center gap-2.5 rounded-full border border-black/[0.08] bg-white px-4 py-2.5 text-left text-[13px] font-medium leading-snug text-[#171717] shadow-[0_8px_28px_rgba(0,0,0,0.1)] transition hover:border-black/[0.12] hover:shadow-[0_10px_32px_rgba(0,0,0,0.12)]"
-                aria-label="View notifications on dashboard"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e9e9eb] text-[#1d1d1f]">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width={24}
-                    height={24}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5 shrink-0"
-                    aria-hidden
-                  >
-                    <path d="M10.268 21a2 2 0 0 0 3.464 0" />
-                    <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" />
-                  </svg>
-                </span>
-                <span>
-                  {notificationCount === 1
-                    ? 'You have a new notification'
-                    : `You have ${notificationCount} new notifications`}
-                </span>
-              </button>
-            </div>
-          )}
           {shopifySyncWarning && (
             <div className="max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16 pt-6">
               <div className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-amber-200 text-sm">

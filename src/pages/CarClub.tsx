@@ -123,7 +123,7 @@ export function CarClub() {
       <section
         className={cn(
           'relative flex flex-col overflow-hidden bg-black',
-          'max-md:h-[min(92dvh,var(--app-hero-h))] max-md:min-h-[min(92dvh,var(--app-hero-h))]',
+          'max-md:h-[min(78dvh,var(--app-hero-h))] max-md:min-h-[min(78dvh,var(--app-hero-h))]',
           'md:h-[min(88vh,var(--app-hero-h))] md:min-h-[min(680px,var(--app-hero-h))] md:max-h-[var(--app-hero-h)]',
         )}
       >
@@ -154,8 +154,8 @@ export function CarClub() {
         <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/2 bg-[linear-gradient(to_left,#000_0%,#000_60%,transparent_100%)] md:block" />
         <div className="absolute inset-x-0 bottom-0 h-48 bg-[linear-gradient(to_bottom,rgba(0,0,0,0)_0%,rgba(0,0,0,0.35)_42%,rgba(0,0,0,0.82)_100%)] md:h-64 md:bg-[linear-gradient(to_bottom,rgba(0,0,0,0)_0%,rgba(0,0,0,0.45)_52%,#000_100%)]" />
 
-        <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col justify-center px-5 pb-20 pt-16 sm:px-6 md:justify-end md:pb-36 md:pt-16">
-          <div className="mx-auto flex w-full max-w-[90rem] flex-col items-center gap-8 text-center md:flex-row md:items-end md:justify-between md:gap-12 md:text-left">
+        <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col justify-center px-5 pb-10 pt-12 sm:px-6 md:justify-end md:pb-36 md:pt-16">
+          <div className="mx-auto flex w-full max-w-[90rem] flex-col items-center gap-6 text-center md:flex-row md:items-end md:justify-between md:gap-12 md:text-left">
             <motion.h1
               className="max-w-xl shrink-0 pb-[0.15em] font-nav text-[clamp(1.85rem,6.5vw,2.25rem)] font-bold leading-[1.15] tracking-tight text-balance sm:text-5xl sm:leading-[1.18] md:max-w-lg md:self-start md:text-6xl md:leading-[1.16] lg:text-7xl lg:leading-[1.14] bg-gradient-to-r from-[#d4d4d4] via-[#7a7a7a] to-[#1a1a1a] bg-clip-text text-transparent [-webkit-text-fill-color:transparent]"
               variants={fadeUp}
@@ -166,7 +166,7 @@ export function CarClub() {
               {t('carClub.heroTitle')}
             </motion.h1>
             <motion.div
-              className="flex w-full max-w-lg shrink-0 flex-col items-center gap-6 text-center md:max-w-none md:w-auto md:items-end md:gap-6 md:text-right"
+              className="flex w-full max-w-lg shrink-0 flex-col items-center gap-4 text-center md:max-w-none md:w-auto md:items-end md:gap-6 md:text-right"
               variants={fadeUp}
               custom={0.55}
               initial="hidden"
@@ -179,10 +179,7 @@ export function CarClub() {
                 <a
                   href="#membership"
                   onClick={scrollToMembershipCards}
-                  className={cn(
-                    appleButtonVisualClassName,
-                    'inline-flex justify-center max-md:min-h-[48px] max-md:px-6 max-md:py-3 max-md:text-sm',
-                  )}
+                  className={cn(appleButtonVisualClassName, 'inline-flex justify-center')}
                 >
                   {t('carClub.exploreMembership')}
                 </a>
@@ -195,7 +192,7 @@ export function CarClub() {
         </div>
       </section>
 
-      <section id="membership" className="scroll-mt-24 bg-black pb-24 pt-16 md:pt-20">
+      <section id="membership" className="scroll-mt-24 bg-black pb-24 pt-8 md:pt-20">
         <div className="mx-auto max-w-7xl px-6 md:px-10">
           <motion.div
             className="flex justify-center pointer-events-none select-none"
