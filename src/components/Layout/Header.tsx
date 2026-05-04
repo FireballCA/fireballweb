@@ -187,31 +187,7 @@ export function Header() {
   const [headerAvatarUrl, setHeaderAvatarUrl] = useState<string | null>(null)
   const [headerUserInitial, setHeaderUserInitial] = useState<string | null>(null)
   const [headerUserName, setHeaderUserName] = useState<string | null>(null)
-  const [isMobileViewport, setIsMobileViewport] = useState(
-    typeof window !== 'undefined' ? window.innerWidth < 1024 : false,
-  )
-
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 1023px)')
-    const sync = () => setIsMobileViewport(mq.matches)
-    sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
-  }, [])
-
-  const isMobileHomeRoute = isMobileViewport && location.pathname === '/'
-
-  useEffect(() => {
-    if (isMobileHomeRoute) {
-      setLoggedInForNotif(false)
-      setHeaderAvatarUrl(null)
-      setHeaderUserInitial(null)
-      setHeaderUserName(null)
-      return () => {
-        // Cleanup toujours retourné pour éviter l'erreur React #310
-      }
-    }
-
     let cancelled = false
     isAuthenticated().then(async (ok) => {
       if (!cancelled) setLoggedInForNotif(ok)
@@ -231,7 +207,7 @@ export function Header() {
     return () => {
       cancelled = true
     }
-  }, [location.pathname, isMobileHomeRoute])
+  }, [location.pathname])
 
   useEffect(() => {
     const onAvatarUpdate = (e: Event) => {
@@ -252,7 +228,6 @@ export function Header() {
   }, [])
 
   const showAccountNotifBang = loggedInForNotif && headerUnreadNotif && !isDashboardPage
-  const isSafeMobileHome = isMobileHomeRoute
 
   const isShopPage = isShopPathname(location.pathname)
   const isProductPage =
@@ -321,13 +296,6 @@ export function Header() {
 
   // Load announcement settings
   useEffect(() => {
-    if (isSafeMobileHome) {
-      setBanners([])
-      return () => {
-        // Cleanup toujours retourné pour éviter l'erreur React #310
-      }
-    }
-
     const loadAnnouncements = async () => {
       try {
         const { data, error } = await supabase
@@ -407,18 +375,17 @@ export function Header() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [isSafeMobileHome])
+  }, [])
 
   // Rotation (only among active banners)
   useEffect(() => {
-    if (isSafeMobileHome) return
     if (!bannerActive) return
     if (activeBanners.length <= 1) return
     const id = window.setInterval(() => {
       setBannerIndex((i) => (i + 1) % activeBanners.length)
     }, 6500)
     return () => window.clearInterval(id)
-  }, [bannerActive, activeBanners.length, isSafeMobileHome])
+  }, [bannerActive, activeBanners.length])
 
   // Keep this ref synced for potential future interactions tied to scroll direction.
   useEffect(() => {
@@ -426,13 +393,6 @@ export function Header() {
   }, [location.pathname])
 
   useEffect(() => {
-    if (isSafeMobileHome) {
-      setSearchableProducts(PRODUCTS)
-      return () => {
-        // Cleanup toujours retourné pour éviter l'erreur React #310
-      }
-    }
-
     let cancelled = false
 
     const loadSearchProducts = async () => {
@@ -452,7 +412,7 @@ export function Header() {
     return () => {
       cancelled = true
     }
-  }, [isSafeMobileHome])
+  }, [])
 
   useEffect(() => {
     if (menuOpen || shopOpen || ceramicOpen || companyOpen || searchOpen || langOpen) {

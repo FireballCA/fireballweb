@@ -32,8 +32,7 @@ export function Layout() {
     return () => mq.removeEventListener('change', h)
   }, [])
 
-  const isMobileHomeRoute = isMobile && location.pathname === '/'
-  const showHeader = !isAccountAuthPage && !isMobileHomeRoute
+  const showHeader = !isAccountAuthPage
   const showFooter = !isAnyAccountPage && !isContactPage
 
   /** Lenis + longues pages compte (dashboard, etc.) : scroll natif sur #app-scroll-root pour éviter blocages molette. */
