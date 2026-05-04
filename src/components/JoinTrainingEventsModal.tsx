@@ -1,8 +1,8 @@
 import { useCallback, useContext, useEffect, useId, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { LenisContext } from '@/components/LenisRoot'
 import { AppleButton, appleButtonVisualClassName } from '@/components/ui/AppleButton'
+import { AppleSheet } from '@/components/ui/AppleSheet'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 import { generatePreviewStripeOrderId, sendTrainingRegistrationEmail } from '@/utils/trainingRegistrationEmail'
@@ -39,7 +39,6 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
   const navigate = useNavigate()
   const lenis = useContext(LenisContext)
   const baseId = useId()
-  const titleId = `${baseId}-title`
   const [step, setStep] = useState<Step>(1)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [selectedSessionId, setSelectedSessionId] = useState<string>('')
@@ -112,7 +111,6 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
     })
   }, [open, profile?.id])
 
-  /** Lenis intercepte la molette sur toute la page — on le suspend pour que le scroll natif fonctionne dans le modal. */
   useEffect(() => {
     if (!open) return
     lenis?.stop()
@@ -120,33 +118,6 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
       lenis?.start()
     }
   }, [open, lenis])
-
-  /** Bloque le scroll du document derrière le modal. */
-  useEffect(() => {
-    if (!open) return
-    const scrollY = window.scrollY
-    const html = document.documentElement
-    const body = document.body
-    const prevHtmlOverflow = html.style.overflow
-    const prevBodyOverflow = body.style.overflow
-    const prevBodyPosition = body.style.position
-    const prevBodyTop = body.style.top
-    const prevBodyWidth = body.style.width
-    html.style.overflow = 'hidden'
-    body.style.overflow = 'hidden'
-    body.style.position = 'fixed'
-    body.style.top = `-${scrollY}px`
-    body.style.width = '100%'
-
-    return () => {
-      html.style.overflow = prevHtmlOverflow
-      body.style.overflow = prevBodyOverflow
-      body.style.position = prevBodyPosition
-      body.style.top = prevBodyTop
-      body.style.width = prevBodyWidth
-      window.scrollTo(0, scrollY)
-    }
-  }, [open])
 
   useEffect(() => {
     if (!open) {
@@ -161,23 +132,14 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
     }
   }, [open, step, profile])
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
-
-  /** Prénom pour « Hi, … » (discret) ; repli sur la partie locale de l’email. */
   const greetingFirstName = profile
     ? profile.first_name?.trim() || profile.email?.split('@')[0]?.trim() || null
     : null
 
   const inputClass =
-    'w-full rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500 lg:px-3 lg:py-2.5 lg:text-sm'
-  const labelClass = 'mb-0.5 block text-xs font-medium text-carbon-700 lg:mb-1 lg:text-sm'
+    'w-full rounded-[14px] border-0 bg-[#f2f2f7] px-3.5 py-3 text-[15px] leading-snug text-[#1d1d1f] placeholder:text-neutral-400 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)] transition-shadow focus:outline-none focus:shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06),0_0_0_3px_rgba(4,133,247,0.28)] sm:py-3.5'
+  const labelClass = 'mb-1.5 block text-[13px] font-medium text-neutral-600'
+  const sectionLabelClass = 'text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-500'
 
   const formValid =
     !!selectedSessionId &&
@@ -258,306 +220,283 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
     }
   }
 
-  if (!open) return null
+  const sheetTitle = step === 1 ? 'Request a future training session' : 'Review your request'
 
-  const node = (
-    <div
-      className="fixed inset-0 z-[10050] flex items-center justify-center p-3 font-sans sm:p-5"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
+  return (
+    <AppleSheet
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose()
+      }}
+      title={sheetTitle}
+      zIndex={100_050}
+      avoidHeaderOffset
+      avoidHeaderOffsetDesktopOnly
+      desktopWidthClassName="max-w-[min(92vw,56rem)]"
     >
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/50 backdrop-blur-md"
-        aria-label="Fermer"
-        onClick={onClose}
-      />
-      <div
-        className={cn(
-          'relative z-10 flex max-h-[min(96vh,920px)] w-full max-w-[min(96vw,920px)] min-h-[min(70vh,640px)] flex-col overflow-hidden rounded-2xl border border-carbon-200 bg-white text-carbon-900 shadow-[0_24px_80px_rgba(0,0,0,0.12)]',
-        )}
-      >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-carbon-200 px-5 py-4 sm:px-7 sm:py-5">
-          <div className="min-w-0 pr-2">
-            <h2 id={titleId} className="text-xl font-bold tracking-tight text-carbon-900 sm:text-2xl md:text-3xl">
-              {step === 1 ? 'Request a future training session' : 'Review your request'}
-            </h2>
-            {step === 2 ? (
-              <p className="mt-1 text-xs text-carbon-500">
-                No payment is taken here. The Fireball Canada team will review your request and notify you by email if it is approved or declined.
-              </p>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            {greetingFirstName ? (
-              <span className="max-w-[min(200px,46vw)] text-right text-[11px] leading-snug sm:max-w-[220px] sm:text-xs">
-                <span className="font-normal text-carbon-400">Hi,</span>{' '}
-                <span className="font-medium tracking-tight text-carbon-600">{greetingFirstName}</span>
-              </span>
-            ) : null}
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-carbon-300 text-carbon-700 transition hover:bg-carbon-100"
-              aria-label="Close"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-        </div>
+      <div className="px-3 pb-5 pt-0 font-sans sm:px-4 sm:pb-6">
+        {greetingFirstName ? (
+          <p className="mb-3 text-[12px] leading-snug text-neutral-500">
+            <span className="text-neutral-400">Hi,</span>{' '}
+            <span className="font-medium text-neutral-700">{greetingFirstName}</span>
+          </p>
+        ) : null}
 
-        <div
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6 sm:px-7 sm:py-8 [touch-action:pan-y]"
-          onWheelCapture={(e) => {
-            e.stopPropagation()
-          }}
-        >
-          {step === 1 ? (
-            <>
-              <p className="text-sm leading-relaxed text-carbon-600">
-                {profile ? (
-                  <>
-                    You are submitting a <strong className="font-semibold text-carbon-800">request</strong> to attend a future Fireball Academy training session — not a live checkout.{' '}
-                    <strong className="font-semibold text-carbon-800">You are not charged today.</strong> Fireball Canada will review your request and{' '}
-                    <strong className="font-semibold text-carbon-800">approve or decline</strong> it. Choose a session, complete the form, then use{' '}
-                    <strong className="font-semibold text-carbon-800">Next steps</strong> to review and send your request.
-                  </>
-                ) : (
-                  <>
-                    Choose a session and sign in with <strong className="font-semibold text-carbon-800">Connection</strong>. This form submits a{' '}
-                    <strong className="font-semibold text-carbon-800">request</strong> for a future training — there is no payment on this screen.{' '}
-                    <strong className="font-semibold text-carbon-800">Next steps</strong> is available once you are signed in and the form is complete.
-                  </>
-                )}
-              </p>
+        {step === 2 ? (
+          <p className="mb-5 text-[13px] leading-relaxed text-neutral-500">
+            No payment is taken here. The Fireball Canada team will review your request and notify you by email if it is approved or declined.
+          </p>
+        ) : null}
 
-              <fieldset className="fb-training-session-picker mt-8">
-                <legend className="text-xs font-semibold uppercase tracking-wider text-carbon-500">Training date</legend>
-                <div className="mt-3 divide-y divide-carbon-200 overflow-hidden rounded-lg border border-carbon-200">
-                  {trainingSessions.map((opt) => {
-                    const inputId = `${baseId}-session-${opt.id}`
-                    return (
-                      <label
-                        key={opt.id}
-                        htmlFor={inputId}
-                        className="flex cursor-pointer items-start gap-3 bg-white px-4 py-3 outline-none transition hover:bg-carbon-50 focus-within:outline-none sm:px-5 sm:py-4"
-                      >
-                        <input
-                          id={inputId}
-                          type="radio"
-                          name={`${baseId}-training-session`}
-                          value={opt.id}
-                          checked={selectedSessionId === opt.id}
-                          onChange={() => setSelectedSessionId(opt.id)}
-                          className="mt-1 h-4 w-4 shrink-0 cursor-pointer border-carbon-300 accent-[#0485F7] shadow-none outline-none ring-0 ring-offset-0 focus:outline-none focus:shadow-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="block font-semibold text-carbon-900">{opt.label}</span>
-                          {opt.hint ? <span className="mt-0.5 block text-sm text-carbon-600">{opt.hint}</span> : null}
-                        </span>
-                      </label>
-                    )
-                  })}
-                </div>
-              </fieldset>
-
+        {step === 1 ? (
+          <>
+            <p className="text-[15px] leading-relaxed text-neutral-600">
               {profile ? (
-                <div className="mt-10 rounded-xl border border-carbon-200/90 bg-carbon-50/95 px-4 py-4 sm:px-5">
-                  <p className="text-sm font-medium text-carbon-900">Account</p>
-                  <p className="mt-1 text-sm text-carbon-600">
-                    You are signed in. Continue with your training request below.
-                  </p>
-                  <div className="mt-4">
-                    <span
-                      aria-disabled
+                <>
+                  You are submitting a <strong className="font-semibold text-neutral-800">request</strong> to attend a future Fireball Academy training session — not a live checkout.{' '}
+                  <strong className="font-semibold text-neutral-800">You are not charged today.</strong> Fireball Canada will review your request and{' '}
+                  <strong className="font-semibold text-neutral-800">approve or decline</strong> it. Choose a session, complete the form, then use{' '}
+                  <strong className="font-semibold text-neutral-800">Next steps</strong> to review and send your request.
+                </>
+              ) : (
+                <>
+                  Choose a session and sign in with <strong className="font-semibold text-neutral-800">Connection</strong>. This form submits a{' '}
+                  <strong className="font-semibold text-neutral-800">request</strong> for a future training — there is no payment on this screen.{' '}
+                  <strong className="font-semibold text-neutral-800">Next steps</strong> is available once you are signed in and the form is complete.
+                </>
+              )}
+            </p>
+
+            <fieldset className="fb-training-session-picker mt-7">
+              <legend className={sectionLabelClass}>Training date</legend>
+              <div className="mt-3 space-y-1 rounded-2xl bg-[#f2f2f7] p-1.5 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                {trainingSessions.map((opt) => {
+                  const inputId = `${baseId}-session-${opt.id}`
+                  const selected = selectedSessionId === opt.id
+                  return (
+                    <label
+                      key={opt.id}
+                      htmlFor={inputId}
                       className={cn(
-                        'inline-flex cursor-not-allowed select-none justify-center opacity-40',
-                        appleButtonVisualClassName,
+                        'flex cursor-pointer items-start gap-3 rounded-[13px] px-3.5 py-3.5 outline-none transition sm:py-4',
+                        selected
+                          ? 'bg-[#0485F7]/10 shadow-[inset_0_0_0_1px_rgba(4,133,247,0.22)]'
+                          : 'hover:bg-black/[0.03] active:bg-black/[0.05]',
                       )}
                     >
-                      Connection
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-10">
-                  <p className="text-sm font-medium text-carbon-900">Account</p>
-                  <p className="mt-1 text-sm text-carbon-600">
-                    Sign in to your Fireball account (or create one). You will be returned to this form automatically.
-                  </p>
-                  <div className="mt-4">
-                    <Link to={connectionHref} className={cn('inline-flex justify-center', appleButtonVisualClassName)}>
-                      Connection
-                    </Link>
-                  </div>
-                </div>
-              )}
+                      <input
+                        id={inputId}
+                        type="radio"
+                        name={`${baseId}-training-session`}
+                        value={opt.id}
+                        checked={selectedSessionId === opt.id}
+                        onChange={() => setSelectedSessionId(opt.id)}
+                        className="mt-1 h-4 w-4 shrink-0 cursor-pointer border-neutral-300 accent-[#0485F7] shadow-none outline-none ring-0 ring-offset-0 focus:outline-none focus:shadow-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[15px] font-semibold tracking-tight text-[#1d1d1f]">{opt.label}</span>
+                        {opt.hint ? <span className="mt-1 block text-[13px] leading-snug text-neutral-500">{opt.hint}</span> : null}
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </fieldset>
 
-              <form
-                className="mt-10 space-y-4"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  if (canGoToNextStep) setStep(2)
-                }}
-              >
-                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-500">Your details</h3>
-                {hasOngoingTrainingRequest ? (
-                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                    You already have a training request in progress for a future session. You can submit a new request after this training is completed.
-                  </p>
-                ) : null}
-
-                <div>
-                  <label htmlFor={`${baseId}-name`} className={labelClass}>
-                    Name
-                  </label>
-                  <input
-                    id={`${baseId}-name`}
-                    type="text"
-                    autoComplete="name"
-                    placeholder="Your name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor={`${baseId}-email`} className={labelClass}>
-                    Email
-                  </label>
-                  <input
-                    id={`${baseId}-email`}
-                    type="email"
-                    autoComplete="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor={`${baseId}-phone`} className={labelClass}>
-                    Phone number
-                  </label>
-                  <input
-                    id={`${baseId}-phone`}
-                    type="tel"
-                    autoComplete="tel"
-                    placeholder="+1 …"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor={`${baseId}-message`} className={labelClass}>
-                    Message
-                  </label>
-                  <textarea
-                    id={`${baseId}-message`}
-                    rows={4}
-                    placeholder="Your message…"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    className="min-h-[5rem] w-full resize-y rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500 lg:px-3 lg:py-2.5 lg:text-sm"
-                  />
-                </div>
-
-                <div className="pt-2">
-                  <AppleButton
-                    type="submit"
-                    disabled={!canGoToNextStep}
-                    className="disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-[#0485F7] disabled:hover:bg-[#0485F7]"
+            {profile ? (
+              <div className="mt-8 rounded-2xl bg-[#f2f2f7] px-4 py-4 sm:px-5 sm:py-5">
+                <p className="text-[13px] font-semibold text-[#1d1d1f]">Account</p>
+                <p className="mt-2 text-[14px] leading-relaxed text-neutral-600">
+                  You are signed in. Continue with your training request below.
+                </p>
+                <div className="mt-4">
+                  <span
+                    aria-disabled
+                    className={cn(
+                      'inline-flex cursor-not-allowed select-none justify-center opacity-40',
+                      appleButtonVisualClassName,
+                    )}
                   >
-                    Next steps
-                  </AppleButton>
-                  {!profile ? (
-                    <p className="mt-2 text-xs text-carbon-500">Sign in using Connection above to enable Next steps.</p>
-                  ) : hasOngoingTrainingRequest ? (
-                    <p className="mt-2 text-xs text-carbon-500">A request is already active for an upcoming training session.</p>
-                  ) : !formValid ? (
-                    <p className="mt-2 text-xs text-carbon-500">Complete all required fields to continue.</p>
-                  ) : null}
+                    Connection
+                  </span>
                 </div>
-              </form>
-            </>
-          ) : (
-            <div className="space-y-6">
-              <div className="space-y-3 text-sm leading-relaxed text-carbon-700">
-                <p>
-                  By submitting, you confirm that you understand this is a <strong className="font-semibold text-carbon-900">request only</strong>.{' '}
-                  Fireball Canada will email you at <strong className="font-semibold text-carbon-900">the address on file</strong> to let you know whether your request is{' '}
-                  <strong className="font-semibold text-carbon-900">approved or declined</strong>. Please check spam or junk folders.
-                </p>
-                <p>
-                  <strong className="font-semibold text-carbon-900">No payment today.</strong> If your request is approved, we will send instructions and any applicable{' '}
-                  <strong className="font-semibold text-carbon-900">training fee</strong>, taxes, and cancellation or refund terms in writing before you are asked to pay.
-                </p>
-                <p className="text-carbon-600">
-                  <strong className="font-semibold text-carbon-900">XP:</strong> experience points may be credited when your participation is confirmed after approval,{' '}
-                  according to Fireball program rules.
-                </p>
               </div>
-
-              {selectedSession ? (
-                <div className="rounded-lg border border-carbon-200 bg-carbon-50/80 px-4 py-3 text-sm text-carbon-800">
-                  <span className="font-medium text-carbon-600">Requested session</span>
-                  <p className="mt-1 font-semibold text-carbon-900">{selectedSession.label}</p>
-                  {selectedSession.hint ? <p className="text-carbon-600">{selectedSession.hint}</p> : null}
-                </div>
-              ) : null}
-
-              <div className="rounded-xl border border-carbon-200 bg-carbon-50/50 px-4 py-4 sm:px-5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-carbon-500">Indicative training fee</p>
-                <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-                  <p className="text-sm text-carbon-700">
-                    Typical program fee (before taxes){' '}
-                    <span className="font-medium tabular-nums text-carbon-900">{TRAINING_REGISTRATION_PRICE}</span>
-                  </p>
-                  <p className="text-xs font-medium text-carbon-600">
-                    +{TRAINING_REGISTRATION_XP.toLocaleString()} XP when eligible
-                  </p>
-                </div>
-                <p className="mt-3 text-[11px] leading-snug text-carbon-500">
-                  This amount is for planning only. You are not invoiced from this screen. Final pricing and taxes will be confirmed if your request is approved.
+            ) : (
+              <div className="mt-8 rounded-2xl bg-[#f2f2f7] px-4 py-4 sm:px-5 sm:py-5">
+                <p className="text-[13px] font-semibold text-[#1d1d1f]">Account</p>
+                <p className="mt-2 text-[14px] leading-relaxed text-neutral-600">
+                  Sign in to your Fireball account (or create one). You will be returned to this form automatically.
                 </p>
+                <div className="mt-4">
+                  <Link to={connectionHref} className={cn('inline-flex justify-center', appleButtonVisualClassName)}>
+                    Connection
+                  </Link>
+                </div>
               </div>
+            )}
 
-              {requestSaveError ? (
-                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
-                  {requestSaveError}
+            <form
+              className="mt-8 space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (canGoToNextStep) setStep(2)
+              }}
+            >
+              <h3 className={sectionLabelClass}>Your details</h3>
+              {hasOngoingTrainingRequest ? (
+                <p className="rounded-[14px] bg-amber-50 px-3.5 py-3 text-[14px] text-amber-900 shadow-[inset_0_0_0_1px_rgba(217,119,6,0.25)]">
+                  You already have a training request in progress for a future session. You can submit a new request after this training is completed.
                 </p>
               ) : null}
 
-              <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="inline-flex justify-center rounded-full border border-carbon-300 px-5 py-2 text-xs font-semibold text-carbon-800 transition hover:bg-carbon-100"
-                >
-                  Back
-                </button>
+              <div>
+                <label htmlFor={`${baseId}-name`} className={labelClass}>
+                  Name
+                </label>
+                <input
+                  id={`${baseId}-name`}
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label htmlFor={`${baseId}-email`} className={labelClass}>
+                  Email
+                </label>
+                <input
+                  id={`${baseId}-email`}
+                  type="email"
+                  autoComplete="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label htmlFor={`${baseId}-phone`} className={labelClass}>
+                  Phone number
+                </label>
+                <input
+                  id={`${baseId}-phone`}
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="+1 …"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label htmlFor={`${baseId}-message`} className={labelClass}>
+                  Message
+                </label>
+                <textarea
+                  id={`${baseId}-message`}
+                  rows={4}
+                  placeholder="Your message…"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  className={cn(inputClass, 'min-h-[5.5rem] resize-y')}
+                />
+              </div>
+
+              <div className="pt-2">
                 <AppleButton
-                  type="button"
-                  disabled={!profile || requestSubmitting}
-                  className="disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-[#0485F7] disabled:hover:bg-[#0485F7]"
-                  onClick={() => void handleSubmitRequest()}
+                  type="submit"
+                  disabled={!canGoToNextStep}
+                  className="min-h-[44px] w-full justify-center sm:min-h-0 sm:w-auto disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-[#0485F7] disabled:hover:bg-[#0485F7]"
                 >
-                  {requestSubmitting ? 'Sending…' : 'Submit my request'}
+                  Next steps
                 </AppleButton>
+                {!profile ? (
+                  <p className="mt-2 text-xs text-neutral-500">Sign in using Connection above to enable Next steps.</p>
+                ) : hasOngoingTrainingRequest ? (
+                  <p className="mt-2 text-xs text-neutral-500">A request is already active for an upcoming training session.</p>
+                ) : !formValid ? (
+                  <p className="mt-2 text-xs text-neutral-500">Complete all required fields to continue.</p>
+                ) : null}
               </div>
+            </form>
+          </>
+        ) : (
+          <div className="space-y-6">
+            <div className="space-y-3 text-[15px] leading-relaxed text-neutral-700">
+              <p>
+                By submitting, you confirm that you understand this is a <strong className="font-semibold text-[#1d1d1f]">request only</strong>.{' '}
+                Fireball Canada will email you at <strong className="font-semibold text-[#1d1d1f]">the address on file</strong> to let you know whether your request is{' '}
+                <strong className="font-semibold text-[#1d1d1f]">approved or declined</strong>. Please check spam or junk folders.
+              </p>
+              <p>
+                <strong className="font-semibold text-[#1d1d1f]">No payment today.</strong> If your request is approved, we will send instructions and any applicable{' '}
+                <strong className="font-semibold text-[#1d1d1f]">training fee</strong>, taxes, and cancellation or refund terms in writing before you are asked to pay.
+              </p>
+              <p className="text-neutral-600">
+                <strong className="font-semibold text-[#1d1d1f]">XP:</strong> experience points may be credited when your participation is confirmed after approval,{' '}
+                according to Fireball program rules.
+              </p>
             </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
 
-  return createPortal(node, document.body)
+            {selectedSession ? (
+              <div className="rounded-2xl bg-[#f2f2f7] px-4 py-4 text-[14px] text-neutral-800 sm:px-5">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-500">Requested session</span>
+                <p className="mt-2 font-semibold tracking-tight text-[#1d1d1f]">{selectedSession.label}</p>
+                {selectedSession.hint ? <p className="mt-1 text-neutral-600">{selectedSession.hint}</p> : null}
+              </div>
+            ) : null}
+
+            <div className="rounded-2xl bg-[#f2f2f7] px-4 py-4 sm:px-5">
+              <p className={sectionLabelClass}>Indicative training fee</p>
+              <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+                <p className="text-sm text-neutral-700">
+                  Typical program fee (before taxes){' '}
+                  <span className="font-medium tabular-nums text-[#1d1d1f]">{TRAINING_REGISTRATION_PRICE}</span>
+                </p>
+                <p className="text-xs font-medium text-neutral-600">
+                  +{TRAINING_REGISTRATION_XP.toLocaleString()} XP when eligible
+                </p>
+              </div>
+              <p className="mt-3 text-[11px] leading-snug text-neutral-500">
+                This amount is for planning only. You are not invoiced from this screen. Final pricing and taxes will be confirmed if your request is approved.
+              </p>
+            </div>
+
+            {requestSaveError ? (
+              <p
+                className="rounded-[14px] bg-red-50 px-3.5 py-3 text-[14px] text-red-800 shadow-[inset_0_0_0_1px_rgba(220,38,38,0.2)]"
+                role="alert"
+              >
+                {requestSaveError}
+              </p>
+            ) : null}
+
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-[#e8e8ed] px-6 text-[15px] font-semibold text-[#1d1d1f] transition hover:bg-[#dcdcde] active:scale-[0.98] sm:w-auto sm:min-h-0 sm:py-2.5"
+              >
+                Back
+              </button>
+              <AppleButton
+                type="button"
+                disabled={!profile || requestSubmitting}
+                className="min-h-[44px] w-full justify-center sm:min-h-0 sm:w-auto disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-[#0485F7] disabled:hover:bg-[#0485F7]"
+                onClick={() => void handleSubmitRequest()}
+              >
+                {requestSubmitting ? 'Sending…' : 'Submit my request'}
+              </AppleButton>
+            </div>
+          </div>
+        )}
+      </div>
+    </AppleSheet>
+  )
 }

@@ -18,6 +18,11 @@ export type AppleSheetProps = {
   className?: string
   desktopWidthClassName?: string
   avoidHeaderOffset?: boolean
+  /**
+   * Avec `avoidHeaderOffset` : si true, le décalage sous la navbar ne s’applique qu’au desktop ;
+   * le mobile garde la feuille en bas (comme les autres sheets).
+   */
+  avoidHeaderOffsetDesktopOnly?: boolean
 }
 
 export function AppleSheet({
@@ -29,6 +34,7 @@ export function AppleSheet({
   className = '',
   desktopWidthClassName = 'max-w-lg',
   avoidHeaderOffset = false,
+  avoidHeaderOffsetDesktopOnly = false,
 }: AppleSheetProps) {
   const lenis = useContext(LenisContext)
   const titleId = useId()
@@ -134,7 +140,14 @@ export function AppleSheet({
     >
       <div className="shrink-0 pt-2 sm:pt-3">{handleBar}</div>
       {headerRow}
-      <div className="mobile-no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-1 pb-2">{children}</div>
+      <div
+        className="mobile-no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-1 pb-2"
+        onWheelCapture={(e) => {
+          e.stopPropagation()
+        }}
+      >
+        {children}
+      </div>
     </div>
   )
 
@@ -154,10 +167,18 @@ export function AppleSheet({
 
           {isMobile ? (
             <div
-              className={`pointer-events-none absolute inset-0 flex flex-col p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,12px))] pl-[max(0.75rem,env(safe-area-inset-left,12px))] pr-[max(0.75rem,env(safe-area-inset-right,12px))] ${avoidHeaderOffset ? 'justify-start pt-[calc(var(--mobile-header-h,3.5rem)+18px)]' : 'justify-end'}`}
+              className={`pointer-events-none absolute inset-0 flex flex-col p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,12px))] pl-[max(0.75rem,env(safe-area-inset-left,12px))] pr-[max(0.75rem,env(safe-area-inset-right,12px))] ${
+                avoidHeaderOffset && !avoidHeaderOffsetDesktopOnly
+                  ? 'justify-start pt-[calc(var(--mobile-header-h,3.5rem)+18px)]'
+                  : 'justify-end'
+              }`}
             >
               <motion.div
-                className={`pointer-events-auto flex min-h-0 w-full flex-col ${avoidHeaderOffset ? 'max-h-[calc(100dvh-var(--mobile-header-h,3.5rem)-2.25rem)]' : 'max-h-[min(92dvh,880px)]'}`}
+                className={`pointer-events-auto flex min-h-0 w-full flex-col ${
+                  avoidHeaderOffset && !avoidHeaderOffsetDesktopOnly
+                    ? 'max-h-[calc(100dvh-var(--mobile-header-h,3.5rem)-2.25rem)]'
+                    : 'max-h-[min(92dvh,880px)]'
+                }`}
                 initial={{ y: '108%', opacity: 0.98 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: '108%', opacity: 0.96 }}

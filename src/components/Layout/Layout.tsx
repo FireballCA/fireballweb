@@ -19,6 +19,7 @@ export function Layout() {
     location.pathname.startsWith('/account') ||
     location.pathname.startsWith('/business')
   const isContactPage = location.pathname === '/contact'
+  const isCarClubPage = location.pathname === '/car-club'
 
   const showHeader = !isAccountAuthPage
   const showFooter = !isAnyAccountPage && !isContactPage
@@ -69,9 +70,9 @@ export function Layout() {
           } as CSSProperties
         }
         className={[
-          'flex flex-1 flex-col bg-[#111111]',
-          'relative z-[1] -mt-2 rounded-t-[30px] shadow-[0_-12px_26px_rgba(0,0,0,0.42)]',
-          'min-h-0 overflow-y-auto overflow-x-hidden',
+          'flex flex-1 flex-col min-h-0 overflow-y-auto overflow-x-hidden relative z-[1]',
+          '-mt-2 rounded-t-[30px] shadow-[0_-12px_26px_rgba(0,0,0,0.42)]',
+          isCarClubPage ? 'bg-black' : 'bg-[#111111]',
         ]
           .filter(Boolean)
           .join(' ')}

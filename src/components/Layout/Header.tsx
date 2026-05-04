@@ -64,6 +64,58 @@ function FlagFR() {
   )
 }
 
+/** Icônes Lucide (scroll-text, git-compare-arrows, map-pin, wrench) pour le sous-menu ceramic mobile. */
+function CeramicMobileNavIcon({ to }: { to: string }) {
+  const svgProps = {
+    xmlns: 'http://www.w3.org/2000/svg' as const,
+    width: 18,
+    height: 18,
+    viewBox: '0 0 24 24' as const,
+    fill: 'none' as const,
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  }
+  switch (to) {
+    case '/all-coatings':
+      return (
+        <svg {...svgProps}>
+          <path d="M15 12h-5" />
+          <path d="M15 8h-5" />
+          <path d="M19 17V5a2 2 0 0 0-2-2H4" />
+          <path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3" />
+        </svg>
+      )
+    case '/coatings/compare':
+      return (
+        <svg {...svgProps}>
+          <circle cx="5" cy="6" r="3" />
+          <path d="M12 6h5a2 2 0 0 1 2 2v7" />
+          <path d="m15 9-3-3 3-3" />
+          <circle cx="19" cy="18" r="3" />
+          <path d="M12 18H7a2 2 0 0 1-2-2V9" />
+          <path d="m9 15 3 3-3 3" />
+        </svg>
+      )
+    case '/coatings/find-installer':
+      return (
+        <svg {...svgProps}>
+          <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+      )
+    case '/coatings/how-it-works':
+      return (
+        <svg {...svgProps}>
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z" />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
+
 export function Header() {
   const lenis = useContext(LenisContext)
   const { t, i18n } = useTranslation()
@@ -1509,6 +1561,9 @@ export function Header() {
                             className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
                             onClick={() => setMenuOpen(false)}
                           >
+                            <span className="inline-flex items-center justify-center w-5 h-5 shrink-0 text-apex">
+                              <CeramicMobileNavIcon to={link.to} />
+                            </span>
                             <span>{link.label}</span>
                           </Link>
                         ))}
@@ -1619,9 +1674,9 @@ export function Header() {
                         </span>
                         <span>{t('nav.merch')}</span>
                       </Link>
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                      <Link
+                        to="/about"
+                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1643,7 +1698,7 @@ export function Header() {
                           </svg>
                         </span>
                         <span>{t('nav.aboutUs')}</span>
-                      </button>
+                      </Link>
                     </div>
                   </div>
 
@@ -1677,9 +1732,9 @@ export function Header() {
                         </span>
                         <span>{t('nav.contactUs')}</span>
                       </Link>
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                      <Link
+                        to="/press-kit"
+                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1700,10 +1755,10 @@ export function Header() {
                           </svg>
                         </span>
                         <span>{t('nav.pressKit')}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                      </Link>
+                      <Link
+                        to="/legal"
+                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1726,7 +1781,7 @@ export function Header() {
                           </svg>
                         </span>
                         <span>{t('nav.legal')}</span>
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>
