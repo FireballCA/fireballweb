@@ -104,6 +104,8 @@
     "purchase": "Purchase",
     "quantity": "Quantity",
     "unavailable": "This product is currently unavailable",
+    "unavailableCta": "Not available",
+    "unavailableCtaHint": "Unavailable right now — try another option.",
     "trustFastShipping": "Fast shipping",
     "trustProfessional": "Professional grade",
     "trustTrusted": "Trusted by detailers",

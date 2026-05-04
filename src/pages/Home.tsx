@@ -182,9 +182,9 @@ export function Home() {
         </video>
         <div className="pointer-events-none absolute inset-0 bg-black/45" aria-hidden />
 
-        <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col justify-end px-5 pb-24 pt-16 animate-slide-up sm:px-6 md:pb-28">
-          <div className="mx-auto flex w-full max-w-[90rem] flex-col-reverse gap-10 md:flex-row md:items-end md:justify-between md:gap-12">
-            <h1 className="max-w-xl self-start text-left font-nav text-4xl font-bold leading-[1.05] tracking-tight text-pearl sm:text-5xl md:max-w-lg md:text-6xl lg:text-7xl">
+        <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col justify-center px-5 pb-24 pt-20 animate-slide-up sm:px-6 md:justify-end md:pb-28 md:pt-16">
+          <div className="mx-auto flex w-full max-w-[90rem] flex-col items-center gap-8 text-center md:flex-row md:items-end md:justify-between md:gap-12 md:text-left">
+            <h1 className="max-w-xl font-nav text-4xl font-bold leading-[1.05] tracking-tight text-pearl sm:text-5xl md:max-w-lg md:self-start md:text-6xl lg:text-7xl">
               <span className="hero-ground-line hero-ground-line--clean">
                 <span className="hero-ground-text">From Detail</span>
               </span>
@@ -192,9 +192,9 @@ export function Home() {
                 <span className="hero-ground-text hero-ground-text--delay">To Perfection.</span>
               </span>
             </h1>
-            <div className="flex w-full shrink-0 flex-col items-end gap-6 text-right md:w-auto">
+            <div className="flex w-full max-w-lg shrink-0 flex-col items-center gap-6 text-center md:max-w-none md:w-auto md:items-end md:text-right">
               <span className="hero-ground-line hero-ground-line--clean">
-                <p className="hero-ground-text hero-ground-text--delay-2 max-w-md text-pretty font-light text-silver/80 text-sm leading-relaxed md:text-base lg:text-lg">
+                <p className="hero-ground-text hero-ground-text--delay-2 mx-auto max-w-md text-pretty font-light text-silver/80 text-sm leading-relaxed md:mx-0 md:text-base lg:text-lg">
                   Crafted for those who demand precision, performance, and flawless results.
                 </p>
               </span>
@@ -203,7 +203,10 @@ export function Home() {
                   <button
                     type="button"
                     onClick={scrollToProductLineup}
-                    className={cn('inline-flex cursor-pointer whitespace-nowrap', appleButtonVisualClassName)}
+                    className={cn(
+                      'inline-flex cursor-pointer whitespace-nowrap max-md:min-h-[48px] max-md:px-6 max-md:py-3 max-md:text-sm',
+                      appleButtonVisualClassName,
+                    )}
                   >
                     Explore Products
                   </button>
@@ -213,7 +216,7 @@ export function Home() {
           </div>
         </div>
 
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-silver/40">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-silver/40 md:bottom-8">
           <span className="block w-px h-12 bg-current mx-auto animate-pulse" />
         </div>
       </section>

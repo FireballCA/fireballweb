@@ -123,40 +123,41 @@ export function CarClub() {
       <section
         className={cn(
           'relative flex flex-col overflow-hidden bg-black',
-          'max-md:h-[50vh] max-md:min-h-[320px] max-md:max-h-[540px]',
+          'max-md:h-[min(92dvh,var(--app-hero-h))] max-md:min-h-[min(92dvh,var(--app-hero-h))]',
           'md:h-[min(88vh,var(--app-hero-h))] md:min-h-[min(680px,var(--app-hero-h))] md:max-h-[var(--app-hero-h)]',
         )}
       >
         {/* Hero image */}
         <motion.div
-          className="absolute inset-0 flex items-start justify-center pt-4 md:pt-12"
+          className="absolute inset-0 flex items-start justify-center pt-2 max-md:opacity-[0.92] md:pt-12"
           initial={{ opacity: 0, scale: 1.06 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="relative w-[min(920px,68vw)] min-w-[min(100%,420px)] max-md:min-w-0 max-md:w-[min(92vw,920px)]">
+          <div className="relative w-[min(920px,68vw)] min-w-[min(100%,420px)] max-md:min-w-0 max-md:w-[min(88vw,920px)]">
             <img
               src="/Assets/Carclub Hero.png"
               alt="Fireball Car Club"
               className="h-auto w-full object-contain"
               draggable={false}
             />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(to_bottom,rgba(0,0,0,0)_0%,rgba(0,0,0,0.22)_55%,rgba(0,0,0,0.72)_100%)] md:hidden" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-[linear-gradient(to_bottom,rgba(0,0,0,0)_0%,rgba(0,0,0,0.35)_50%,rgba(0,0,0,0.85)_100%)] md:hidden" />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-32 bg-[linear-gradient(to_bottom,rgba(0,0,0,0)_0%,rgba(0,0,0,0.55)_62%,#000_100%)] md:block" />
           </div>
         </motion.div>
 
         <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.28)_0%,rgba(0,0,0,0.08)_42%,transparent_100%)] md:h-40 md:bg-[linear-gradient(to_bottom,#000_0%,rgba(0,0,0,0.7)_50%,transparent_100%)]" />
-        <div className="absolute inset-0 bg-black/[0.04] md:bg-black/10" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_50%,rgba(0,0,0,0.08)_78%,rgba(0,0,0,0.18)_100%)] md:bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_46%,rgba(0,0,0,0.22)_72%,rgba(0,0,0,0.42)_100%)]" />
-        <div className="absolute inset-y-0 left-0 w-[42%] bg-[linear-gradient(to_right,rgba(0,0,0,0.5)_0%,rgba(0,0,0,0.12)_55%,transparent_100%)] md:w-1/2 md:bg-[linear-gradient(to_right,#000_0%,#000_60%,transparent_100%)]" />
-        <div className="absolute inset-y-0 right-0 w-[42%] bg-[linear-gradient(to_left,rgba(0,0,0,0.5)_0%,rgba(0,0,0,0.12)_55%,transparent_100%)] md:w-1/2 md:bg-[linear-gradient(to_left,#000_0%,#000_60%,transparent_100%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-44 bg-[linear-gradient(to_bottom,rgba(0,0,0,0)_0%,rgba(0,0,0,0.22)_48%,rgba(0,0,0,0.75)_100%)] md:h-64 md:bg-[linear-gradient(to_bottom,rgba(0,0,0,0)_0%,rgba(0,0,0,0.45)_52%,#000_100%)]" />
+        <div className="absolute inset-0 bg-black/[0.06] md:bg-black/10" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_42%,rgba(0,0,0,0.12)_72%,rgba(0,0,0,0.28)_100%)] md:bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_46%,rgba(0,0,0,0.22)_72%,rgba(0,0,0,0.42)_100%)]" />
+        {/* Bandes latérales : masquées au mobile pour laisser respirer un hero centré type Academy */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-1/2 bg-[linear-gradient(to_right,#000_0%,#000_60%,transparent_100%)] md:block" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/2 bg-[linear-gradient(to_left,#000_0%,#000_60%,transparent_100%)] md:block" />
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-[linear-gradient(to_bottom,rgba(0,0,0,0)_0%,rgba(0,0,0,0.35)_42%,rgba(0,0,0,0.82)_100%)] md:h-64 md:bg-[linear-gradient(to_bottom,rgba(0,0,0,0)_0%,rgba(0,0,0,0.45)_52%,#000_100%)]" />
 
-        <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col justify-end px-5 pb-24 pt-12 sm:px-6 max-md:pb-20 md:pb-36 md:pt-16">
-          <div className="mx-auto flex w-full max-w-[90rem] flex-col-reverse gap-10 md:flex-row md:items-end md:justify-between md:gap-12">
+        <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col justify-center px-5 pb-20 pt-16 sm:px-6 md:justify-end md:pb-36 md:pt-16">
+          <div className="mx-auto flex w-full max-w-[90rem] flex-col items-center gap-8 text-center md:flex-row md:items-end md:justify-between md:gap-12 md:text-left">
             <motion.h1
-              className="max-w-xl shrink-0 self-start pb-[0.15em] text-left font-nav text-4xl font-bold leading-[1.2] tracking-tight sm:text-5xl sm:leading-[1.18] md:max-w-lg md:text-6xl md:leading-[1.16] lg:text-7xl lg:leading-[1.14] bg-gradient-to-r from-[#d4d4d4] via-[#7a7a7a] to-[#1a1a1a] bg-clip-text text-transparent [-webkit-text-fill-color:transparent]"
+              className="max-w-xl shrink-0 pb-[0.15em] font-nav text-[clamp(1.85rem,6.5vw,2.25rem)] font-bold leading-[1.15] tracking-tight text-balance sm:text-5xl sm:leading-[1.18] md:max-w-lg md:self-start md:text-6xl md:leading-[1.16] lg:text-7xl lg:leading-[1.14] bg-gradient-to-r from-[#d4d4d4] via-[#7a7a7a] to-[#1a1a1a] bg-clip-text text-transparent [-webkit-text-fill-color:transparent]"
               variants={fadeUp}
               custom={0.35}
               initial="hidden"
@@ -165,24 +166,29 @@ export function CarClub() {
               {t('carClub.heroTitle')}
             </motion.h1>
             <motion.div
-              className="flex w-full shrink-0 flex-col items-end gap-6 text-right md:w-auto"
+              className="flex w-full max-w-lg shrink-0 flex-col items-center gap-6 text-center md:max-w-none md:w-auto md:items-end md:gap-6 md:text-right"
               variants={fadeUp}
               custom={0.55}
               initial="hidden"
               animate="show"
             >
-              <p className="max-w-md text-pretty text-sm font-light leading-relaxed text-silver/80 md:text-base lg:text-lg">
+              <p className="mx-auto max-w-md text-pretty text-sm font-light leading-relaxed text-silver/85 md:mx-0 md:text-base lg:text-lg">
                 {t('carClub.heroSubtitle')}
               </p>
-              <div className="flex flex-col items-end gap-1.5">
+              <div className="flex flex-col items-center gap-1.5 md:items-end">
                 <a
                   href="#membership"
                   onClick={scrollToMembershipCards}
-                  className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
+                  className={cn(
+                    appleButtonVisualClassName,
+                    'inline-flex justify-center max-md:min-h-[48px] max-md:px-6 max-md:py-3 max-md:text-sm',
+                  )}
                 >
                   {t('carClub.exploreMembership')}
                 </a>
-                <p className="text-[11px] leading-tight text-silver/45">{t('carClub.heroPriceHint')}</p>
+                <p className="max-w-xs text-center text-[11px] leading-tight text-silver/45 md:max-w-none md:text-right">
+                  {t('carClub.heroPriceHint')}
+                </p>
               </div>
             </motion.div>
           </div>

@@ -830,7 +830,7 @@ export function Header() {
         {/* Left: Logo + links */}
         <div className="flex items-center gap-10 h-full">
           <Link to="/" className="flex items-center h-12 w-auto select-none">
-            <img id="navbar-logo" src="/LogoFull.avif" alt="Fireball" className={`h-6 w-auto object-contain pointer-events-none${isDashboardPage ? ' max-lg:[filter:invert(1)_hue-rotate(180deg)]' : ''}`} draggable={false} />
+            <img id="navbar-logo" src="/LogoFull.avif" alt="Fireball" className="h-6 w-auto object-contain pointer-events-none" draggable={false} />
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1 pt-0.5 group h-full">
@@ -1312,7 +1312,7 @@ export function Header() {
 
         {/* Mobile: logo + cart + menu */}
         <div className="flex lg:hidden items-center gap-3">
-          <Link to="/cart" className={`relative p-2 ${isDashboardPage ? 'text-neutral-900' : 'text-white'}`} aria-label="Cart">
+          <Link to="/cart" className="relative p-2 text-white" aria-label="Cart">
             {totalItems > 0 && (
               <span className="absolute top-0 right-0 min-w-[1rem] h-4 px-0.5 rounded-full bg-[#B61B1B] text-white text-[10px] font-bold flex items-center justify-center">
                 {totalItems}
@@ -1324,7 +1324,7 @@ export function Header() {
               <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
             </svg>
           </Link>
-          <label className={`fb-burger${isDashboardPage ? ' fb-burger--dark' : ''}`} aria-label="Menu">
+          <label className="fb-burger" aria-label="Menu">
             <input
               type="checkbox"
               checked={menuOpen}

@@ -22,6 +22,8 @@ import { usePageTitle } from '@/hooks/usePageTitle'
 import { ADMIN_OPEN_PRODUCT_EDITOR } from '@/components/FloatingAdminFab'
 
 const APPLE_BLUE = '#0485F7'
+/** Rouge système Apple (destructif / indisponible), lisible sur mobile. */
+const APPLE_SYSTEM_RED = '#FF3B30'
 const SLIDER_ACTIVE_BLACK = '#111111'
 
 type ProductType = LocalProduct
@@ -639,6 +641,7 @@ export function Product() {
       (opt) => selectedOptions[opt.name] === opt.value
     )
   })
+  const isVariantUnavailable = Boolean(currentVariant && !currentVariant.availableForSale)
 
   const displayPrice = currentVariant?.price ?? product?.price ?? 0
   const lineSubtotal = displayPrice * quantity
@@ -1888,22 +1891,38 @@ export function Product() {
 
       {favoriteModal}
 
-      {/* Add to cart mobile : fixe en bas, marges (flottant), seul CTA d’achat sur petit écran */}
-      <div className={"lg:hidden fixed inset-x-0 bottom-0 z-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pointer-events-none transition-all duration-300 ease-in-out " + (showStickyBar ? "translate-y-0 opacity-100" : "translate-y-full opacity-0")}>
+      {/* Add to cart mobile : fixe en bas ; visible tout de suite si la variante est indisponible (sinon gris « invisible » en haut de page). */}
+      <div
+        className={
+          'lg:hidden fixed inset-x-0 bottom-0 z-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pointer-events-none transition-all duration-300 ease-in-out ' +
+          (showStickyBar || isVariantUnavailable ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0')
+        }
+      >
         <div className="max-w-7xl mx-auto w-full pointer-events-auto">
           <button
             type="button"
             onClick={handleAddToCart}
-            disabled={currentVariant && !currentVariant.availableForSale}
-            className={`[-webkit-tap-highlight-color:transparent] w-full rounded-2xl border py-3.5 px-6 text-base font-semibold shadow-[0_4px_24px_rgba(4,133,247,0.35)] transition-colors transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0485F7]/40 focus-visible:ring-offset-2 active:scale-[0.99] ${
-              currentVariant && !currentVariant.availableForSale
-                ? 'cursor-not-allowed border-carbon-200 bg-carbon-200 text-carbon-500 shadow-none'
+            disabled={isVariantUnavailable}
+            aria-label={isVariantUnavailable ? t('product.unavailable') : undefined}
+            className={`[-webkit-tap-highlight-color:transparent] w-full rounded-2xl border py-3.5 px-6 text-base font-semibold transition-colors transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.99] ${
+              isVariantUnavailable
+                ? 'cursor-not-allowed border-[#E6352B] text-white shadow-[0_4px_22px_rgba(255,59,48,0.42)] focus-visible:ring-[#FF3B30]/50'
                 : added
-                  ? 'border-transparent bg-carbon-600 text-white'
-                  : 'border-[#0485F7] bg-[#0485F7] text-white'
+                  ? 'border-transparent bg-carbon-600 text-white shadow-none focus-visible:ring-carbon-500/40'
+                  : 'border-[#0485F7] bg-[#0485F7] text-white shadow-[0_4px_24px_rgba(4,133,247,0.35)] focus-visible:ring-[#0485F7]/40'
             }`}
+            style={isVariantUnavailable ? { backgroundColor: APPLE_SYSTEM_RED } : undefined}
           >
-            {added ? `✓ ${t('product.addedToCart')}` : t('product.addToCart')}
+            {isVariantUnavailable ? (
+              <span className="flex flex-col items-center gap-1 text-center leading-snug">
+                <span className="text-[17px] font-semibold tracking-tight">{t('product.unavailableCta')}</span>
+                <span className="text-[13px] font-medium text-white/90">{t('product.unavailableCtaHint')}</span>
+              </span>
+            ) : added ? (
+              `✓ ${t('product.addedToCart')}`
+            ) : (
+              t('product.addToCart')
+            )}
           </button>
         </div>
       </div>

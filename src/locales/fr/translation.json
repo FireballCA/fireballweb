@@ -104,6 +104,8 @@
     "purchase": "Acheter",
     "quantity": "Quantité",
     "unavailable": "Ce produit n'est actuellement pas disponible",
+    "unavailableCta": "Non disponible",
+    "unavailableCtaHint": "Indisponible pour le moment — essayez une autre option.",
     "trustFastShipping": "Livraison rapide",
     "trustProfessional": "Qualité professionnelle",
     "trustTrusted": "Recommandé par les détaillants",
