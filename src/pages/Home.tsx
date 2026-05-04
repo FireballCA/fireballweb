@@ -1,7 +1,11 @@
 import { useCallback, useContext, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ProductCategoryLineup } from '@/components/ProductCategoryLineup'
+import { HomeCollectionSection } from '@/components/HomeCollectionSection'
 import { LenisContext } from '@/components/LenisRoot'
+import { supabase } from '@/lib/supabase'
+import { resolveHomeCollection } from '@/utils/homeCollectionSettings'
+import type { HomeCollectionResolved } from '@/constants/homeCollection'
 import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 import { cn } from '@/lib/utils'
 import { usePageTitle } from '@/hooks/usePageTitle'
@@ -12,6 +16,9 @@ export function Home() {
   usePageTitle('Fireball Canada')
 
   const [isMobileViewport, setIsMobileViewport] = useState(false)
+  const [homeCollection, setHomeCollection] = useState<HomeCollectionResolved>(() =>
+    resolveHomeCollection(null),
+  )
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1023px)')
@@ -19,6 +26,37 @@ export function Home() {
     sync()
     mq.addEventListener('change', sync)
     return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'announcements')
+          .maybeSingle()
+        if (data?.value) {
+          setHomeCollection(resolveHomeCollection(data.value as Record<string, unknown>))
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    void load()
+    const channel = supabase
+      .channel('home-announcements')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'site_settings', filter: 'key=eq.announcements' },
+        () => {
+          void load()
+        },
+      )
+      .subscribe()
+    return () => {
+      void supabase.removeChannel(channel)
+    }
   }, [])
 
   const heroLite = isMobileViewport
@@ -121,6 +159,7 @@ export function Home() {
 
       <div className="bg-carbon-950">
         <ProductCategoryLineup />
+        <HomeCollectionSection config={homeCollection} />
       </div>
     </main>
   )
