@@ -199,7 +199,19 @@ export function Header() {
     return () => mq.removeEventListener('change', sync)
   }, [])
 
+  const isMobileHomeRoute = isMobileViewport && location.pathname === '/'
+
   useEffect(() => {
+    if (isMobileHomeRoute) {
+      setLoggedInForNotif(false)
+      setHeaderAvatarUrl(null)
+      setHeaderUserInitial(null)
+      setHeaderUserName(null)
+      return () => {
+        // Cleanup toujours retourné pour éviter l'erreur React #310
+      }
+    }
+
     let cancelled = false
     isAuthenticated().then(async (ok) => {
       if (!cancelled) setLoggedInForNotif(ok)
@@ -219,7 +231,7 @@ export function Header() {
     return () => {
       cancelled = true
     }
-  }, [location.pathname])
+  }, [location.pathname, isMobileHomeRoute])
 
   useEffect(() => {
     const onAvatarUpdate = (e: Event) => {
@@ -240,7 +252,7 @@ export function Header() {
   }, [])
 
   const showAccountNotifBang = loggedInForNotif && headerUnreadNotif && !isDashboardPage
-  const isSafeMobileHome = isMobileViewport && location.pathname === '/' && loggedInForNotif
+  const isSafeMobileHome = isMobileHomeRoute
 
   const isShopPage = isShopPathname(location.pathname)
   const isProductPage =

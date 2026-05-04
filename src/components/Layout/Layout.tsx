@@ -21,9 +21,6 @@ export function Layout() {
   const isContactPage = location.pathname === '/contact'
   const isCarClubPage = location.pathname === '/car-club'
 
-  const showHeader = !isAccountAuthPage
-  const showFooter = !isAnyAccountPage && !isContactPage
-
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 1024 : false,
   )
@@ -34,6 +31,10 @@ export function Layout() {
     setIsMobile(mq.matches)
     return () => mq.removeEventListener('change', h)
   }, [])
+
+  const isMobileHomeRoute = isMobile && location.pathname === '/'
+  const showHeader = !isAccountAuthPage && !isMobileHomeRoute
+  const showFooter = !isAnyAccountPage && !isContactPage
 
   /** Lenis + longues pages compte (dashboard, etc.) : scroll natif sur #app-scroll-root pour éviter blocages molette. */
   const lenisPreventOnScrollRoot =

@@ -14,7 +14,6 @@ import { supabase } from '@/lib/supabase'
 import { resolveHomeCollection } from '@/utils/homeCollectionSettings'
 import type { HomeCollectionResolved } from '@/constants/homeCollection'
 import { usePageTitle } from '@/hooks/usePageTitle'
-import { isAuthenticated } from '@/utils/supabaseAuth'
 
 function useCountdown(targetIso: string, enabled = true) {
   const target = useMemo(() => new Date(targetIso).getTime(), [targetIso])
@@ -38,7 +37,6 @@ function useCountdown(targetIso: string, enabled = true) {
 export function Home() {
   const lenis = useContext(LenisContext)
   const [isMobileViewport, setIsMobileViewport] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [homeCollection, setHomeCollection] = useState<HomeCollectionResolved>(() =>
     resolveHomeCollection(null),
   )
@@ -51,7 +49,7 @@ export function Home() {
     href: '/event/fireball-after-party',
     imageSrc: '/Assets/FireballAfterParty.png',
   }
-  const useSafeMobileLanding = isMobileViewport && isLoggedIn
+  const useSafeMobileLanding = isMobileViewport
   const countdown = useCountdown(nextEvent.startsAt, !useSafeMobileLanding)
 
   usePageTitle('Fireball Canada')
@@ -122,22 +120,6 @@ export function Home() {
     sync()
     mq.addEventListener('change', sync)
     return () => mq.removeEventListener('change', sync)
-  }, [])
-
-  useEffect(() => {
-    let active = true
-    const checkAuth = async () => {
-      const ok = await isAuthenticated()
-      if (active) setIsLoggedIn(ok)
-    }
-    void checkAuth()
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(Boolean(session))
-    })
-    return () => {
-      active = false
-      data.subscription.unsubscribe()
-    }
   }, [])
 
   useEffect(() => {
