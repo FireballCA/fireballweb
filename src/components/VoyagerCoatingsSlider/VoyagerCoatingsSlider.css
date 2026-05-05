@@ -166,7 +166,7 @@
 @media (min-width: 768px) {
   .voyager__cardSubtitle {
     font-size: 0.7rem;
-    -webkit-line-clamp: 5;
+    -webkit-line-clamp: 4;
   }
 }
 
@@ -198,4 +198,93 @@
 .voyager__dot:focus-visible {
   outline: 2px solid rgb(23 23 23);
   outline-offset: 2px;
+}
+
+.voyager__dots--desktop {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .voyager__dots--desktop {
+    display: flex;
+  }
+}
+
+.voyager__mobileActionWrap {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .voyager__mobileActionWrap {
+    display: none;
+  }
+}
+
+.voyager__mobileAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid #111827;
+  background: #111827;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.voyager__mobileAction:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.voyager__mobileAction:not(:disabled):active {
+  background: #000;
+  border-color: #000;
+}
+
+.voyager__card--interactive {
+  cursor: none;
+}
+
+.voyager__card--interactive:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.95);
+  outline-offset: 4px;
+  border-radius: 1rem;
+}
+
+.voyager__cursorApple {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.95);
+  color: #111827;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 0.48rem 0.9rem;
+  transform: translate3d(-9999px, -9999px, 0);
+  translate: -50% -50%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  scale: 0.92;
+  transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1), scale 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.voyager__cursorApple--visible {
+  opacity: 1;
+  scale: 1;
 }

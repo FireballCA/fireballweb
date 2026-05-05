@@ -1,4 +1,5 @@
 import type { VoyagerSlide } from '@/components/VoyagerCoatingsSlider/VoyagerCoatingsSlider'
+import { FIREBALL_COUNTRY_LINKS } from '@/data/fireballCountryLinks'
 
 /** Unsplash — largeur modérée pour limiter la mémoire (nombreux pays sur la landing). */
 function u(photoId: string) {
@@ -181,3 +182,14 @@ export const FIREBALL_COUNTRY_SLIDES: VoyagerSlide[] = [
     image: p(363047),
   },
 ]
+
+for (const slide of FIREBALL_COUNTRY_SLIDES) {
+  const url = FIREBALL_COUNTRY_LINKS[slide.id]
+  if (url) slide.websiteUrl = url
+}
+
+FIREBALL_COUNTRY_SLIDES.sort((a, b) => {
+  const aHasLink = a.websiteUrl ? 1 : 0
+  const bHasLink = b.websiteUrl ? 1 : 0
+  return bHasLink - aHasLink
+})

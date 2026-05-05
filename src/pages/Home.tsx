@@ -42,7 +42,6 @@ export function Home() {
   const reduceMotion = useEffectiveReducedMotion()
   usePageTitle('Fireball Canada')
 
-  const [isMobileViewport, setIsMobileViewport] = useState(false)
   const [homeCollection, setHomeCollection] = useState<HomeCollectionResolved>(() =>
     resolveHomeCollection(null),
   )
@@ -116,14 +115,6 @@ export function Home() {
   }, [])
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 1023px)')
-    const sync = () => setIsMobileViewport(mq.matches)
-    sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
-  }, [])
-
-  useEffect(() => {
     const load = async () => {
       try {
         const { data } = await supabase
@@ -165,8 +156,6 @@ export function Home() {
     }
     return () => document.removeEventListener('mousedown', onDocClick)
   }, [calendarMenuOpen])
-
-  const heroLite = isMobileViewport
 
   const heroStaggerVariants = useMemo(
     () => ({
@@ -286,18 +275,9 @@ export function Home() {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: reduceMotion ? 0 : 1.18, ease: EASE_PREMIUM }}
         >
-          {heroLite ? (
-            <img
-              src="/Assets/Carclub Hero.png"
-              alt=""
-              className="h-full w-full object-cover"
-              draggable={false}
-            />
-          ) : (
-            <video className="h-full w-full object-cover" autoPlay loop muted playsInline>
-              <source src="/videoplayback.mp4" type="video/mp4" />
-            </video>
-          )}
+          <video className="h-full w-full object-cover" autoPlay loop muted playsInline>
+            <source src="/videoplayback.mp4" type="video/mp4" />
+          </video>
         </motion.div>
         <motion.div
           className="pointer-events-none absolute inset-0 bg-black/45"
@@ -329,12 +309,15 @@ export function Home() {
               >
                 Crafted for those who demand precision, performance, and flawless results.
               </motion.p>
-              <motion.div variants={heroLineVariants} className="inline-flex w-full max-w-sm md:max-w-none md:items-end">
+              <motion.div
+                variants={heroLineVariants}
+                className="inline-flex w-full justify-center md:w-auto md:max-w-none md:justify-end"
+              >
                 <button
                   type="button"
                   onClick={scrollToProductLineup}
                   className={cn(
-                    'inline-flex w-full cursor-pointer items-center justify-center whitespace-nowrap max-md:min-h-[48px] max-md:px-6 max-md:py-3 max-md:text-sm md:w-auto',
+                    'inline-flex w-auto cursor-pointer items-center justify-center whitespace-nowrap',
                     appleButtonVisualClassName,
                   )}
                 >

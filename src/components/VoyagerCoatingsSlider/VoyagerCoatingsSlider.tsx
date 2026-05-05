@@ -28,6 +28,7 @@ export type VoyagerSlide = {
   title: string
   subtitle: string
   image: string
+  websiteUrl?: string
 }
 
 type VoyagerCoatingsSliderProps = {
@@ -84,6 +85,9 @@ export function VoyagerCoatingsSlider({ slides, className = '', onActiveChange }
   const n = slides.length
   const [active, setActive] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(false)
+  const [isHoveringCenter, setIsHoveringCenter] = useState(false)
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 })
   const indexRef = useRef(0)
   /** Évite les doubles clics avant que React mette à jour `isAnimating`. */
   const swapLockRef = useRef(false)
@@ -91,6 +95,9 @@ export function VoyagerCoatingsSlider({ slides, className = '', onActiveChange }
   const leftRef = useRef<HTMLDivElement>(null)
   const centerRef = useRef<HTMLDivElement>(null)
   const rightRef = useRef<HTMLDivElement>(null)
+  const cursorTargetRef = useRef({ x: 0, y: 0 })
+  const cursorCurrentRef = useRef({ x: 0, y: 0 })
+  const cursorRafRef = useRef<number>(0)
 
   const reduceMotion = prefersReducedMotionEffective()
 
@@ -409,11 +416,62 @@ export function VoyagerCoatingsSlider({ slides, className = '', onActiveChange }
     [applyResting, n, reduceMotion, runSwapSequence],
   )
 
-  if (n === 0) return null
-
   const sLeft = slides[indices.l]
   const sCenter = slides[indices.c]
   const sRight = slides[indices.r]
+  const activeWebsiteUrl = sCenter?.websiteUrl?.trim() || ''
+  const hasActiveWebsiteUrl = activeWebsiteUrl.length > 0
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px) and (hover: hover) and (pointer: fine)')
+    const sync = () => setIsDesktop(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  useEffect(() => {
+    if (!isHoveringCenter || !hasActiveWebsiteUrl || !isDesktop) return
+    const onMove = (event: MouseEvent) => {
+      cursorTargetRef.current = { x: event.clientX, y: event.clientY }
+      if (!cursorRafRef.current) {
+        cursorCurrentRef.current = { x: event.clientX, y: event.clientY }
+        setCursorPos({ x: event.clientX, y: event.clientY })
+      }
+    }
+    window.addEventListener('mousemove', onMove)
+    return () => window.removeEventListener('mousemove', onMove)
+  }, [hasActiveWebsiteUrl, isDesktop, isHoveringCenter])
+
+  useEffect(() => {
+    if (!isHoveringCenter || !hasActiveWebsiteUrl || !isDesktop) {
+      if (cursorRafRef.current) cancelAnimationFrame(cursorRafRef.current)
+      cursorRafRef.current = 0
+      return
+    }
+
+    const tick = () => {
+      const target = cursorTargetRef.current
+      const current = cursorCurrentRef.current
+      const nextX = current.x + (target.x - current.x) * 0.18
+      const nextY = current.y + (target.y - current.y) * 0.18
+      cursorCurrentRef.current = { x: nextX, y: nextY }
+      setCursorPos({ x: nextX, y: nextY })
+      cursorRafRef.current = requestAnimationFrame(tick)
+    }
+    cursorRafRef.current = requestAnimationFrame(tick)
+    return () => {
+      if (cursorRafRef.current) cancelAnimationFrame(cursorRafRef.current)
+      cursorRafRef.current = 0
+    }
+  }, [hasActiveWebsiteUrl, isDesktop, isHoveringCenter])
+
+  const openActiveWebsite = useCallback(() => {
+    if (!hasActiveWebsiteUrl) return
+    window.open(activeWebsiteUrl, '_blank', 'noopener,noreferrer')
+  }, [activeWebsiteUrl, hasActiveWebsiteUrl])
+
+  if (n === 0) return null
 
   return (
     <div className={`voyager ${className}`.trim()}>
@@ -463,7 +521,39 @@ export function VoyagerCoatingsSlider({ slides, className = '', onActiveChange }
           <div ref={leftRef} className="voyager__card" style={{ zIndex: 1 }}>
             <CardInner slide={sLeft} fetchPriority="low" />
           </div>
-          <div ref={centerRef} className="voyager__card" style={{ zIndex: 3 }}>
+          <div
+            ref={centerRef}
+            className={`voyager__card ${isDesktop && hasActiveWebsiteUrl ? 'voyager__card--interactive' : ''}`}
+            style={{ zIndex: 3 }}
+            role={hasActiveWebsiteUrl ? 'link' : undefined}
+            aria-label={hasActiveWebsiteUrl ? `Open ${sCenter.title} website` : undefined}
+            tabIndex={hasActiveWebsiteUrl ? 0 : undefined}
+            onClick={hasActiveWebsiteUrl ? openActiveWebsite : undefined}
+            onMouseEnter={
+              isDesktop && hasActiveWebsiteUrl
+                ? () => {
+                    setIsHoveringCenter(true)
+                  }
+                : undefined
+            }
+            onMouseLeave={
+              isDesktop && hasActiveWebsiteUrl
+                ? () => {
+                    setIsHoveringCenter(false)
+                  }
+                : undefined
+            }
+            onKeyDown={
+              hasActiveWebsiteUrl
+                ? (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      openActiveWebsite()
+                    }
+                  }
+                : undefined
+            }
+          >
             <CardInner slide={sCenter} fetchPriority="high" />
           </div>
           <div ref={rightRef} className="voyager__card" style={{ zIndex: 1 }}>
@@ -483,7 +573,7 @@ export function VoyagerCoatingsSlider({ slides, className = '', onActiveChange }
       </div>
 
       {n > 1 && (
-        <div className="voyager__dots" role="tablist" aria-label="Choix du produit">
+        <div className="voyager__dots voyager__dots--desktop" role="tablist" aria-label="Choix du produit">
           {slides.map((s, i) => (
             <button
               key={s.id}
@@ -499,11 +589,41 @@ export function VoyagerCoatingsSlider({ slides, className = '', onActiveChange }
           ))}
         </div>
       )}
+
+      <div className="voyager__mobileActionWrap">
+        <button
+          type="button"
+          className="voyager__mobileAction"
+          onClick={openActiveWebsite}
+          disabled={!hasActiveWebsiteUrl}
+          aria-disabled={!hasActiveWebsiteUrl}
+        >
+          <span>Explore Product</span>
+          <ArrowUpRightShort />
+        </button>
+      </div>
+
+      {isDesktop && hasActiveWebsiteUrl && (
+        <div
+          className={`voyager__cursorApple ${isHoveringCenter ? 'voyager__cursorApple--visible' : ''}`}
+          style={{ transform: `translate3d(${cursorPos.x}px, ${cursorPos.y}px, 0)` }}
+          aria-hidden
+        >
+          <span>Explore Product</span>
+          <ArrowUpRightShort />
+        </div>
+      )}
     </div>
   )
 }
 
-function CardInner({ slide, fetchPriority }: { slide: VoyagerSlide; fetchPriority: 'high' | 'low' }) {
+function CardInner({
+  slide,
+  fetchPriority,
+}: {
+  slide: VoyagerSlide
+  fetchPriority: 'high' | 'low'
+}) {
   return (
     <div className="voyager__cardInner">
       <img
@@ -531,6 +651,15 @@ function Chevron({ direction }: { direction: 'left' | 'right' }) {
       ) : (
         <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
       )}
+    </svg>
+  )
+}
+
+function ArrowUpRightShort() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M9 9h6v6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 15 15 9" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
