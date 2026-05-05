@@ -1,4 +1,4 @@
-import { useId, useState, useEffect, useMemo, useRef, useContext } from 'react'
+import { useId, useState, useEffect, useLayoutEffect, useMemo, useRef, useContext } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -554,8 +554,14 @@ export function Header() {
     }
   }, [menuOpen])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setMenuOpen(false)
+    setIsMobileMenuVisible(false)
+    setIsMobileMenuMounted(false)
+    if (mobileMenuCloseTimerRef.current != null) {
+      window.clearTimeout(mobileMenuCloseTimerRef.current)
+      mobileMenuCloseTimerRef.current = null
+    }
   }, [location.pathname])
 
   useEffect(() => {
@@ -631,7 +637,7 @@ export function Header() {
       document.body.style.touchAction = previousBodyTouchAction
       window.scrollTo(0, scrollY)
     }
-  }, [isMobileMenuMounted])
+  }, [isMobileMenuMounted, location.pathname])
 
   /** Aligné sur le footer (`bg-carbon-900` = #111111) */
   const solidNavColor = '#111111'
@@ -1332,7 +1338,7 @@ export function Header() {
       {/* Mobile menu */}
       {isMobileMenuMounted && typeof document !== 'undefined' && createPortal(
         <div
-          className="lg:hidden fixed left-0 right-0 bottom-0 z-[9999] overflow-hidden pointer-events-none"
+          className="lg:hidden fixed left-0 right-0 bottom-0 z-[9999] overflow-hidden"
           style={{ top: 'var(--mobile-header-h, 3.5rem)' }}
         >
           <div
@@ -1350,7 +1356,10 @@ export function Header() {
               }}
             >
           <div className="h-full flex flex-col">
-            <nav className="-mx-6 space-y-0 pb-4 flex-1 overflow-y-auto overflow-x-hidden">
+            <nav
+              className="-mx-6 space-y-0 pb-4 flex-1 overflow-y-auto overflow-x-hidden"
+              style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}
+            >
               <Link
                 to="/car-club"
                 className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white border-b border-white/[0.06]"

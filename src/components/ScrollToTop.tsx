@@ -3,11 +3,13 @@ import { useLocation } from 'react-router-dom'
 import Lenis from 'lenis'
 import { LenisContext } from '@/components/LenisRoot'
 
-/** Remonte en haut à chaque navigation (Lenis si actif + fallback natif html/body/window). */
+/** Remonte en haut à chaque navigation (Lenis si actif + `#app-scroll-root` + fallback window/html/body). */
 function scrollWindowAndDocumentToTop(lenis: Lenis | null) {
   if (lenis) {
     lenis.scrollTo(0, { immediate: true })
   }
+  const root = document.getElementById('app-scroll-root')
+  if (root) root.scrollTop = 0
   window.scrollTo(0, 0)
   document.documentElement.scrollTop = 0
   document.body.scrollTop = 0

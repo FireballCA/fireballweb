@@ -35,17 +35,18 @@ export function Layout() {
   const showHeader = !isAccountAuthPage
   const showFooter = !isAnyAccountPage && !isContactPage
 
-  /** Lenis + longues pages compte (dashboard, etc.) : scroll natif sur #app-scroll-root pour éviter blocages molette. */
-  const lenisPreventOnScrollRoot =
-    isMobile ||
-    (location.pathname.startsWith('/account/') && location.pathname !== '/account/register')
-
   /** Contact desktop : une seule hauteur viewport, pas de scroll sur #app-scroll-root. */
   const contactDesktopNoScroll = isContactPage && !isMobile
+  const usePageScrollLayout = isAnyAccountPage
 
   return (
     <div
-      className="flex h-[100dvh] flex-col overflow-hidden bg-black"
+      className={[
+        'flex flex-col bg-black',
+        usePageScrollLayout ? 'min-h-screen' : 'h-[100dvh] overflow-hidden',
+      ]
+        .filter(Boolean)
+        .join(' ')}
     >
       {showHeader && <Header />}
 
@@ -66,7 +67,6 @@ export function Layout() {
 
       <div
         id="app-scroll-root"
-        {...(lenisPreventOnScrollRoot ? { 'data-lenis-prevent': true } : {})}
         style={
           {
             '--app-hero-h': 'calc(100dvh - var(--mobile-header-h, 3.5rem) - 12px)',
@@ -74,7 +74,7 @@ export function Layout() {
         }
         className={[
           'flex flex-1 flex-col min-h-0 overflow-x-hidden relative z-[1]',
-          contactDesktopNoScroll ? 'overflow-hidden' : 'overflow-y-auto',
+          usePageScrollLayout ? 'overflow-visible' : contactDesktopNoScroll ? 'overflow-hidden' : 'overflow-y-auto',
           '-mt-2 rounded-t-[30px] shadow-[0_-12px_26px_rgba(0,0,0,0.42)]',
           isCarClubPage ? 'bg-black' : isContactPage && isMobile ? 'bg-white' : 'bg-[#111111]',
         ]
@@ -102,7 +102,11 @@ export function Layout() {
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={location.key}
-                  className={isContactPage ? 'flex min-h-0 w-full flex-1 flex-col' : undefined}
+                  className={
+                    isContactPage
+                      ? 'flex min-h-0 w-full flex-1 flex-col'
+                      : undefined
+                  }
                   initial={
                     !reduceMotion && (location.state as { pageTransition?: string } | null | undefined)?.pageTransition === 'slideUp'
                       ? { y: 64, opacity: 0 }
