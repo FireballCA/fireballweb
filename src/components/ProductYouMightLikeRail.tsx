@@ -5,6 +5,7 @@ import type { Product } from '@/data/products'
 import { CATEGORIES } from '@/data/products'
 import { productDetailPath } from '@/constants/paths'
 import { productSectionHeadingClass } from '@/constants/typography'
+import { SaleDiscountPill } from '@/components/ui/AppleInfoPill'
 
 function categoryLabel(categoryId: Product['category']): string {
   return CATEGORIES.find((c) => c.id === categoryId)?.name ?? categoryId
@@ -175,21 +176,37 @@ export function ProductYouMightLikeRail({
             'px-4 sm:px-6 lg:px-8',
           ].join(' ')}
         >
-          {products.map((p) => (
+          {products.map((p) => {
+            const railCompareAt = p.compareAtPrice ?? p.variants?.find(v => v.compareAtPrice)?.compareAtPrice
+            const railIsOnSale = typeof railCompareAt === 'number' && railCompareAt > p.price
+            const railDiscount = railIsOnSale ? Math.round((1 - p.price / railCompareAt!) * 100) : 0
+            return (
             <div key={p.id} className={cardWidthClass}>
               <Link to={productDetailPath(p.slug)} className="group block">
-                <div className="mb-3 aspect-square overflow-hidden rounded-lg">
+                <div className="relative mb-3 aspect-square overflow-hidden rounded-lg">
                   <img
                     src={p.image}
                     alt=""
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
+                  {railDiscount > 0 && (
+                    <SaleDiscountPill discount={railDiscount} className="absolute top-2 left-2" />
+                  )}
                 </div>
                 <p className="line-clamp-2 text-sm font-semibold leading-snug text-carbon-900">{p.name}</p>
                 <p className="mt-1 text-[11px] font-medium text-carbon-500/85">
                   {categoryLabel(p.category)}
                 </p>
-                <p className="mt-1 text-sm font-bold tabular-nums text-carbon-900">{formatPrice(p.price)}</p>
+                <div className="mt-1 flex items-center gap-2">
+                  <p className={`text-sm font-bold tabular-nums ${railIsOnSale ? 'text-[#FF3B30]' : 'text-carbon-900'}`}>
+                    {formatPrice(p.price)}
+                  </p>
+                  {railIsOnSale && (
+                    <p className="text-xs tabular-nums text-carbon-400 line-through">
+                      {formatPrice(railCompareAt!)}
+                    </p>
+                  )}
+                </div>
               </Link>
               {showAddToCart && onAddToCart && (
                 <button
@@ -201,7 +218,8 @@ export function ProductYouMightLikeRail({
                 </button>
               )}
             </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 

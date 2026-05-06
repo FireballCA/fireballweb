@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import type { HomeCollectionResolved } from '@/constants/homeCollection'
-import { useClipRevealHover } from '@/hooks/useClipRevealHover'
 
 function isExternalHref(href: string) {
   return /^https?:\/\//i.test(href)
@@ -37,8 +36,7 @@ type Props = {
 }
 
 export function HomeCollectionSection({ config }: Props) {
-  const { eyebrow, headline, description, image, href, button1Label, button1Href, button2Label, button2Href } =
-    config
+  const { eyebrow, headline, description, image, href, button1Href } = config
 
   const primaryHref = (button1Href && button1Href.trim()) || href
 

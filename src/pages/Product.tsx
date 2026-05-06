@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import type { NavigateFunction } from 'react-router-dom'
-import { useEffect, useState, useRef, useMemo, type CSSProperties } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CATEGORIES, PRODUCTS, type Product as LocalProduct, type ProductVariant } from '@/data/products'
 import { useCart } from '@/context/CartContext'
@@ -15,7 +15,6 @@ import { productDetailPath, shopCategoryPath } from '@/constants/paths'
 import { FREE_SHIPPING_THRESHOLD_CAD } from '@/constants/shipping'
 import { getProductPageContent } from '@/data/productPageContent'
 import { supabase } from '@/lib/supabase'
-import { FireballLoading } from '@/components/FireballLoading'
 import { ProductDetailSkeleton } from '@/components/ui/ProductDetailSkeleton'
 import { useClipRevealHover, CLIP_REVEAL_BUTTON_BASE_CLASS } from '@/hooks/useClipRevealHover'
 import { usePageTitle } from '@/hooks/usePageTitle'
@@ -278,7 +277,7 @@ export function Product() {
     location,
   )
   const [product, setProduct] = useState<ProductType | null>(null)
-  const [selectedVariant, setSelectedVariant] = useState<string | null>(null)
+  const [, setSelectedVariant] = useState<string | null>(null)
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({})
   const [selectedColor, setSelectedColor] = useState<string>('')
   const [selectedSize, setSelectedSize] = useState<string>('')
@@ -296,7 +295,6 @@ export function Product() {
   const galleryCursorRafRef = useRef<number | null>(null)
   const ctaButtonsRef = useRef<HTMLDivElement>(null)
   const addToCartMainButtonRef = useRef<HTMLButtonElement>(null)
-  const navbarRef = useRef<HTMLDivElement>(null)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -644,6 +642,9 @@ export function Product() {
   const isVariantUnavailable = Boolean(currentVariant && !currentVariant.availableForSale)
 
   const displayPrice = currentVariant?.price ?? product?.price ?? 0
+  const displayCompareAtPrice = currentVariant?.compareAtPrice ?? product?.compareAtPrice
+  const hasDiscount = typeof displayCompareAtPrice === 'number' && displayCompareAtPrice > displayPrice
+  const discountPercent = hasDiscount ? Math.round((1 - displayPrice / displayCompareAtPrice!) * 100) : 0
   const lineSubtotal = displayPrice * quantity
   const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD_CAD - lineSubtotal)
   const freeShippingProgressPct = Math.min((lineSubtotal / FREE_SHIPPING_THRESHOLD_CAD) * 100, 100)
@@ -788,7 +789,6 @@ export function Product() {
         [slug]: nextForSlug,
       }
       // UI optimiste: appliquer tout de suite et fermer l'éditeur
-      const prevMap = productPageOverrides
       setProductPageOverrides(nextMap)
       setAdminEditorOpen(false)
 
@@ -1173,10 +1173,20 @@ export function Product() {
 
             {/* Price */}
             <div className="flex flex-col gap-3 mb-6">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-base font-bold text-carbon-900">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className={`text-base font-bold ${hasDiscount ? 'text-[#FF3B30]' : 'text-carbon-900'}`}>
                   <AnimatedPriceValue value={displayPrice} />
                 </span>
+                {hasDiscount && (
+                  <>
+                    <span className="text-sm text-carbon-400 line-through">
+                      {displayCompareAtPrice!.toFixed(2)}&nbsp;$CA
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-[#FF3B30] px-2 py-0.5 text-[11px] font-bold text-white">
+                      -{discountPercent}%
+                    </span>
+                  </>
+                )}
               </div>
 
               {/* Free Shipping Progress — même style barre que la page coatings */}
@@ -1716,8 +1726,15 @@ export function Product() {
             {/* Titre du produit */}
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-semibold text-carbon-900 line-clamp-1">{product.name}</h2>
-              <p className="mt-0.5 text-xs font-medium text-carbon-600">
-                <AnimatedPriceValue value={displayPrice} />
+              <p className="mt-0.5 flex items-center gap-2 text-xs font-medium text-carbon-600">
+                <span className={hasDiscount ? 'text-[#FF3B30] font-bold' : ''}>
+                  <AnimatedPriceValue value={displayPrice} />
+                </span>
+                {hasDiscount && (
+                  <span className="text-[10px] text-carbon-400 line-through">
+                    {displayCompareAtPrice!.toFixed(2)}&nbsp;$CA
+                  </span>
+                )}
               </p>
             </div>
 

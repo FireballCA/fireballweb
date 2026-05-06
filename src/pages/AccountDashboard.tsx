@@ -66,7 +66,7 @@ interface DashboardNotification {
  * Aperçu UI : une notif factice si la liste Supabase est vide.
  * Mettre à `false` pour masquer (ou retirer le bloc une fois satisfait).
  */
-const SHOW_DEMO_NOTIFICATIONS = import.meta.env.DEV && true
+const SHOW_DEMO_NOTIFICATIONS = false
 
 const DEMO_NOTIFICATIONS: DashboardNotification[] = [
   {
@@ -107,25 +107,6 @@ type DashboardCacheSnapshot = {
 const ACCOUNT_DASHBOARD_CACHE_KEY = 'account_dashboard_snapshot_v1'
 const ACCOUNT_DASHBOARD_CACHE_TTL_MS = 1000 * 60 * 8
 
-function OrdersEmptyStateSvg() {
-  return (
-    <svg width="171" height="216" viewBox="0 0 171 216" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[170px] h-auto">
-      <rect x="0.48" y="0.48" width="169.4" height="214.43" fill="white" stroke="#BABABA" strokeWidth="0.95" />
-      <path d="M33.78 39.12L46.78 38.02C48.4011 37.878 50.0218 38.2973 51.3707 39.2075C52.7196 40.1177 53.7149 41.4636 54.19 43.02L66.65 84.72L64.21 89.09C63.5833 90.216 63.2739 91.4909 63.3149 92.7789C63.3558 94.0669 63.7455 95.3196 64.4424 96.4035C65.1394 97.4874 66.1174 98.3619 67.2723 98.9336C68.4271 99.5053 69.7155 99.7529 71 99.65L120.9 95.41" stroke="#BABABA" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M56.05 49.35L114.05 44.43C114.621 44.381 115.196 44.4613 115.733 44.665C116.269 44.8686 116.752 45.1903 117.147 45.6062C117.542 46.0221 117.838 46.5216 118.013 47.0675C118.188 47.6135 118.239 48.192 118.16 48.76L114.23 77.13C114.111 77.9812 113.709 78.7675 113.088 79.3624C112.468 79.9573 111.665 80.3263 110.81 80.41L66.65 84.72L56.05 49.35Z" fill="white" stroke="#BABABA" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx="76.55" cy="104.5" r="4.71" fill="white" stroke="#BABABA" />
-      <circle cx="109.35" cy="101.72" r="4.71" fill="white" stroke="#BABABA" />
-      <path d="M80.47 71.26C80.7091 69.4349 81.565 67.7465 82.8957 66.4747C84.2263 65.2029 85.9517 64.4242 87.7857 64.2678C89.6197 64.1113 91.4521 64.5866 92.9789 65.6146C94.5057 66.6427 95.6352 68.1618 96.18 69.92" stroke="#BABABA" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M66.5 157.5H104.5" stroke="#D0D0D0"/>
-      <text x="85.5" y="176" textAnchor="middle" fill="#8B8B8B" fontSize="11" fontFamily="SF Pro, system-ui, sans-serif" fontWeight="600">
-        NO ORDERS YET
-      </text>
-      <text x="85.5" y="191" textAnchor="middle" fill="#A0A0A0" fontSize="9" fontFamily="SF Pro, system-ui, sans-serif">
-        Your purchases will appear here
-      </text>
-    </svg>
-  )
-}
 
 const XP_TIERS = [
   {
@@ -590,7 +571,6 @@ export function AccountDashboard() {
   const [adminPanelOpen, setAdminPanelOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
-  const [trophyOpen, setTrophyOpen] = useState(false)
   const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([])
   const [leaderboardLoading, setLeaderboardLoading] = useState(false)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -598,7 +578,7 @@ export function AccountDashboard() {
   const [pendingAdd, setPendingAdd] = useState<{ brand: string; model: string; year: number } | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [orderDetailsOrder, setOrderDetailsOrder] = useState<Order | null>(null)
-  const [ordersCarouselIndex, setOrdersCarouselIndex] = useState(0)
+  const [, setOrdersCarouselIndex] = useState(0)
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>('none')
   const [userRole, setUserRole] = useState<UserRole>('member')
   const [companyName, setCompanyName] = useState<string | null>(null)
@@ -988,16 +968,15 @@ export function AccountDashboard() {
   }, [pageState])
 
   useEffect(() => {
-    if (!leaderboardOpen && !trophyOpen) return
+    if (!leaderboardOpen) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setLeaderboardOpen(false)
-        setTrophyOpen(false)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [leaderboardOpen, trophyOpen])
+  }, [leaderboardOpen])
 
   useEffect(() => {
     if (!leaderboardOpen) return
@@ -1025,7 +1004,7 @@ export function AccountDashboard() {
                 : first || last || 'Member'
             return { id, label, xp: xpValue }
           })
-          .filter((entry) => entry.id)
+          .filter((entry: LeaderboardEntry) => entry.id)
 
         if (!cancelled) setLeaderboardEntries(entries)
       } finally {
@@ -1039,7 +1018,7 @@ export function AccountDashboard() {
   }, [leaderboardOpen])
 
   useEffect(() => {
-    if (!leaderboardOpen && !trophyOpen) return
+    if (!leaderboardOpen) return
     const html = document.documentElement
     const body = document.body
     const prevHtmlOverflow = html.style.overflow
@@ -1050,7 +1029,7 @@ export function AccountDashboard() {
       html.style.overflow = prevHtmlOverflow
       body.style.overflow = prevBodyOverflow
     }
-  }, [leaderboardOpen, trophyOpen])
+  }, [leaderboardOpen])
 
   const showWelcomeScreen = welcomeName !== null && !showDashboard
   const nameParts = (welcomeName ?? '').trim().split(/\s+/).filter(Boolean)
@@ -1170,14 +1149,7 @@ export function AccountDashboard() {
   }
 
   const displayOrders = useMemo(() => [...orders], [orders])
-  const hasTwoOrders = displayOrders.length >= 2
-  const hasThreeOrders = displayOrders.length >= 3
-  const hasFourOrMoreOrders = displayOrders.length >= 4
-  const showAddAnotherBlock = displayOrders.length > 0 && displayOrders.length < 3
   const carouselMaxIndex = Math.max(0, displayOrders.length - 3)
-  const visiblePrimary = hasFourOrMoreOrders ? (displayOrders[ordersCarouselIndex] ?? null) : (displayOrders[0] ?? null)
-  const visibleSecond = hasFourOrMoreOrders ? (displayOrders[ordersCarouselIndex + 1] ?? null) : (displayOrders[1] ?? null)
-  const visibleThird = hasFourOrMoreOrders ? (displayOrders[ordersCarouselIndex + 2] ?? null) : (displayOrders[2] ?? null)
 
   const ordersSummaryPreview = displayOrders[0] ?? null
   const summaryFirstLine = ordersSummaryPreview?.lineItems?.[0]
@@ -1237,6 +1209,28 @@ export function AccountDashboard() {
       document.removeEventListener('visibilitychange', onVis)
     }
   }, [currentUserId])
+
+  // Realtime : rafraîchit les notifications dès qu'une ligne user_notifications change
+  // (broadcast 'all', ciblage 'role' ou 'user' — les 3 cas nous concernent)
+  useEffect(() => {
+    if (!currentUserId) return
+    const role = userRole
+    const ch = supabase
+      .channel(`user_notifications_${currentUserId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'user_notifications' },
+        () => {
+          void fetchNotificationsForUser(currentUserId, role).then(setNotifications)
+        },
+      )
+      .subscribe()
+    return () => {
+      void supabase.removeChannel(ch)
+    }
+  // fetchNotificationsForUser est une function inline stable, userRole change rarement
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserId, userRole])
 
   useEffect(() => {
     setOrdersCarouselIndex((i) => Math.min(i, carouselMaxIndex))
@@ -1348,11 +1342,17 @@ export function AccountDashboard() {
             xpToNextTier={nextTier ? Math.max(0, nextTier.minXp - xp) : 0}
             partnerStatus={partnerStatus}
             tier={currentTier.headerLabel}
-            onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}
             onLeaderboardClick={() => setLeaderboardOpen(true)}
-            onTrophyClick={() => setTrophyOpen(true)}
             trainingRequests={trainingRequests}
             onAcademyPaymentRequest={(row) => setTrainingPaymentModalRequest(row)}
+            vehicles={vehicles}
+            orders={orders}
+            notifications={visibleNotifications}
+            notificationCount={notificationCount}
+            onAddVehicle={() => setCarModalOpen(true)}
+            onEditVehicle={(v) => setSettingsVehicle(v as Vehicle)}
+            onClearNotification={(id) => { void clearSingleNotification(id) }}
+            onClearAllNotifications={() => { void clearAllDashboardNotifications() }}
           />
 
           {/* Desktop hero (hidden on mobile) */}
@@ -1365,33 +1365,17 @@ export function AccountDashboard() {
             companyName={companyName}
             partnerStatus={partnerStatus}
             tier={currentTier.headerLabel}
-            benefits={currentTier.benefits}
+            benefits={[...currentTier.benefits]}
             currentTierName={currentTier.name}
             currentTierColorClass={currentTier.colorClass}
             memberId={memberId}
             barcodeValue={barcodeValue}
             onProductsPurchasedClick={() => setProductsPurchasedOpen(true)}
             onAdminPanelClick={() => setAdminPanelOpen(true)}
-            onSettingsClick={() => setSettingsOpen(true)}
+
             walletBalanceLabel="0.00 $"
             headerRight={
               <div ref={notificationsMenuRef} className="flex items-center gap-5">
-                <button
-                  type="button"
-                  className="flex items-center justify-center rounded-lg text-carbon-800 transition-colors hover:bg-black/[0.05] hover:text-carbon-900"
-                  aria-label="Open membership QR"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                    <path d="M17 12v4a1 1 0 0 1-1 1h-4" />
-                    <path d="M17 3h2a2 2 0 0 1 2 2v2" />
-                    <path d="M17 8V7" />
-                    <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-                    <path d="M3 7V5a2 2 0 0 1 2-2h2" />
-                    <path d="M7 17h.01" />
-                    <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-                    <rect x="7" y="7" width="5" height="5" rx="1" />
-                  </svg>
-                </button>
                 <div ref={notificationsBellAnchorRef} className="relative flex items-center">
                   <button
                     type="button"
@@ -1693,8 +1677,10 @@ export function AccountDashboard() {
                 </div>
                 {displayOrders.length === 0 ? (
                   <div className="mt-7 flex flex-col items-center text-center">
-                    <div className="mb-5 flex h-28 w-28 items-center justify-center rounded-full bg-[#E7E7E7] text-4xl text-[#8E8E8E]">
-                      <span aria-hidden>🧥</span>
+                    <div className="mb-5 flex h-28 w-28 items-center justify-center rounded-full bg-[#E7E7E7]">
+                      <svg className="h-12 w-12 text-[#A0A0A0]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                      </svg>
                     </div>
                     <p className="max-w-[320px] text-sm leading-6 text-[#4A4A4A]">
                       You haven&apos;t made any orders yet. When you make an order it&apos;ll show up here.
@@ -1731,11 +1717,10 @@ export function AccountDashboard() {
                           className="h-14 w-14 shrink-0 rounded-lg object-cover"
                         />
                       ) : (
-                        <div
-                          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-[#E9E9E9] text-xl text-[#7B7B7B]"
-                          aria-hidden
-                        >
-                          🧴
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-[#E9E9E9]">
+                          <svg className="h-6 w-6 text-[#A8A8A8]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                          </svg>
                         </div>
                       )}
                       <div className="min-w-0">
@@ -1867,17 +1852,6 @@ export function AccountDashboard() {
                   <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Leaderboard</p>
                   <span className="text-xl text-[#8A8A8A]" aria-hidden>›</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setTrophyOpen(true)}
-                  className="flex items-center justify-between rounded-[2px] bg-[#F3F3F3] px-6 py-6 text-left transition-colors hover:bg-[#ECECEC]"
-                >
-                  <div>
-                    <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#171717]">Trophy</p>
-                    <p className="mt-2 text-sm text-[#4A4A4A]">See your rewards, milestones and achievements.</p>
-                  </div>
-                  <span className="text-xl text-[#8A8A8A]" aria-hidden>›</span>
-                </button>
               </div>
             </div>
             </div>
@@ -1925,22 +1899,6 @@ export function AccountDashboard() {
             </div>
           </AppleSheet>
 
-          <AppleSheet
-            open={trophyOpen}
-            onOpenChange={setTrophyOpen}
-            title="Trophy"
-            zIndex={100_040}
-            desktopWidthClassName="max-w-[520px]"
-          >
-            <div className="px-4 pb-5 pt-0">
-              <p className="text-[13px] leading-[1.45] text-[#6e6e73]">
-                See your rewards, milestones and achievements.
-              </p>
-              <div className="mt-4 rounded-2xl border border-black/[0.06] bg-[#f5f5f7] p-6 text-[15px] leading-relaxed text-[#424245]">
-                Trophy content coming soon.
-              </div>
-            </div>
-          </AppleSheet>
           <div className="hidden lg:block"><Footer /></div>
       </div>
       )}

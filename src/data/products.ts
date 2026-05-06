@@ -16,6 +16,7 @@ export interface ProductVariant {
   id: string
   title: string
   price: number
+  compareAtPrice?: number
   availableForSale: boolean
   selectedOptions: { name: string; value: string }[]
   image?: string
@@ -49,6 +50,10 @@ export interface Product {
   reviewCount?: number
   /** Produit réservé aux partenaires/installateurs */
   partnerOnly?: boolean
+  /** Tags Shopify */
+  tags?: string[]
+  /** Prix original avant promotion */
+  compareAtPrice?: number
 }
 
 /**

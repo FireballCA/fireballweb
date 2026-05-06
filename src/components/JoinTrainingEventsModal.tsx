@@ -148,7 +148,7 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
     name.trim().length > 0 &&
     email.trim().length > 0 &&
     phone.trim().length > 0 &&
-    message.trim().length > 0
+    message.trim().length >= 10
 
   const sessionIdsWithActiveRequest = useMemo(() => {
     const ids = new Set<string>()
@@ -392,7 +392,7 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
                 <textarea
                   id={`${baseId}-message`}
                   rows={4}
-                  placeholder="Your message…"
+                  placeholder="Tell us about your experience level, goals… (10 chars min)"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   className={cn(inputClass, 'min-h-[5.5rem] resize-y')}
@@ -412,7 +412,7 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
                 ) : hasBlockingRequestForSelectedSession ? (
                     <p className="mt-2 text-xs text-neutral-500">You already have an active request for the selected session. Pick another date to continue.</p>
                   ) : !formValid ? (
-                  <p className="mt-2 text-xs text-neutral-500">Complete all required fields to continue.</p>
+                  <p className="mt-2 text-xs text-neutral-500">Complete all required fields (message: 10 chars min) to continue.</p>
                 ) : null}
               </div>
             </form>

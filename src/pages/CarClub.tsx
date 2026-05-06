@@ -9,34 +9,36 @@ import { cn } from '@/lib/utils'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { fetchCarClubSettings, subscribeCarClubSettings, type CarClubSettings } from '@/utils/supabaseCarClub'
 
+const EASE_SPRING = [0.22, 1, 0.36, 1] as [number, number, number, number]
+
 const fadeUp = {
   hidden: { opacity: 0, y: 32 },
   show: (delay = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.72, ease: [0.22, 1, 0.36, 1], delay },
+    transition: { duration: 0.72, ease: EASE_SPRING, delay },
   }),
-}
+} as const as import('framer-motion').Variants
 
 const fadeIn = {
   hidden: { opacity: 0 },
   show: (delay = 0) => ({
     opacity: 1,
-    transition: { duration: 0.9, ease: 'easeOut', delay },
+    transition: { duration: 0.9, ease: 'easeOut' as const, delay },
   }),
-}
+} as const as import('framer-motion').Variants
 
 const staggerContainer = {
   hidden: {},
   show: {
     transition: { staggerChildren: 0.08, delayChildren: 0.1 },
   },
-}
+} satisfies import('framer-motion').Variants
 
 const featureItem = {
   hidden: { opacity: 0, x: -14 },
-  show: { opacity: 1, x: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
-}
+  show: { opacity: 1, x: 0, transition: { duration: 0.45, ease: EASE_SPRING } },
+} as const as import('framer-motion').Variants
 
 
 function CarClubFAQItem({ q, a }: { q: string; a: string }) {

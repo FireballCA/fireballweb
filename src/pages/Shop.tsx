@@ -1,13 +1,13 @@
 import { useEffect, useState, useRef } from 'react'
-import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
+import { useParams, Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CATEGORIES, type CategoryId, type Product } from '@/data/products'
 import { fetchProductsFromShopify, prefetchProductBySlug } from '@/utils/shopifyStorefront'
 import { LiquidGlassSelect } from '@/components/LiquidGlassSelect'
 import { getCurrentUserProfile } from '@/utils/supabaseAuth'
-import { FireballLoading } from '@/components/FireballLoading'
 import { ProductCardSkeleton } from '@/components/ui/ProductCardSkeleton'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { SaleDiscountPill } from '@/components/ui/AppleInfoPill'
 
 export function Shop() {
   const { t } = useTranslation()
@@ -222,10 +222,12 @@ export function Shop() {
     )
   }
 
-  // Filtre: En promotion
+  // Filtre: En promotion — produit avec compareAtPrice > price sur au moins un variant
   if (onSale) {
-    // Pour l'instant, on considère qu'un produit est en promotion s'il a un badge
-    filteredProducts = filteredProducts.filter((p) => p.badge)
+    filteredProducts = filteredProducts.filter((p) => {
+      if (typeof p.compareAtPrice === 'number' && p.compareAtPrice > p.price) return true
+      return p.variants?.some((v) => typeof v.compareAtPrice === 'number' && v.compareAtPrice > v.price) ?? false
+    })
   }
 
   // Filtre: En stock
@@ -565,14 +567,21 @@ export function Shop() {
                 onClick={() => { void prefetchProductBySlug(product.slug) }}
               >
                 {/* Image réduite avec coins arrondis */}
-                <div className="aspect-square overflow-hidden rounded-lg mb-3">
+                <div className="relative aspect-square overflow-hidden rounded-lg mb-3">
                   <img
                     src={product.image}
                     alt={product.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
+                  {(() => {
+                    const cardCompareAt = product.compareAtPrice ?? product.variants?.find(v => v.compareAtPrice)?.compareAtPrice
+                    const cardDiscount = cardCompareAt && cardCompareAt > product.price ? Math.round((1 - product.price / cardCompareAt) * 100) : 0
+                    return cardDiscount > 0 ? (
+                      <SaleDiscountPill discount={cardDiscount} className="absolute top-2 left-2" />
+                    ) : null
+                  })()}
                 </div>
-                
+
                 {/* Informations produit */}
                 <div className="flex flex-col gap-1">
                   {/* Étoiles */}
@@ -598,11 +607,24 @@ export function Shop() {
                   <h2 className="text-white text-sm font-bold truncate">
                     {product.name}
                   </h2>
-                  
+
                   {/* Prix */}
-                  <p className="text-white text-sm font-bold">
-                    {product.price.toFixed(2)} $CA
-                  </p>
+                  {(() => {
+                    const cardCompareAt = product.compareAtPrice ?? product.variants?.find(v => v.compareAtPrice)?.compareAtPrice
+                    const isOnSale = cardCompareAt && cardCompareAt > product.price
+                    return (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className={`text-sm font-bold ${isOnSale ? 'text-[#FF3B30]' : 'text-white'}`}>
+                          {product.price.toFixed(2)} $CA
+                        </p>
+                        {isOnSale && (
+                          <p className="text-xs text-carbon-400 line-through">
+                            {cardCompareAt!.toFixed(2)} $CA
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
               </Link>
             )

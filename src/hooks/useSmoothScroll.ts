@@ -17,7 +17,6 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
   const {
     speed = 0.7, // Scroll plus lent par défaut
     damping = 0.85,
-    parallax = true,
   } = options
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)

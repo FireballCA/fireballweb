@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
 

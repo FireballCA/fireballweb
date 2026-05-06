@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { setRememberDevice, supabase } from '@/lib/supabase'
+import { setRememberDevice as persistRememberDevice, supabase } from '@/lib/supabase'
 import { getSafeReturnToPath } from '@/utils/safeReturnTo'
 import { createShopifyCustomer } from '@/utils/shopifySync'
 import { IOSCheckbox } from '@/components/IOSCheckbox'
@@ -147,7 +147,7 @@ export function AccountRegister() {
 
       // Extraire first_name et last_name à partir des champs séparés
       setLoading(true)
-      setRememberDevice(rememberDevice)
+      persistRememberDevice(rememberDevice)
 
       // Étape 1: Créer l'utilisateur avec Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({

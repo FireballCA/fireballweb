@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCart } from '@/context/CartContext'
@@ -30,7 +30,7 @@ function formatMoney(n: number) {
 type EmptyCartFeature = {
   title: string
   subtitle: string
-  icon: JSX.Element
+  icon: React.ReactElement
 }
 
 export function Cart() {

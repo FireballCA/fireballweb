@@ -95,7 +95,7 @@ export function initSmoothScroll() {
         const targetY = typeof options.top === 'number' ? options.top : window.pageYOffset
         smoothScrollPolyfill(targetY)
       } else {
-        originalScrollTo.call(window, options as any, y)
+        ;(originalScrollTo as (x: number, y: number) => void).call(window, options as unknown as number, y as number)
       }
     }
   }

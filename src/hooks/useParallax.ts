@@ -23,50 +23,47 @@ export function useParallax(options: ParallaxOptions = {}) {
 
   useEffect(() => {
     const element = elementRef.current
-    if (!element) {
-      return () => {
-        // Cleanup toujours retourné pour éviter l'erreur React #310
-      }
-    }
+    if (!element) return
 
     let rafId: number | null = null
-    let lastScrollY = window.scrollY
 
     const updateParallax = () => {
+      rafId = null
       const scrollY = window.scrollY
       const rect = element.getBoundingClientRect()
       const elementTop = rect.top + scrollY
       const windowHeight = window.innerHeight
       const elementHeight = rect.height
 
-      // Calculer la position relative de l'élément dans le viewport
       const elementCenter = elementTop + elementHeight / 2
       const viewportCenter = scrollY + windowHeight / 2
       const distanceFromCenter = viewportCenter - elementCenter
 
-      // Appliquer le parallaxe seulement quand l'élément est visible
       if (rect.bottom >= 0 && rect.top <= windowHeight) {
         const parallaxValue = distanceFromCenter * intensity * (direction === 'up' ? -1 : 1)
         const translateY = parallaxValue + offset
-
         element.style.transform = `translate3d(0, ${translateY}px, 0)`
         element.style.willChange = 'transform'
       }
-
-      lastScrollY = scrollY
-      rafId = requestAnimationFrame(updateParallax)
     }
 
-    updateParallax()
+    const scheduleUpdate = () => {
+      if (rafId === null) {
+        rafId = requestAnimationFrame(updateParallax)
+      }
+    }
+
+    const scrollRoot = document.getElementById('app-scroll-root') ?? window
+    scrollRoot.addEventListener('scroll', scheduleUpdate, { passive: true })
+    window.addEventListener('resize', scheduleUpdate, { passive: true })
+    scheduleUpdate()
 
     return () => {
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId)
-      }
-      if (element) {
-        element.style.transform = ''
-        element.style.willChange = ''
-      }
+      scrollRoot.removeEventListener('scroll', scheduleUpdate)
+      window.removeEventListener('resize', scheduleUpdate)
+      if (rafId !== null) cancelAnimationFrame(rafId)
+      element.style.transform = ''
+      element.style.willChange = ''
     }
   }, [intensity, direction, offset])
 

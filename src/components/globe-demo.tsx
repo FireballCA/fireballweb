@@ -1,5 +1,5 @@
 "use client";
-import React, { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { World, type GlobeConfig } from "@/components/ui/globe";
 

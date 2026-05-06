@@ -90,12 +90,14 @@ function mapShopifyProductToLocal(node: {
   featuredImage?: { url: string; altText?: string | null } | null
   images?: { edges: { node: { url: string; altText?: string | null } }[] }
   priceRange?: { minVariantPrice?: { amount?: string; currencyCode?: string } }
+  compareAtPriceRange?: { minVariantPrice?: { amount?: string; currencyCode?: string } } | null
   variants?: {
     edges: {
       node: {
         id: string
         title: string
         price?: { amount?: string; currencyCode?: string }
+        compareAtPrice?: { amount?: string; currencyCode?: string } | null
         availableForSale?: boolean
         selectedOptions?: { name: string; value: string }[]
         image?: { url: string } | null
@@ -158,17 +160,21 @@ function mapShopifyProductToLocal(node: {
         // Vérifier que price existe avant d'accéder à amount
         const variantPriceAmount = edge.node.price?.amount
         const fallbackPriceAmount = node.priceRange?.minVariantPrice?.amount || minPriceAmount
-        
-        const variantPrice = variantPriceAmount 
+
+        const variantPrice = variantPriceAmount
           ? Number.parseFloat(variantPriceAmount)
           : Number.parseFloat(fallbackPriceAmount)
-        
+
         const resolvedPrice = Number.isFinite(variantPrice) ? variantPrice : price
+
+        const compareAtPriceAmount = edge.node.compareAtPrice?.amount
+        const compareAtPrice = compareAtPriceAmount ? Number.parseFloat(compareAtPriceAmount) : undefined
 
         return {
           id: edge.node.id,
           title: edge.node.title,
           price: Number.isFinite(resolvedPrice) ? resolvedPrice : 0,
+          compareAtPrice: compareAtPrice && Number.isFinite(compareAtPrice) && compareAtPrice > resolvedPrice ? compareAtPrice : undefined,
           availableForSale: edge.node.availableForSale ?? true,
           selectedOptions: edge.node.selectedOptions || [],
           image: edge.node.image?.url,
@@ -187,6 +193,25 @@ function mapShopifyProductToLocal(node: {
     }
   }
 
+  // Le compareAtPrice du produit :
+  // 1. Maximum des variants en promo si disponible
+  // 2. Sinon compareAtPriceRange.minVariantPrice.amount depuis Shopify (query liste)
+  const productCompareAtPrice = (() => {
+    // Depuis les variants mappés (query détail)
+    const fromVariants = variants
+      .map((v) => v.compareAtPrice)
+      .filter((v): v is number => typeof v === 'number')
+    if (fromVariants.length > 0) return Math.max(...fromVariants)
+
+    // Fallback: compareAtPriceRange (query liste)
+    const rangeAmount = node.compareAtPriceRange?.minVariantPrice?.amount
+    if (rangeAmount) {
+      const rangeVal = Number.parseFloat(rangeAmount)
+      if (Number.isFinite(rangeVal) && rangeVal > price) return rangeVal
+    }
+    return undefined
+  })()
+
   return {
     id: node.id,
     name: node.title,
@@ -195,6 +220,7 @@ function mapShopifyProductToLocal(node: {
     shortDesc,
     description: rawDescription || shortDesc,
     price: Number.isFinite(price) ? price : 0,
+    compareAtPrice: productCompareAtPrice,
     image: allImages[0],
     images: allImages.length > 1 ? allImages : undefined,
     shopifyProductId: node.id,
@@ -248,10 +274,22 @@ export async function fetchProductsFromShopify(): Promise<Product[]> {
                   currencyCode
                 }
               }
+              compareAtPriceRange {
+                minVariantPrice {
+                  amount
+                  currencyCode
+                }
+              }
               variants(first: 1) {
                 edges {
                   node {
                     id
+                    price {
+                      amount
+                    }
+                    compareAtPrice {
+                      amount
+                    }
                   }
                 }
               }
@@ -266,31 +304,32 @@ export async function fetchProductsFromShopify(): Promise<Product[]> {
     let cursor: string | null = null
     const pageSize = 250 // Maximum par page dans Shopify
 
+    type PageResponse = {
+      products: {
+        pageInfo: { hasNextPage: boolean; endCursor: string | null }
+        edges: { node: Record<string, unknown> }[]
+      }
+    }
+
     while (hasNextPage) {
       try {
-    const data = await shopifyFetch<{
-          products: {
-            pageInfo: { hasNextPage: boolean; endCursor: string | null }
-            edges: { node: any }[]
-          }
-        }>(query, { first: pageSize, after: cursor })
+        const data: PageResponse = await shopifyFetch<PageResponse>(query, { first: pageSize, after: cursor })
 
-        // Vérifier que data.products existe
         if (!data || !data.products) {
           console.error('[Shopify] Invalid response structure')
           break
         }
 
-    const edges = data.products?.edges || []
+        const edges = data.products?.edges || []
         if (edges.length > 0) {
-          const mappedProducts = edges.map((edge) => {
+          const mappedProducts = edges.map((edge: { node: Record<string, unknown> }): Product | null => {
             try {
-              return mapShopifyProductToLocal(edge.node)
+              return mapShopifyProductToLocal(edge.node as Parameters<typeof mapShopifyProductToLocal>[0])
             } catch (err) {
               console.error('[Shopify] Error mapping product:', err, edge.node)
               return null
             }
-          }).filter((p): p is Product => p !== null)
+          }).filter((p: Product | null): p is Product => p !== null)
           
           allProducts.push(...mappedProducts)
         }
@@ -366,6 +405,10 @@ export async function fetchProductFromShopifyBySlug(slug: string): Promise<Produ
                 id
                 title
                 price {
+                  amount
+                  currencyCode
+                }
+                compareAtPrice {
                   amount
                   currencyCode
                 }

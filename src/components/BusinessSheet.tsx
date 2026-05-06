@@ -12,7 +12,6 @@ export function BusinessSheet({ isOpen, onClose, onSaved }: BusinessSheetProps) 
   const [rendered, setRendered] = useState(isOpen)
   const [isExiting, setIsExiting] = useState(false)
   const [view, setView] = useState<'form' | 'dashboard'>('form')
-  const [partnerId, setPartnerId] = useState<string | null>(null)
   const [companyName, setCompanyName] = useState('')
   const [stats, setStats] = useState({ clients: 0, vehicles: 0, warranties: 0 })
   const [loading, setLoading] = useState(true)
@@ -78,7 +77,6 @@ export function BusinessSheet({ isOpen, onClose, onSaved }: BusinessSheetProps) 
         description?: string | null
         application_data?: { business_address?: string; phone_number?: string; website_or_social_media?: string }
       }
-      setPartnerId(row.id)
       setCompanyName(row.company_name || '')
       const hasProfile = !!(row.company_address != null && row.company_address !== '')
       if (hasProfile) {

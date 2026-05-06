@@ -178,7 +178,7 @@ export const SidebarLink = ({
   )
   if (isInternal) {
     return (
-      <Link to={link.href} className={classNames} {...(props as React.ComponentProps<typeof Link>)}>
+      <Link to={link.href} className={classNames} {...(({ to: _to, ...rest }) => rest)(props as React.ComponentProps<typeof Link> & { to?: string })}>
         {content}
       </Link>
     )

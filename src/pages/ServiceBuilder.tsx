@@ -66,15 +66,12 @@ export function ServiceBuilder() {
     successSheetOpen,
     setSuccessSheetOpen,
     requestNumber,
-    isSending,
-    setIsSending,
     setContactFirstName,
     setContactLastName,
     setContactEmail,
     loadGarage,
     totalPrice,
     canProceed,
-    submitServiceRequest,
   } = f
 
   useEffect(() => {

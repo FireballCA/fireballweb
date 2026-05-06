@@ -612,7 +612,7 @@ export function PartnerStatistics() {
     [vehicles],
   )
 
-  const { rows: clientRows, topClients } = useMemo(
+  const { rows: _clientRows, topClients } = useMemo(
     () => buildClientInstallationStats(clients, vehicles, warranties),
     [clients, vehicles, warranties],
   )
@@ -660,8 +660,6 @@ export function PartnerStatistics() {
   })()
 
   const mostInstalledProduct = productStats.list[0] ?? null
-  const leastInstalledProduct =
-    productStats.list.length > 0 ? productStats.list[productStats.list.length - 1] : null
 
   const installsByMonth = monthlyInstallationsSeries
   const mostActiveMonth =

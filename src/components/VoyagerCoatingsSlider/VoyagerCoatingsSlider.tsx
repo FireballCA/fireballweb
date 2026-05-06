@@ -39,8 +39,6 @@ type VoyagerCoatingsSliderProps = {
 }
 
 const EASE = 'power2.inOut'
-/** Flèches : fin d’animation un peu plus « précoce » visuellement (ease out) */
-const EASE_ARROW = 'power3.out'
 /** Flèches : un peu plus longues pour lire la rotation ; points : plus secs */
 const DURATION_ARROW = 0.34
 const DURATION_DOT_STEP = 0.2
@@ -66,7 +64,7 @@ function decodeImageUrl(url: string): Promise<void> {
   })
 }
 
-/** Chemin le plus court sur le cercle d’indices */
+/** Chemin le plus court sur le cercle d'indices */
 function getNavigationPlan(current: number, target: number, n: number): { dir: 'next' | 'prev'; steps: number } | null {
   if (current === target || n < 2) return null
   const forward = (target - current + n) % n
@@ -411,7 +409,7 @@ export function VoyagerCoatingsSlider({ slides, className = '', onActiveChange }
         requestAnimationFrame(() => applyResting())
         return
       }
-      void runSwapSequence(plan.steps, plan.dir, stepDurationForDotJumps(plan.steps), EASE)
+      void runSwapSequence(plan.steps, plan.dir, stepDurationForDotJumps(plan.steps))
     },
     [applyResting, n, reduceMotion, runSwapSequence],
   )

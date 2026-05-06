@@ -82,11 +82,33 @@ export function LenisRoot({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!lenis) return
+
+    // Resize immédiat + retardés pour attendre le rendu initial
     const t0 = window.setTimeout(() => lenis.resize(), 0)
-    const t1 = window.setTimeout(() => lenis.resize(), 250)
+    const t1 = window.setTimeout(() => lenis.resize(), 300)
+    const t2 = window.setTimeout(() => lenis.resize(), 800)
+    const t3 = window.setTimeout(() => lenis.resize(), 1800)
+
+    // ResizeObserver sur le contenu : resize Lenis dès que la hauteur change
+    // (images lazy, accordéons, contenu async)
+    const content = document.getElementById('app-scroll-content')
+    let roRaf: number | null = null
+    const ro = new ResizeObserver(() => {
+      if (roRaf !== null) return
+      roRaf = window.requestAnimationFrame(() => {
+        roRaf = null
+        lenis.resize()
+      })
+    })
+    if (content) ro.observe(content)
+
     return () => {
       window.clearTimeout(t0)
       window.clearTimeout(t1)
+      window.clearTimeout(t2)
+      window.clearTimeout(t3)
+      ro.disconnect()
+      if (roRaf !== null) window.cancelAnimationFrame(roRaf)
     }
   }, [lenis, location.pathname])
 

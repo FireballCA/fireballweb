@@ -352,7 +352,7 @@ export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
               {items.map((item, index) => (
                 <motion.div
                   layout
-                  layoutScroll={carouselRef}
+                  layoutScroll
                   initial={{
                     opacity: 0,
                     y: 20,

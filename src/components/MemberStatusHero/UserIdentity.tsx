@@ -4,7 +4,6 @@ import { SHOPIFY_CUSTOMER_ORDERS_URL } from '@/constants/shopifyShopApp'
 interface UserIdentityProps {
   partnerStatus?: string | null
   onProductsPurchasedClick?: () => void
-  onSettingsClick?: () => void
 }
 
 const ArrowIcon = () => (
@@ -16,7 +15,6 @@ const ArrowIcon = () => (
 export function UserIdentity({
   partnerStatus = null,
   onProductsPurchasedClick,
-  onSettingsClick,
 }: UserIdentityProps) {
   const buttonClass =
     'h-[34px] text-carbon-900 text-[13px] leading-[16px] text-left px-3 rounded-[6px] w-[240px] flex items-center justify-between transition-colors hover:brightness-95'

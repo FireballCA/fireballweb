@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { setRememberDevice, supabase } from '@/lib/supabase'
+import { setRememberDevice as persistRememberDevice, supabase } from '@/lib/supabase'
 import { getSafeReturnToPath } from '@/utils/safeReturnTo'
 import { IOSCheckbox } from '@/components/IOSCheckbox'
 
@@ -123,7 +123,7 @@ export function Account() {
     setLoading(true)
 
     try {
-      setRememberDevice(rememberDevice)
+      persistRememberDevice(rememberDevice)
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password,

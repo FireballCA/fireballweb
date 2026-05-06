@@ -15,6 +15,7 @@ export interface UserProfile {
   barcode_value?: string | null
   shopify_customer_id?: string | null
   avatar_url?: string | null
+  language?: string | null
 }
 
 /**

@@ -13,6 +13,17 @@ declare module "@react-three/fiber" {
   }
 }
 
+declare module 'react' {
+  namespace JSX {
+    interface IntrinsicElements {
+      group: any
+      ambientLight: any
+      directionalLight: any
+      pointLight: any
+    }
+  }
+}
+
 extend({ ThreeGlobe: ThreeGlobe });
 
 const RING_PROPAGATION_SPEED = 3;
@@ -59,11 +70,9 @@ interface WorldProps {
   data: Position[];
 }
 
-let numbersOfRings = [0];
-
 export function Globe({ globeConfig, data }: WorldProps) {
   const globeRef = useRef<ThreeGlobe | null>(null);
-  const groupRef = useRef();
+  const groupRef = useRef<any>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   const defaultProps = {
@@ -218,7 +227,7 @@ export function Globe({ globeConfig, data }: WorldProps) {
       );
 
       const ringsData = data
-        .filter((d, i) => newNumbersOfRings.includes(i))
+        .filter((_d, i) => newNumbersOfRings.includes(i))
         .map((d) => ({
           lat: d.startLat,
           lng: d.startLng,
@@ -284,7 +293,7 @@ export function World(props: WorldProps) {
 
 export function hexToRgb(hex: string) {
   var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-  hex = hex.replace(shorthandRegex, function (m, r, g, b) {
+  hex = hex.replace(shorthandRegex, function (_m, r, g, b) {
     return r + r + g + g + b + b;
   });
 

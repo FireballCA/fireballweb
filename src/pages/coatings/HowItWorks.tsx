@@ -7,8 +7,6 @@ import { cn } from '@/lib/utils'
 import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
 import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 
-const GAUGE_COLOR = '#B61B1B'
-
 function useRevealOnce<T extends Element>() {
   const ref = useRef<T | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

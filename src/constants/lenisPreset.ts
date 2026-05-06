@@ -18,10 +18,25 @@ export const lenisExoticsStyleOptions: LenisOptions = {
   infinite: false,
   prevent: (node) => {
     if (!(node instanceof HTMLElement)) return false
-    return Boolean(
+
+    // Explicitement marqué comme à ignorer
+    if (
       node.closest('[data-lenis-prevent]') ||
       node.closest('.business-scroll') ||
-      node.closest('.business-layout'),
-    )
+      node.closest('.business-layout')
+    ) return true
+
+    // Tout élément scrollable en Y qui a du contenu à scroller
+    // (modals, sheets, dropdowns, rails, etc.) — remonter l'arbre DOM
+    let el: HTMLElement | null = node
+    while (el && el.id !== 'app-scroll-root') {
+      const style = window.getComputedStyle(el)
+      const overflowY = style.overflowY
+      if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight + 2) {
+        return true
+      }
+      el = el.parentElement
+    }
+    return false
   },
 }

@@ -75,7 +75,7 @@ export function PartnerWarranties() {
     }
     const vehicle = vehicles.find((v) => v.id === vehicleId)
     if (!vehicle) return
-    const { data: inserted, error: insertErr } = await supabase
+    const { data: _inserted, error: insertErr } = await supabase
       .from('partner_warranties')
       .insert({
         partner_id: partnerId,

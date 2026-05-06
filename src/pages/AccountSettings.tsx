@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { useNavigate, Link, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { updateShopifyCustomer } from '@/utils/shopifySync'
@@ -34,7 +34,6 @@ const SEARCH_SUGGESTIONS: SearchSuggestion[] = [
 
 export function AccountSettings() {
   const navigate = useNavigate()
-  const location = useLocation()
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([])
@@ -54,8 +53,6 @@ export function AccountSettings() {
   const [originalOrderEmails, setOriginalOrderEmails] = useState(true)
   const [originalMarketingEmails, setOriginalMarketingEmails] = useState(true)
   const [originalPushNotifications, setOriginalPushNotifications] = useState(false)
-  const [originalGoogleConnected, setOriginalGoogleConnected] = useState(false)
-  const [originalEmailConnected, setOriginalEmailConnected] = useState(true)
 
   // Profile state
   const [firstName, setFirstName] = useState('')
@@ -89,7 +86,7 @@ export function AccountSettings() {
 
   // Connected Accounts state
   const [googleConnected, setGoogleConnected] = useState(false)
-  const [emailConnected, setEmailConnected] = useState(true)
+  const [, setEmailConnected] = useState(true)
   const [hasPassword, setHasPassword] = useState(true)
   const [settingPassword, setSettingPassword] = useState(false)
   const [passwordForGoogleAccount, setPasswordForGoogleAccount] = useState('')
@@ -178,46 +175,6 @@ export function AccountSettings() {
         element.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }
     }
-  }
-
-  const checkUnsavedChanges = (targetPath: string) => {
-    if (hasProfileChanges) {
-      const changes: UnsavedChanges = {
-        section: 'Profile',
-        field: firstName !== originalFirstName ? 'First name' : 'Last name',
-        oldValue: firstName !== originalFirstName ? originalFirstName : originalLastName,
-        newValue: firstName !== originalFirstName ? firstName : lastName,
-      }
-      setUnsavedChanges(changes)
-      setPendingNavigation(targetPath)
-      setShowUnsavedModal(true)
-      return false
-    }
-    if (hasSecurityChanges) {
-      const changes: UnsavedChanges = {
-        section: 'Security',
-        field: email !== originalEmail ? 'Email' : 'Password',
-        oldValue: email !== originalEmail ? originalEmail : '••••••••',
-        newValue: email !== originalEmail ? email : '••••••••',
-      }
-      setUnsavedChanges(changes)
-      setPendingNavigation(targetPath)
-      setShowUnsavedModal(true)
-      return false
-    }
-    if (hasNotificationsChanges) {
-      const changes: UnsavedChanges = {
-        section: 'Notifications',
-        field: orderEmails !== originalOrderEmails ? 'Order updates' : marketingEmails !== originalMarketingEmails ? 'News & drops' : 'Push notifications',
-        oldValue: orderEmails !== originalOrderEmails ? String(originalOrderEmails) : marketingEmails !== originalMarketingEmails ? String(originalMarketingEmails) : String(originalPushNotifications),
-        newValue: orderEmails !== originalOrderEmails ? String(orderEmails) : marketingEmails !== originalMarketingEmails ? String(marketingEmails) : String(pushNotifications),
-      }
-      setUnsavedChanges(changes)
-      setPendingNavigation(targetPath)
-      setShowUnsavedModal(true)
-      return false
-    }
-    return true
   }
 
   const handleDiscardChanges = () => {
@@ -581,7 +538,13 @@ export function AccountSettings() {
         setPasswordSuccess(null)
 
         // Unlink the Google identity
-        const { error } = await supabase.auth.unlinkIdentity({ provider: 'google' })
+        const { data: userData } = await supabase.auth.getUser()
+        const googleIdentity = userData?.user?.identities?.find((id) => id.provider === 'google')
+        if (!googleIdentity) {
+          setPasswordError('Google identity not found.')
+          return
+        }
+        const { error } = await supabase.auth.unlinkIdentity(googleIdentity)
 
         if (error) {
           setPasswordError(error.message || 'Failed to disconnect Google account.')

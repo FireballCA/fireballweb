@@ -9,6 +9,51 @@ import {
   AcademyTrainingRequestsEmpty,
 } from '@/components/AcademyTrainingRequestViews'
 import type { TrainingRequestRow } from '@/utils/trainingRequests'
+import { formatOrderRef } from '@/utils/customerOrders'
+import { NotificationMessageWithStatusHighlight } from '@/utils/notificationTextHighlight'
+
+// ── Minimal shared types (kept local to avoid circular deps) ──────────────────
+
+interface VehicleItem {
+  id: string
+  brand: string
+  model: string
+  year: number
+  color?: string
+  imageUrl?: string
+  ceramicProtectionDate?: Date
+  protectionShop?: string
+  protectionProduct?: string
+  notes?: string
+}
+
+interface OrderLineItem {
+  title: string
+  price: number
+  quantity: number
+  imageUrl?: string
+}
+
+interface OrderItem {
+  id: string
+  name: string
+  date?: string
+  orderNumber?: string
+  totalPrice?: number
+  currency?: string
+  lineItems?: OrderLineItem[]
+  imageUrl?: string
+  pointsEarned?: number
+}
+
+interface NotificationItem {
+  id: string
+  title: string | null
+  message: string
+  created_at: string
+}
+
+// ── Props ─────────────────────────────────────────────────────────────────────
 
 interface MobileDashboardProps {
   currentXp: number
@@ -16,12 +61,21 @@ interface MobileDashboardProps {
   xpToNextTier?: number
   partnerStatus?: string | null
   tier?: string | null
-  onProductsPurchasedClick?: () => void
   onLeaderboardClick?: () => void
-  onTrophyClick?: () => void
   trainingRequests?: TrainingRequestRow[]
   onAcademyPaymentRequest?: (row: TrainingRequestRow) => void
+  // Pages data
+  vehicles?: VehicleItem[]
+  orders?: OrderItem[]
+  notifications?: NotificationItem[]
+  notificationCount?: number
+  onAddVehicle?: () => void
+  onEditVehicle?: (v: VehicleItem) => void
+  onClearNotification?: (id: string) => void
+  onClearAllNotifications?: () => void
 }
+
+// ── Icons ─────────────────────────────────────────────────────────────────────
 
 function IconPackage() {
   return (
@@ -31,10 +85,18 @@ function IconPackage() {
   )
 }
 
-function IconShoppingBag() {
+function IconOrders() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" />
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>
+    </svg>
+  )
+}
+
+function IconNotification() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
     </svg>
   )
 }
@@ -81,19 +143,6 @@ function IconGarage() {
   )
 }
 
-function IconTrophy() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978" />
-      <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978" />
-      <path d="M18 9h1.5a1 1 0 0 0 0-5H18" />
-      <path d="M4 22h16" />
-      <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z" />
-      <path d="M6 9H4.5a1 1 0 0 1 0-5H6" />
-    </svg>
-  )
-}
-
 function IconLeaderboard() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -113,16 +162,17 @@ function IconLock() {
   )
 }
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 const BADGE_SIZE_EXPANDED = 170
 const BADGE_SIZE_COLLAPSED = 290
-const SHEET_TOP = 324              // menu remonté pour éviter d'avoir à scroller la page
+const SHEET_TOP = 324
 const PEEK_PX = 72
 const SNAP_THRESHOLD = 60
-/** Sous la navbar fixe : le conteneur dashboard commence déjà sous le spacer Layout ; petit offset suffit */
 const STICKY_BAR_TOP = 14
-const SIDE_PADDING = 20           // matches px-5 on buttons
+const SIDE_PADDING = 20
 const TIER_BADGES_PRELOAD_COOKIE = 'fb_tier_badges_preloaded'
-const TIER_BADGES_PRELOAD_COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // 30 jours
+const TIER_BADGES_PRELOAD_COOKIE_MAX_AGE = 60 * 60 * 24 * 30
 
 const MOBILE_TIERS = [
   {
@@ -196,39 +246,57 @@ function getTierIndexFromLabel(tier?: string | null): number {
   return 0
 }
 
+function formatTimeAgo(isoDate: string): string {
+  if (!isoDate) return ''
+  try {
+    const date = new Date(isoDate)
+    if (Number.isNaN(date.getTime())) return ''
+    return date.toLocaleString(undefined, {
+      year: 'numeric', month: 'short', day: '2-digit',
+      hour: '2-digit', minute: '2-digit',
+    })
+  } catch {
+    return isoDate
+  }
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function MobileDashboard({
   currentXp,
   xpProgressPercent,
   xpToNextTier,
-  partnerStatus: _partnerStatus,
+  partnerStatus,
   tier,
-  onProductsPurchasedClick,
   onLeaderboardClick,
-  onTrophyClick,
   trainingRequests = [],
   onAcademyPaymentRequest,
+  vehicles = [],
+  orders = [],
+  notifications = [],
+  notificationCount = 0,
+  onAddVehicle,
+  onEditVehicle,
+  onClearNotification,
+  onClearAllNotifications,
 }: MobileDashboardProps) {
   const currentTierIndex = getTierIndexFromLabel(tier)
   const [viewingTierIndex, setViewingTierIndex] = useState(currentTierIndex)
-  const [activeSheet, setActiveSheet] = useState<'garage' | 'settings' | 'certified' | 'business' | null>(null)
+  const [activeSheet, setActiveSheet] = useState<'garage' | 'settings' | 'notifications' | 'orders' | null>(null)
   const [academySheetOpen, setAcademySheetOpen] = useState(false)
 
+  const isPartner = String(partnerStatus || '').trim().toLowerCase() === 'partner'
+
   const sheetRef = useRef<HTMLDivElement>(null)
-  // XP display in hero — slides up + fades
   const xpContainerRef = useRef<HTMLDivElement>(null)
-  // Original small progress bar in hero — fades out
   const progressBarWrapperRef = useRef<HTMLDivElement>(null)
-  // Sticky progress bar that slides into place below navbar
   const stickyBarRef = useRef<HTMLDivElement>(null)
   const stickyBarFillRef = useRef<HTMLDivElement>(null)
   const stickyLabelsRef = useRef<HTMLDivElement>(null)
-  // Badge
   const badgeContainerRef = useRef<HTMLDivElement>(null)
   const currentBadgeImgRef = useRef<HTMLImageElement>(null)
   const viewingBadgeImgRef = useRef<HTMLImageElement>(null)
-  // Impact tier text — behind badge, peeks above
   const impactTierRef = useRef<HTMLDivElement>(null)
-  // Section 2 content
   const benefitsContainerRef = useRef<HTMLDivElement>(null)
   const arrowsContainerRef = useRef<HTMLDivElement>(null)
   const lockOverlayRef = useRef<HTMLDivElement>(null)
@@ -253,16 +321,12 @@ export function MobileDashboard({
     const sheetTrans = animate ? `transform ${DUR} ${EASE}` : 'none'
     const allTrans = animate ? `all ${DUR} ${EASE}` : 'none'
 
-    // ── Sheet ──
     if (sheetRef.current) {
       sheetRef.current.style.transition = sheetTrans
       sheetRef.current.style.transform = `translateY(${y}px)`
     }
 
-    // ── Badge size ──
     const badgeSize = BADGE_SIZE_EXPANDED + (BADGE_SIZE_COLLAPSED - BADGE_SIZE_EXPANDED) * progress
-
-    // ── Badge center Y ──
     const section2VisualTop = SHEET_TOP + y
     const screenCenter = (window.innerHeight - PEEK_PX) / 2
     const breakpoint = 0.65
@@ -282,7 +346,6 @@ export function MobileDashboard({
       badgeContainerRef.current.style.top = `${imageCenterY - badgeSize / 2}px`
     }
 
-    // ── Badge crossfade: current tier ↔ viewing tier ──
     const viewingBadgeOpacity = Math.min(1, progress * 2.5)
     const currentBadgeOpacity = Math.max(0, 1 - progress * 2.5)
     if (currentBadgeImgRef.current) {
@@ -294,7 +357,6 @@ export function MobileDashboard({
       viewingBadgeImgRef.current.style.opacity = `${viewingBadgeOpacity}`
     }
 
-    // ── XP container: slide up + fade out ──
     const xpOpacity = Math.max(0, 1 - progress * 2.2)
     const xpSlideY = -progress * 70
     if (xpContainerRef.current) {
@@ -303,13 +365,11 @@ export function MobileDashboard({
       xpContainerRef.current.style.transform = `translateY(${xpSlideY}px)`
     }
 
-    // ── Original small progress bar: fade out ──
     if (progressBarWrapperRef.current) {
       progressBarWrapperRef.current.style.transition = allTrans
       progressBarWrapperRef.current.style.opacity = `${Math.max(0, 1 - progress * 2.5)}`
     }
 
-    // ── Sticky progress bar (near navbar) ──
     const stickyOpacity = Math.min(1, Math.max(0, (progress - 0.45) / 0.35))
     if (stickyBarRef.current) {
       stickyBarRef.current.style.transition = allTrans
@@ -320,11 +380,8 @@ export function MobileDashboard({
       stickyLabelsRef.current.style.opacity = `${stickyOpacity}`
     }
 
-    // ── Impact tier text: behind badge, peeks above ──
     const impactOpacity = Math.min(1, Math.max(0, (progress - 0.3) / 0.45))
-    // Font size grows as section collapses
     const impactFontSize = 90 + 65 * progress
-    // Position so the text peeks ~55px above badge top
     const peekPx = 55
     const impactTop = imageCenterY - badgeSize / 2 - peekPx
     if (impactTierRef.current) {
@@ -334,7 +391,6 @@ export function MobileDashboard({
       impactTierRef.current.style.top = `${impactTop}px`
     }
 
-    // ── Benefits container ──
     const benefitsOpacity = Math.max(0, (progress - 0.6) / 0.4)
     const benefitsTop = imageCenterY + badgeSize / 2 + 16
     const benefitsMaxH = Math.max(80, window.innerHeight - PEEK_PX - benefitsTop - 8)
@@ -348,7 +404,6 @@ export function MobileDashboard({
       benefitsContainerRef.current.style.pointerEvents = progress > 0.8 ? 'auto' : 'none'
     }
 
-    // ── Arrows ──
     if (arrowsContainerRef.current) {
       arrowsContainerRef.current.style.transition = allTrans
       arrowsContainerRef.current.style.opacity = `${benefitsOpacity}`
@@ -356,7 +411,6 @@ export function MobileDashboard({
       arrowsContainerRef.current.style.pointerEvents = progress > 0.8 ? 'auto' : 'none'
     }
 
-    // ── Lock overlay ──
     if (lockOverlayRef.current) {
       lockOverlayRef.current.style.transition = allTrans
       lockOverlayRef.current.style.opacity = `${benefitsOpacity}`
@@ -367,13 +421,14 @@ export function MobileDashboard({
     maxSheetYRef.current = computeMaxY()
     applySheetTransform(0, false)
 
+    if (window.innerWidth >= 1024) return
+
     const prevBodyOverflow = document.body.style.overflow
     const prevHtmlOverflow = document.documentElement.style.overflow
     const scrollRoot = document.getElementById('app-scroll-root') as HTMLElement | null
     const prevScrollRootOverflow = scrollRoot?.style.overflowY ?? ''
     const prevScrollRootTouchAction = scrollRoot?.style.touchAction ?? ''
 
-    // Bloquer le scroll de page : seule la zone "avantages" reste scrollable.
     document.body.style.overflow = 'hidden'
     document.documentElement.style.overflow = 'hidden'
     if (scrollRoot) {
@@ -391,8 +446,6 @@ export function MobileDashboard({
   }, [])
 
   useEffect(() => {
-    // Précharge tous les badges tiers au chargement du dashboard.
-    // Le cookie sert de flag persistant ; les images restent ensuite en cache navigateur.
     let cancelled = false
     const preload = async () => {
       const tasks = MOBILE_TIERS.map(
@@ -414,14 +467,10 @@ export function MobileDashboard({
     const hasPreloadedCookie = document.cookie.includes(`${TIER_BADGES_PRELOAD_COOKIE}=1`)
     if (hasPreloadedCookie) {
       void preload()
-      return () => {
-        cancelled = true
-      }
+      return () => { cancelled = true }
     }
     void preload()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
@@ -477,13 +526,8 @@ export function MobileDashboard({
   const viewingTier = MOBILE_TIERS[viewingTierIndex]
   const isLocked = viewingTierIndex > currentTierIndex
 
-  const handlePrevTier = () => {
-    setViewingTierIndex((i) => Math.max(0, i - 1))
-  }
-
-  const handleNextTier = () => {
-    setViewingTierIndex((i) => Math.min(MOBILE_TIERS.length - 1, i + 1))
-  }
+  const handlePrevTier = () => setViewingTierIndex((i) => Math.max(0, i - 1))
+  const handleNextTier = () => setViewingTierIndex((i) => Math.min(MOBILE_TIERS.length - 1, i + 1))
 
   const xpLabel = currentXp.toLocaleString() + ' XP'
   const nextTierLabel = xpToNextTier != null && xpToNextTier > 0
@@ -495,7 +539,7 @@ export function MobileDashboard({
       className="lg:hidden w-full relative"
       style={{ height: '100dvh', overflow: 'hidden', touchAction: 'none' }}
     >
-      {/* ── Section 1: white hero — click collapses section 2 ── */}
+      {/* ── Section 1: white hero ── */}
       <div
         className="absolute inset-0 bg-white overflow-hidden"
         onClick={() => {
@@ -505,7 +549,6 @@ export function MobileDashboard({
           }
         }}
       >
-        {/* XP display — slides up + fades out on collapse */}
         <div
           ref={xpContainerRef}
           className="absolute inset-x-0 top-0 flex flex-col items-center justify-center pointer-events-none px-4"
@@ -540,16 +583,11 @@ export function MobileDashboard({
         </div>
       </div>
 
-      {/* ── Sticky progress bar — appears just below navbar when collapsed ── */}
+      {/* ── Sticky progress bar ── */}
       <div
         ref={stickyBarRef}
         className="absolute z-[8] pointer-events-none"
-        style={{
-          top: STICKY_BAR_TOP,
-          left: SIDE_PADDING,
-          right: SIDE_PADDING,
-          opacity: 0,
-        }}
+        style={{ top: STICKY_BAR_TOP, left: SIDE_PADDING, right: SIDE_PADDING, opacity: 0 }}
       >
         <div className="h-[3px] rounded-full bg-neutral-200 overflow-hidden">
           <div
@@ -562,12 +600,7 @@ export function MobileDashboard({
       <div
         ref={stickyLabelsRef}
         className="absolute z-[8] pointer-events-none flex justify-between"
-        style={{
-          top: STICKY_BAR_TOP + 7,
-          left: SIDE_PADDING,
-          right: SIDE_PADDING,
-          opacity: 0,
-        }}
+        style={{ top: STICKY_BAR_TOP + 7, left: SIDE_PADDING, right: SIDE_PADDING, opacity: 0 }}
       >
         <span style={{ fontSize: 10, color: '#737373', fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
           {xpLabel}
@@ -577,7 +610,7 @@ export function MobileDashboard({
         </span>
       </div>
 
-      {/* ── Impact tier text — behind badge, peeks above ── */}
+      {/* ── Impact tier text ── */}
       <div
         ref={impactTierRef}
         className="absolute pointer-events-none z-[3]"
@@ -611,7 +644,6 @@ export function MobileDashboard({
           height: BADGE_SIZE_EXPANDED,
         }}
       >
-        {/* Current tier badge — visible in expanded (small) state */}
         <img
           ref={currentBadgeImgRef}
           src={MOBILE_TIERS[currentTierIndex].badgeSrc}
@@ -619,7 +651,6 @@ export function MobileDashboard({
           className="absolute inset-0 w-full h-full object-cover"
           style={{ opacity: 1 }}
         />
-        {/* Viewing tier badge — fades in when collapsed */}
         <img
           ref={viewingBadgeImgRef}
           src={viewingTier.badgeSrc}
@@ -726,7 +757,7 @@ export function MobileDashboard({
           willChange: 'transform',
         }}
       >
-        {/* Gray handle bar */}
+        {/* Handle bar */}
         <div
           className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing select-none"
           onTouchStart={handleTouchStart}
@@ -736,9 +767,11 @@ export function MobileDashboard({
           <div className="rounded-full bg-white/30" style={{ width: 96, height: 6 }} />
         </div>
 
-        {/* Menu fixe (non-scroll) */}
-        <div className="overflow-hidden" style={{ maxHeight: `calc(100dvh - ${SHEET_TOP + 44}px)`, touchAction: 'none' }}>
+        {/* Scrollable menu */}
+        <div className="overflow-y-auto overscroll-contain" style={{ maxHeight: `calc(100dvh - ${SHEET_TOP + 44}px)`, touchAction: 'pan-y' }}>
           <div className="px-5 pb-8 flex flex-col gap-2.5" style={{ paddingTop: 8 }}>
+
+            {/* Track your order — external */}
             <a
               href={SHOPIFY_CUSTOMER_ORDERS_URL}
               target="_blank"
@@ -750,70 +783,86 @@ export function MobileDashboard({
               <span className="w-8" />
             </a>
 
-            {onProductsPurchasedClick ? (
-              <button type="button" onClick={onProductsPurchasedClick} className={navButtonClass}>
-                <span className="w-8 flex justify-start text-white/50 shrink-0"><IconShoppingBag /></span>
-                <span className="flex-1 text-center font-nav font-semibold text-[13px]">Products purchased</span>
+            {/* My Orders */}
+            <button type="button" onClick={() => setActiveSheet('orders')} className={navButtonClass}>
+              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconOrders /></span>
+              <span className="flex-1 text-center font-nav font-semibold text-[13px]">My Orders</span>
+              {orders.length > 0 ? (
+                <span className="w-8 flex justify-end">
+                  <span className="text-[11px] font-semibold text-white/40">{orders.length}</span>
+                </span>
+              ) : (
                 <span className="w-8" />
-              </button>
-            ) : (
-              <a
-                href={SHOPIFY_CUSTOMER_ORDERS_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={navButtonClass}
-              >
-                <span className="w-8 flex justify-start text-white/50 shrink-0"><IconShoppingBag /></span>
-                <span className="flex-1 text-center font-nav font-semibold text-[13px]">Products purchased</span>
-                <span className="w-8" />
-              </a>
-            )}
-
-            <button type="button" onClick={() => setActiveSheet('certified')} className={navButtonClass}>
-              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconBadge /></span>
-              <span className="flex-1 text-center font-nav font-semibold text-[13px]">Become certified</span>
-              <span className="w-8" />
+              )}
             </button>
 
+            {/* Notifications */}
+            <button type="button" onClick={() => setActiveSheet('notifications')} className={navButtonClass}>
+              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconNotification /></span>
+              <span className="flex-1 text-center font-nav font-semibold text-[13px]">Notifications</span>
+              {notificationCount > 0 ? (
+                <span className="w-8 flex justify-end">
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0485F7] px-1.5 text-[10px] font-bold text-white leading-none">
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </span>
+                </span>
+              ) : (
+                <span className="w-8" />
+              )}
+            </button>
+
+            {/* Academy training */}
             <button type="button" onClick={() => setAcademySheetOpen(true)} className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconAcademy /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">Academy training</span>
               <span className="w-8" />
             </button>
 
+            {/* My Garage */}
             <button type="button" onClick={() => setActiveSheet('garage')} className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconGarage /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">My Garage</span>
-              <span className="w-8" />
+              {vehicles.length > 0 ? (
+                <span className="w-8 flex justify-end">
+                  <span className="text-[11px] font-semibold text-white/40">{vehicles.length}</span>
+                </span>
+              ) : (
+                <span className="w-8" />
+              )}
             </button>
 
+            {/* Leaderboard */}
             <button type="button" onClick={onLeaderboardClick} className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconLeaderboard /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">Leaderboard</span>
               <span className="w-8" />
             </button>
 
-            <button type="button" onClick={onTrophyClick} className={navButtonClass}>
-              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconTrophy /></span>
-              <span className="flex-1 text-center font-nav font-semibold text-[13px]">Trophy</span>
-              <span className="w-8" />
-            </button>
-
+            {/* Settings */}
             <button type="button" onClick={() => setActiveSheet('settings')} className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconSettings /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">Settings</span>
               <span className="w-8" />
             </button>
 
-            <button type="button" onClick={() => setActiveSheet('business')} className={navButtonClass}>
+            {/* Become certified — navigates to company page */}
+            <Link to="/account/company" className={navButtonClass}>
+              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconBadge /></span>
+              <span className="flex-1 text-center font-nav font-semibold text-[13px]">Become certified</span>
+              <span className="w-8" />
+            </Link>
+
+            {/* Manage Business — navigates based on partner status */}
+            <Link to={isPartner ? '/business' : '/account/company'} className={navButtonClass}>
               <span className="w-8 flex justify-start text-white/50 shrink-0"><IconBuilding /></span>
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">Manage Business</span>
               <span className="w-8" />
-            </button>
+            </Link>
           </div>
         </div>
       </div>
 
+      {/* ── Academy AppleSheet ── */}
       <AppleSheet
         open={academySheetOpen}
         onOpenChange={setAcademySheetOpen}
@@ -854,13 +903,243 @@ export function MobileDashboard({
         </div>
       </AppleSheet>
 
-      {/* ── MobilePageSheets ── */}
-      <MobilePageSheet isOpen={activeSheet === 'garage'} onClose={() => setActiveSheet(null)} title="My Garage" />
+      {/* ── My Garage page ── */}
+      <MobilePageSheet isOpen={activeSheet === 'garage'} onClose={() => setActiveSheet(null)} title="My Garage">
+        <div className="px-5 pb-8 pt-2">
+          <button
+            type="button"
+            onClick={() => { setActiveSheet(null); onAddVehicle?.() }}
+            className="mb-5 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold text-white transition-colors active:opacity-80"
+            style={{ background: '#0071e3' }}
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Vehicle
+          </button>
+          {vehicles.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+                <svg className="h-8 w-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" /><circle cx="7" cy="17" r="2" /><path d="M9 17h6" /><circle cx="17" cy="17" r="2" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-neutral-800">No vehicles yet</p>
+                <p className="mt-1 text-xs text-neutral-500">Add your first vehicle to track its protection</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {vehicles.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => { setActiveSheet(null); onEditVehicle?.(v) }}
+                  className="flex w-full items-center overflow-hidden rounded-2xl bg-neutral-100 text-left transition-colors active:bg-neutral-200"
+                >
+                  <div className="flex h-[80px] w-[80px] shrink-0 items-center justify-center overflow-hidden bg-neutral-200">
+                    {v.imageUrl ? (
+                      <img src={v.imageUrl} alt={`${v.brand} ${v.model}`} className="h-full w-full object-cover" />
+                    ) : (
+                      <svg className="h-7 w-7 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" /><circle cx="7" cy="17" r="2" /><path d="M9 17h6" /><circle cx="17" cy="17" r="2" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col justify-center px-4 py-3">
+                    <p className="truncate text-[14px] font-bold text-neutral-900">
+                      {v.year} {v.brand} {v.model}
+                    </p>
+                    {v.color && <p className="mt-0.5 text-[11px] text-neutral-500">{v.color}</p>}
+                    {v.ceramicProtectionDate ? (
+                      <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-[#E8F5E9] px-2 py-0.5 text-[10px] font-semibold text-[#2E7D32]">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#4CAF50]" />
+                        Ceramic protected
+                      </span>
+                    ) : (
+                      <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-[#FFF0EF] px-2 py-0.5 text-[10px] font-semibold text-[#D94032]">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#FF3B30]" />
+                        Not protected
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center pr-4 shrink-0">
+                    <svg className="h-4 w-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </MobilePageSheet>
+
+      {/* ── Notifications page ── */}
+      <MobilePageSheet isOpen={activeSheet === 'notifications'} onClose={() => setActiveSheet(null)} title="Notifications">
+        <div className="px-5 pb-8 pt-2">
+          {notifications.length > 0 && (
+            <div className="mb-4 flex justify-end">
+              <button
+                type="button"
+                onClick={onClearAllNotifications}
+                className="text-xs font-semibold text-[#6B7280] transition hover:text-[#0485F7]"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+          {notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+                <svg className="h-8 w-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-neutral-800">No notifications</p>
+                <p className="mt-1 text-xs text-neutral-500">Messages from Fireball will appear here</p>
+              </div>
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {notifications.map((n) => (
+                <li
+                  key={n.id}
+                  className="group rounded-2xl border border-[#0485F7]/10 bg-[#F7F9FF] px-4 py-3 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      {n.title ? (
+                        <p className="text-[13px] font-semibold text-neutral-900">
+                          <NotificationMessageWithStatusHighlight text={n.title} />
+                        </p>
+                      ) : null}
+                      <p className="mt-0.5 text-[12px] leading-snug text-neutral-600 line-clamp-4">
+                        <NotificationMessageWithStatusHighlight text={n.message} />
+                      </p>
+                      <p className="mt-1.5 text-[10px] font-medium text-neutral-400">
+                        {formatTimeAgo(n.created_at)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onClearNotification?.(n.id)}
+                      className="shrink-0 rounded-full p-1.5 text-neutral-400 transition hover:bg-neutral-200 hover:text-neutral-600"
+                      aria-label="Clear notification"
+                    >
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </MobilePageSheet>
+
+      {/* ── My Orders page ── */}
+      <MobilePageSheet isOpen={activeSheet === 'orders'} onClose={() => setActiveSheet(null)} title="My Orders">
+        <div className="px-5 pb-8 pt-2">
+          {orders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+                <svg className="h-8 w-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.3} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-neutral-800">No orders yet</p>
+                <p className="mt-1 text-xs text-neutral-500">Your orders will appear here once placed</p>
+              </div>
+              <a
+                href={SHOPIFY_CUSTOMER_ORDERS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 rounded-2xl bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors active:opacity-80"
+              >
+                Shop now
+              </a>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {orders.map((order) => {
+                const firstItem = order.lineItems?.[0]
+                const thumb = firstItem?.imageUrl || order.imageUrl
+                const title = firstItem?.title || order.name
+                const qty = firstItem?.quantity ?? 1
+                const price = typeof firstItem?.price === 'number'
+                  ? `${firstItem.price.toFixed(2)}$`
+                  : undefined
+                const total = typeof order.totalPrice === 'number'
+                  ? `${order.totalPrice.toFixed(2)}$ ${order.currency || 'CAD'}`
+                  : null
+                return (
+                  <div
+                    key={order.id}
+                    className="overflow-hidden rounded-2xl border border-neutral-200 bg-white"
+                  >
+                    <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                      <div>
+                        <p className="text-[13px] font-semibold text-neutral-900">
+                          Order {formatOrderRef(order.orderNumber)}
+                        </p>
+                        {order.date && (
+                          <p className="mt-0.5 text-[11px] text-neutral-500">{order.date}</p>
+                        )}
+                      </div>
+                      <span className="rounded-full bg-[#E8F5EC] px-2.5 py-1 text-[10px] font-semibold text-[#1F7A3E]">
+                        Completed
+                      </span>
+                    </div>
+                    <div className="mx-4 mb-4 flex items-center gap-3 rounded-xl bg-neutral-50 p-3">
+                      {thumb ? (
+                        <img
+                          src={thumb}
+                          alt=""
+                          className="h-14 w-14 shrink-0 rounded-xl object-cover"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                        />
+                      ) : (
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-neutral-200">
+                          <svg className="h-6 w-6 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                          </svg>
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-medium text-neutral-900">{title}</p>
+                        <p className="mt-0.5 text-[11px] text-neutral-500">
+                          Qty {qty}{price ? ` · ${price}` : ''}
+                        </p>
+                        {total && (
+                          <p className="mt-1 text-[12px] font-semibold text-neutral-800">Total {total}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+              <a
+                href={SHOPIFY_CUSTOMER_ORDERS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 flex w-full items-center justify-center rounded-2xl border border-neutral-200 py-3 text-sm font-semibold text-neutral-600 transition-colors active:bg-neutral-100"
+              >
+                See all orders on Shopify
+              </a>
+            </div>
+          )}
+        </div>
+      </MobilePageSheet>
+
+      {/* ── Settings page ── */}
       <MobilePageSheet isOpen={activeSheet === 'settings'} onClose={() => setActiveSheet(null)} title="Settings">
         <MobileSettingsContent />
       </MobilePageSheet>
-      <MobilePageSheet isOpen={activeSheet === 'certified'} onClose={() => setActiveSheet(null)} title="Become Certified" />
-      <MobilePageSheet isOpen={activeSheet === 'business'} onClose={() => setActiveSheet(null)} title="Manage Business" />
     </div>
   )
 }

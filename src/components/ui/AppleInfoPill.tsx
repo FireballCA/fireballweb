@@ -74,6 +74,25 @@ export function AppleInfoPill({ label, tone = 'info', className }: AppleInfoPill
   )
 }
 
+/** Pastille promo : fond rouge, icône % blanche, texte blanc. Utilisée sur les cards produits en solde. */
+export function SaleDiscountPill({ discount, className }: { discount: number; className?: string }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex select-none items-center gap-1.5 rounded-full bg-[#FF3B30] px-2.5 py-1 text-[11px] font-semibold leading-none text-white shadow-sm',
+        className,
+      )}
+    >
+      <svg viewBox="0 0 16 16" className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden>
+        <circle cx="5.5" cy="5.5" r="1.5" />
+        <circle cx="10.5" cy="10.5" r="1.5" />
+        <line x1="3" y1="13" x2="13" y2="3" />
+      </svg>
+      <span>-{discount}%</span>
+    </span>
+  )
+}
+
 /** Capsule texte seul (ex. « 3 new »), même surface que la pastille Apple sans icône. */
 export function AppleCapsuleLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (

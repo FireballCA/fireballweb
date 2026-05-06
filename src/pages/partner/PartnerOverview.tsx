@@ -6,12 +6,6 @@ interface PartnerRow {
   id: string
   company_name: string
 }
-interface ClientRow {
-  id: string
-  full_name: string
-  email: string
-  created_at: string
-}
 interface VehicleRow {
   id: string
   brand: string
@@ -27,7 +21,7 @@ interface WarrantyRow {
 }
 
 export function PartnerOverview() {
-  const [partnerId, setPartnerId] = useState<string | null>(null)
+  const [, setPartnerId] = useState<string | null>(null)
   const [companyName, setCompanyName] = useState('')
   const [stats, setStats] = useState({ clients: 0, vehicles: 0, warranties: 0 })
   const [recentVehicles, setRecentVehicles] = useState<VehicleRow[]>([])

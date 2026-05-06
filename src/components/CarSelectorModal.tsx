@@ -30,7 +30,7 @@ export function CarSelectorModal({
   const [selectedModel, setSelectedModel] = useState(currentModel)
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [brands, setBrands] = useState<CarBrand[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading] = useState(false)
 
   // Charger les données fallback immédiatement
   const loadFallbackData = useCallback(() => {
@@ -158,16 +158,6 @@ export function CarSelectorModal({
     }
   }, [isOpen])
 
-  // Charger les données au montage du composant ou à l'ouverture
-  useEffect(() => {
-    if (isOpen && brands.length === 0) {
-      // Charger immédiatement les données fallback pour une expérience fluide
-      loadFallbackData()
-      // Essayer de charger depuis l'API en arrière-plan
-      loadCarDataFromAPI()
-    }
-  }, [isOpen, brands.length, loadFallbackData, loadCarDataFromAPI])
-
   // Charger depuis l'API en arrière-plan (sans bloquer l'UI)
   const loadCarDataFromAPI = useCallback(async () => {
     try {
@@ -270,6 +260,14 @@ export function CarSelectorModal({
       // L'erreur est silencieuse pour ne pas perturber l'utilisateur
     }
   }, [])
+
+  // Charger les données au montage du composant ou à l'ouverture
+  useEffect(() => {
+    if (isOpen && brands.length === 0) {
+      loadFallbackData()
+      loadCarDataFromAPI()
+    }
+  }, [isOpen, brands.length, loadFallbackData, loadCarDataFromAPI])
 
   if (!isOpen) return null
 

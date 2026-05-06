@@ -7,7 +7,6 @@ import {
   IconBook,
   IconShoppingBag,
   IconSettings,
-  IconShieldLock,
   IconChevronRight,
   IconTool,
 } from '@tabler/icons-react'
@@ -22,7 +21,7 @@ import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import { supabase } from '@/lib/supabase'
 import { FireballLoading } from '@/components/FireballLoading'
 import { cn } from '@/lib/utils'
-import { SITE_PAGES, type SitePage } from '@/constants/sitePages'
+import { SITE_PAGES } from '@/constants/sitePages'
 import { CATEGORIES, PRODUCTS, type Product as LocalProduct } from '@/data/products'
 import {
   DEFAULT_TRAINING_SESSION_OPTIONS,
@@ -231,17 +230,6 @@ function buildBrandDistribution(vehicles: VehicleRow[]): { label: string; count:
   return Array.from(map.entries())
     .map(([label, count]) => ({ label, count }))
     .sort((a, b) => b.count - a.count)
-}
-
-function buildYearDistribution(vehicles: VehicleRow[]): { label: string; count: number }[] {
-  const map = new Map<number, number>()
-  vehicles.forEach((v) => {
-    if (!v.year) return
-    map.set(v.year, (map.get(v.year) ?? 0) + 1)
-  })
-  return Array.from(map.entries())
-    .map(([year, count]) => ({ label: String(year), count }))
-    .sort((a, b) => Number(a.label) - Number(b.label))
 }
 
 function buildProductStats(warranties: WarrantyRow[]) {
@@ -1648,8 +1636,8 @@ function BusinessAdminTrainings() {
             aria-label="Choose training dates"
             className="fb-admin-date-range w-full gap-1.5"
             granularity="day"
-            value={trainingRange}
-            onChange={(next) => {
+            value={trainingRange as any}
+            onChange={(next: any) => {
               setTrainingRange(next)
             }}
           >
@@ -1965,8 +1953,8 @@ function BusinessAdminEvents() {
                 aria-label="Choose event dates"
                 className="fb-admin-date-range w-full gap-1.5"
                 granularity="day"
-                value={selectedRange}
-                onChange={(next) => {
+                value={selectedRange as any}
+                onChange={(next: any) => {
                   if (!next?.start || !next?.end) return
                   const { monthLabel, dayLabel, dateLine } = formatRangeMeta(next.start, next.end)
                   upsertSelected({
@@ -2054,7 +2042,7 @@ export function BusinessPage() {
   const [isAdmin, setIsAdmin] = useState(Boolean(initialCache?.isAdmin))
   const [userDisplayName, setUserDisplayName] = useState(initialCache?.userDisplayName ?? '')
   const [companyName, setCompanyName] = useState(initialCache?.companyName ?? '')
-  const [stats, setStats] = useState({ clients: 0, vehicles: 0, warranties: 0 })
+  const [, setStats] = useState({ clients: 0, vehicles: 0, warranties: 0 })
   const [clients, setClients] = useState<ClientRow[]>(
     Array.isArray(initialCache?.clients) ? initialCache.clients : [],
   )
@@ -2091,7 +2079,7 @@ export function BusinessPage() {
   const [description, setDescription] = useState(initialCache?.description ?? '')
   const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState('')
-  const [showQuickActions, setShowQuickActions] = useState(true)
+  const [, setShowQuickActions] = useState(true)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
   // Verrouille le scroll global de la page Business :
@@ -2099,26 +2087,29 @@ export function BusinessPage() {
   useEffect(() => {
     const html = document.documentElement
     const body = document.body
-    const prev = {
-      htmlOverflow: html.style.overflow,
-      bodyOverflow: body.style.overflow,
-      htmlOverscroll: html.style.overscrollBehavior,
-      bodyOverscroll: body.style.overscrollBehavior,
-      bodyTouchAction: body.style.touchAction,
-    }
+    const scrollRoot = document.getElementById('app-scroll-root')
+
+    const prevHtmlOverflow = html.style.overflow
+    const prevBodyOverflow = body.style.overflow
+    const prevHtmlOverscroll = html.style.overscrollBehavior
+    const prevBodyOverscroll = body.style.overscrollBehavior
+    const prevBodyTouchAction = body.style.touchAction
+    const prevScrollRootOverflow = scrollRoot?.style.overflowY ?? ''
 
     html.style.overflow = 'hidden'
     body.style.overflow = 'hidden'
     html.style.overscrollBehavior = 'none'
     body.style.overscrollBehavior = 'none'
     body.style.touchAction = 'auto'
+    if (scrollRoot) scrollRoot.style.overflowY = 'hidden'
 
     return () => {
-      html.style.overflow = prev.htmlOverflow
-      body.style.overflow = prev.bodyOverflow
-      html.style.overscrollBehavior = prev.htmlOverscroll
-      body.style.overscrollBehavior = prev.bodyOverscroll
-      body.style.touchAction = prev.bodyTouchAction
+      html.style.overflow = prevHtmlOverflow
+      body.style.overflow = prevBodyOverflow
+      html.style.overscrollBehavior = prevHtmlOverscroll
+      body.style.overscrollBehavior = prevBodyOverscroll
+      body.style.touchAction = prevBodyTouchAction
+      if (scrollRoot) scrollRoot.style.overflowY = prevScrollRootOverflow
     }
   }, [])
 
@@ -2331,32 +2322,6 @@ export function BusinessPage() {
     [vehicleCreatedDates, timeRange],
   )
 
-  const weeklyInstallationsSeries = useMemo(() => {
-    const map = new Map<string, number>()
-    warranties.forEach((w) => {
-      const d = parseDate(w.installation_date)
-      if (!d) return
-      const start = getTimeRangeStart('90d')
-      if (start && d < start) return
-      const weekStart = new Date(d)
-      const day = weekStart.getDay()
-      const diff = (day + 6) % 7
-      weekStart.setDate(weekStart.getDate() - diff)
-      const key = weekStart.toISOString().slice(0, 10)
-      map.set(key, (map.get(key) ?? 0) + 1)
-    })
-    const entries = Array.from(map.entries())
-      .map(([key, count]) => ({
-        key,
-        date: new Date(key),
-        count,
-      }))
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
-    return entries.map((e) => ({
-      label: e.date.toLocaleDateString('fr-CA', { month: 'short', day: 'numeric' }),
-      count: e.count,
-    }))
-  }, [warranties])
 
   const monthsSpan =
     installationDates.length === 0
@@ -2385,12 +2350,7 @@ export function BusinessPage() {
     () => buildBrandDistribution(vehicles.filter((v) => vehicleIdsWithInstall.has(v.id))),
     [vehicles, vehicleIdsWithInstall],
   )
-  const yearDistribution = useMemo(
-    () => buildYearDistribution(vehicles),
-    [vehicles],
-  )
-
-  const { rows: clientRows, topClients } = useMemo(
+  const { rows: _clientRows, topClients } = useMemo(
     () => buildClientInstallationStats(clients, vehicles, warranties),
     [clients, vehicles, warranties],
   )
@@ -2440,8 +2400,6 @@ export function BusinessPage() {
   })()
 
   const mostInstalledProduct = productStats.list[0] ?? null
-  const leastInstalledProduct =
-    productStats.list.length > 0 ? productStats.list[productStats.list.length - 1] : null
 
   const installsByMonth = monthlyInstallationsSeries
   const mostActiveMonth =
