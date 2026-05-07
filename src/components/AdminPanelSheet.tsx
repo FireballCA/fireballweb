@@ -1,6 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { AdminApplicationsHub } from '@/components/admin/AdminApplicationsHub'
+import { lockScroll, unlockScroll } from '@/utils/scrollLock'
+import {
+  DEFAULT_SITE_EVENT_CONFIGS,
+  resolveSiteEventConfigs,
+  type SiteEventConfig,
+  type EventAccessMode,
+  type WhatToExpectRow,
+} from '@/constants/siteEventConfigs'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { PRODUCTS, type Product as LocalProduct } from '@/data/products'
 
@@ -8,6 +16,7 @@ interface AnnouncementSettings {
   navbar_banner_text: string | null
   navbar_banner_link: string | null
   navbar_banner_enabled: boolean
+  navbar_banner_deadline: string | null
   featured_collection_name: string | null
   featured_collection_description: string | null
   featured_collection_image: string | null
@@ -28,7 +37,7 @@ interface AdminPanelSheetProps {
   onClose: () => void
 }
 
-export type AdminSection = 'stats' | 'partners' | 'notifications' | 'announcements' | 'products'
+export type AdminSection = 'stats' | 'partners' | 'notifications' | 'announcements' | 'products' | 'events'
 
 /** Contenu du panneau admin (stats, partners, notifications) réutilisable en page pleine. */
 export function AdminPanelContent({ section }: { section?: AdminSection }) {
@@ -110,6 +119,18 @@ export function AdminPanelContent({ section }: { section?: AdminSection }) {
                   <span>Products</span>
                   <span className="text-[9px] uppercase tracking-[0.18em] text-white/50">Why + How to use</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSection('events')}
+                  className={`flex-1 inline-flex items-center justify-between rounded-2xl px-3 py-2 text-xs font-medium transition-colors ${
+                    activeSection === 'events'
+                      ? 'bg-white/15 text-white border border-white/50'
+                      : 'bg-white/[0.02] text-white/70 border border-white/[0.08] hover:bg-white/[0.08] hover:text-white'
+                  }`}
+                >
+                  <span>Events</span>
+                  <span className="text-[9px] uppercase tracking-[0.18em] text-white/50">Manage · RSVP</span>
+                </button>
               </div>
             </div>
           </aside>
@@ -120,6 +141,7 @@ export function AdminPanelContent({ section }: { section?: AdminSection }) {
           {effectiveSection === 'notifications' && <AdminNotificationsSection />}
           {effectiveSection === 'announcements' && <AdminAnnouncementsSection />}
           {effectiveSection === 'products' && <AdminProductsSection />}
+          {effectiveSection === 'events' && <AdminEventsSection />}
         </main>
       </div>
     </div>
@@ -136,8 +158,10 @@ export function AdminPanelSheet({ isOpen, onClose }: AdminPanelSheetProps) {
     if (isOpen) {
       setRendered(true)
       setIsExiting(false)
-      document.body.style.overflow = 'hidden'
-      return
+      lockScroll()
+      return () => {
+        unlockScroll()
+      }
     }
 
     if (!isOpen && rendered) {
@@ -145,17 +169,13 @@ export function AdminPanelSheet({ isOpen, onClose }: AdminPanelSheetProps) {
       const timeout = window.setTimeout(() => {
         setRendered(false)
         setIsExiting(false)
-        document.body.style.overflow = ''
       }, 400)
       return () => {
         window.clearTimeout(timeout)
-        document.body.style.overflow = ''
       }
     }
 
-    return () => {
-      document.body.style.overflow = ''
-    }
+    return undefined
   }, [isOpen, rendered])
 
   if (!rendered) return null
@@ -660,6 +680,33 @@ function AdminNotificationsSection() {
   )
 }
 
+function BannerDeadlineCountdown({ deadline }: { deadline: string }) {
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((t) => t + 1), 1000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  const diff = Math.max(0, new Date(deadline).getTime() - Date.now())
+  if (diff === 0) {
+    return <p className="mt-1.5 text-[11px] text-red-400">Expired — banner hidden from public.</p>
+  }
+  const s = Math.floor(diff / 1000)
+  const d = Math.floor(s / 86400)
+  const h = Math.floor((s % 86400) / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  const parts = d > 0
+    ? `${d}d ${pad(h)}h ${pad(m)}m`
+    : `${pad(h)}h ${pad(m)}m ${pad(sec)}s`
+  return (
+    <p className="mt-1.5 text-[11px] text-amber-400/80">
+      ⏱ Expires in <span className="font-mono font-semibold text-amber-300">{parts}</span>
+    </p>
+  )
+}
+
 function AdminAnnouncementsSection() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -670,6 +717,7 @@ function AdminAnnouncementsSection() {
   const [bannerText, setBannerText] = useState('')
   const [bannerLink, setBannerLink] = useState('')
   const [bannerEnabled, setBannerEnabled] = useState(false)
+  const [bannerDeadline, setBannerDeadline] = useState('')
   
   // Featured Collection
   const [featuredName, setFeaturedName] = useState('')
@@ -705,6 +753,7 @@ function AdminAnnouncementsSection() {
           setBannerText(settings.navbar_banner_text || '')
           setBannerLink(settings.navbar_banner_link || '')
           setBannerEnabled(settings.navbar_banner_enabled || false)
+          setBannerDeadline(settings.navbar_banner_deadline || '')
           setFeaturedName(settings.featured_collection_name || '')
           setFeaturedDescription(settings.featured_collection_description || '')
           setFeaturedImage(settings.featured_collection_image || '')
@@ -739,6 +788,7 @@ function AdminAnnouncementsSection() {
         navbar_banner_text: bannerText.trim() || null,
         navbar_banner_link: bannerLink.trim() || null,
         navbar_banner_enabled: bannerEnabled,
+        navbar_banner_deadline: bannerDeadline.trim() || null,
         featured_collection_name: featuredName.trim() || null,
         featured_collection_description: featuredDescription.trim() || null,
         featured_collection_image: featuredImage.trim() || null,
@@ -864,6 +914,18 @@ function AdminAnnouncementsSection() {
                 className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
                 placeholder="https://example.com"
               />
+            </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-[0.16em] text-white/55 mb-1.5">
+                Deadline (auto-hide after)
+              </label>
+              <input
+                type="datetime-local"
+                value={bannerDeadline}
+                onChange={(e) => setBannerDeadline(e.target.value)}
+                className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60 [color-scheme:dark]"
+              />
+              {bannerDeadline && <BannerDeadlineCountdown deadline={bannerDeadline} />}
             </div>
           </div>
         </div>
@@ -1337,5 +1399,580 @@ function AdminProductsSection() {
         </div>
       </div>
     </section>
+  )
+}
+
+type EventRsvpRow = { event_slug: string; status: string }
+
+const ADMIN_INPUT = 'w-full rounded-xl bg-white/[0.07] border border-white/[0.08] px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 transition-colors'
+const ADMIN_LABEL = 'block text-[10px] font-bold uppercase tracking-[0.14em] text-white/50 mb-1.5'
+
+type EventDraft = {
+  id: string; slug: string; title: string; day: string; monthFull: string
+  description: string; cityRegion: string; imageSrc: string
+  accessMode: EventAccessMode; allowedRoles: string
+  ctaLabel: string; ctaHref: string
+  heroTitle: string; navTitle: string
+  dateLine: string; locationLine: string
+  startAt: string; endAt: string
+  whatToExpectRows: WhatToExpectRow[]
+}
+
+function toEventDraft(ev: SiteEventConfig): EventDraft {
+  return {
+    id: ev.id, slug: ev.slug, title: ev.title, day: ev.day, monthFull: ev.monthFull,
+    description: ev.description, cityRegion: ev.cityRegion, imageSrc: ev.imageSrc,
+    accessMode: ev.accessMode ?? 'public',
+    allowedRoles: (ev.allowedRoles ?? []).join(', '),
+    ctaLabel: ev.ctaLabel, ctaHref: ev.ctaHref,
+    heroTitle: ev.heroTitle ?? ev.title, navTitle: ev.navTitle ?? ev.title,
+    dateLine: ev.dateLine ?? '', locationLine: ev.locationLine ?? ev.cityRegion,
+    startAt: ev.startAt ?? '', endAt: ev.endAt ?? '',
+    whatToExpectRows: ev.whatToExpect ?? [],
+  }
+}
+
+function blankDraft(): EventDraft {
+  return {
+    id: '', slug: '', title: '', day: '', monthFull: '', description: '',
+    cityRegion: '', imageSrc: '', accessMode: 'public', allowedRoles: '',
+    ctaLabel: 'RSVP NOW', ctaHref: '', heroTitle: '', navTitle: '',
+    dateLine: '', locationLine: '', startAt: '', endAt: '',
+    whatToExpectRows: [],
+  }
+}
+
+function slugify(s: string) {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">
+      {label}
+    </p>
+  )
+}
+
+const ACCESS_MODES: { mode: EventAccessMode; label: string; sub: string }[] = [
+  { mode: 'public',       label: 'Public',       sub: 'Visible to everyone, no login needed' },
+  { mode: 'private',      label: 'Private',       sub: 'Requires login + invitation' },
+  { mode: 'partner-only', label: 'Partners only', sub: 'Restricted to specific roles' },
+]
+
+// ─── main component ────────────────────────────────────────────────────────────
+
+function AdminEventsSection() {
+  const [events, setEvents] = useState<SiteEventConfig[]>([])
+  const [rsvpRows, setRsvpRows] = useState<EventRsvpRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [view, setView] = useState<'list' | 'edit'>('list')
+  const [draft, setDraft] = useState<EventDraft>(blankDraft())
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const isNew = !events.find((e) => e.slug === draft.slug)
+
+  const loadAll = useCallback(async () => {
+    const [settingsRes, rsvpRes] = await Promise.all([
+      supabase.from('site_settings').select('value').eq('key', 'events').maybeSingle(),
+      supabase.from('event_rsvps').select('event_slug, status'),
+    ])
+    const fromDB = resolveSiteEventConfigs(settingsRes.data?.value)
+    const allSlugs = new Set(fromDB.map((e) => e.slug))
+    const merged = [...fromDB, ...DEFAULT_SITE_EVENT_CONFIGS.filter((d) => !allSlugs.has(d.slug))]
+    setEvents(merged)
+    setRsvpRows((rsvpRes.data as EventRsvpRow[]) ?? [])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    void loadAll()
+    const channel = supabase
+      .channel('admin_event_rsvps')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_rsvps' }, () => void loadAll())
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+  }, [loadAll])
+
+  const openNew = () => { setDraft(blankDraft()); setSaveError(null); setView('edit') }
+  const openEdit = (ev: SiteEventConfig) => { setDraft(toEventDraft(ev)); setSaveError(null); setView('edit') }
+  const set = (k: keyof EventDraft, v: string) => setDraft((d) => ({ ...d, [k]: v }))
+
+  const updateRow = (idx: number, patch: Partial<WhatToExpectRow>) =>
+    setDraft((d) => {
+      const rows = [...d.whatToExpectRows]
+      rows[idx] = { ...rows[idx], ...patch }
+      return { ...d, whatToExpectRows: rows }
+    })
+
+  const addRow = () =>
+    setDraft((d) => ({
+      ...d,
+      whatToExpectRows: [
+        ...d.whatToExpectRows,
+        { num: String(d.whatToExpectRows.length + 1).padStart(2, '0'), title: '', body: '' },
+      ],
+    }))
+
+  const removeRow = (idx: number) =>
+    setDraft((d) => ({ ...d, whatToExpectRows: d.whatToExpectRows.filter((_, i) => i !== idx) }))
+
+  const handleSave = async () => {
+    if (!draft.title.trim() || !draft.slug.trim()) { setSaveError('Title and slug are required.'); return }
+    setSaving(true); setSaveError(null)
+    try {
+      const updated: SiteEventConfig = {
+        id: draft.id || `${draft.slug}-${Date.now()}`,
+        slug: draft.slug,
+        title: draft.title,
+        day: draft.day,
+        monthFull: draft.monthFull.toUpperCase(),
+        description: draft.description,
+        cityRegion: draft.cityRegion,
+        imageSrc: draft.imageSrc,
+        isPrivate: draft.accessMode !== 'public',
+        accessMode: draft.accessMode,
+        allowedRoles: draft.allowedRoles.split(',').map((r) => r.trim()).filter(Boolean),
+        ctaLabel: draft.ctaLabel,
+        ctaHref: draft.ctaHref,
+        heroTitle: draft.heroTitle || draft.title,
+        navTitle: draft.navTitle || draft.title,
+        dateLine: draft.dateLine,
+        locationLine: draft.locationLine,
+        startAt: draft.startAt,
+        endAt: draft.endAt,
+        whatToExpect: draft.whatToExpectRows.filter((r) => r.title.trim()),
+      }
+      const nextEvents = isNew
+        ? [...events, updated]
+        : events.map((e) => (e.slug === draft.slug ? updated : e))
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({ key: 'events', value: nextEvents }, { onConflict: 'key' })
+      if (error) throw error
+      setEvents(nextEvents)
+      setView('list')
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (slug: string) => {
+    const nextEvents = events.filter((e) => e.slug !== slug)
+    await supabase.from('site_settings').upsert({ key: 'events', value: nextEvents }, { onConflict: 'key' })
+    setEvents(nextEvents)
+  }
+
+  // ── RSVP counts by slug ──────────────────────────────────────────────────────
+  const bySlug: Record<string, { going: number; notGoing: number }> = {}
+  for (const r of rsvpRows) {
+    if (!bySlug[r.event_slug]) bySlug[r.event_slug] = { going: 0, notGoing: 0 }
+    if (r.status === 'going') bySlug[r.event_slug].going++
+    else if (r.status === 'not-going') bySlug[r.event_slug].notGoing++
+  }
+
+  // ── EDIT VIEW ────────────────────────────────────────────────────────────────
+  if (view === 'edit') {
+    return (
+      <div className="space-y-3">
+        {/* Header bar */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setView('list')}
+            className="flex items-center gap-1.5 text-white/50 hover:text-white transition-colors text-[13px]"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Events
+          </button>
+          <span className="text-white/20">/</span>
+          <p className="text-[13px] font-semibold text-white">{isNew ? 'New event' : draft.title || 'Edit event'}</p>
+        </div>
+
+        {/* ── SECTION: General ────────────────────────────────────────────── */}
+        <section className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-4 space-y-3">
+          <SectionHeader label="General" />
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className={ADMIN_LABEL}>Event name</label>
+              <input
+                value={draft.title}
+                onChange={(e) => {
+                  set('title', e.target.value)
+                  if (isNew) set('slug', slugify(e.target.value))
+                }}
+                placeholder="Fireball After Party"
+                className={ADMIN_INPUT}
+              />
+            </div>
+            <div>
+              <label className={ADMIN_LABEL}>URL slug</label>
+              <div className="flex items-center rounded-xl bg-white/[0.07] border border-white/[0.08] px-3 focus-within:border-white/20 transition-colors overflow-hidden">
+                <span className="text-[12px] text-white/30 shrink-0">/event/</span>
+                <input
+                  value={draft.slug}
+                  onChange={(e) => set('slug', slugify(e.target.value))}
+                  placeholder="fireball-after-party"
+                  className="flex-1 bg-transparent py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className={ADMIN_LABEL}>Description</label>
+            <textarea
+              value={draft.description}
+              onChange={(e) => set('description', e.target.value)}
+              rows={3}
+              placeholder="Short description shown on the event hero…"
+              className={ADMIN_INPUT}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className={ADMIN_LABEL}>Date line — shown in header</label>
+              <input
+                value={draft.dateLine}
+                onChange={(e) => set('dateLine', e.target.value)}
+                placeholder="May 16, 2026 · 7 PM – 11 PM"
+                className={ADMIN_INPUT}
+              />
+            </div>
+            <div>
+              <label className={ADMIN_LABEL}>Location</label>
+              <input
+                value={draft.locationLine}
+                onChange={(e) => { set('locationLine', e.target.value); set('cityRegion', e.target.value) }}
+                placeholder="Saint-Hyacinthe, QC"
+                className={ADMIN_INPUT}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className={ADMIN_LABEL}>Start — ISO date (for countdown)</label>
+              <input
+                value={draft.startAt}
+                onChange={(e) => set('startAt', e.target.value)}
+                placeholder="2026-05-16T19:00:00-04:00"
+                className={ADMIN_INPUT}
+              />
+            </div>
+            <div>
+              <label className={ADMIN_LABEL}>End — ISO date</label>
+              <input
+                value={draft.endAt}
+                onChange={(e) => set('endAt', e.target.value)}
+                placeholder="2026-05-16T23:00:00-04:00"
+                className={ADMIN_INPUT}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION: Visibility ──────────────────────────────────────────── */}
+        <section className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-4">
+          <SectionHeader label="Visibility" />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {ACCESS_MODES.map(({ mode, label, sub }) => {
+              const active = draft.accessMode === mode
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setDraft((d) => ({ ...d, accessMode: mode }))}
+                  className={`flex flex-col items-start gap-1.5 rounded-xl border px-4 py-3.5 text-left transition-all ${
+                    active
+                      ? 'border-[#0485F7] bg-[#0485F7]/10'
+                      : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]'
+                  }`}
+                >
+                  <div className="flex w-full items-center justify-between">
+                    <span className={`text-[13px] font-semibold ${active ? 'text-white' : 'text-white/70'}`}>
+                      {label}
+                    </span>
+                    <span
+                      className={`flex h-4 w-4 items-center justify-center rounded-full border transition-colors ${
+                        active ? 'border-[#0485F7] bg-[#0485F7]' : 'border-white/25'
+                      }`}
+                    >
+                      {active && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                    </span>
+                  </div>
+                  <span className="text-[11px] leading-snug text-white/35">{sub}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {draft.accessMode === 'partner-only' && (
+            <div className="mt-3">
+              <label className={ADMIN_LABEL}>Allowed roles (comma-separated)</label>
+              <input
+                value={draft.allowedRoles}
+                onChange={(e) => set('allowedRoles', e.target.value)}
+                placeholder="partner, admin, installer"
+                className={ADMIN_INPUT}
+              />
+              <p className="mt-1.5 text-[11px] text-white/30">Leave empty to allow all logged-in users with partner status.</p>
+            </div>
+          )}
+        </section>
+
+        {/* ── SECTION: What to Expect ──────────────────────────────────────── */}
+        <section className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <SectionHeader label="What to expect" />
+              <p className="text-[11px] text-white/30 -mt-2 mb-0">
+                {draft.whatToExpectRows.length === 0
+                  ? 'Empty — the default 3 rows will be shown on the event page.'
+                  : `${draft.whatToExpectRows.length} row${draft.whatToExpectRows.length > 1 ? 's' : ''} — shown on the event page.`}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={addRow}
+              className="shrink-0 flex items-center gap-1.5 rounded-xl border border-white/[0.12] bg-white/[0.05] px-3 py-2 text-[12px] font-medium text-white/70 hover:bg-white/[0.1] hover:text-white transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+              </svg>
+              Add row
+            </button>
+          </div>
+
+          {draft.whatToExpectRows.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {draft.whatToExpectRows.map((row, idx) => (
+                <div key={idx} className="rounded-xl border border-white/[0.07] bg-black/20 p-3">
+                  <div className="flex items-start gap-3">
+                    {/* Number badge */}
+                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-[11px] font-bold text-white/50">
+                      {String(idx + 1).padStart(2, '0')}
+                    </div>
+                    <div className="flex-1 space-y-2 min-w-0">
+                      <input
+                        value={row.title}
+                        onChange={(e) => updateRow(idx, { title: e.target.value })}
+                        placeholder="Title (e.g. The Community)"
+                        className={ADMIN_INPUT}
+                      />
+                      <textarea
+                        value={row.body}
+                        onChange={(e) => updateRow(idx, { body: e.target.value })}
+                        placeholder="Short description of this row…"
+                        rows={2}
+                        className={ADMIN_INPUT}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeRow(idx)}
+                      className="mt-0.5 shrink-0 flex h-7 w-7 items-center justify-center rounded-lg text-white/30 hover:bg-red-500/15 hover:text-red-400 transition-colors"
+                      aria-label="Remove row"
+                    >
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                        <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* ── SECTION: Display ─────────────────────────────────────────────── */}
+        <section className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-4 space-y-3">
+          <SectionHeader label="Display" />
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className={ADMIN_LABEL}>Hero image URL</label>
+              <input
+                value={draft.imageSrc}
+                onChange={(e) => set('imageSrc', e.target.value)}
+                placeholder="/Assets/FireballAfterParty.png"
+                className={ADMIN_INPUT}
+              />
+            </div>
+            <div>
+              <label className={ADMIN_LABEL}>Hero title (leave blank = event name)</label>
+              <input
+                value={draft.heroTitle}
+                onChange={(e) => { set('heroTitle', e.target.value); set('navTitle', e.target.value) }}
+                placeholder={draft.title || 'Same as event name'}
+                className={ADMIN_INPUT}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <label className={ADMIN_LABEL}>Day number</label>
+              <input value={draft.day} onChange={(e) => set('day', e.target.value)} placeholder="16" className={ADMIN_INPUT} />
+            </div>
+            <div>
+              <label className={ADMIN_LABEL}>Month</label>
+              <input value={draft.monthFull} onChange={(e) => set('monthFull', e.target.value)} placeholder="MAY" className={ADMIN_INPUT} />
+            </div>
+            <div>
+              <label className={ADMIN_LABEL}>CTA button label</label>
+              <input value={draft.ctaLabel} onChange={(e) => set('ctaLabel', e.target.value)} placeholder="RSVP NOW" className={ADMIN_INPUT} />
+            </div>
+          </div>
+
+          <div>
+            <label className={ADMIN_LABEL}>CTA button URL</label>
+            <input value={draft.ctaHref} onChange={(e) => set('ctaHref', e.target.value)} placeholder="/event/fireball-after-party" className={ADMIN_INPUT} />
+          </div>
+        </section>
+
+        {/* Error + actions */}
+        {saveError && (
+          <p className="rounded-xl bg-red-500/10 border border-red-500/20 px-3 py-2.5 text-sm text-red-400">
+            {saveError}
+          </p>
+        )}
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => setView('list')}
+            className="flex-1 rounded-xl border border-white/[0.1] bg-white/[0.03] py-2.5 text-sm text-white/60 hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={saving}
+            className="flex-1 rounded-xl bg-[#0485F7] py-2.5 text-sm font-semibold text-white hover:bg-[#3592F9] transition-colors disabled:opacity-50"
+          >
+            {saving ? 'Saving…' : isNew ? 'Create event' : 'Save changes'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── LIST VIEW ─────────────────────────────────────────────────────────────────
+  return (
+    <div className="space-y-3">
+      <section className="rounded-3xl border border-white/[0.09] bg-white/[0.02] px-5 py-5 shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55">Events</p>
+          <button
+            type="button"
+            onClick={openNew}
+            className="flex items-center gap-1.5 rounded-xl bg-[#0485F7] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#3592F9] transition-colors"
+          >
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+            </svg>
+            New event
+          </button>
+        </div>
+
+        {loading ? (
+          <p className="text-white/40 text-sm py-2">Loading…</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {events.map((ev) => {
+              const rsvp = bySlug[ev.slug]
+              const going = rsvp?.going ?? 0
+              const notGoing = rsvp?.notGoing ?? 0
+              const total = going + notGoing
+              const accessColor =
+                ev.accessMode === 'public' ? 'bg-emerald-500/15 text-emerald-300'
+                : ev.accessMode === 'partner-only' ? 'bg-blue-500/15 text-blue-300'
+                : 'bg-amber-500/15 text-amber-300'
+              return (
+                <div key={ev.slug} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-white truncate">{ev.title}</p>
+                      <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${accessColor}`}>
+                          {ev.accessMode === 'partner-only' ? 'Partners only' : ev.accessMode ?? 'public'}
+                        </span>
+                        {ev.dateLine && (
+                          <span className="text-[11px] text-white/35">{ev.dateLine}</span>
+                        )}
+                        {total > 0 && (
+                          <span className="text-[11px] text-white/30">
+                            · {going} attending, {notGoing} not going
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(ev)}
+                        className="rounded-lg border border-white/[0.1] bg-white/[0.06] px-3 py-1.5 text-[12px] font-medium text-white/70 hover:text-white hover:bg-white/[0.1] transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(ev.slug)}
+                        className="rounded-lg bg-red-500/10 px-2.5 py-1.5 text-[11px] text-red-400/70 hover:bg-red-500/20 hover:text-red-300 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* RSVP live counts */}
+      {Object.keys(bySlug).length > 0 && (
+        <section className="rounded-3xl border border-white/[0.09] bg-white/[0.02] px-5 py-5 shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
+          <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/55 mb-4">RSVP — Live</p>
+          <div className="flex flex-col gap-3">
+            {Object.entries(bySlug).sort().map(([slug, { going, notGoing }]) => {
+              const total = going + notGoing
+              const goingPct = total > 0 ? Math.round((going / total) * 100) : 0
+              return (
+                <div key={slug} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-4">
+                  <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/50 mb-3">{slug}</p>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-2.5 text-center">
+                      <p className="text-2xl font-bold text-emerald-300">{going}</p>
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-emerald-400/70 mt-0.5">Attending</p>
+                    </div>
+                    <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-3 py-2.5 text-center">
+                      <p className="text-2xl font-bold text-red-300">{notGoing}</p>
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-red-400/70 mt-0.5">Not going</p>
+                    </div>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-white/10 overflow-hidden flex">
+                    <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${goingPct}%` }} />
+                    <div className="h-full bg-red-500 transition-all duration-500" style={{ width: `${100 - goingPct}%` }} />
+                  </div>
+                  <p className="text-[10px] text-white/25 mt-2 text-right">{total} total responses</p>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+    </div>
   )
 }

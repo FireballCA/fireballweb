@@ -1,6 +1,5 @@
 import { useContext, useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { LenisContext } from '@/components/LenisRoot'
 import { cn } from '@/lib/utils'
@@ -21,9 +20,18 @@ function formatCAD(amount: number) {
   return amount.toLocaleString('en-CA', { style: 'currency', currency: 'CAD' })
 }
 
+function isIOS(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false
+  return (
+    /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  )
+}
+
 function isApplePayAvailable(): boolean {
   try {
     return (
+      isIOS() &&
       typeof window !== 'undefined' &&
       'ApplePaySession' in window &&
       // @ts-expect-error ApplePaySession is Safari-only
@@ -34,6 +42,14 @@ function isApplePayAvailable(): boolean {
   } catch {
     return false
   }
+}
+
+function AppleLogo() {
+  return (
+    <svg width="15" height="18" viewBox="0 0 17 20" fill="currentColor" aria-hidden>
+      <path d="M13.65 10.62c-.02-2.1 1.72-3.12 1.8-3.17-.98-1.44-2.51-1.63-3.05-1.65-1.3-.13-2.54.77-3.2.77-.66 0-1.68-.75-2.77-.73-1.42.02-2.73.83-3.46 2.1-1.48 2.57-.38 6.37 1.06 8.45.7 1.02 1.54 2.16 2.64 2.12 1.06-.04 1.46-.68 2.74-.68 1.28 0 1.64.68 2.76.66 1.14-.02 1.86-1.03 2.56-2.05.81-1.17 1.14-2.31 1.16-2.37-.03-.01-2.22-.85-2.24-3.45zM11.55 4.3c.58-.71.98-1.69.87-2.67-.84.03-1.85.56-2.45 1.26-.54.62-1.01 1.62-.88 2.58.93.07 1.87-.47 2.46-1.17z" />
+    </svg>
+  )
 }
 
 export function TrainingPaymentDueModal({ open, onClose, request, memberEmail }: TrainingPaymentDueModalProps) {
@@ -109,10 +125,7 @@ export function TrainingPaymentDueModal({ open, onClose, request, memberEmail }:
         { label: isFr ? 'TPS (5%)' : 'GST (5%)', amount: gst.toFixed(2) },
         { label: isFr ? 'TVQ (9,975%)' : 'QST (9.975%)', amount: qst.toFixed(2) },
       ],
-      total: {
-        label: 'Fireball Canada',
-        amount: total.toFixed(2),
-      },
+      total: { label: 'Fireball Canada', amount: total.toFixed(2) },
     }
 
     try {
@@ -126,10 +139,10 @@ export function TrainingPaymentDueModal({ open, onClose, request, memberEmail }:
           body: JSON.stringify({ validationURL: event.validationURL, reference: request.reference }),
         })
           .then((r) => r.json())
-          .then((merchantSession) => session.completeMerchantValidation(merchantSession))
+          .then((ms) => session.completeMerchantValidation(ms))
           .catch(() => {
             session.abort()
-            setApplePayError(isFr ? 'Validation échouée. Contactez-nous.' : 'Validation failed. Please contact us.')
+            setApplePayError(isFr ? 'Validation échouée.' : 'Validation failed.')
             setApplePayPending(false)
           })
       }
@@ -149,24 +162,21 @@ export function TrainingPaymentDueModal({ open, onClose, request, memberEmail }:
             } else {
               // @ts-expect-error
               session.completePayment(window.ApplePaySession.STATUS_FAILURE)
-              setApplePayError(isFr ? 'Paiement refusé. Réessayez.' : 'Payment declined. Please try again.')
+              setApplePayError(isFr ? 'Paiement refusé.' : 'Payment declined.')
             }
           })
           .catch(() => {
             // @ts-expect-error
             session.completePayment(window.ApplePaySession.STATUS_FAILURE)
-            setApplePayError(isFr ? 'Erreur réseau. Réessayez.' : 'Network error. Please try again.')
+            setApplePayError(isFr ? 'Erreur réseau.' : 'Network error.')
           })
           .finally(() => setApplePayPending(false))
       }
 
-      session.oncancel = () => {
-        setApplePayPending(false)
-      }
-
+      session.oncancel = () => setApplePayPending(false)
       session.begin()
     } catch {
-      setApplePayError(isFr ? 'Apple Pay non disponible sur cet appareil.' : 'Apple Pay is not available on this device.')
+      setApplePayError(isFr ? 'Apple Pay non disponible.' : 'Apple Pay unavailable.')
       setApplePayPending(false)
     }
   }
@@ -178,162 +188,166 @@ export function TrainingPaymentDueModal({ open, onClose, request, memberEmail }:
       aria-modal="true"
       aria-labelledby={titleId}
     >
+      {/* Backdrop */}
       <button
         type="button"
-        className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
         aria-label={isFr ? 'Fermer' : 'Close'}
         onClick={onClose}
       />
 
-      <div
-        className={cn(
-          'relative z-10 flex max-h-[min(92vh,680px)] w-full max-w-md flex-col overflow-hidden',
-          'rounded-t-[2rem] bg-[#f5f5f7] shadow-[0_32px_80px_rgba(0,0,0,0.28)] sm:rounded-[2rem]',
-        )}
-      >
-        {/* Header */}
-        <div className="px-6 pb-0 pt-6 sm:px-7 sm:pt-7">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0485F7]">
-                {isFr ? 'Academy — Paiement' : 'Academy — Payment'}
-              </p>
-              <h2 id={titleId} className="mt-1 text-xl font-bold tracking-tight text-carbon-900">
-                {isFr ? 'Confirmer votre place' : 'Secure your spot'}
-              </h2>
-              <p className="mt-1 text-sm text-carbon-600 break-words">{request.session_label}</p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="shrink-0 rounded-full bg-black/[0.06] p-2 text-carbon-600 transition hover:bg-black/[0.1]"
-              aria-label={isFr ? 'Fermer' : 'Close'}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-                <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-          <p
-            className="mt-2 font-mono text-[10px] text-carbon-400 break-all"
-            title={request.reference}
-          >
-            {isFr ? 'Réf.' : 'Ref.'} {request.reference}
-          </p>
+      {/* Sheet */}
+      <div className="relative z-10 w-full max-w-sm flex flex-col overflow-hidden rounded-t-[2.5rem] bg-white shadow-[0_-8px_40px_rgba(0,0,0,0.18)] sm:rounded-[2rem] sm:shadow-[0_32px_80px_rgba(0,0,0,0.22)] max-h-[92dvh]">
+
+        {/* Pull indicator (mobile) */}
+        <div className="flex justify-center pt-3 pb-0 sm:hidden" aria-hidden>
+          <div className="h-[5px] w-10 rounded-full bg-black/[0.14]" />
         </div>
 
-        {/* Scrollable content */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 sm:px-7">
-          {/* Price breakdown card */}
-          <div className="rounded-2xl bg-white px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.07)]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-carbon-500 mb-3">
-              {isFr ? 'Détail du paiement' : 'Payment breakdown'}
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 pt-5 pb-2 sm:px-7 sm:pt-6">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-black/40">
+              {isFr ? 'Fireball Academy' : 'Fireball Academy'}
             </p>
+            <h2
+              id={titleId}
+              className="mt-0.5 text-[22px] font-bold tracking-tight text-black leading-snug"
+              style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}
+            >
+              {isFr ? 'Confirmer votre place' : 'Secure your spot'}
+            </h2>
+            <p className="mt-1 text-[13px] text-black/50 leading-snug break-words">{request.session_label}</p>
+          </div>
+          {/* X close */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-0.5 ml-3 shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-black/[0.07] text-black/50 transition hover:bg-black/[0.12]"
+            aria-label={isFr ? 'Fermer' : 'Close'}
+          >
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden>
+              <path d="M1 1l9 9M10 1L1 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
 
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-carbon-700">
-                <span>{isFr ? 'Formation' : 'Training fee'}</span>
-                <span className="tabular-nums font-medium text-carbon-900">{formatCAD(TRAINING_BASE_PRICE_CAD)}</span>
+        {/* Divider */}
+        <div className="mx-6 h-px bg-black/[0.06] sm:mx-7" />
+
+        {/* Scrollable body */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 sm:px-7 space-y-3">
+
+          {/* Price rows */}
+          <div className="rounded-2xl bg-[#f2f2f7] px-4 py-4">
+            <div className="space-y-1.5 text-[14px]">
+              <div className="flex justify-between">
+                <span className="text-black/60">{isFr ? 'Formation' : 'Training fee'}</span>
+                <span className="tabular-nums font-medium text-black">{formatCAD(TRAINING_BASE_PRICE_CAD)}</span>
               </div>
-              <div className="flex justify-between text-carbon-500">
-                <span>{isFr ? 'TPS (5%)' : 'GST (5%)'}</span>
-                <span className="tabular-nums">{formatCAD(gst)}</span>
+              <div className="flex justify-between">
+                <span className="text-black/40">{isFr ? 'TPS (5%)' : 'GST (5%)'}</span>
+                <span className="tabular-nums text-black/40">{formatCAD(gst)}</span>
               </div>
-              <div className="flex justify-between text-carbon-500">
-                <span>{isFr ? 'TVQ (9,975%)' : 'QST (9.975%)'}</span>
-                <span className="tabular-nums">{formatCAD(qst)}</span>
+              <div className="flex justify-between">
+                <span className="text-black/40">{isFr ? 'TVQ (9,975%)' : 'QST (9.975%)'}</span>
+                <span className="tabular-nums text-black/40">{formatCAD(qst)}</span>
               </div>
             </div>
-
-            <div className="mt-3 border-t border-carbon-100 pt-3 flex justify-between items-baseline">
-              <span className="text-sm font-semibold text-carbon-900">{isFr ? 'Total CAD' : 'Total CAD'}</span>
-              <span className="text-2xl font-black tabular-nums tracking-tight text-carbon-900">{formatCAD(total)}</span>
-            </div>
-
-            <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#f5f5f7] px-3 py-2.5">
-              <span className="text-base">✦</span>
-              <p className="text-[12px] font-medium text-carbon-700">
-                <span className="font-bold text-[#0485F7]">+{TRAINING_REGISTRATION_XP.toLocaleString()} XP</span>{' '}
-                {isFr
-                  ? 'crédités à votre profil après confirmation de participation.'
-                  : 'credited to your profile upon confirmed attendance.'}
-              </p>
+            <div className="mt-3 border-t border-black/[0.08] pt-3 flex justify-between items-baseline">
+              <span className="text-[14px] font-semibold text-black">{isFr ? 'Total' : 'Total'}</span>
+              <span
+                className="text-[26px] font-bold tabular-nums tracking-tight text-black"
+                style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}
+              >
+                {formatCAD(total)}
+              </span>
             </div>
           </div>
 
-          {/* Payment instructions */}
+          {/* XP */}
+          <div className="flex items-center gap-2.5 rounded-2xl bg-[#f2f2f7] px-4 py-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0485F7]/10">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0485F7" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            </div>
+            <p className="text-[13px] text-black/70">
+              <span className="font-semibold text-[#0485F7]">+{TRAINING_REGISTRATION_XP.toLocaleString()} XP</span>{' '}
+              {isFr ? 'après confirmation de participation' : 'upon confirmed attendance'}
+            </p>
+          </div>
+
+          {/* Instructions */}
           {instructions ? (
-            <div className="mt-4 rounded-2xl bg-white px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.07)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-carbon-500 mb-2">
-                {isFr ? 'Instructions Fireball' : 'Fireball Instructions'}
+            <div className="rounded-2xl bg-[#f2f2f7] px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-black/40 mb-2">
+                {isFr ? 'Instructions' : 'Instructions'}
               </p>
-              <p className="text-sm leading-relaxed text-carbon-800 whitespace-pre-wrap">{instructions}</p>
+              <p className="text-[14px] leading-relaxed text-black/80 whitespace-pre-wrap">{instructions}</p>
             </div>
           ) : (
-            <p className="mt-4 text-[13px] leading-relaxed text-carbon-500">
+            <p className="text-[13px] leading-relaxed text-black/40 px-1">
               {isFr
-                ? 'Les instructions détaillées vous ont été envoyées par courriel. Procédez au paiement ci-dessous.'
-                : 'Detailed instructions were sent to your email. Proceed with payment below.'}
+                ? 'Instructions envoyées par courriel. Référence : '
+                : 'Instructions sent by email. Reference: '}
+              <span className="font-mono text-black/50">{request.reference}</span>
             </p>
           )}
 
           {applePayError && (
-            <p className="mt-3 rounded-xl bg-red-50 px-3 py-2.5 text-sm text-red-800 border border-red-100">
+            <p className="rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700">
               {applePayError}
             </p>
           )}
         </div>
 
-        {/* Footer actions */}
-        <div className="border-t border-carbon-100 bg-white/80 px-6 py-4 sm:px-7 backdrop-blur-sm">
+        {/* Action buttons — no text links below */}
+        <div className="px-6 pb-[max(1.25rem,env(safe-area-inset-bottom,1.25rem))] pt-3 space-y-2.5 sm:px-7 sm:pb-6">
           {applePayAvailable ? (
-            <button
-              type="button"
-              disabled={applePayPending}
-              onClick={handleApplePay}
-              className={cn(
-                'w-full flex items-center justify-center gap-2 rounded-2xl py-[14px] text-[16px] font-semibold transition',
-                'bg-black text-white hover:bg-neutral-900 active:scale-[0.98]',
-                'disabled:opacity-60 disabled:cursor-not-allowed',
-              )}
-              style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}
-            >
-              <svg width="18" height="18" viewBox="0 0 814 1000" fill="currentColor" aria-hidden>
-                <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-42.8-155.5-109.2L203 667.2c-32.5-50.3-55.6-127.7-55.6-198.7 0-121.3 79.1-185.5 156.2-185.5 51.5 0 94.5 33.7 127.3 33.7 31.5 0 81.6-35.9 139.8-35.9 22.1 0 108.2 2 168.3 83.4zm-172.9-145.5c29.5-34.7 50.3-82.7 50.3-130.7 0-6.5-.6-13-1.3-18.2-47.5 1.8-103.8 33-137.5 70.7-26.9 30.2-50.9 78.3-50.9 127.6 0 7.2 1.3 14.3 2 17.5 2.6.3 6.5.5 10.5.5 43 0 95.8-30.5 126.9-66.6z" />
-              </svg>
-              {applePayPending
-                ? (isFr ? 'Traitement…' : 'Processing…')
-                : (isFr ? 'Payer avec Apple Pay' : 'Pay with Apple Pay')}
-            </button>
-          ) : (
-            <div className="rounded-2xl border border-carbon-200 bg-carbon-50 px-4 py-3 text-center">
-              <p className="text-[13px] font-semibold text-carbon-700">
-                {isFr ? 'Apple Pay non disponible sur cet appareil' : 'Apple Pay not available on this device'}
-              </p>
-              <p className="mt-1 text-[12px] text-carbon-500">
-                {isFr
-                  ? 'Utilisez Safari sur iPhone ou Mac pour payer avec Apple Pay, ou contactez-nous.'
-                  : 'Use Safari on iPhone or Mac to pay with Apple Pay, or contact us.'}
-              </p>
-            </div>
-          )}
+            <>
+              {/* Apple Pay */}
+              <button
+                type="button"
+                disabled={applePayPending}
+                onClick={handleApplePay}
+                className={cn(
+                  'w-full flex items-center justify-center gap-2 rounded-[14px] py-[15px] text-[17px] font-semibold tracking-[-0.02em] transition active:scale-[0.98]',
+                  'bg-black text-white disabled:opacity-60 disabled:cursor-not-allowed',
+                )}
+                style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}
+              >
+                <AppleLogo />
+                {applePayPending
+                  ? (isFr ? 'Traitement…' : 'Processing…')
+                  : (isFr ? 'Payer avec Apple Pay' : 'Pay with Apple Pay')}
+              </button>
 
-          <div className="mt-3 flex items-center justify-between gap-3">
+              {/* Secondary */}
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full flex items-center justify-center rounded-[14px] bg-[#f2f2f7] py-[14px] text-[16px] font-semibold text-black transition hover:bg-[#e5e5ea] active:scale-[0.98]"
+                style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}
+              >
+                {isFr ? 'Autre méthode' : 'Other method'}
+              </button>
+            </>
+          ) : (
+            /* Non-iOS: single dark button */
             <button
               type="button"
+              className="w-full flex items-center justify-center gap-2 rounded-[14px] bg-black py-[15px] text-[17px] font-semibold text-white transition hover:bg-neutral-800 active:scale-[0.98]"
+              style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}
               onClick={onClose}
-              className="text-[13px] font-semibold text-carbon-500 hover:text-carbon-800 transition"
             >
-              {isFr ? 'Fermer' : 'Close'}
+              <svg width="15" height="12" viewBox="0 0 22 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <rect x="1" y="1" width="20" height="14" rx="2" />
+                <line x1="1" y1="6" x2="21" y2="6" />
+              </svg>
+              {isFr ? 'Procéder au paiement' : 'Proceed to payment'}
             </button>
-            <Link
-              to="/academy"
-              className="text-[13px] font-semibold text-[#0485F7] hover:underline"
-              onClick={onClose}
-            >
-              {isFr ? "Retour à l'Academy" : 'Back to Academy'}
-            </Link>
-          </div>
+          )}
         </div>
       </div>
     </div>

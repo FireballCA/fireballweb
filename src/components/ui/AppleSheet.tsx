@@ -2,11 +2,9 @@ import { useCallback, useContext, useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { LenisContext } from '@/components/LenisRoot'
+import { lockScroll, unlockScroll } from '@/utils/scrollLock'
 
 const MOBILE_MQ = '(max-width: 1023px)'
-let activeSheetLocks = 0
-let previousHtmlOverflow = ''
-let previousBodyOverflow = ''
 
 export type AppleSheetProps = {
   open: boolean
@@ -67,22 +65,12 @@ export function AppleSheet({
   useEffect(() => {
     if (!open) return
 
-    activeSheetLocks += 1
-    if (activeSheetLocks === 1) {
-      previousHtmlOverflow = document.documentElement.style.overflow
-      previousBodyOverflow = document.body.style.overflow
-      document.documentElement.style.overflow = 'hidden'
-      document.body.style.overflow = 'hidden'
-    }
+    lockScroll()
     lenis?.stop()
 
     return () => {
-      activeSheetLocks = Math.max(0, activeSheetLocks - 1)
-      if (activeSheetLocks === 0) {
-        document.documentElement.style.overflow = previousHtmlOverflow
-        document.body.style.overflow = previousBodyOverflow
-        lenis?.start()
-      }
+      unlockScroll()
+      lenis?.start()
     }
   }, [open, lenis])
 

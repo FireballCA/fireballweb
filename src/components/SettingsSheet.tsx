@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { updateShopifyCustomer, sendShopifyCustomerInvite } from '@/utils/shopifySync'
 import { getCurrentUserProfile } from '@/utils/supabaseAuth'
+import { lockScroll, unlockScroll } from '@/utils/scrollLock'
 
 interface SettingsSheetProps {
   isOpen: boolean
@@ -147,8 +148,10 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
     if (isOpen) {
       setRendered(true)
       setIsExiting(false)
-      document.body.style.overflow = 'hidden'
-      return
+      lockScroll()
+      return () => {
+        unlockScroll()
+      }
     }
 
     if (!isOpen && rendered) {
@@ -156,17 +159,13 @@ export function SettingsSheet({ isOpen, onClose }: SettingsSheetProps) {
       const timeout = window.setTimeout(() => {
         setRendered(false)
         setIsExiting(false)
-        document.body.style.overflow = ''
       }, 400)
       return () => {
         window.clearTimeout(timeout)
-        document.body.style.overflow = ''
       }
     }
 
-    return () => {
-      document.body.style.overflow = ''
-    }
+    return undefined
   }, [isOpen, rendered])
 
   const handleCopy = async (fieldId: string, value: string | null | undefined) => {

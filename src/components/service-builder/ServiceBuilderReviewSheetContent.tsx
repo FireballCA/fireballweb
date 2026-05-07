@@ -4,6 +4,7 @@ import { AppleCapsuleLabel } from '@/components/ui/AppleInfoPill'
 import type { ServiceBuilderFormApi } from '@/hooks/useServiceBuilderForm'
 import { cn } from '@/lib/utils'
 import { SB_REVIEW_FIELD_BASE } from '@/components/service-builder/serviceBuilderFieldStyles'
+import { PRODUCT_KITS, getKitPrice } from '@/constants/serviceBuilderCatalog'
 
 type Props = {
   form: ServiceBuilderFormApi
@@ -20,6 +21,7 @@ export function ServiceBuilderReviewSheetContent({ form, shopLocationTag, onSend
     selectedPaintCondition,
     coatingName,
     waxName,
+    selectedKitIds,
     totalPrice,
     vehicleMakeInput,
     setVehicleMakeInput,
@@ -101,11 +103,24 @@ export function ServiceBuilderReviewSheetContent({ form, shopLocationTag, onSend
             Paint condition: <span className="font-semibold">{selectedPaintCondition ?? '-'}</span>
           </p>
           <p>
-            Coating: <span className="font-semibold">{coatingName || '-'}</span>
+            Finish:{' '}
+            <span className="font-semibold">
+              {coatingName || waxName || '-'}
+            </span>
           </p>
-          <p>
-            Wax: <span className="font-semibold">{waxName || 'None'}</span>
-          </p>
+          {selectedKitIds.length > 0 && (
+            <div>
+              <p className="font-semibold">Product kits:</p>
+              <ul className="mt-0.5 space-y-0.5 pl-3">
+                {PRODUCT_KITS.filter((k) => selectedKitIds.includes(k.id)).map((kit) => (
+                  <li key={kit.id} className="flex items-center justify-between text-[13px] text-[#6e6e73]">
+                    <span>{kit.name}</span>
+                    <span>${getKitPrice(kit).toFixed(2)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <p className="pt-1 text-[17px] font-semibold text-[#1d1d1f]">Total estimate: ${totalPrice} CAD</p>
         </div>
       </section>

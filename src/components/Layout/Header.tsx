@@ -282,7 +282,14 @@ export function Header() {
   // Keep banners visible on special public pages too (contact, event detail, configurators).
   const bannerAllowedByRoute = !isBusinessPage && !isDashboardPage
   const activeBanners = useMemo(
-    () => banners.filter((b) => b.enabled && String(b.text || '').trim().length > 0),
+    () => banners.filter((b) => {
+      if (!b.enabled || !String(b.text || '').trim()) return false
+      if ((b as any).deadline) {
+        const expires = new Date((b as any).deadline).getTime()
+        if (!isNaN(expires) && expires <= Date.now()) return false
+      }
+      return true
+    }),
     [banners],
   )
   const bannerActive = bannerAllowedByRoute && activeBanners.length > 0
@@ -337,8 +344,9 @@ export function Header() {
                 : settings.navbar_banner_link != null
                   ? String(settings.navbar_banner_link)
                   : null
+            const deadline = settings.navbar_banner_deadline != null ? String(settings.navbar_banner_deadline) : null
             setBanners([
-              { id: 'banner-1', enabled, text, button_text: btnText, button_to: btnTo },
+              { id: 'banner-1', enabled, text, button_text: btnText, button_to: btnTo, deadline } as any,
             ])
           }
           

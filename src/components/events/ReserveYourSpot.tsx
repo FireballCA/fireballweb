@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUserProfile, type UserProfile } from '@/utils/supabaseAuth'
 import type { EventAccessMode } from '@/constants/siteEventConfigs'
+import { AppleButton } from '@/components/ui/AppleButton'
 
 type Props = {
   eventSlug: string
@@ -27,6 +28,34 @@ function useReveal() {
     return () => io.disconnect()
   }, [])
   return { ref, revealed }
+}
+
+function getOrCreateAnonId(eventSlug: string): string {
+  const key = `fb_anon_id_${eventSlug}`
+  try {
+    const existing = localStorage.getItem(key)
+    if (existing) return existing
+    const id = `anon_${crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)}`
+    localStorage.setItem(key, id)
+    return id
+  } catch {
+    return `anon_${Math.random().toString(36).slice(2)}`
+  }
+}
+
+function getStoredVote(eventSlug: string): AttendanceStatus {
+  try {
+    const v = localStorage.getItem(`fb_vote_${eventSlug}`)
+    if (v === 'going' || v === 'not-going') return v
+  } catch {}
+  return null
+}
+
+function storeVote(eventSlug: string, status: AttendanceStatus) {
+  try {
+    if (status) localStorage.setItem(`fb_vote_${eventSlug}`, status)
+    else localStorage.removeItem(`fb_vote_${eventSlug}`)
+  } catch {}
 }
 
 async function submitEventRsvp(params: {
@@ -85,58 +114,52 @@ async function submitEventRsvp(params: {
   }).catch(() => null)
 }
 
-function PublicAttendance({ eventSlug, eventTitle, profile }: { eventSlug: string; eventTitle: string; profile: UserProfile }) {
-  const [status, setStatus] = useState<AttendanceStatus>(null)
+/** Oui / Non sans connexion — vote anonyme via localStorage + Supabase */
+function PublicAttendanceAnon({ eventSlug }: { eventSlug: string }) {
+  const [status, setStatus] = useState<AttendanceStatus>(() => getStoredVote(eventSlug))
   const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(false)
-
-  useEffect(() => {
-    supabase
-      .from('event_rsvps')
-      .select('status')
-      .eq('event_slug', eventSlug)
-      .eq('user_id', profile.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.status === 'going') setStatus('going')
-        else if (data?.status === 'not-going') setStatus('not-going')
-      })
-  }, [eventSlug, profile.id])
 
   const handle = async (s: 'going' | 'not-going') => {
     if (loading) return
     setLoading(true)
-    const next = status === s ? null : s
-    if (next) {
-      await submitEventRsvp({
-        eventSlug,
-        eventTitle,
-        userId: profile.id,
-        userName: `${profile.first_name} ${profile.last_name}`.trim(),
-        userEmail: profile.email,
-        userRole: profile.role || null,
-        companyName: profile.company_name || null,
-        status: next,
-      })
-    } else {
-      await supabase.from('event_rsvps').delete().eq('event_slug', eventSlug).eq('user_id', profile.id)
-    }
-    setStatus(next)
-    setDone(next === 'going')
+    const anonId = getOrCreateAnonId(eventSlug)
+    const next: AttendanceStatus = status === s ? null : s
+    try {
+      if (next) {
+        await supabase.from('event_rsvps').upsert(
+          {
+            event_slug: eventSlug,
+            user_id: anonId,
+            user_name: 'Anonymous',
+            user_email: '',
+            user_role: null,
+            company_name: null,
+            status: next,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'event_slug,user_id' },
+        )
+      } else {
+        await supabase.from('event_rsvps').delete()
+          .eq('event_slug', eventSlug).eq('user_id', anonId)
+      }
+      storeVote(eventSlug, next)
+      setStatus(next)
+    } catch {}
     setLoading(false)
   }
 
-  if (done && status === 'going') {
+  if (status === 'going') {
     return (
       <div className="mt-10 flex flex-col items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-carbon-900">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0485F7]">
           <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <p className="font-nav text-sm font-bold text-carbon-900">You're in. See you there.</p>
+        <p className="font-nav text-sm font-bold text-carbon-900">See you there.</p>
         <button
-          onClick={() => handle('not-going')}
+          onClick={() => handle('going')}
           className="mt-1 text-xs text-carbon-400 underline-offset-2 hover:underline"
         >
           Can't make it after all
@@ -146,35 +169,26 @@ function PublicAttendance({ eventSlug, eventTitle, profile }: { eventSlug: strin
   }
 
   return (
-    <div className="mt-10 flex flex-col items-center gap-4">
-      <p className="text-sm text-carbon-500">Signed in as <span className="font-semibold text-carbon-800">{profile.first_name}</span></p>
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => handle('going')}
-          disabled={loading}
-          className={`inline-flex items-center gap-2 rounded-lg px-7 py-3.5 font-nav text-sm font-bold transition-all ${
-            status === 'going'
-              ? 'bg-carbon-900 text-white'
-              : 'bg-carbon-900 text-white hover:opacity-80'
-          }`}
-        >
-          {loading && status !== 'going' ? (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-          ) : null}
-          I'll be there
-        </button>
-        <button
-          onClick={() => handle('not-going')}
-          disabled={loading}
-          className={`inline-flex items-center gap-2 rounded-lg border px-7 py-3.5 font-nav text-sm font-bold transition-all ${
-            status === 'not-going'
-              ? 'border-carbon-900 bg-carbon-900 text-white'
-              : 'border-carbon-200 text-carbon-600 hover:border-carbon-400'
-          }`}
-        >
-          Can't make it
-        </button>
-      </div>
+    <div className="mt-10 flex items-center justify-center gap-3">
+      <AppleButton
+        onClick={() => void handle('going')}
+        disabled={loading}
+        className="gap-2 !px-7 !py-2.5 !text-sm"
+      >
+        {loading ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : null}
+        Yes, I'll be there
+      </AppleButton>
+      <AppleButton
+        onClick={() => void handle('not-going')}
+        disabled={loading}
+        className={`gap-2 !px-7 !py-2.5 !text-sm ${
+          status === 'not-going'
+            ? ''
+            : '!border-carbon-200 !bg-white !text-carbon-700 hover:!border-carbon-400 hover:!bg-white'
+        }`}
+      >
+        Can't make it
+      </AppleButton>
     </div>
   )
 }
@@ -312,42 +326,37 @@ export function ReserveYourSpot({ eventSlug, eventTitle, accessMode, allowedRole
 
         <p className="mt-5 text-sm leading-relaxed text-carbon-500 sm:text-base">
           {isPublic
-            ? 'Let us know if you\'re coming — it helps us plan an evening worth showing up for.'
+            ? "Let us know if you're coming — no account needed."
             : isPartnerMode
             ? 'This event is open to Fireball partners. Sign in to confirm your attendance in one click.'
-            : 'This evening is private and capacity is limited. Sign in to request your spot — we\'ll confirm with you directly.'}
+            : "This evening is private and capacity is limited. Sign in to request your spot — we'll confirm with you directly."}
         </p>
 
-        {!authChecked ? null : profile ? (
-          isPublic ? (
-            <PublicAttendance eventSlug={eventSlug} eventTitle={eventTitle} profile={profile} />
+        {isPublic ? (
+          /* Public event — anyone can vote, no login required */
+          <PublicAttendanceAnon eventSlug={eventSlug} />
+        ) : !authChecked ? null : profile ? (
+          isPartnerMode && !userIsPartner ? (
+            <div className="mt-10 flex flex-col items-center gap-3">
+              <p className="text-sm text-carbon-500">
+                This event is reserved for Fireball partners.{' '}
+                <Link to="/contact" className="font-semibold text-carbon-900 underline-offset-2 hover:underline">
+                  Contact us
+                </Link>{' '}
+                to learn more.
+              </p>
+            </div>
           ) : (
-            isPartnerMode && !userIsPartner ? (
-              <div className="mt-10 flex flex-col items-center gap-3">
-                <p className="text-sm text-carbon-500">
-                  This event is reserved for Fireball partners.{' '}
-                  <Link to="/contact" className="font-semibold text-carbon-900 underline-offset-2 hover:underline">
-                    Contact us
-                  </Link>{' '}
-                  to learn more.
-                </p>
-              </div>
-            ) : (
-              <PrivateRequest
-                eventSlug={eventSlug}
-                eventTitle={eventTitle}
-                profile={profile}
-                isPartner={isPartnerMode || Boolean(userIsPartner)}
-              />
-            )
+            <PrivateRequest
+              eventSlug={eventSlug}
+              eventTitle={eventTitle}
+              profile={profile}
+              isPartner={isPartnerMode || Boolean(userIsPartner)}
+            />
           )
         ) : (
           <div className="mt-10 flex flex-col items-center gap-4">
-            <p className="text-sm text-carbon-500">
-              {isPublic
-                ? 'Sign in to mark your attendance.'
-                : 'Sign in to request your invitation.'}
-            </p>
+            <p className="text-sm text-carbon-500">Sign in to request your invitation.</p>
             <div className="flex items-center gap-3">
               <Link
                 to="/account"

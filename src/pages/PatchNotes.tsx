@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUserProfile } from '@/utils/supabaseAuth'
-import { Footer } from '@/components/Layout/Footer'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -635,7 +634,6 @@ create policy "admin_all"   on patch_notes for all    using (true);`}
         )}
 
       </div>
-      <Footer />
     </div>
   )
 }

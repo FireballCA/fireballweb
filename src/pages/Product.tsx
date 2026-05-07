@@ -16,7 +16,7 @@ import { FREE_SHIPPING_THRESHOLD_CAD } from '@/constants/shipping'
 import { getProductPageContent } from '@/data/productPageContent'
 import { supabase } from '@/lib/supabase'
 import { ProductDetailSkeleton } from '@/components/ui/ProductDetailSkeleton'
-import { useClipRevealHover, CLIP_REVEAL_BUTTON_BASE_CLASS } from '@/hooks/useClipRevealHover'
+import { useClipRevealHover } from '@/hooks/useClipRevealHover'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { ADMIN_OPEN_PRODUCT_EDITOR } from '@/components/FloatingAdminFab'
 
@@ -24,6 +24,19 @@ const APPLE_BLUE = '#0485F7'
 /** Rouge système Apple (destructif / indisponible), lisible sur mobile. */
 const APPLE_SYSTEM_RED = '#FF3B30'
 const SLIDER_ACTIVE_BLACK = '#111111'
+
+function detectIOS(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+}
+
+function ApplePayIcon() {
+  return (
+    <svg width="16" height="19" viewBox="0 0 17 20" fill="currentColor" aria-hidden>
+      <path d="M13.65 10.62c-.02-2.1 1.72-3.12 1.8-3.17-0.98-1.44-2.51-1.63-3.05-1.65-1.3-.13-2.54.77-3.2.77-.66 0-1.68-.75-2.77-.73-1.42.02-2.73.83-3.46 2.1-1.48 2.57-.38 6.37 1.06 8.45.7 1.02 1.54 2.16 2.64 2.12 1.06-.04 1.46-.68 2.74-.68 1.28 0 1.64.68 2.76.66 1.14-.02 1.86-1.03 2.56-2.05.81-1.17 1.14-2.31 1.16-2.37-.03-.01-2.22-.85-2.24-3.45zM11.55 4.3c.58-.71.98-1.69.87-2.67-.84.03-1.85.56-2.45 1.26-.54.62-1.01 1.62-.88 2.58.93.07 1.87-.47 2.46-1.17z"/>
+    </svg>
+  )
+}
 
 type ProductType = LocalProduct
 
@@ -311,6 +324,8 @@ export function Product() {
   const [productPageSaveError, setProductPageSaveError] = useState('')
   const [whyDraft, setWhyDraft] = useState('')
   const [howToUseDraft, setHowToUseDraft] = useState('')
+
+  const [isOnIOS] = useState(detectIOS)
 
   const clipAddMain = useClipRevealHover()
   const clipAddSticky = useClipRevealHover()
@@ -1429,85 +1444,44 @@ export function Product() {
               <p className="text-sm text-amber-600">{t('product.unavailable')}</p>
             )}
 
-            {/* CTAs — add to cart principal : desktop / tablette uniquement (mobile = barre flottante) */}
+            {/* CTAs — desktop / tablette uniquement (mobile = barre flottante) */}
             <div ref={ctaButtonsRef} className="hidden lg:flex flex-col gap-3 pt-4 mb-6">
-              {/* Add to Cart — fond noir + survol type landing (cercle blanc) */}
+              {isOnIOS && (
+                /* Apple Pay — iOS Safari only */
+                <button
+                  type="button"
+                  disabled={!!(currentVariant && !currentVariant.availableForSale)}
+                  className="w-full flex items-center justify-center gap-2.5 rounded-full bg-black py-4 px-6 text-base font-semibold text-white transition hover:bg-neutral-900 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}
+                >
+                  <ApplePayIcon />
+                  Quick Buy
+                </button>
+              )}
+
+              {/* Add to Cart — black on all platforms */}
               <button
                 ref={addToCartMainButtonRef}
                 type="button"
                 onClick={handleAddToCart}
-                disabled={currentVariant && !currentVariant.availableForSale}
-                onPointerEnter={
+                disabled={!!(currentVariant && !currentVariant.availableForSale)}
+                className={`relative w-full overflow-hidden rounded-full py-4 px-6 font-medium transition-colors duration-200 outline-none [-webkit-tap-highlight-color:transparent] focus:outline-none ${
                   currentVariant && !currentVariant.availableForSale
-                    ? undefined
+                    ? 'cursor-not-allowed bg-carbon-200 text-carbon-500'
                     : added
-                      ? undefined
-                      : clipAddMain.onPointerEnter
-                }
-                onPointerMove={
-                  currentVariant && !currentVariant.availableForSale
-                    ? undefined
-                    : added
-                      ? undefined
-                      : clipAddMain.onPointerMove
-                }
-                onPointerLeave={
-                  currentVariant && !currentVariant.availableForSale
-                    ? undefined
-                    : added
-                      ? undefined
-                      : clipAddMain.onPointerLeave
-                }
-                onFocus={() => {
-                  if ((!currentVariant || currentVariant.availableForSale) && !added) clipAddMain.onFocus()
-                }}
-                onBlur={() => clipAddMain.onBlur()}
-                className={`relative w-full overflow-hidden rounded-full border py-4 px-6 font-medium transition-[border-color,color] duration-500 ease-out outline-none [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:outline-none ${
-                  currentVariant && !currentVariant.availableForSale
-                    ? 'cursor-not-allowed border-carbon-200 bg-carbon-100 text-carbon-500'
-                    : added
-                      ? 'border-transparent bg-carbon-600 text-white'
-                      : CLIP_REVEAL_BUTTON_BASE_CLASS
+                      ? 'bg-carbon-600 text-white'
+                      : 'bg-[#111111] text-white hover:bg-carbon-800'
                 }`}
-                style={
-                  currentVariant && !currentVariant.availableForSale
-                    ? undefined
-                    : added
-                      ? undefined
-                      : clipAddMain.cssVars
-                }
               >
-                {!added && !(currentVariant && !currentVariant.availableForSale) && (
-                  <span
-                    className="pointer-events-none absolute -inset-px z-0 rounded-full"
-                    style={{
-                      backgroundColor: '#ffffff',
-                      clipPath: `circle(${clipAddMain.active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                      WebkitClipPath: `circle(${clipAddMain.active ? 'var(--clip-r, 0px)' : '0px'} at var(--clip-x, 50%) var(--clip-y, 50%))`,
-                      transition:
-                        'clip-path 900ms cubic-bezier(0.22,1,0.36,1), -webkit-clip-path 900ms cubic-bezier(0.22,1,0.36,1)',
-                      willChange: 'clip-path',
-                    }}
-                    aria-hidden
-                  />
-                )}
                 <span
-                  className={`relative z-10 block transition-all duration-300 ${
+                  className={`block transition-all duration-300 ${
                     added ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
-                  } ${
-                    currentVariant && !currentVariant.availableForSale
-                      ? ''
-                      : clipAddMain.hover && !added
-                        ? 'text-black'
-                        : added
-                          ? ''
-                          : 'text-white'
                   }`}
                 >
                   {t('product.addToCart')}
                 </span>
                 <span
-                  className={`absolute inset-0 z-10 flex items-center justify-center text-white transition-all duration-300 ${
+                  className={`absolute inset-0 flex items-center justify-center text-white transition-all duration-300 ${
                     added ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
                   }`}
                 >
@@ -1769,56 +1743,16 @@ export function Product() {
               type="button"
               onClick={handleAddToCart}
               disabled={currentVariant && !currentVariant.availableForSale}
-              onPointerEnter={
+              className={`relative overflow-hidden rounded-full px-6 py-2.5 text-sm font-medium whitespace-nowrap outline-none [-webkit-tap-highlight-color:transparent] transition-colors duration-200 focus:outline-none active:scale-[0.98] ${
                 currentVariant && !currentVariant.availableForSale
-                  ? undefined
+                  ? 'cursor-not-allowed bg-carbon-200 text-carbon-500'
                   : added
-                    ? undefined
-                    : clipAddSticky.onPointerEnter
-              }
-              onPointerMove={
-                currentVariant && !currentVariant.availableForSale
-                  ? undefined
-                  : added
-                    ? undefined
-                    : clipAddSticky.onPointerMove
-              }
-              onPointerLeave={
-                currentVariant && !currentVariant.availableForSale
-                  ? undefined
-                  : added
-                    ? undefined
-                    : clipAddSticky.onPointerLeave
-              }
-              onFocus={() => {
-                if ((!currentVariant || currentVariant.availableForSale) && !added) clipAddSticky.onFocus()
-              }}
-              onBlur={() => clipAddSticky.onBlur()}
-              className={`relative overflow-hidden rounded-full border px-6 py-2.5 text-sm font-medium whitespace-nowrap outline-none [-webkit-tap-highlight-color:transparent] transition-[border-color,color] duration-500 ease-out focus:outline-none focus-visible:outline-none active:scale-[0.98] ${
-                currentVariant && !currentVariant.availableForSale
-                  ? 'cursor-not-allowed border-carbon-300 bg-carbon-200 text-carbon-500'
-                  : added
-                    ? 'border-transparent bg-carbon-600 text-white'
-                    : 'border-[#0485F7] bg-[#0485F7] text-white hover:border-[#3592F9] hover:bg-[#3592F9]'
+                    ? 'bg-carbon-600 text-white'
+                    : 'bg-[#111111] text-white hover:bg-carbon-800'
               }`}
-              style={
-                currentVariant && !currentVariant.availableForSale
-                  ? undefined
-                  : added
-                    ? undefined
-                    : clipAddSticky.cssVars
-              }
             >
-              <span
-                className={`relative z-10 ${
-                  currentVariant && !currentVariant.availableForSale
-                    ? ''
-                    : added
-                      ? 'text-white'
-                        : 'text-white'
-                }`}
-              >
-                {added ? `✓ ${t('product.addedToCart')}` : 'Purchase'}
+              <span className="relative z-10 text-white">
+                {added ? `✓ ${t('product.addedToCart')}` : t('product.addToCart')}
               </span>
             </button>
           </div>
@@ -1908,25 +1842,38 @@ export function Product() {
 
       {favoriteModal}
 
-      {/* Add to cart mobile : fixe en bas ; visible tout de suite si la variante est indisponible (sinon gris « invisible » en haut de page). */}
+      {/* Add to cart mobile : fixe en bas */}
       <div
         className={
-          'lg:hidden fixed inset-x-0 bottom-0 z-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pointer-events-none transition-all duration-300 ease-in-out ' +
+          'lg:hidden fixed inset-x-0 bottom-0 z-50 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pointer-events-none transition-all duration-300 ease-in-out ' +
           (showStickyBar || isVariantUnavailable ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0')
         }
       >
-        <div className="max-w-7xl mx-auto w-full pointer-events-auto">
+        <div className="max-w-7xl mx-auto w-full pointer-events-auto flex flex-col gap-2.5">
+          {isOnIOS && !isVariantUnavailable && (
+            /* Apple Pay — iOS Safari only, shown above Add to Cart */
+            <button
+              type="button"
+              className="[-webkit-tap-highlight-color:transparent] w-full flex items-center justify-center gap-2.5 rounded-2xl bg-black py-3.5 px-6 text-[16px] font-semibold text-white shadow-[0_4px_24px_rgba(0,0,0,0.35)] active:scale-[0.99]"
+              style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}
+            >
+              <ApplePayIcon />
+              Quick Buy
+            </button>
+          )}
+
+          {/* Add to Cart — black on all platforms */}
           <button
             type="button"
             onClick={handleAddToCart}
             disabled={isVariantUnavailable}
             aria-label={isVariantUnavailable ? t('product.unavailable') : undefined}
-            className={`[-webkit-tap-highlight-color:transparent] w-full rounded-2xl border py-3.5 px-6 text-base font-semibold transition-colors transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.99] ${
+            className={`[-webkit-tap-highlight-color:transparent] w-full rounded-2xl py-3.5 px-6 text-base font-semibold transition-colors focus:outline-none active:scale-[0.99] ${
               isVariantUnavailable
-                ? 'cursor-not-allowed border-[#E6352B] text-white shadow-[0_4px_22px_rgba(255,59,48,0.42)] focus-visible:ring-[#FF3B30]/50'
+                ? 'cursor-not-allowed text-white'
                 : added
-                  ? 'border-transparent bg-carbon-600 text-white shadow-none focus-visible:ring-carbon-500/40'
-                  : 'border-[#0485F7] bg-[#0485F7] text-white shadow-[0_4px_24px_rgba(4,133,247,0.35)] focus-visible:ring-[#0485F7]/40'
+                  ? 'bg-carbon-600 text-white'
+                  : 'bg-[#111111] text-white hover:bg-carbon-800'
             }`}
             style={isVariantUnavailable ? { backgroundColor: APPLE_SYSTEM_RED } : undefined}
           >

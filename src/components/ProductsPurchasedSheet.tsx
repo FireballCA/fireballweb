@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { LiquidGlassSelect } from '@/components/LiquidGlassSelect'
+import { lockScroll, unlockScroll } from '@/utils/scrollLock'
 
 interface ProductsPurchasedSheetProps {
   isOpen: boolean
@@ -42,8 +43,10 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
     if (isOpen) {
       setRendered(true)
       setIsExiting(false)
-      document.body.style.overflow = 'hidden'
-      return
+      lockScroll()
+      return () => {
+        unlockScroll()
+      }
     }
 
     if (!isOpen && rendered) {
@@ -51,17 +54,13 @@ export function ProductsPurchasedSheet({ isOpen, onClose }: ProductsPurchasedShe
       const timeout = window.setTimeout(() => {
         setRendered(false)
         setIsExiting(false)
-        document.body.style.overflow = ''
       }, 450)
       return () => {
         window.clearTimeout(timeout)
-        document.body.style.overflow = ''
       }
     }
 
-    return () => {
-      document.body.style.overflow = ''
-    }
+    return undefined
   }, [isOpen, rendered])
 
   useEffect(() => {

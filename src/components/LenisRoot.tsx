@@ -1,7 +1,11 @@
 import { createContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import Lenis from 'lenis'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { lenisExoticsStyleOptions } from '@/constants/lenisPreset'
 import { useLocation } from 'react-router-dom'
+
+gsap.registerPlugin(ScrollTrigger)
 
 export const LenisContext = createContext<Lenis | null>(null)
 
@@ -46,7 +50,14 @@ export function LenisRoot({ children }: { children: ReactNode }) {
 
     if (shouldDisableLenis) {
       setLenis(null)
-      requestAnimationFrame(() => stripLenisClassesFromScrollRoot())
+      requestAnimationFrame(() => {
+        stripLenisClassesFromScrollRoot()
+        const scrollRoot = document.getElementById('app-scroll-root')
+        if (scrollRoot) {
+          ScrollTrigger.defaults({ scroller: scrollRoot })
+          ScrollTrigger.refresh()
+        }
+      })
       return () => {
         cancelled = true
         if (retryTimer != null) window.clearTimeout(retryTimer)
@@ -67,6 +78,11 @@ export function LenisRoot({ children }: { children: ReactNode }) {
         wrapper,
         content,
       })
+
+      ScrollTrigger.defaults({ scroller: wrapper })
+      instance.on('scroll', ScrollTrigger.update)
+      ScrollTrigger.refresh()
+
       setLenis(instance)
     }
 
@@ -74,9 +90,13 @@ export function LenisRoot({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
       if (retryTimer != null) window.clearTimeout(retryTimer)
-      if (instance) instance.destroy()
+      if (instance) {
+        instance.off('scroll', ScrollTrigger.update)
+        instance.destroy()
+      }
       setLenis(null)
       stripLenisClassesFromScrollRoot()
+      ScrollTrigger.defaults({ scroller: undefined as unknown as string })
     }
   }, [location.pathname, viewportDesktop])
 

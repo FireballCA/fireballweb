@@ -106,6 +106,64 @@ export const WAX_OPTIONS: Array<{
   },
 ]
 
+export type ProductKit = {
+  id: string
+  name: string
+  image: string
+  items: Array<{ name: string; price: number }>
+}
+
+export const PRODUCT_KITS: ProductKit[] = [
+  {
+    id: 'kit-vitre',
+    name: 'Glass',
+    image: '/servicebuilder/Kit_Vitre.webp',
+    items: [
+      { name: 'Glass Cleaner 500ml', price: 18 },
+      { name: 'Glass Coat', price: 34 },
+      { name: 'Applicator Pad x2', price: 8 },
+    ],
+  },
+  {
+    id: 'kit-roue',
+    name: 'Wheel',
+    image: '/servicebuilder/Kit_Roue.webp',
+    items: [
+      { name: 'Wheel Cleaner 500ml', price: 22 },
+      { name: 'Wheel Wax 130g', price: 26 },
+      { name: 'Wheel Brush', price: 16 },
+    ],
+  },
+  {
+    id: 'kit-exterieur',
+    name: 'Exterior',
+    image: '/servicebuilder/Kit_Exterieur.webp',
+    items: [
+      { name: 'Snow Foam 500ml', price: 26 },
+      { name: 'Iron Remover 500ml', price: 28 },
+      { name: 'Quick Detailer 500ml', price: 24 },
+    ],
+  },
+  {
+    id: 'kit-interieur',
+    name: 'Interior',
+    image: '/servicebuilder/Kit_Interieur.webp',
+    items: [
+      { name: 'Interior Cleaner 500ml', price: 22 },
+      { name: 'Leather Conditioner 250ml', price: 34 },
+      { name: 'Textile Protectant 500ml', price: 28 },
+    ],
+  },
+]
+
+export function getKitRetailTotal(kit: ProductKit): number {
+  return kit.items.reduce((sum, item) => sum + item.price, 0)
+}
+
+export function getKitPrice(kit: ProductKit): number {
+  return Math.round(getKitRetailTotal(kit) * 0.85 * 100) / 100
+}
+
 export const SERVICE_BUILDER_FAQS = [
   {
     q: 'Is the price estimate a final quote?',

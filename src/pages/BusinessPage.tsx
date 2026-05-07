@@ -2022,7 +2022,134 @@ function BusinessAdminEvents() {
             <input value={selected.ctaLabel} onChange={(e) => upsertSelected({ ctaLabel: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="CTA label" />
             <input value={selected.ctaHref} onChange={(e) => upsertSelected({ ctaHref: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="/event/slug or https://..." />
             <input value={selected.startAt || ''} onChange={(e) => upsertSelected({ startAt: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Start ISO (auto from picker)" />
+            <input value={selected.endAt || ''} onChange={(e) => upsertSelected({ endAt: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="End ISO (e.g. 2026-05-16T23:00:00-04:00)" />
             <textarea value={selected.description} onChange={(e) => upsertSelected({ description: e.target.value })} className="md:col-span-2 min-h-[90px] rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Description" />
+
+            {/* ── Visibility ───────────────────────────────────────────────── */}
+            <div className="md:col-span-2">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Visibility</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    { mode: 'public' as const,       label: 'Public',        sub: 'Visible to everyone' },
+                    { mode: 'private' as const,      label: 'Private',       sub: 'Login + invitation' },
+                    { mode: 'partner-only' as const, label: 'Partners only', sub: 'Specific roles only' },
+                  ] as const
+                ).map(({ mode, label, sub }) => {
+                  const active = (selected.accessMode ?? 'public') === mode
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => upsertSelected({ accessMode: mode, isPrivate: mode !== 'public' })}
+                      className={cn(
+                        'flex flex-col items-start gap-1 rounded-xl border px-3 py-3 text-left transition-all',
+                        active
+                          ? 'border-[#4318FF] bg-[#4318FF]/5 ring-1 ring-[#4318FF]'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50',
+                      )}
+                    >
+                      <span className={cn('text-[13px] font-semibold', active ? 'text-[#4318FF]' : 'text-slate-800')}>
+                        {label}
+                      </span>
+                      <span className="text-[11px] leading-tight text-slate-400">{sub}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              {(selected.accessMode === 'partner-only') && (
+                <input
+                  value={(selected.allowedRoles ?? []).join(', ')}
+                  onChange={(e) =>
+                    upsertSelected({
+                      allowedRoles: e.target.value.split(',').map((r) => r.trim()).filter(Boolean),
+                    })
+                  }
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  placeholder="Allowed roles: partner, admin, installer"
+                />
+              )}
+            </div>
+
+            {/* ── What to Expect rows ───────────────────────────────────────── */}
+            <div className="md:col-span-2">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  What to expect
+                  <span className="ml-2 font-normal normal-case tracking-normal text-slate-400">
+                    {(selected.whatToExpect ?? []).length === 0
+                      ? '— default content shown'
+                      : `${(selected.whatToExpect ?? []).length} row${(selected.whatToExpect ?? []).length > 1 ? 's' : ''}`}
+                  </span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    upsertSelected({
+                      whatToExpect: [
+                        ...(selected.whatToExpect ?? []),
+                        {
+                          num: String((selected.whatToExpect ?? []).length + 1).padStart(2, '0'),
+                          title: '',
+                          body: '',
+                        },
+                      ],
+                    })
+                  }
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  + Add row
+                </button>
+              </div>
+
+              {(selected.whatToExpect ?? []).length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {(selected.whatToExpect ?? []).map((row, idx) => (
+                    <div key={idx} className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-200 text-[11px] font-bold text-slate-600">
+                        {String(idx + 1).padStart(2, '0')}
+                      </div>
+                      <div className="flex flex-1 flex-col gap-1.5 min-w-0">
+                        <input
+                          value={row.title}
+                          onChange={(e) => {
+                            const rows = [...(selected.whatToExpect ?? [])]
+                            rows[idx] = { ...rows[idx], title: e.target.value }
+                            upsertSelected({ whatToExpect: rows })
+                          }}
+                          placeholder="Title (e.g. The Community)"
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm"
+                        />
+                        <textarea
+                          value={row.body}
+                          onChange={(e) => {
+                            const rows = [...(selected.whatToExpect ?? [])]
+                            rows[idx] = { ...rows[idx], body: e.target.value }
+                            upsertSelected({ whatToExpect: rows })
+                          }}
+                          placeholder="Description…"
+                          rows={2}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm resize-none"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const rows = (selected.whatToExpect ?? []).filter((_, i) => i !== idx)
+                          upsertSelected({ whatToExpect: rows })
+                        }}
+                        className="shrink-0 flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-colors"
+                        aria-label="Remove row"
+                      >
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                          <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </section>

@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import type { WhatToExpectRow } from '@/constants/siteEventConfigs'
 
-const EXPECT_ROWS = [
+gsap.registerPlugin(ScrollTrigger)
+
+const DEFAULT_ROWS: WhatToExpectRow[] = [
   {
     num: '01',
     title: 'The Community',
@@ -16,28 +21,71 @@ const EXPECT_ROWS = [
     title: 'A Curated Evening',
     body: 'No panels. No presentations. Just a well-curated evening built around the people who take their craft seriously — and know how to celebrate it.',
   },
-] as const
+]
 
-export function WhatToExpect() {
+interface WhatToExpectProps {
+  rows?: WhatToExpectRow[]
+}
+
+export function WhatToExpect({ rows }: WhatToExpectProps) {
+  const effectiveRows = rows && rows.length > 0 ? rows : DEFAULT_ROWS
   const [bgNum, setBgNum] = useState<string | null>(null)
   const sectionRef = useRef<HTMLElement>(null)
-  const [revealed, setRevealed] = useState(false)
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const rowsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const el = sectionRef.current
-    if (!el) return
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) {
-          setRevealed(true)
-          io.disconnect()
-        }
-      },
-      { threshold: 0.08 },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
+    const section = sectionRef.current
+    const heading = headingRef.current
+    const rowsContainer = rowsRef.current
+    if (!section || !heading || !rowsContainer) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        heading,
+        { y: 28, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.75,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: section,
+            start: 'top 82%',
+            once: true,
+          },
+        },
+      )
+
+      const rowEls = rowsContainer.querySelectorAll('[data-expect-row]')
+      gsap.fromTo(
+        rowEls,
+        {
+          y: 44,
+          opacity: 0,
+          rotateX: 10,
+          transformPerspective: 900,
+          transformOrigin: 'top center',
+        },
+        {
+          y: 0,
+          opacity: 1,
+          rotateX: 0,
+          duration: 0.65,
+          ease: 'power2.out',
+          stagger: 0.1,
+          scrollTrigger: {
+            trigger: rowsContainer,
+            start: 'top 85%',
+            once: true,
+          },
+        },
+      )
+    }, section)
+
+    return () => ctx.revert()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section
@@ -50,10 +98,9 @@ export function WhatToExpect() {
         style={{ fontFamily: "'Roboto', sans-serif" }}
       >
         <h2
+          ref={headingRef}
           id="what-to-expect-heading"
-          className={`mb-12 text-center font-nav text-4xl font-bold tracking-tight text-carbon-950 sm:mb-16 sm:text-5xl md:text-6xl lg:mb-20 transition-all duration-700 ease-out ${
-            revealed ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
-          }`}
+          className="mb-12 text-center font-nav text-4xl font-bold tracking-tight text-carbon-950 sm:mb-16 sm:text-5xl md:text-6xl lg:mb-20"
         >
           What to expect
         </h2>
@@ -65,7 +112,7 @@ export function WhatToExpect() {
               fontSize: 'clamp(120px, 22vw, 320px)',
               fontWeight: 900,
               letterSpacing: '-10px',
-              color: 'rgba(0,0,0,0.028)',
+              color: 'rgba(0,0,0,0.09)',
               opacity: bgNum ? 1 : 0,
             }}
             aria-hidden
@@ -73,22 +120,17 @@ export function WhatToExpect() {
             {bgNum ?? '01'}
           </div>
 
-          <div className="relative z-[1] flex flex-col">
-            {EXPECT_ROWS.map((row, idx) => (
+          <div ref={rowsRef} className="relative z-[1] flex flex-col">
+            {effectiveRows.map((row) => (
               <div
                 key={row.num}
-                className={`group relative cursor-default overflow-hidden border-t border-carbon-900/10 last:border-b last:border-carbon-900/10 transition-all ease-out ${
-                  revealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-                }`}
-                style={{
-                  transitionDuration: '600ms',
-                  transitionDelay: revealed ? `${idx * 120 + 200}ms` : '0ms',
-                }}
+                data-expect-row
+                className="group relative cursor-default overflow-hidden border-t border-carbon-900/10 last:border-b last:border-carbon-900/10"
                 onMouseEnter={() => setBgNum(row.num)}
                 onMouseLeave={() => setBgNum(null)}
               >
                 <div
-                  className="pointer-events-none absolute inset-0 z-0 hidden -translate-x-full bg-carbon-900 transition-transform duration-500 ease-[cubic-bezier(0.77,0,0.18,1)] motion-reduce:transition-none md:block md:group-hover:translate-x-0"
+                  className="pointer-events-none absolute inset-0 z-0 -translate-x-full bg-carbon-900 transition-transform duration-[480ms] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:translate-x-0"
                   aria-hidden
                 />
 
@@ -102,13 +144,6 @@ export function WhatToExpect() {
                   <div className="max-w-xl text-sm leading-relaxed text-carbon-600 transition-colors duration-300 md:group-hover:text-white/90">
                     {row.body}
                   </div>
-                </div>
-
-                <div
-                  className="pointer-events-none absolute right-5 top-1/2 z-[2] hidden -translate-y-1/2 translate-x-2 text-xl text-white opacity-0 transition-all duration-300 md:block md:group-hover:translate-x-0 md:group-hover:opacity-100"
-                  aria-hidden
-                >
-                  →
                 </div>
               </div>
             ))}

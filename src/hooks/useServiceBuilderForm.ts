@@ -11,8 +11,10 @@ import {
 import { CERAMIC_COATING_SECTIONS } from '@/data/ceramicCoatingSections'
 import {
   PAINT_CONDITIONS,
+  PRODUCT_KITS,
   VEHICLE_SIZES,
   WAX_OPTIONS,
+  getKitPrice,
   type PaintCondition,
   type VehicleSize,
 } from '@/constants/serviceBuilderCatalog'
@@ -22,6 +24,8 @@ export function useServiceBuilderForm() {
   const [selectedPaintCondition, setSelectedPaintCondition] = useState<PaintCondition | null>(null)
   const [selectedCoatingId, setSelectedCoatingId] = useState<string | null>(null)
   const [selectedWaxId, setSelectedWaxId] = useState<string | null>(null)
+  const [selectedFinishType, setSelectedFinishType] = useState<'coating' | 'wax'>('coating')
+  const [selectedKitIds, setSelectedKitIds] = useState<string[]>([])
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(true)
   const [garageSheetOpen, setGarageSheetOpen] = useState(false)
@@ -98,13 +102,18 @@ export function useServiceBuilderForm() {
     const vehicleBasePrice = VEHICLE_SIZES.find((size) => size.id === selectedVehicleSize)?.price ?? 0
     const paintAdjustment =
       PAINT_CONDITIONS.find((condition) => condition.id === selectedPaintCondition)?.adjustment ?? 0
-    return vehicleBasePrice + paintAdjustment
-  }, [selectedVehicleSize, selectedPaintCondition])
+    const kitsTotal = PRODUCT_KITS
+      .filter((k) => selectedKitIds.includes(k.id))
+      .reduce((sum, k) => sum + getKitPrice(k), 0)
+    return vehicleBasePrice + paintAdjustment + kitsTotal
+  }, [selectedVehicleSize, selectedPaintCondition, selectedKitIds])
 
   const estimatedXp = useMemo(() => Math.max(0, Math.round(totalPrice * XP_PER_DOLLAR)), [totalPrice])
 
   const canProceed =
-    selectedVehicleSize !== null && selectedPaintCondition !== null && selectedCoatingId !== null
+    selectedVehicleSize !== null &&
+    selectedPaintCondition !== null &&
+    (selectedCoatingId !== null || selectedWaxId !== null)
 
   const isReviewFormValid = useMemo(() => {
     return (
@@ -161,6 +170,8 @@ export function useServiceBuilderForm() {
     setSelectedPaintCondition(null)
     setSelectedCoatingId(null)
     setSelectedWaxId(null)
+    setSelectedFinishType('coating')
+    setSelectedKitIds([])
     setGarageSheetOpen(false)
     setAddVehicleSheetOpen(false)
     setImportedVehicle(null)
@@ -259,6 +270,10 @@ export function useServiceBuilderForm() {
     setSelectedCoatingId,
     selectedWaxId,
     setSelectedWaxId,
+    selectedFinishType,
+    setSelectedFinishType,
+    selectedKitIds,
+    setSelectedKitIds,
     isLoggedIn,
     isAuthLoading,
     garageSheetOpen,

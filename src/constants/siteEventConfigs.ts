@@ -1,5 +1,7 @@
 export type EventAccessMode = 'public' | 'private' | 'partner-only'
 
+export type WhatToExpectRow = { num: string; title: string; body: string }
+
 export type SiteEventConfig = {
   id: string
   slug: string
@@ -20,6 +22,7 @@ export type SiteEventConfig = {
   locationLine?: string
   startAt?: string
   endAt?: string
+  whatToExpect?: WhatToExpectRow[]
 }
 
 export const DEFAULT_SITE_EVENT_CONFIGS: SiteEventConfig[] = [
@@ -51,7 +54,7 @@ export const DEFAULT_SITE_EVENT_CONFIGS: SiteEventConfig[] = [
     monthFull: 'MAY',
     title: 'Fireball After Party',
     description:
-      'An evening after the show — the team, the community, and the people who take their craft seriously. Open to all.',
+      'After the Driven Show, the night belongs to Fireball. An open evening for anyone who lives and breathes the craft — installers, enthusiasts, and the whole Fireball team.',
     cityRegion: 'Saint-Hyacinthe, QC',
     imageSrc: '/Assets/FireballAfterParty.png',
     isPrivate: false,
@@ -60,12 +63,14 @@ export const DEFAULT_SITE_EVENT_CONFIGS: SiteEventConfig[] = [
     ctaHref: '/event/fireball-after-party',
     navTitle: 'Fireball After Party',
     heroTitle: 'Fireball After Party',
-    dateLine: 'May 16, 2026',
+    dateLine: 'May 16, 2026 · 7 PM – 11 PM',
     locationLine: 'Saint-Hyacinthe, QC',
-    startAt: '2026-05-16T20:00:00-04:00',
+    startAt: '2026-05-16T19:00:00-04:00',
     endAt: '2026-05-16T23:00:00-04:00',
   },
 ]
+
+const DEFAULT_BY_SLUG = new Map(DEFAULT_SITE_EVENT_CONFIGS.map((d) => [d.slug, d]))
 
 export function resolveSiteEventConfigs(raw: unknown): SiteEventConfig[] {
   if (!Array.isArray(raw)) return DEFAULT_SITE_EVENT_CONFIGS
@@ -76,34 +81,51 @@ export function resolveSiteEventConfigs(raw: unknown): SiteEventConfig[] {
     const title = typeof i.title === 'string' ? i.title.trim() : ''
     const slug = typeof i.slug === 'string' ? i.slug.trim() : ''
     if (!title || !slug) continue
-    const rawMode = typeof i.accessMode === 'string' ? i.accessMode : ''
+
+    const codeDefault = DEFAULT_BY_SLUG.get(slug)
+    const rawMode = typeof i.accessMode === 'string' ? i.accessMode.trim() : ''
     const accessMode: EventAccessMode =
-      rawMode === 'private' ? 'private' : rawMode === 'partner-only' ? 'partner-only' : 'public'
+      rawMode === 'private' ? 'private'
+      : rawMode === 'partner-only' ? 'partner-only'
+      : rawMode === 'public' ? 'public'
+      : (codeDefault?.accessMode ?? 'public')
+
+    // Supabase (admin) wins for all fields; code defaults fill in anything missing.
+    const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
     parsed.push({
-      id:
-        typeof i.id === 'string' && i.id.trim()
-          ? i.id.trim()
-          : `${slug}-${Date.now()}`,
+      id: str(i.id) ?? codeDefault?.id ?? `${slug}-${Date.now()}`,
       slug,
-      day: typeof i.day === 'string' ? i.day : '',
-      monthFull: typeof i.monthFull === 'string' ? i.monthFull : '',
-      title,
-      description: typeof i.description === 'string' ? i.description : '',
-      cityRegion: typeof i.cityRegion === 'string' ? i.cityRegion : '',
-      imageSrc: typeof i.imageSrc === 'string' ? i.imageSrc : '',
-      isPrivate: Boolean(i.isPrivate),
+      day: str(i.day) ?? codeDefault?.day ?? '',
+      monthFull: str(i.monthFull) ?? codeDefault?.monthFull ?? '',
+      title: str(i.title) ?? codeDefault?.title ?? title,
+      description: str(i.description) ?? codeDefault?.description ?? '',
+      cityRegion: str(i.cityRegion) ?? codeDefault?.cityRegion ?? '',
+      imageSrc: str(i.imageSrc) ?? codeDefault?.imageSrc ?? '',
+      isPrivate: accessMode !== 'public',
       accessMode,
       allowedRoles: Array.isArray(i.allowedRoles)
         ? (i.allowedRoles as unknown[]).filter((r): r is string => typeof r === 'string')
-        : undefined,
-      ctaLabel: typeof i.ctaLabel === 'string' ? i.ctaLabel : 'See details',
-      ctaHref: typeof i.ctaHref === 'string' ? i.ctaHref : `/event/${slug}`,
-      navTitle: typeof i.navTitle === 'string' ? i.navTitle : undefined,
-      heroTitle: typeof i.heroTitle === 'string' ? i.heroTitle : undefined,
-      dateLine: typeof i.dateLine === 'string' ? i.dateLine : undefined,
-      locationLine: typeof i.locationLine === 'string' ? i.locationLine : undefined,
-      startAt: typeof i.startAt === 'string' ? i.startAt : undefined,
-      endAt: typeof i.endAt === 'string' ? i.endAt : undefined,
+        : codeDefault?.allowedRoles,
+      ctaLabel: str(i.ctaLabel) ?? codeDefault?.ctaLabel ?? 'See details',
+      ctaHref: str(i.ctaHref) ?? codeDefault?.ctaHref ?? `/event/${slug}`,
+      navTitle: str(i.navTitle) ?? codeDefault?.navTitle,
+      heroTitle: str(i.heroTitle) ?? codeDefault?.heroTitle,
+      dateLine: str(i.dateLine) ?? codeDefault?.dateLine,
+      locationLine: str(i.locationLine) ?? codeDefault?.locationLine,
+      startAt: str(i.startAt) ?? codeDefault?.startAt,
+      endAt: str(i.endAt) ?? codeDefault?.endAt,
+      whatToExpect: Array.isArray(i.whatToExpect)
+        ? (i.whatToExpect as unknown[])
+            .filter(
+              (r): r is Record<string, unknown> =>
+                typeof r === 'object' && r !== null && typeof (r as Record<string, unknown>).title === 'string',
+            )
+            .map((r) => ({
+              num: typeof r.num === 'string' ? r.num : '',
+              title: (r.title as string).trim(),
+              body: typeof r.body === 'string' ? r.body : '',
+            }))
+        : codeDefault?.whatToExpect,
     })
   }
   return parsed.length ? parsed : DEFAULT_SITE_EVENT_CONFIGS

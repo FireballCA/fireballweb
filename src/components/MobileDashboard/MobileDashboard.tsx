@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { SHOPIFY_CUSTOMER_ORDERS_URL } from '@/constants/shopifyShopApp'
+import { lockScroll, unlockScroll } from '@/utils/scrollLock'
 import { MobilePageSheet } from '@/components/MobilePageSheet/MobilePageSheet'
 import { MobileSettingsContent } from '@/components/MobileSettingsContent/MobileSettingsContent'
 import { AppleSheet } from '@/components/ui/AppleSheet'
@@ -97,14 +98,6 @@ function IconNotification() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-    </svg>
-  )
-}
-
-function IconBadge() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" /><path d="m9 12 2 2 4-4" />
     </svg>
   )
 }
@@ -423,25 +416,9 @@ export function MobileDashboard({
 
     if (window.innerWidth >= 1024) return
 
-    const prevBodyOverflow = document.body.style.overflow
-    const prevHtmlOverflow = document.documentElement.style.overflow
-    const scrollRoot = document.getElementById('app-scroll-root') as HTMLElement | null
-    const prevScrollRootOverflow = scrollRoot?.style.overflowY ?? ''
-    const prevScrollRootTouchAction = scrollRoot?.style.touchAction ?? ''
-
-    document.body.style.overflow = 'hidden'
-    document.documentElement.style.overflow = 'hidden'
-    if (scrollRoot) {
-      scrollRoot.style.overflowY = 'hidden'
-      scrollRoot.style.touchAction = 'none'
-    }
+    lockScroll()
     return () => {
-      document.body.style.overflow = prevBodyOverflow
-      document.documentElement.style.overflow = prevHtmlOverflow
-      if (scrollRoot) {
-        scrollRoot.style.overflowY = prevScrollRootOverflow
-        scrollRoot.style.touchAction = prevScrollRootTouchAction
-      }
+      unlockScroll()
     }
   }, [])
 
@@ -844,13 +821,6 @@ export function MobileDashboard({
               <span className="flex-1 text-center font-nav font-semibold text-[13px]">Settings</span>
               <span className="w-8" />
             </button>
-
-            {/* Become certified — navigates to company page */}
-            <Link to="/account/company" className={navButtonClass}>
-              <span className="w-8 flex justify-start text-white/50 shrink-0"><IconBadge /></span>
-              <span className="flex-1 text-center font-nav font-semibold text-[13px]">Become certified</span>
-              <span className="w-8" />
-            </Link>
 
             {/* Manage Business — navigates based on partner status */}
             <Link to={isPartner ? '/business' : '/account/company'} className={navButtonClass}>

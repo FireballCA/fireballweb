@@ -508,7 +508,7 @@ export function Academy() {
                 <div className="grid gap-0 lg:grid-cols-[1.1fr_1fr]">
                   <div className="relative min-h-[280px] overflow-hidden lg:min-h-[420px]">
                     <img
-                      src="/Assets/AcademyNextTraining.jpg"
+                      src="/NextTraining.jpeg"
                       alt={shortDate}
                       className="absolute inset-0 h-full w-full object-cover"
                     />
