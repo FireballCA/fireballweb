@@ -1,5 +1,4 @@
 import { useCallback, useContext, useEffect, useState, type MouseEvent } from 'react'
-import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'framer-motion'
 import { IconChevronDown } from '@tabler/icons-react'
@@ -272,12 +271,13 @@ export function CarClub() {
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
                 viewport={{ once: true }}
               >
-                <Link
-                  to="/join-club?tier=ignition"
-                  className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
+                <button
+                  type="button"
+                  disabled
+                  className={cn('inline-flex whitespace-nowrap cursor-not-allowed opacity-70', appleButtonVisualClassName)}
                 >
-                  {t('carClub.joinIgnition')}
-                </Link>
+                  Launch Soon
+                </button>
               </motion.div>
             </motion.div>
 
@@ -330,12 +330,13 @@ export function CarClub() {
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
                 viewport={{ once: true }}
               >
-                <Link
-                  to="/join-club?tier=apex"
-                  className={cn('inline-flex whitespace-nowrap', appleButtonVisualClassName)}
+                <button
+                  type="button"
+                  disabled
+                  className={cn('inline-flex whitespace-nowrap cursor-not-allowed opacity-70', appleButtonVisualClassName)}
                 >
-                  {t('carClub.upgradeToApex')}
-                </Link>
+                  Launch Soon
+                </button>
               </motion.div>
             </motion.div>
           </div>

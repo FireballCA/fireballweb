@@ -112,9 +112,10 @@ export function TrainingEmailComposeModal({
   useEffect(() => {
     if (!open || !row) return
     if (languagePresets) {
+      // 'fr' = admin writes in French → client receives English
       setSelectedLang('fr')
-      setSubject(languagePresets.fr.subject)
-      setBody(languagePresets.fr.body)
+      setSubject(languagePresets.en.subject)
+      setBody(languagePresets.en.body)
     } else {
       setSubject(initialSubject ?? defaultManualTrainingEmailSubject(row))
       setBody(initialBody ?? defaultManualTrainingEmailBody(row))
@@ -164,37 +165,42 @@ export function TrainingEmailComposeModal({
           <h2 className="mt-1 text-lg font-semibold text-slate-900">{row.session_label}</h2>
           <p className="mt-1 font-mono text-xs text-slate-500 break-all">Vers : {email || '—'}</p>
           {languagePresets ? (
-            <div className="mt-2 flex justify-end gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedLang('fr')
-                  setSubject(languagePresets.fr.subject)
-                  setBody(languagePresets.fr.body)
-                }}
-                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition ${
-                  selectedLang === 'fr'
-                    ? 'border-[#0485F7] bg-[#0485F7] text-white'
-                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                FR
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedLang('en')
-                  setSubject(languagePresets.en.subject)
-                  setBody(languagePresets.en.body)
-                }}
-                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition ${
-                  selectedLang === 'en'
-                    ? 'border-[#0485F7] bg-[#0485F7] text-white'
-                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                EN
-              </button>
+            <div className="mt-2 flex flex-col items-end gap-1">
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedLang('fr')
+                    setSubject(languagePresets.en.subject)
+                    setBody(languagePresets.en.body)
+                  }}
+                  className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition ${
+                    selectedLang === 'fr'
+                      ? 'border-[#0485F7] bg-[#0485F7] text-white'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  FR
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedLang('en')
+                    setSubject(languagePresets.fr.subject)
+                    setBody(languagePresets.fr.body)
+                  }}
+                  className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition ${
+                    selectedLang === 'en'
+                      ? 'border-[#0485F7] bg-[#0485F7] text-white'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  EN
+                </button>
+              </div>
+              <p className="text-[9px] text-slate-400 tracking-wide">
+                {selectedLang === 'fr' ? 'Vous écrivez en FR · Client reçoit en anglais' : 'You write in EN · Client receives in French'}
+              </p>
             </div>
           ) : null}
         </div>
