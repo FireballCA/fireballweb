@@ -18,7 +18,7 @@ export function Footer() {
           </Link>
           <div className="flex items-center gap-4">
             <a
-              href="https://www.instagram.com/"
+              href="https://www.instagram.com/fireballcanada.official/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-silver/70 hover:text-white transition-colors"
@@ -29,7 +29,7 @@ export function Footer() {
               </svg>
             </a>
             <a
-              href="https://www.facebook.com/"
+              href="https://www.facebook.com/FireballCarCareCanada"
               target="_blank"
               rel="noopener noreferrer"
               className="text-silver/70 hover:text-white transition-colors"
@@ -143,6 +143,12 @@ export function Footer() {
               <li>
                 <Link to="/service-builder" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
                   Service Builder
+                  <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/patch-notes" className="relative inline-block text-sm text-silver/70 no-underline hover:text-white overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full font-sans">
+                  Patch Notes
                   <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-white w-0 transition-all duration-300 ease-out" />
                 </Link>
               </li>

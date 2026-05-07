@@ -46,6 +46,7 @@ import { CeramicCoating } from '@/pages/coatings/CeramicCoating'
 import { FindInstaller } from '@/pages/coatings/FindInstaller'
 import { HowItWorks } from '@/pages/coatings/HowItWorks'
 import { CATEGORIES } from '@/data/products'
+import { PatchNotes } from '@/pages/PatchNotes'
 import { NotFoundPage } from '@/components/NotFoundPage'
 import { AdminProvider } from '@/context/AdminContext'
 
@@ -283,6 +284,7 @@ function App() {
               element={<PartnerCompany />}
             />
             <Route path="dashboard" element={<Navigate to="/account/dashboard" replace />} />
+            <Route path="patch-notes" element={<PatchNotes />} />
           </Route>
           <Route path="/404" element={<NotFoundPage />} />
           <Route path="/partner/onboarding" element={<PartnerRoute requireOnboarded={false}><PartnerOnboarding /></PartnerRoute>} />

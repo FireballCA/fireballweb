@@ -100,7 +100,7 @@ export function Contact() {
           )}
           <div className="mt-auto hidden items-center gap-6 pt-8 lg:flex">
             <a
-              href="https://www.instagram.com/"
+              href="https://www.instagram.com/fireballcanada.official/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-carbon-600 transition-colors hover:text-carbon-900"
@@ -124,7 +124,7 @@ export function Contact() {
               </svg>
             </a>
             <a
-              href="https://www.facebook.com/"
+              href="https://www.facebook.com/FireballCarCareCanada"
               target="_blank"
               rel="noopener noreferrer"
               className="text-carbon-600 transition-colors hover:text-carbon-900"
