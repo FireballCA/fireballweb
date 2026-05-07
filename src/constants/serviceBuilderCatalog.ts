@@ -111,47 +111,59 @@ export type ProductKit = {
   name: string
   image: string
   items: Array<{ name: string; price: number }>
+  price?: number // override discounted price; if absent falls back to retail * 0.85
+  discountLabel?: string // override badge text e.g. '20%'
 }
 
 export const PRODUCT_KITS: ProductKit[] = [
   {
     id: 'kit-vitre',
     name: 'Glass',
-    image: '/servicebuilder/Kit_Vitre.webp',
+    image: '/servicebuilder/Vitre Kit.png',
+    price: 80,
+    discountLabel: '20%',
     items: [
-      { name: 'Glass Cleaner 500ml', price: 18 },
-      { name: 'Glass Coat', price: 34 },
-      { name: 'Applicator Pad x2', price: 8 },
+      { name: 'Fireball Premium Glass Cleaner 500ml', price: 24 },
+      { name: 'Fireball Waterspot Remover', price: 28 },
+      { name: 'Fireball Glass Shield 1 Year Coating 50ml', price: 34 },
+      { name: 'Fireball Premium Twist Drying Towel', price: 14 },
     ],
   },
   {
     id: 'kit-roue',
     name: 'Wheel',
-    image: '/servicebuilder/Kit_Roue.webp',
+    image: '/servicebuilder/Roue KIT.png',
+    price: 64,
+    discountLabel: '20%',
     items: [
-      { name: 'Wheel Cleaner 500ml', price: 22 },
-      { name: 'Wheel Wax 130g', price: 26 },
-      { name: 'Wheel Brush', price: 16 },
+      { name: 'Fireball Wheel++ Iron Wheel Cleaner', price: 27 },
+      { name: 'Fireball Wheel & Tire 500mL', price: 27 },
+      { name: 'Fireball SiO2 Tire Coating (Satin) 500mL', price: 27 },
     ],
   },
   {
     id: 'kit-exterieur',
     name: 'Exterior',
-    image: '/servicebuilder/Kit_Exterieur.webp',
+    image: '/servicebuilder/Extérieur KIT.png',
+    price: 75,
+    discountLabel: '20%',
     items: [
-      { name: 'Snow Foam 500ml', price: 26 },
-      { name: 'Iron Remover 500ml', price: 28 },
-      { name: 'Quick Detailer 500ml', price: 24 },
+      { name: 'Fireball pH3 Shampoo 500mL', price: 28 },
+      { name: 'Fireball Hydro Shampoo SiO2 Wash And Coat', price: 37 },
+      { name: 'Fireball Waterless DIRECT 500ml', price: 28 },
     ],
   },
   {
     id: 'kit-interieur',
     name: 'Interior',
-    image: '/servicebuilder/Kit_Interieur.webp',
+    image: '/servicebuilder/Intérieur KIT.png',
+    price: 75,
+    discountLabel: '20%',
     items: [
-      { name: 'Interior Cleaner 500ml', price: 22 },
-      { name: 'Leather Conditioner 250ml', price: 34 },
-      { name: 'Textile Protectant 500ml', price: 28 },
+      { name: 'Fireball Nappa Cleaner 500ml', price: 24 },
+      { name: 'Fireball Nappa Coat 500ml', price: 28 },
+      { name: 'Fireball Nappa Brush', price: 20 },
+      { name: 'Fireball Glass 500ml', price: 23 },
     ],
   },
 ]
@@ -161,7 +173,7 @@ export function getKitRetailTotal(kit: ProductKit): number {
 }
 
 export function getKitPrice(kit: ProductKit): number {
-  return Math.round(getKitRetailTotal(kit) * 0.85 * 100) / 100
+  return kit.price ?? Math.round(getKitRetailTotal(kit) * 0.85 * 100) / 100
 }
 
 export const SERVICE_BUILDER_FAQS = [

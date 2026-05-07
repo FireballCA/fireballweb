@@ -341,7 +341,7 @@ export function ServiceBuilderConfigurationBody({
             </span>
           </div>
           <p className="mb-6 text-sm text-[#424245]">
-            Take home a curated kit — all products included at 15% off the individual price.
+            Take home a curated kit — all products included at 20% off the individual price.
           </p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -349,6 +349,7 @@ export function ServiceBuilderConfigurationBody({
               const selected = selectedKitIds.includes(kit.id)
               const retail = getKitRetailTotal(kit)
               const kitPrice = getKitPrice(kit)
+              const discountPct = kit.discountLabel ?? `${Math.round((1 - kitPrice / retail) * 100)}%`
               return (
                 <button
                   key={kit.id}
@@ -386,7 +387,7 @@ export function ServiceBuilderConfigurationBody({
                       <span className="text-[11px] text-[#6e6e73] line-through">${retail.toFixed(2)}</span>
                       <div className="flex items-center gap-1.5">
                         <span className="rounded-full bg-[#0485F7]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#0485F7]">
-                          −15%
+                          −{discountPct}
                         </span>
                         <span className="font-nav text-base font-bold text-[#1d1d1f]">
                           ${kitPrice.toFixed(2)}
