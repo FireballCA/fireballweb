@@ -1,49 +1,61 @@
-export type VehicleSize = 'Compact' | 'Normal' | 'Large' | 'Exotic'
+export type VehicleSize = 'Compact' | 'Medium' | 'Large' | 'Exotic'
 export type PaintCondition = 'Like New' | 'Light Imperfections' | 'Moderate Defects' | 'Heavy Defects'
 
-export const VEHICLE_SIZES: Array<{ id: VehicleSize; label: string; price: number }> = [
-  { id: 'Compact', label: 'Compact', price: 149 },
-  { id: 'Normal', label: 'Normal', price: 199 },
-  { id: 'Large', label: 'Large', price: 259 },
-  { id: 'Exotic', label: 'Exotic', price: 399 },
+export const VEHICLE_SIZES: Array<{ id: VehicleSize; label: string }> = [
+  { id: 'Compact', label: 'Compact' },
+  { id: 'Medium', label: 'Medium Size / VUS' },
+  { id: 'Large', label: 'Pick-up / Large VUS' },
+  { id: 'Exotic', label: 'Exotics' },
 ]
+
+export const PAINT_CORRECTION_PRICES: Record<VehicleSize, Record<PaintCondition, number>> = {
+  Compact: { 'Like New': 499, 'Light Imperfections': 699, 'Moderate Defects': 999, 'Heavy Defects': 1299 },
+  Medium:  { 'Like New': 599, 'Light Imperfections': 799, 'Moderate Defects': 1099, 'Heavy Defects': 1499 },
+  Large:   { 'Like New': 699, 'Light Imperfections': 899, 'Moderate Defects': 1199, 'Heavy Defects': 1699 },
+  Exotic:  { 'Like New': 899, 'Light Imperfections': 1199, 'Moderate Defects': 1499, 'Heavy Defects': 1999 },
+}
 
 export const PAINT_CONDITIONS: Array<{
   id: PaintCondition
   title: string
   description: string
-  adjustment: number
   image: string
 }> = [
   {
     id: 'Like New',
     title: 'Like New',
     description: 'No visible defects. Paint is in excellent condition.',
-    adjustment: 0,
     image: '/servicebuilder/New.png',
   },
   {
     id: 'Light Imperfections',
     title: 'Light Imperfections',
     description: 'Minor swirl marks or light surface scratches.',
-    adjustment: 69,
     image: '/servicebuilder/Light.jpg',
   },
   {
     id: 'Moderate Defects',
     title: 'Moderate Defects',
     description: 'Visible scratches, swirls, and dullness.',
-    adjustment: 149,
     image: '/servicebuilder/Moderate.jpg',
   },
   {
     id: 'Heavy Defects',
     title: 'Heavy Defects',
     description: 'Deep scratches, oxidation, or heavily damaged paint.',
-    adjustment: 249,
     image: '/servicebuilder/Heavy.jpg',
   },
 ]
+
+export const WAX_PRICE = 299
+
+export const WHEEL_EXTRA_PRICES = { wax: 299, coating: 400 }
+
+export const TALON_WHEEL_COATING = {
+  name: 'Talon',
+  image: '/servicebuilder/Talon.webp',
+  gauges: { hardness: 72, gloss: 80, resistance: 95, hydrophobicity: 92 },
+}
 
 export const WAX_OPTIONS: Array<{
   id: string
@@ -111,8 +123,8 @@ export type ProductKit = {
   name: string
   image: string
   items: Array<{ name: string; price: number }>
-  price?: number // override discounted price; if absent falls back to retail * 0.85
-  discountLabel?: string // override badge text e.g. '20%'
+  price?: number
+  discountLabel?: string
 }
 
 export const PRODUCT_KITS: ProductKit[] = [
@@ -120,12 +132,11 @@ export const PRODUCT_KITS: ProductKit[] = [
     id: 'kit-vitre',
     name: 'Glass',
     image: '/servicebuilder/Vitre Kit.png',
-    price: 80,
+    price: 63.99,
     discountLabel: '20%',
     items: [
       { name: 'Fireball Premium Glass Cleaner 500ml', price: 24 },
       { name: 'Fireball Waterspot Remover', price: 28 },
-      { name: 'Fireball Glass Shield 1 Year Coating 50ml', price: 34 },
       { name: 'Fireball Premium Twist Drying Towel', price: 14 },
     ],
   },
@@ -133,7 +144,7 @@ export const PRODUCT_KITS: ProductKit[] = [
     id: 'kit-roue',
     name: 'Wheel',
     image: '/servicebuilder/Roue KIT.png',
-    price: 64,
+    price: 63.99,
     discountLabel: '20%',
     items: [
       { name: 'Fireball Wheel++ Iron Wheel Cleaner', price: 27 },
@@ -151,6 +162,8 @@ export const PRODUCT_KITS: ProductKit[] = [
       { name: 'Fireball pH3 Shampoo 500mL', price: 28 },
       { name: 'Fireball Hydro Shampoo SiO2 Wash And Coat', price: 37 },
       { name: 'Fireball Waterless DIRECT 500ml', price: 28 },
+      { name: 'Fireball Premium Wash Mitt', price: 0 },
+      { name: 'Fireball Twist Drying Towel', price: 0 },
     ],
   },
   {

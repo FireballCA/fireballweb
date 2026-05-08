@@ -5,9 +5,13 @@ import type { ServiceBuilderFormApi } from '@/hooks/useServiceBuilderForm'
 import { cn } from '@/lib/utils'
 import {
   PAINT_CONDITIONS,
+  PAINT_CORRECTION_PRICES,
   PRODUCT_KITS,
+  TALON_WHEEL_COATING,
   VEHICLE_SIZES,
   WAX_OPTIONS,
+  WAX_PRICE,
+  WHEEL_EXTRA_PRICES,
   getKitPrice,
   getKitRetailTotal,
 } from '@/constants/serviceBuilderCatalog'
@@ -36,7 +40,7 @@ function usePreloadImages(srcs: string[]) {
 
 const VEHICLE_SIZE_IMAGES: Record<string, string> = {
   Compact: '/servicebuilder/Compact.webp',
-  Normal: '/servicebuilder/Normal.jpg',
+  Medium: '/servicebuilder/Normal.jpg',
   Large: '/servicebuilder/Large.jpg',
   Exotic: '/servicebuilder/Exotics.webp',
 }
@@ -83,6 +87,8 @@ export function ServiceBuilderConfigurationBody({
     setSelectedFinishType,
     selectedKitIds,
     setSelectedKitIds,
+    selectedWheelExtra,
+    setSelectedWheelExtra,
     isLoggedIn,
     isAuthLoading,
     setGarageSheetOpen,
@@ -119,7 +125,9 @@ export function ServiceBuilderConfigurationBody({
           <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="min-w-0">
               <h2 className="font-nav text-2xl font-bold">Start with your vehicle size</h2>
-              <p className="mt-2 text-sm text-[#424245]">This helps us tailor the service to your vehicle</p>
+              <p className="mt-2 text-sm text-[#424245]">
+                Base price includes a full wash &amp; decontamination of your vehicle.
+              </p>
               {importedVehicle ? (
                 <p className="mt-2 text-sm font-medium text-[#0485F7]">
                   From My Garage: {importedVehicle.year} {importedVehicle.brand} {importedVehicle.model}
@@ -143,6 +151,7 @@ export function ServiceBuilderConfigurationBody({
           <ServiceBuilderChoiceRail>
             {VEHICLE_SIZES.map((size) => {
               const selected = selectedVehicleSize === size.id
+              const startingPrice = PAINT_CORRECTION_PRICES[size.id]['Like New']
               return (
                 <button
                   key={size.id}
@@ -163,7 +172,7 @@ export function ServiceBuilderConfigurationBody({
                     draggable={false}
                   />
                   <p className="font-nav text-lg font-bold">{size.label}</p>
-                  <p className="text-sm text-[#6e6e73]">Starting at ${size.price}</p>
+                  <p className="text-sm text-[#6e6e73]">Starting at ${startingPrice}</p>
                 </button>
               )
             })}
@@ -179,6 +188,9 @@ export function ServiceBuilderConfigurationBody({
           <ServiceBuilderChoiceRail>
             {PAINT_CONDITIONS.map((condition) => {
               const selected = selectedPaintCondition === condition.id
+              const price = selectedVehicleSize
+                ? PAINT_CORRECTION_PRICES[selectedVehicleSize]?.[condition.id]
+                : null
               return (
                 <button
                   key={condition.id}
@@ -202,6 +214,9 @@ export function ServiceBuilderConfigurationBody({
                   />
                   <p className="font-nav text-lg font-bold">{condition.title}</p>
                   <p className="mt-1 text-sm text-[#424245]">{condition.description}</p>
+                  {price != null ? (
+                    <p className="mt-1.5 text-sm font-semibold text-[#1d1d1f]">${price}</p>
+                  ) : null}
                 </button>
               )
             })}
@@ -270,6 +285,7 @@ export function ServiceBuilderConfigurationBody({
                     />
                     <p className="font-nav text-lg font-bold">{coating.name}</p>
                     <p className="text-sm text-[#6e6e73]">{coating.years} durability</p>
+                    <p className="mt-1 text-sm font-semibold text-[#1d1d1f]">${coating.price.toLocaleString()}</p>
                     <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-[#424245]">
                       <p>Hardness: {coating.gauges.hardness}%</p>
                       <p>Gloss: {coating.gauges.gloss}%</p>
@@ -306,6 +322,7 @@ export function ServiceBuilderConfigurationBody({
                       />
                     </div>
                     <p className="font-nav text-sm font-bold leading-snug">{wax.name}</p>
+                    <p className="mt-1 text-sm font-semibold text-[#1d1d1f]">${WAX_PRICE}</p>
                     <div className="mt-3 space-y-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5c5c61]">
                       <div className="flex items-center justify-between gap-3">
                         <span>Hydrophobicity</span>
@@ -371,7 +388,6 @@ export function ServiceBuilderConfigurationBody({
 
                   <p className="font-nav text-base font-bold mb-3">{kit.name}</p>
 
-                  {/* Items inclus */}
                   <ul className="mb-3 space-y-1">
                     {kit.items.map((item) => (
                       <li key={item.name} className="flex items-center gap-1.5 text-[12px] text-[#424245]">
@@ -381,10 +397,13 @@ export function ServiceBuilderConfigurationBody({
                     ))}
                   </ul>
 
-                  {/* Prix */}
                   <div className="border-t border-black/[0.06] pt-2.5 mt-2">
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-[11px] text-[#6e6e73] line-through">${retail.toFixed(2)}</span>
+                      {retail > 0 ? (
+                        <span className="text-[11px] text-[#6e6e73] line-through">${retail.toFixed(2)}</span>
+                      ) : (
+                        <span />
+                      )}
                       <div className="flex items-center gap-1.5">
                         <span className="rounded-full bg-[#0485F7]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#0485F7]">
                           −{discountPct}
@@ -400,6 +419,99 @@ export function ServiceBuilderConfigurationBody({
             })}
           </div>
         </article>
+
+        {/* Step 5 — Wheel Extra */}
+        <article className="border-t border-black/10 pt-8 transition md:pt-10">
+          <div className="mb-5 flex items-center gap-3">
+            <h2 className="font-nav text-2xl font-bold">Wheel Treatment</h2>
+            <span className="select-none inline-flex items-center gap-2 rounded-full bg-[#e9e9eb] px-3 py-1.5 text-xs font-semibold leading-none text-[#0485F7]">
+              <span className="h-1 w-1 rounded-full bg-[#0485F7]" aria-hidden />
+              <span>Extra</span>
+            </span>
+          </div>
+          <p className="mb-6 text-sm text-[#424245]">
+            Protect your wheels with a premium wax or a Talon ceramic coating.
+          </p>
+
+          <ServiceBuilderChoiceRail>
+            {/* Wax option */}
+            {(() => {
+              const wheelWax = WAX_OPTIONS.find((w) => w.id === 'wheel-wax-130g')!
+              return (
+                <button
+                  type="button"
+                  onClick={() => setSelectedWheelExtra((prev) => (prev === 'wax' ? null : 'wax'))}
+                  className={cn(
+                    SB_MOBILE_CARD_ROW,
+                    'w-full touch-manipulation rounded-2xl border p-3 text-left transition',
+                    selectedWheelExtra === 'wax'
+                      ? 'border-[#0485F7] bg-[#0485F7]/10 shadow-[0_8px_24px_rgba(4,133,247,0.12)]'
+                      : 'border-black/10 bg-white hover:bg-black/[0.015]',
+                  )}
+                >
+                  <div className="mb-3 h-40 w-full overflow-hidden rounded-xl bg-[#f6f6f7]">
+                    <img
+                      src={wheelWax.image}
+                      alt={wheelWax.name}
+                      className="h-full w-full scale-[1.03] object-cover object-center"
+                      draggable={false}
+                    />
+                  </div>
+                  <p className="font-nav text-sm font-bold leading-snug">{wheelWax.name}</p>
+                  <p className="mt-1 text-sm font-semibold text-[#1d1d1f]">${WHEEL_EXTRA_PRICES.wax}</p>
+                  <div className="mt-3 space-y-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5c5c61]">
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Hydrophobicity</span>
+                      {serviceBuilderFivePointScale(wheelWax.ratings.hydrophobicity)}
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Slickness</span>
+                      {serviceBuilderFivePointScale(wheelWax.ratings.slickness)}
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Gloss</span>
+                      {serviceBuilderFivePointScale(wheelWax.ratings.gloss)}
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Application</span>
+                      {serviceBuilderFivePointScale(wheelWax.ratings.application)}
+                    </div>
+                  </div>
+                </button>
+              )
+            })()}
+
+            {/* Talon Coating option */}
+            <button
+              type="button"
+              onClick={() => setSelectedWheelExtra((prev) => (prev === 'coating' ? null : 'coating'))}
+              className={cn(
+                SB_MOBILE_CARD_ROW,
+                'w-full touch-manipulation rounded-2xl border p-3 text-left transition',
+                selectedWheelExtra === 'coating'
+                  ? 'border-[#0485F7] bg-[#0485F7]/10 shadow-[0_8px_24px_rgba(4,133,247,0.12)]'
+                  : 'border-black/10 bg-white hover:bg-black/[0.015]',
+              )}
+            >
+              <img
+                src={TALON_WHEEL_COATING.image}
+                alt={TALON_WHEEL_COATING.name}
+                className="mb-3 h-40 w-full rounded-xl object-contain bg-[#f6f6f7]"
+                draggable={false}
+              />
+              <p className="font-nav text-lg font-bold">{TALON_WHEEL_COATING.name}</p>
+              <p className="text-sm text-[#6e6e73]">Wheel ceramic coating</p>
+              <p className="mt-1 text-sm font-semibold text-[#1d1d1f]">${WHEEL_EXTRA_PRICES.coating}</p>
+              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-[#424245]">
+                <p>Hardness: {TALON_WHEEL_COATING.gauges.hardness}%</p>
+                <p>Gloss: {TALON_WHEEL_COATING.gauges.gloss}%</p>
+                <p>Resistance: {TALON_WHEEL_COATING.gauges.resistance}%</p>
+                <p>Hydrophobicity: {TALON_WHEEL_COATING.gauges.hydrophobicity}%</p>
+              </div>
+            </button>
+          </ServiceBuilderChoiceRail>
+        </article>
+
       </div>
 
       {showEstimateBar ? (
@@ -407,7 +519,7 @@ export function ServiceBuilderConfigurationBody({
           <div className="min-w-0">
             <p className="text-[12px] font-medium tracking-normal text-[#6e6e73]">Estimate</p>
             <p className="font-nav text-xl font-bold tracking-tight text-[#1d1d1f]">
-              ${totalPrice}
+              ${totalPrice.toLocaleString()}
               <span className="ml-1 text-sm font-semibold text-[#6e6e73]">CAD</span>
             </p>
           </div>

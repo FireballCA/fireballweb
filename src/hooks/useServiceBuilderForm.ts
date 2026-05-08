@@ -10,10 +10,11 @@ import {
 } from '@/utils/serviceRequests'
 import { CERAMIC_COATING_SECTIONS } from '@/data/ceramicCoatingSections'
 import {
-  PAINT_CONDITIONS,
+  PAINT_CORRECTION_PRICES,
   PRODUCT_KITS,
-  VEHICLE_SIZES,
   WAX_OPTIONS,
+  WAX_PRICE,
+  WHEEL_EXTRA_PRICES,
   getKitPrice,
   type PaintCondition,
   type VehicleSize,
@@ -26,6 +27,7 @@ export function useServiceBuilderForm() {
   const [selectedWaxId, setSelectedWaxId] = useState<string | null>(null)
   const [selectedFinishType, setSelectedFinishType] = useState<'coating' | 'wax'>('coating')
   const [selectedKitIds, setSelectedKitIds] = useState<string[]>([])
+  const [selectedWheelExtra, setSelectedWheelExtra] = useState<'wax' | 'coating' | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(true)
   const [garageSheetOpen, setGarageSheetOpen] = useState(false)
@@ -99,14 +101,27 @@ export function useServiceBuilderForm() {
   }, [garageSheetOpen, loadGarage])
 
   const totalPrice = useMemo(() => {
-    const vehicleBasePrice = VEHICLE_SIZES.find((size) => size.id === selectedVehicleSize)?.price ?? 0
-    const paintAdjustment =
-      PAINT_CONDITIONS.find((condition) => condition.id === selectedPaintCondition)?.adjustment ?? 0
+    const paintPrice =
+      selectedVehicleSize && selectedPaintCondition
+        ? (PAINT_CORRECTION_PRICES[selectedVehicleSize]?.[selectedPaintCondition] ?? 0)
+        : 0
+    const finishPrice =
+      selectedFinishType === 'coating'
+        ? (CERAMIC_COATING_SECTIONS.find((c) => c.id === selectedCoatingId)?.price ?? 0)
+        : selectedWaxId
+          ? WAX_PRICE
+          : 0
+    const wheelPrice =
+      selectedWheelExtra === 'wax'
+        ? WHEEL_EXTRA_PRICES.wax
+        : selectedWheelExtra === 'coating'
+          ? WHEEL_EXTRA_PRICES.coating
+          : 0
     const kitsTotal = PRODUCT_KITS
       .filter((k) => selectedKitIds.includes(k.id))
       .reduce((sum, k) => sum + getKitPrice(k), 0)
-    return vehicleBasePrice + paintAdjustment + kitsTotal
-  }, [selectedVehicleSize, selectedPaintCondition, selectedKitIds])
+    return paintPrice + finishPrice + wheelPrice + kitsTotal
+  }, [selectedVehicleSize, selectedPaintCondition, selectedFinishType, selectedCoatingId, selectedWaxId, selectedWheelExtra, selectedKitIds])
 
   const estimatedXp = useMemo(() => Math.max(0, Math.round(totalPrice * XP_PER_DOLLAR)), [totalPrice])
 
@@ -172,6 +187,7 @@ export function useServiceBuilderForm() {
     setSelectedWaxId(null)
     setSelectedFinishType('coating')
     setSelectedKitIds([])
+    setSelectedWheelExtra(null)
     setGarageSheetOpen(false)
     setAddVehicleSheetOpen(false)
     setImportedVehicle(null)
@@ -274,6 +290,8 @@ export function useServiceBuilderForm() {
     setSelectedFinishType,
     selectedKitIds,
     setSelectedKitIds,
+    selectedWheelExtra,
+    setSelectedWheelExtra,
     isLoggedIn,
     isAuthLoading,
     garageSheetOpen,
