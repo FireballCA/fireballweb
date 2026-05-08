@@ -207,6 +207,34 @@ export async function fetchCustomerOrders(): Promise<CustomerOrder[]> {
     return []
   }
 
+  // Fetch purchase_items separately to get stored image URLs
+  const purchaseIds = (purchases || []).map((p: Record<string, unknown>) => p.id).filter(Boolean)
+  const dbLineItemsByPurchaseId: Record<string, OrderLineItem[]> = {}
+
+  if (purchaseIds.length > 0) {
+    try {
+      const { data: dbItems } = await supabase
+        .from('purchase_items')
+        .select('*')
+        .in('purchase_id', purchaseIds)
+
+      if (dbItems) {
+        for (const row of dbItems as Record<string, unknown>[]) {
+          const pid = String(row.purchase_id)
+          if (!dbLineItemsByPurchaseId[pid]) dbLineItemsByPurchaseId[pid] = []
+          dbLineItemsByPurchaseId[pid].push({
+            title: String(row.product_title || 'Product'),
+            price: Number(row.unit_price || 0),
+            quantity: Number(row.quantity || 1),
+            imageUrl: typeof row.image_url === 'string' && row.image_url ? row.image_url : undefined,
+          })
+        }
+      }
+    } catch {
+      // ignore — table may not have image_url column yet
+    }
+  }
+
   const mappedOrders: CustomerOrder[] = (purchases || []).map((purchase: Record<string, unknown>) => {
     const placedAt = purchase?.placed_at ? new Date(purchase.placed_at as string) : null
     const formattedDate =
@@ -217,7 +245,13 @@ export async function fetchCustomerOrders(): Promise<CustomerOrder[]> {
 
     const purchaseImage = getImageFromPurchaseRow(purchase)
 
-    const lineItems = getLineItemsFromPurchase(purchase)
+    // Prefer DB line items (with stored image URLs) over parsing purchase JSON fields
+    const dbItems = dbLineItemsByPurchaseId[String(purchase.id)]
+    const lineItems = dbItems && dbItems.length > 0 ? dbItems : getLineItemsFromPurchase(purchase)
+
+    // Use image from first line item if available
+    const firstLineImage = lineItems[0]?.imageUrl || null
+
     const pointsEarned =
       typeof purchase?.points_earned === 'number'
         ? purchase.points_earned
@@ -232,7 +266,7 @@ export async function fetchCustomerOrders(): Promise<CustomerOrder[]> {
       name: extractedProductTitle || (purchase?.order_number ? String(purchase.order_number) : 'Order'),
       date: formattedDate,
       description: 'Product ordered via Fireball store.',
-      imageUrl: purchaseImage || '',
+      imageUrl: firstLineImage || purchaseImage || '',
       totalPrice:
         typeof purchase?.total_price === 'number'
           ? purchase.total_price

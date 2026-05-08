@@ -153,6 +153,12 @@ export default async function handler(req, res) {
         const rows = lineItems.map((item) => {
           const qty = typeof item.quantity === 'number' ? item.quantity : Number(item.quantity || 1) || 1
           const unit = Number.parseFloat(String(item.price ?? '0')) || 0
+          const imgUrl =
+            (item?.image?.src) ||
+            (item?.image?.url) ||
+            (item?.featured_image?.src) ||
+            (item?.featured_image?.url) ||
+            null
           return {
             purchase_id: purchaseId,
             shopify_line_item_id: String(item.id ?? ''),
@@ -162,6 +168,7 @@ export default async function handler(req, res) {
             quantity: qty,
             unit_price: unit,
             total_price: unit * qty,
+            image_url: imgUrl,
           }
         })
 
