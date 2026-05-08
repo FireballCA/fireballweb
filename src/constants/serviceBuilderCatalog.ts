@@ -1,11 +1,11 @@
 export type VehicleSize = 'Compact' | 'Medium' | 'Large' | 'Exotic'
 export type PaintCondition = 'Like New' | 'Light Imperfections' | 'Moderate Defects' | 'Heavy Defects'
 
-export const VEHICLE_SIZES: Array<{ id: VehicleSize; label: string }> = [
-  { id: 'Compact', label: 'Compact' },
-  { id: 'Medium', label: 'Medium Size / VUS' },
-  { id: 'Large', label: 'Pick-up / Large VUS' },
-  { id: 'Exotic', label: 'Exotics' },
+export const VEHICLE_SIZES: Array<{ id: VehicleSize; label: string; basePrice: number }> = [
+  { id: 'Compact', label: 'Compact', basePrice: 199 },
+  { id: 'Medium', label: 'Medium Size / VUS', basePrice: 249 },
+  { id: 'Large', label: 'Pick-up / Large VUS', basePrice: 299 },
+  { id: 'Exotic', label: 'Exotics', basePrice: 399 },
 ]
 
 export const PAINT_CORRECTION_PRICES: Record<VehicleSize, Record<PaintCondition, number>> = {
@@ -31,19 +31,19 @@ export const PAINT_CONDITIONS: Array<{
     id: 'Light Imperfections',
     title: 'Light Imperfections',
     description: 'Minor swirl marks or light surface scratches.',
-    image: '/servicebuilder/Light.jpg',
+    image: '/servicebuilder/Light.png',
   },
   {
     id: 'Moderate Defects',
     title: 'Moderate Defects',
     description: 'Visible scratches, swirls, and dullness.',
-    image: '/servicebuilder/Moderate.jpg',
+    image: '/servicebuilder/Moderate.png',
   },
   {
     id: 'Heavy Defects',
     title: 'Heavy Defects',
     description: 'Deep scratches, oxidation, or heavily damaged paint.',
-    image: '/servicebuilder/Heavy.jpg',
+    image: '/servicebuilder/Heavy.png',
   },
 ]
 
@@ -53,7 +53,7 @@ export const WHEEL_EXTRA_PRICES = { wax: 299, coating: 400 }
 
 export const TALON_WHEEL_COATING = {
   name: 'Talon',
-  image: '/servicebuilder/Talon.webp',
+  image: '/servicebuilder/Talon.png',
   gauges: { hardness: 72, gloss: 80, resistance: 95, hydrophobicity: 92 },
 }
 
