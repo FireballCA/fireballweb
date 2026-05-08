@@ -20,7 +20,7 @@ export const PAINT_CONDITIONS: Array<{
     title: 'Like New',
     description: 'No visible defects. Paint is in excellent condition.',
     adjustment: 0,
-    image: '/servicebuilder/New.jpg',
+    image: '/servicebuilder/New.png',
   },
   {
     id: 'Light Imperfections',
