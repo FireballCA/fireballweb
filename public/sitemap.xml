@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/0.9">
+
+  <!-- ─────────────────────────────────────────────────────────────────
+       PRIMARY PAGES
+       ───────────────────────────────────────────────────────────────── -->
+
+  <url>
+    <loc>https://fireball-canada.com/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en-ca" href="https://fireball-canada.com/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://fireball-canada.com/" />
+    <image:image>
+      <image:loc>https://fireball-canada.com/LogoFull.avif</image:loc>
+      <image:title>Fireball Canada — World Ceramic Coating Leader</image:title>
+    </image:image>
+  </url>
+
+  <!-- ─────────────────────────────────────────────────────────────────
+       CERAMIC COATING — PRIMARY SEO LANDING PAGES
+       ───────────────────────────────────────────────────────────────── -->
+
+  <url>
+    <loc>https://fireball-canada.com/all-coatings</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/coatings/how-it-works</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/coatings/compare</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/coatings/find-installer</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/find-installer</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- ─────────────────────────────────────────────────────────────────
+       INSTALLER / PARTNER NETWORK
+       ───────────────────────────────────────────────────────────────── -->
+
+  <url>
+    <loc>https://fireball-canada.com/join</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/service-builder</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- ─────────────────────────────────────────────────────────────────
+       SHOP / CATEGORIES
+       ───────────────────────────────────────────────────────────────── -->
+
+  <url>
+    <loc>https://fireball-canada.com/shop</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/coatings</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/sealants</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/waxes</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/dressings</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/washing</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/cleaners</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/towels</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/accessories</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- ─────────────────────────────────────────────────────────────────
+       PRODUCTS
+       ───────────────────────────────────────────────────────────────── -->
+
+  <url>
+    <loc>https://fireball-canada.com/products/coating-ceramique-9h</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/products/coating-jantes-ceramique</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/products/coating-vitre-siloxane</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/products/cire-carnauba-signature</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/products/compound-coupe-ferme</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/products/kit-polissage-complet-pro</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/products/nettoyant-carrosserie-premium</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/products/polish-correction-pro</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/products/serum-brillance</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/products/shampooing-sans-rincage</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <!-- ─────────────────────────────────────────────────────────────────
+       SECONDARY PAGES
+       ───────────────────────────────────────────────────────────────── -->
+
+  <url>
+    <loc>https://fireball-canada.com/about</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/academy</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/car-club</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/event</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/press-kit</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/contact</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/patch-notes</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <!-- ─────────────────────────────────────────────────────────────────
+       LEGAL
+       ───────────────────────────────────────────────────────────────── -->
+
+  <url>
+    <loc>https://fireball-canada.com/legal</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/Legal-Notice</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/Privacy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/Terms-of-Service</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://fireball-canada.com/Cookies</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
+  </url>
+
+</urlset>

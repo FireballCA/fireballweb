@@ -1,9 +1,12 @@
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { SEO } from '@/components/SEO'
 
 export function Cookies() {
   usePageTitle('Cookies - Fireball Canada')
   return (
-    <div className="bg-white min-h-screen">
+    <>
+      <SEO title="Cookie Policy — Fireball Canada" rawTitle description="Fireball Canada cookie policy. Information about how we use cookies on this website." canonicalPath="/Cookies" />
+      <div className="bg-white min-h-screen">
       <div className="max-w-4xl mx-auto px-6 py-16 md:py-24">
         <div className="mb-12">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-carbon-500 mb-3">Legal Center</p>
@@ -88,5 +91,6 @@ export function Cookies() {
         </div>
       </div>
     </div>
+    </>
   )
 }

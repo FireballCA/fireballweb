@@ -17,6 +17,7 @@ import {
   resolveTrainingSessionOptions,
   type TrainingSessionOption,
 } from '@/constants/trainingSessions'
+import { SEO, breadcrumbJsonLd } from '@/components/SEO'
 
 /** Affichage court type « May 15-16 » à partir du libellé admin (ex. « May 15-16, 2026 »). */
 function compactTrainingDateLabel(label: string): string {
@@ -198,7 +199,15 @@ export function Academy() {
   }, [])
 
   return (
-    <main className="bg-carbon-950 text-pearl min-h-screen">
+    <>
+      <SEO
+        title="Fireball Academy — Professional Ceramic Coating Training in Canada"
+        description="Become a Fireball certified installer through Fireball Academy — professional ceramic coating training, hands-on certification programs and industry-leading detailing courses across Canada."
+        canonicalPath="/academy"
+        keywords="ceramic coating training Canada, Fireball Academy, certified installer training, professional detailing course, ceramic coating certification, become an installer"
+        jsonLd={breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Academy', path: '/academy' }])}
+      />
+      <main className="bg-carbon-950 text-pearl min-h-screen">
       <AnimatePresence>
         {compactNavVisible && (
           <motion.header
@@ -618,5 +627,6 @@ export function Academy() {
 
       <JoinTrainingEventsModal open={trainingModalOpen} onClose={closeTrainingModal} />
     </main>
+    </>
   )
 }

@@ -5,6 +5,7 @@ import { IOSCheckbox } from '@/components/IOSCheckbox'
 import { isAuthenticated as checkIsAuthenticated } from '@/utils/supabaseAuth'
 import { supabase } from '@/lib/supabase'
 import { useNotifications } from '@/context/NotificationsContext'
+import { SEO, breadcrumbJsonLd } from '@/components/SEO'
 
 const yearsInOperation = ['Less than 1 year', '1-3 years', '3-5 years', '5+ years']
 const coatingInstallations = ['0-10', '10-50', '50-100', '100+']
@@ -160,7 +161,15 @@ export function PartnerCompany() {
   }
 
   return (
-    <section className="min-h-screen px-6 md:px-12 lg:px-16 pt-0 pb-24 text-white" style={{ backgroundColor: '#141416' }}>
+    <>
+      <SEO
+        title="Become a Fireball Certified Installer — Join Our Partner Network"
+        description="Join Fireball Canada's certified installer network. Apply to become an authorized Fireball ceramic coating installer, get listed on the official locator and grow your detailing business."
+        canonicalPath="/join"
+        keywords="become Fireball installer, certified ceramic coating installer Canada, Fireball partner program, join Fireball, authorized detailing partner, ceramic coating dealer Canada"
+        jsonLd={breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Join Fireball', path: '/join' }])}
+      />
+      <section className="min-h-screen px-6 md:px-12 lg:px-16 pt-0 pb-24 text-white" style={{ backgroundColor: '#141416' }}>
       <div className="max-w-[1100px] mx-auto">
         <section className="relative min-h-[calc(62vh+8rem)] flex flex-col text-center">
           <div className="h-24 shrink-0" aria-hidden />
@@ -653,5 +662,6 @@ export function PartnerCompany() {
         </form>
       </div>
     </section>
+    </>
   )
 }

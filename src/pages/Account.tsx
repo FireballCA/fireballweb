@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { setRememberDevice as persistRememberDevice, supabase } from '@/lib/supabase'
 import { getSafeReturnToPath } from '@/utils/safeReturnTo'
 import { IOSCheckbox } from '@/components/IOSCheckbox'
+import { SEO } from '@/components/SEO'
 
 function FlagEN() {
   return (
@@ -153,7 +154,9 @@ export function Account() {
   }
 
   return (
-    <section className="relative h-screen w-screen max-w-full overflow-hidden bg-black flex flex-col md:items-center md:justify-center select-none">
+    <>
+      <SEO title="Sign in — Fireball Canada" rawTitle description="Sign in to your Fireball Canada account." canonicalPath="/account" noindex />
+      <section className="relative h-screen w-screen max-w-full overflow-hidden bg-black flex flex-col md:items-center md:justify-center select-none">
       {/* Background */}
       <div className="absolute inset-0 bg-black pointer-events-none" />
       <div className="absolute -top-40 -right-32 w-80 h-80 bg-red-500/18 blur-3xl rounded-full opacity-70 pointer-events-none" aria-hidden />
@@ -431,5 +434,6 @@ export function Account() {
         </a>
       </div>
     </section>
+    </>
   )
 }

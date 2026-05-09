@@ -9,6 +9,7 @@ import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { LenisContext } from '@/components/LenisRoot'
 import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 import { cn } from '@/lib/utils'
+import { SEO, breadcrumbJsonLd, serviceJsonLd, faqJsonLd } from '@/components/SEO'
 
 const GAUGE_COLOR = '#B61B1B' // same red as free-shipping progress
 
@@ -169,7 +170,23 @@ export function CeramicCoating() {
   const landingBannerSrc = '/Assets/Coatings/Coatings%20Banner.png'
 
   return (
-    <div className="w-full bg-white text-carbon-900">
+    <>
+      <SEO
+        title="Ceramic Coatings — 9H+ Paint Protection by Fireball Canada"
+        description="Discover Fireball Canada's complete ceramic coating lineup — premium 9H+ SiO₂ paint protection with hydrophobic finish, UV stability, and certified installer application across Canada."
+        canonicalPath="/all-coatings"
+        keywords="ceramic coating, 9H ceramic coating, paint protection, hydrophobic coating, SiO2 coating, Fireball ceramic, ceramic coating Canada, professional ceramic coating"
+        jsonLd={[
+          breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Ceramic Coatings', path: '/all-coatings' }]),
+          serviceJsonLd({ name: 'Fireball Ceramic Coating', description: 'Premium 9H+ ceramic coating systems for automotive paint protection — engineered with SiO2 + TiO2 nano-matrix technology and applied by Fireball certified installers across Canada.', serviceType: 'Ceramic Coating Installation', url: '/all-coatings' }),
+          faqJsonLd([
+            { question: 'What is a Fireball ceramic coating?', answer: 'A Fireball ceramic coating is a 9H+ SiO2/TiO2 nano-ceramic protective layer that chemically bonds to your vehicle clear coat to deliver hydrophobic, scratch-resistant, UV-stable protection for years.' },
+            { question: 'How long does a Fireball ceramic coating last?', answer: 'Depending on the system selected, Fireball ceramic coatings deliver 3 to 10+ years of protection when applied by a Fireball certified installer.' },
+            { question: 'Where can I get a Fireball ceramic coating installed in Canada?', answer: 'Fireball has a Canada-wide network of certified installers. Visit /coatings/find-installer to locate the nearest authorized installer in your area.' },
+          ]),
+        ]}
+      />
+      <div className="w-full bg-white text-carbon-900">
       {/* Hero — fond image (comme avant) + disposition type Car Club */}
       <section
         className="relative flex h-[min(88vh,920px)] min-h-[560px] max-h-[980px] flex-col overflow-hidden border-b border-carbon-200 bg-black"
@@ -272,6 +289,7 @@ export function CeramicCoating() {
         </div>
       </section>
     </div>
+    </>
   )
 }
 

@@ -8,6 +8,7 @@ import { getCurrentUserProfile } from '@/utils/supabaseAuth'
 import { ProductCardSkeleton } from '@/components/ui/ProductCardSkeleton'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { SaleDiscountPill } from '@/components/ui/AppleInfoPill'
+import { SEO, breadcrumbJsonLd } from '@/components/SEO'
 
 export function Shop() {
   const { t } = useTranslation()
@@ -279,7 +280,16 @@ export function Shop() {
   }
 
   return (
-    <div className="w-full overflow-x-hidden">
+    <>
+      <SEO
+        title={category ? `${category.name} — Fireball Canada` : 'Shop Premium Auto Detailing Products — Fireball Canada'}
+        rawTitle
+        description={category ? `Shop ${category.name.toLowerCase()} from Fireball Canada — ${category.description}. Premium auto detailing products with fast Canada-wide shipping.` : 'Shop the complete Fireball Canada lineup — ceramic coatings, sealants, waxes, washes, towels, accessories and more. Premium auto detailing products with fast Canada-wide shipping.'}
+        canonicalPath={category ? `/${category.id}` : '/shop'}
+        keywords="auto detailing products, ceramic coating, car care Canada, Fireball products, shop ceramic coating, premium detailing"
+        jsonLd={breadcrumbJsonLd(category ? [{ name: 'Home', path: '/' }, { name: 'Shop', path: '/shop' }, { name: category.name, path: `/${category.id}` }] : [{ name: 'Home', path: '/' }, { name: 'Shop', path: '/shop' }])}
+      />
+      <div className="w-full overflow-x-hidden">
       {/* Hero section avec le nom de la catégorie */}
       {category && (
         <section className="relative min-h-[28vh] md:min-h-[55vh] flex items-center justify-center border-b border-carbon-800 pt-2 md:pt-10">
@@ -735,5 +745,6 @@ export function Shop() {
       )}
       </div>
     </div>
+    </>
   )
 }

@@ -7,6 +7,7 @@ import { LenisContext } from '@/components/LenisRoot'
 import { cn } from '@/lib/utils'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { fetchCarClubSettings, subscribeCarClubSettings, type CarClubSettings } from '@/utils/supabaseCarClub'
+import { SEO, breadcrumbJsonLd } from '@/components/SEO'
 
 const EASE_SPRING = [0.22, 1, 0.36, 1] as [number, number, number, number]
 
@@ -120,7 +121,15 @@ export function CarClub() {
   )
 
   return (
-    <div className="bg-black text-white">
+    <>
+      <SEO
+        title="Fireball Car Club — Canada's Premier Detailing Community"
+        description="Join the Fireball Car Club — exclusive events, ceramic coating perks, member rewards and Canada's most passionate community of automotive detailing enthusiasts."
+        canonicalPath="/car-club"
+        keywords="Fireball Car Club, Canadian car club, detailing community, automotive enthusiasts Canada, ceramic coating club, car shows Canada"
+        jsonLd={breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Car Club', path: '/car-club' }])}
+      />
+      <div className="bg-black text-white">
       <section
         className={cn(
           'relative flex flex-col overflow-hidden bg-black',
@@ -364,5 +373,6 @@ export function CarClub() {
         </div>
       </section>
     </div>
+    </>
   )
 }

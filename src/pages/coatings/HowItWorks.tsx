@@ -6,6 +6,7 @@ import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn } from '@/lib/utils'
 import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
 import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
+import { SEO, breadcrumbJsonLd, faqJsonLd } from '@/components/SEO'
 
 function useRevealOnce<T extends Element>() {
   const ref = useRef<T | null>(null)
@@ -463,7 +464,22 @@ export function HowItWorks() {
   ]
 
   return (
-    <div className="bg-white text-carbon-900">
+    <>
+      <SEO
+        title="How Ceramic Coating Works — SiO₂ Nano Technology Explained"
+        description="Learn how Fireball ceramic coatings bond to your paint at a molecular level. Discover the science of SiO₂ + TiO₂ nano-matrix technology, application steps, and why 9H+ ceramic protection lasts years."
+        canonicalPath="/coatings/how-it-works"
+        keywords="how ceramic coating works, SiO2 ceramic coating, TiO2 UV protection, 9H ceramic technology, nano coating science, ceramic coating application"
+        jsonLd={[
+          breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Ceramic Coatings', path: '/all-coatings' }, { name: 'How It Works', path: '/coatings/how-it-works' }]),
+          faqJsonLd([
+            { question: 'How does a ceramic coating bond to my car paint?', answer: 'Fireball ceramic coatings use SiO2 nano-particles (20–50 nm) that penetrate the clear coat pores and polymerise into a 9H+ crystalline matrix chemically bonded to the surface, creating a permanent protective layer.' },
+            { question: 'Why does Fireball use SiO2 + TiO2 technology?', answer: 'SiO2 delivers hardness, gloss and hydrophobic performance, while TiO2 blocks UV radiation to prevent oxidation and colour fade.' },
+            { question: 'What surface preparation is required before applying ceramic coating?', answer: 'Paint must be fully decontaminated, polished and corrected before application. Any defect sealed under the ceramic becomes permanent.' },
+          ]),
+        ]}
+      />
+      <div className="bg-white text-carbon-900">
 
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-white px-6 pb-16 pt-24 md:pb-24 md:pt-36">
@@ -722,5 +738,6 @@ export function HowItWorks() {
         </div>
       </section>
     </div>
+    </>
   )
 }

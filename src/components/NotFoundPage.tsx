@@ -1,9 +1,12 @@
 import { Link } from 'react-router-dom'
 import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
+import { SEO } from '@/components/SEO'
 
 export function NotFoundPage() {
   return (
-    <div className="relative overflow-hidden bg-carbon-950 min-h-screen flex items-center justify-center px-6">
+    <>
+      <SEO title="Page not found — Fireball Canada" rawTitle description="The page you requested does not exist." noindex />
+      <div className="relative overflow-hidden bg-carbon-950 min-h-screen flex items-center justify-center px-6">
       <div
         className="pointer-events-none absolute inset-x-0 -top-[0.04em] select-none font-nav font-bold leading-none text-white/[0.025] text-center tracking-[-0.02em]"
         aria-hidden
@@ -49,6 +52,7 @@ export function NotFoundPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

@@ -6,6 +6,7 @@ import { usePageTitle } from '@/hooks/usePageTitle'
 import { cn } from '@/lib/utils'
 import { SecondaryClipButton } from '@/components/ui/SecondaryClipButton'
 import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
+import { SEO, breadcrumbJsonLd } from '@/components/SEO'
 
 const GAUGE_COLOR = '#111111'
 
@@ -592,7 +593,15 @@ export function CompareCoatings() {
     setSelected((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
 
   return (
-    <div className="bg-white text-carbon-900">
+    <>
+      <SEO
+        title="Compare Fireball Ceramic Coatings — 9H+ Paint Protection Lineup"
+        description="Compare Fireball ceramic coatings side by side: SiO₂ content, hardness, gloss, durability and warranty. Find the right coating system for your vehicle in seconds."
+        canonicalPath="/coatings/compare"
+        keywords="compare ceramic coatings, Fireball coating comparison, 9H ceramic coating, SiO2 content, ceramic coating durability, best ceramic coating Canada"
+        jsonLd={breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Ceramic Coatings', path: '/all-coatings' }, { name: 'Compare Coatings', path: '/coatings/compare' }])}
+      />
+      <div className="bg-white text-carbon-900">
 
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
       <section className="bg-white px-6 pb-16 pt-24 text-center md:pb-20 md:pt-32">
@@ -726,5 +735,6 @@ export function CompareCoatings() {
         </div>
       </section>
     </div>
+    </>
   )
 }

@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { AppleInfoPill } from '@/components/ui/AppleInfoPill'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUserProfile } from '@/utils/supabaseAuth'
+import { SEO, breadcrumbJsonLd, serviceJsonLd } from '@/components/SEO'
 
 const photonCanadaOpts = {
   bbox: PHOTON_BBOX_CANADA,
@@ -537,7 +538,18 @@ export function FindInstaller() {
     loc.notes?.toUpperCase().includes('MASTER') ?? false
 
   return (
-    <section className="bg-carbon-950">
+    <>
+      <SEO
+        title="Find a Certified Fireball Ceramic Coating Installer in Canada"
+        description="Locate Fireball certified ceramic coating installers across Canada. Trusted, authorized partners for premium 9H+ ceramic coating application — find your nearest installer today."
+        canonicalPath="/coatings/find-installer"
+        keywords="ceramic coating installer near me, Fireball certified installer, ceramic coating Canada, find installer, professional ceramic coating, authorized Fireball partner"
+        jsonLd={[
+          breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Ceramic Coatings', path: '/all-coatings' }, { name: 'Find an Installer', path: '/coatings/find-installer' }]),
+          serviceJsonLd({ name: 'Fireball Certified Installer Network', description: 'Locate a Fireball Canada certified ceramic coating installer near you.', serviceType: 'Ceramic Coating Installer Locator', url: '/coatings/find-installer' }),
+        ]}
+      />
+      <section className="bg-carbon-950">
       <div className="mx-auto w-full max-w-7xl px-6 py-16 md:py-20">
         <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
           <h1 className="text-3xl font-bold tracking-tight text-white md:text-5xl">Find your installer</h1>
@@ -826,5 +838,6 @@ export function FindInstaller() {
         shop={quickServiceShop}
       />
     </section>
+    </>
   )
 }

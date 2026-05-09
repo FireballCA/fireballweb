@@ -1,9 +1,12 @@
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { SEO } from '@/components/SEO'
 
 export function TermsOfService() {
   usePageTitle('Terms of Service - Fireball Canada')
   return (
-    <div className="bg-white min-h-screen">
+    <>
+      <SEO title="Terms of Service — Fireball Canada" rawTitle description="Terms of service governing the use of Fireball Canada website and products." canonicalPath="/Terms-of-Service" />
+      <div className="bg-white min-h-screen">
       <div className="max-w-4xl mx-auto px-6 py-16 md:py-24">
         <div className="mb-12">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-carbon-500 mb-3">Legal Center</p>
@@ -131,5 +134,6 @@ export function TermsOfService() {
         </div>
       </div>
     </div>
+    </>
   )
 }

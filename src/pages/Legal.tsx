@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { IconFileText, IconShieldLock, IconCookie, IconScale } from '@tabler/icons-react'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { SEO } from '@/components/SEO'
 
 const legalCards = [
   {
@@ -33,7 +34,9 @@ export function Legal() {
   usePageTitle('Legal - Fireball Canada')
 
   return (
-    <div className="bg-white min-h-screen">
+    <>
+      <SEO title="Legal Center — Fireball Canada" rawTitle description="Legal center: privacy policy, terms of service, cookie policy and legal notice for Fireball Canada." canonicalPath="/legal" />
+      <div className="bg-white min-h-screen">
       <div className="max-w-5xl mx-auto px-6 py-20 md:py-32">
         {/* Header */}
         <div className="mb-16 max-w-2xl">
@@ -84,5 +87,6 @@ export function Legal() {
         </div>
       </div>
     </div>
+    </>
   )
 }

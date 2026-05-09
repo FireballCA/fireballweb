@@ -19,6 +19,7 @@ import { ProductDetailSkeleton } from '@/components/ui/ProductDetailSkeleton'
 import { useClipRevealHover } from '@/hooks/useClipRevealHover'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { ADMIN_OPEN_PRODUCT_EDITOR } from '@/components/FloatingAdminFab'
+import { SEO, productJsonLd, breadcrumbJsonLd } from '@/components/SEO'
 
 const APPLE_BLUE = '#0485F7'
 /** Rouge système Apple (destructif / indisponible), lisible sur mobile. */
@@ -925,7 +926,35 @@ export function Product() {
   }
 
   return (
-    <div className="bg-white min-h-screen" data-no-smooth-scroll>
+    <>
+      <SEO
+        title={`${product.name} — Fireball Canada`}
+        rawTitle
+        description={product.shortDesc || (product.description ? product.description.slice(0, 160) : `Buy ${product.name} from Fireball Canada — premium auto detailing product with fast Canada-wide shipping.`)}
+        canonicalPath={`/products/${product.slug}`}
+        image={product.image}
+        ogType="product"
+        keywords={`${product.name}, ${category?.name || ''}, Fireball Canada, auto detailing`}
+        jsonLd={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Shop', path: '/shop' },
+            ...(category ? [{ name: category.name, path: `/${category.id}` }] : []),
+            { name: product.name, path: `/products/${product.slug}` },
+          ]),
+          productJsonLd({
+            name: product.name,
+            description: product.description || product.shortDesc || `${product.name} — premium auto detailing product by Fireball Canada.`,
+            image: product.images && product.images.length > 0 ? product.images : product.image,
+            sku: product.id,
+            price: product.price,
+            url: `/products/${product.slug}`,
+            rating: product.rating,
+            reviewCount: product.reviewCount,
+          }),
+        ]}
+      />
+      <div className="bg-white min-h-screen" data-no-smooth-scroll>
       {/* Main Product Section — léger espace sous la navbar sticky (main sans pt sur /products/*) */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-9 sm:pt-10 pb-8 max-lg:pb-28 lg:pb-12">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-16">
@@ -1891,5 +1920,6 @@ export function Product() {
         </div>
       </div>
     </div>
+    </>
   )
 }

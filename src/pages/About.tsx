@@ -4,6 +4,7 @@ import { IconArrowUpRight } from '@tabler/icons-react'
 import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 import { cn } from '@/lib/utils'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { SEO, breadcrumbJsonLd } from '@/components/SEO'
 
 export function About() {
   usePageTitle('About - Fireball Canada')
@@ -148,7 +149,15 @@ export function About() {
   }, [])
 
   return (
-    <main className="bg-black text-white min-h-screen">
+    <>
+      <SEO
+        title="About Fireball Canada — World Ceramic Coating Leader"
+        description="Discover Fireball Canada — world leader in ceramic coatings. Our mission, our certified installer network, our paint protection technology and our story across Canada."
+        canonicalPath="/about"
+        keywords="about Fireball, Fireball Canada history, world ceramic coating leader, Fireball technology, paint protection company"
+        jsonLd={breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'About', path: '/about' }])}
+      />
+      <main className="bg-black text-white min-h-screen">
       {/* Hero section */}
       <section className="relative min-h-[80vh] md:min-h-[var(--app-hero-h)] flex items-center justify-center overflow-hidden">
         <video
@@ -317,6 +326,7 @@ export function About() {
         </div>
       </section>
     </main>
+    </>
   )
 }
 

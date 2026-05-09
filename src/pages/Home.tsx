@@ -14,6 +14,7 @@ import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 import { cn } from '@/lib/utils'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
+import { SEO, ORGANIZATION_JSONLD, WEBSITE_JSONLD } from '@/components/SEO'
 
 const EASE_PREMIUM = [0.16, 1, 0.3, 1] as const
 const EASE_SNAPPY = [0.22, 1, 0.36, 1] as const
@@ -259,6 +260,15 @@ export function Home() {
   }, [lenis])
 
   return (
+    <>
+      <SEO
+        title="Fireball Canada — World Ceramic Coating Leader"
+        rawTitle
+        description="Fireball Canada is the world leader in ceramic coatings. Premium 9H paint protection, hydrophobic finish, and a Canada-wide network of certified installers. Find your nearest installer today."
+        canonicalPath="/"
+        keywords="ceramic coating Canada, Fireball ceramic coating, paint protection, certified installer Canada, 9H ceramic coating, hydrophobic coating, auto detailing"
+        jsonLd={[ORGANIZATION_JSONLD, WEBSITE_JSONLD]}
+      />
     <motion.main
       className="relative min-h-0 overflow-x-clip bg-carbon-950 text-white"
       initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
@@ -559,5 +569,6 @@ export function Home() {
         </section>
       </div>
     </motion.main>
+    </>
   )
 }

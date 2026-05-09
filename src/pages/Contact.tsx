@@ -4,6 +4,7 @@ import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import type { UserProfile } from '@/utils/supabaseAuth'
 import { AppleButton } from '@/components/ui/AppleButton'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { SEO, breadcrumbJsonLd } from '@/components/SEO'
 
 const CONTACT_DRAFT_KEY = 'fireball_contact_form_draft'
 
@@ -57,7 +58,15 @@ export function Contact() {
   }
 
   return (
-    <div className="flex min-h-0 w-full max-w-none flex-1 flex-col bg-white font-sans text-carbon-900 max-lg:min-h-full lg:h-full lg:min-h-0 lg:overflow-hidden">
+    <>
+      <SEO
+        title="Contact Fireball Canada — Customer Support & Partner Inquiries"
+        description="Get in touch with Fireball Canada. Customer support, ceramic coating questions, certified installer inquiries and partnership opportunities — we are here to help."
+        canonicalPath="/contact"
+        keywords="contact Fireball Canada, ceramic coating support, Fireball customer service, Fireball partnership inquiry"
+        jsonLd={breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Contact', path: '/contact' }])}
+      />
+      <div className="flex min-h-0 w-full max-w-none flex-1 flex-col bg-white font-sans text-carbon-900 max-lg:min-h-full lg:h-full lg:min-h-0 lg:overflow-hidden">
       <div className="flex min-h-0 flex-1 flex-col lg:h-full lg:min-h-0 lg:flex-row lg:overflow-hidden">
         {/* Left: Let's Talk + text + Sign in + social (social desktop only) */}
         <div className="flex min-h-0 shrink-0 flex-col justify-start px-6 pb-4 pt-8 lg:w-1/2 lg:min-w-0 lg:flex-shrink-0 lg:overflow-hidden lg:px-12 lg:pb-12 lg:pt-24 xl:px-16 xl:pt-28">
@@ -231,5 +240,6 @@ export function Contact() {
         </div>
       </div>
     </div>
+    </>
   )
 }

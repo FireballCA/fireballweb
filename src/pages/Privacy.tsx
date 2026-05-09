@@ -1,9 +1,12 @@
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { SEO } from '@/components/SEO'
 
 export function Privacy() {
   usePageTitle('Privacy Policy - Fireball Canada')
   return (
-    <div className="bg-white min-h-screen">
+    <>
+      <SEO title="Privacy Policy — Fireball Canada" rawTitle description="Fireball Canada privacy policy. How we collect, use and protect your personal data." canonicalPath="/Privacy" />
+      <div className="bg-white min-h-screen">
       <div className="max-w-4xl mx-auto px-6 py-16 md:py-24">
         <div className="mb-12">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-carbon-500 mb-3">Legal Center</p>
@@ -123,5 +126,6 @@ export function Privacy() {
         </div>
       </div>
     </div>
+    </>
   )
 }

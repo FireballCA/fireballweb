@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 import { cn } from '@/lib/utils'
+import { SEO, breadcrumbJsonLd } from '@/components/SEO'
 
 export function PressKit() {
   const [copiedHex, setCopiedHex] = useState<string | null>(null)
@@ -24,7 +25,15 @@ export function PressKit() {
   }
 
   return (
-    <div className="bg-white text-carbon-900 min-h-screen overflow-x-hidden">
+    <>
+      <SEO
+        title="Press Kit & Brand Assets — Fireball Canada"
+        description="Download the official Fireball Canada press kit — logos, brand guidelines, color palette, photography and assets for media, retailers and partners."
+        canonicalPath="/press-kit"
+        keywords="Fireball press kit, Fireball brand assets, Fireball logo download, media kit Canada"
+        jsonLd={breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Press Kit', path: '/press-kit' }])}
+      />
+      <div className="bg-white text-carbon-900 min-h-screen overflow-x-hidden">
       {/* Hero / intro */}
       <section className="pt-20 pb-10 sm:pt-24 sm:pb-12 border-b border-carbon-900/10 px-4 sm:px-6 md:px-10">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-end md:justify-between gap-6 md:gap-8">
@@ -512,6 +521,7 @@ export function PressKit() {
         </div>
       </section>
     </div>
+    </>
   )
 }
 

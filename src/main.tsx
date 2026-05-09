@@ -1,5 +1,6 @@
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
 import './i18n'
 import App from './App'
 import { FORCE_FULL_SITE_MOTION } from './constants/motion'
@@ -13,10 +14,12 @@ if (FORCE_FULL_SITE_MOTION && typeof document !== 'undefined') {
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <BrowserRouter>
-    <LenisRoot>
-      <ScrollToTop />
-      <App />
-    </LenisRoot>
-  </BrowserRouter>,
+  <HelmetProvider>
+    <BrowserRouter>
+      <LenisRoot>
+        <ScrollToTop />
+        <App />
+      </LenisRoot>
+    </BrowserRouter>
+  </HelmetProvider>,
 )

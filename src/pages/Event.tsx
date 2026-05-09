@@ -11,6 +11,7 @@ import {
   type SiteEventConfig,
 } from '@/constants/siteEventConfigs'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { SEO, breadcrumbJsonLd } from '@/components/SEO'
 
 function GpsIcon({ className }: { className?: string }) {
   return (
@@ -215,7 +216,15 @@ export function Event() {
   }, [lenis])
 
   return (
-    <div className="bg-black text-white">
+    <>
+      <SEO
+        title="Fireball Events — Detailing Meets, Workshops & Car Shows in Canada"
+        description="Discover upcoming Fireball events across Canada — detailing meets, ceramic coating workshops, training days and exclusive car community gatherings."
+        canonicalPath="/event"
+        keywords="Fireball events, detailing events Canada, ceramic coating workshop, car shows Canada, automotive events"
+        jsonLd={breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Events', path: '/event' }])}
+      />
+      <div className="bg-black text-white">
       <section
         className="relative flex h-[var(--app-hero-h)] min-h-[var(--app-hero-h)] flex-col overflow-hidden px-6"
         aria-label="Hero"
@@ -324,5 +333,6 @@ export function Event() {
         </div>
       </section>
     </div>
+    </>
   )
 }

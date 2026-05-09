@@ -1,0 +1,48 @@
+# Fireball Canada — robots.txt
+# https://fireball-canada.com
+
+User-agent: *
+Allow: /
+
+# Don't index private / authenticated areas
+Disallow: /account
+Disallow: /account/*
+Disallow: /business
+Disallow: /business/*
+Disallow: /partner
+Disallow: /partner/*
+Disallow: /cart
+Disallow: /api/
+Disallow: /404
+Disallow: /*?*utm_
+Disallow: /*?*fbclid
+Disallow: /*?*gclid
+
+# Search engines crawl-delay friendly
+User-agent: AhrefsBot
+Crawl-delay: 5
+
+User-agent: SemrushBot
+Crawl-delay: 5
+
+# Block AI scrapers from training on the site (optional, common practice)
+User-agent: GPTBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+# Sitemap
+Sitemap: https://fireball-canada.com/sitemap.xml

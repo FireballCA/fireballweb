@@ -15,6 +15,7 @@ import { productSectionHeadingClass } from '@/constants/typography'
 import { FREE_SHIPPING_THRESHOLD_CAD } from '@/constants/shipping'
 import { useClipRevealHover, CLIP_REVEAL_BUTTON_BASE_CLASS } from '@/hooks/useClipRevealHover'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { SEO } from '@/components/SEO'
 
 /** Même offset vertical qu’au chargement : `Layout` main `pt-20` + padding haut de cette page `lg:pt-44`. */
 const CART_SUMMARY_STICKY_TOP = 'lg:top-[calc(5rem+11rem)]'
@@ -321,7 +322,9 @@ export function Cart() {
   }
 
   return (
-    <div className="bg-white min-h-screen">
+    <>
+      <SEO title="Cart — Fireball Canada" rawTitle description="Your Fireball Canada cart." canonicalPath="/cart" noindex />
+      <div className="bg-white min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-36 lg:pt-44 pb-12">
         <div className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-10 lg:gap-12 items-start">
           <div className="divide-y divide-carbon-100">
@@ -521,5 +524,6 @@ export function Cart() {
         )}
       </div>
     </div>
+    </>
   )
 }
