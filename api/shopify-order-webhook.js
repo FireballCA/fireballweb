@@ -1,5 +1,59 @@
 import { createClient } from '@supabase/supabase-js'
+import { createHmac, timingSafeEqual } from 'crypto'
+import { rateLimit } from './_security.js'
 
+// ─── Config webhook ──────────────────────────────────────────────────────────
+// Ajouter SHOPIFY_WEBHOOK_SECRET dans les variables d'environnement Vercel
+// (Shopify Admin → Settings → Notifications → Webhooks → signing secret)
+const shopifyWebhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET || ''
+
+// Désactive le body parser Vercel pour lire le corps brut (nécessaire pour HMAC)
+export const config = { api: { bodyParser: false } }
+
+async function getRawBody(req, maxBytes = 1_000_000) {
+  return new Promise((resolve, reject) => {
+    let data = ''
+    let bytes = 0
+    req.on('data', (chunk) => {
+      bytes += chunk.length
+      if (bytes > maxBytes) {
+        const error = new Error('Payload too large')
+        error.code = 'PAYLOAD_TOO_LARGE'
+        reject(error)
+        req.destroy()
+        return
+      }
+      data += chunk.toString('utf8')
+    })
+    req.on('end', () => resolve(data))
+    req.on('error', reject)
+  })
+}
+
+/**
+ * Vérifie la signature HMAC-SHA256 envoyée par Shopify.
+ * Retourne false si le secret n'est pas configuré (mode dégradé — loguer un warning).
+ */
+function verifyShopifySignature(rawBody, signatureHeader) {
+  if (!shopifyWebhookSecret) {
+    console.warn('[shopify-order-webhook] SHOPIFY_WEBHOOK_SECRET non configuré — vérification HMAC ignorée')
+    return false
+  }
+  if (!signatureHeader) return false
+  try {
+    const expected = createHmac('sha256', shopifyWebhookSecret)
+      .update(rawBody, 'utf8')
+      .digest('base64')
+    const expectedBuf = Buffer.from(expected, 'utf8')
+    const receivedBuf = Buffer.from(signatureHeader, 'utf8')
+    if (expectedBuf.length !== receivedBuf.length) return false
+    return timingSafeEqual(expectedBuf, receivedBuf)
+  } catch {
+    return false
+  }
+}
+
+// ─── Supabase ─────────────────────────────────────────────────────────────────
 const supabaseUrl = process.env.SUPABASE_URL || ''
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const shopifyStoreUrl = process.env.SHOPIFY_STORE_URL || process.env.VITE_SHOPIFY_STORE_URL || ''
@@ -19,16 +73,41 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const payload =
-    typeof req.body === 'string'
-      ? (() => {
-          try {
-            return JSON.parse(req.body)
-          } catch {
-            return {}
-          }
-        })()
-      : (req.body || {})
+  if (rateLimit(req, res, { key: 'shopify-order-webhook', windowMs: 60_000, max: 120 })) return
+
+  // ── Vérification HMAC Shopify ─────────────────────────────────────────────
+  let rawBody = ''
+  try {
+    rawBody = await getRawBody(req)
+  } catch (error) {
+    if (error?.code === 'PAYLOAD_TOO_LARGE') {
+      return res.status(413).json({ error: 'Payload too large' })
+    }
+    throw error
+  }
+  const shopifySignature = req.headers['x-shopify-hmac-sha256'] || ''
+
+  if (shopifyWebhookSecret) {
+    if (!verifyShopifySignature(rawBody, shopifySignature)) {
+      console.warn('[shopify-order-webhook] Signature HMAC invalide — requête rejetée')
+      return res.status(401).json({ error: 'Invalid webhook signature' })
+    }
+  } else {
+    // Secret non configuré : bloquer en production, accepter en dev avec warning
+    if (process.env.VERCEL_ENV === 'production') {
+      console.error('[shopify-order-webhook] SHOPIFY_WEBHOOK_SECRET manquant en production — requête bloquée')
+      return res.status(500).json({ error: 'Webhook secret not configured' })
+    }
+    console.warn('[shopify-order-webhook] SHOPIFY_WEBHOOK_SECRET non configuré (mode dev)')
+  }
+
+  // ── Parse le body (déjà lu en raw) ───────────────────────────────────────
+  let payload = {}
+  try {
+    payload = rawBody ? JSON.parse(rawBody) : {}
+  } catch {
+    payload = {}
+  }
 
   // Payload standard d'un order Shopify
   const orderId = payload.id || null
@@ -123,12 +202,29 @@ export default async function handler(req, res) {
 
     // 2) Insérer une ligne de commande dans purchases (si la table existe)
     let purchaseId = null
+    const shopifyOrderId = String(orderId ?? '').trim()
+    if (shopifyOrderId) {
+      try {
+        const { data: existingPurchase, error: existingError } = await supabase
+          .from('purchases')
+          .select('id')
+          .eq('shopify_order_id', shopifyOrderId)
+          .maybeSingle()
+        if (!existingError && existingPurchase?.id) {
+          console.log('[shopify-order-webhook] Duplicate order ignored', { orderId: shopifyOrderId })
+          return res.status(200).json({ ok: true, duplicate: true })
+        }
+      } catch {
+        // Continue: old databases may not have the purchases table yet.
+      }
+    }
+
     try {
       const { data: inserted, error: insertError } = await supabase
         .from('purchases')
         .insert({
           user_id: userId,
-          shopify_order_id: String(orderId ?? ''),
+          shopify_order_id: shopifyOrderId,
           order_number: orderNumber ? String(orderNumber) : null,
           total_price: numericTotal,
           currency: currency || 'CAD',
@@ -179,7 +275,7 @@ export default async function handler(req, res) {
     }
 
     // 3) Mettre à jour le XP cumulé sur le profil
-    if (pointsEarned > 0) {
+    if (purchaseId && pointsEarned > 0) {
       const currentXp = Number.isFinite(Number(profile.xp)) ? Number(profile.xp) : 0
       const newXp = currentXp + pointsEarned
 

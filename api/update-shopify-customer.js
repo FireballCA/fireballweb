@@ -1,7 +1,18 @@
+import { requireAuth } from './_auth.js'
+import { cleanInline, isValidEmail, parseJsonBody, rateLimit } from './_security.js'
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  if (rateLimit(req, res, { key: 'update-shopify-customer', windowMs: 60_000, max: 20 })) return
+
+  // ── Auth : utilisateur connecté uniquement ────────────────────────────────
+  const auth = await requireAuth(req)
+  if (auth.error) {
+    return res.status(auth.status).json({ error: auth.error })
   }
 
   const shopifyStoreUrl = process.env.SHOPIFY_STORE_URL || process.env.VITE_SHOPIFY_STORE_URL || ''
@@ -14,23 +25,25 @@ export default async function handler(req, res) {
     })
   }
 
-  const payload =
-    typeof req.body === 'string'
-      ? (() => {
-          try {
-            return JSON.parse(req.body)
-          } catch {
-            return {}
-          }
-        })()
-      : (req.body || {})
-
-  const email = typeof payload.email === 'string' ? payload.email.trim() : ''
-  const firstName = typeof payload.first_name === 'string' ? payload.first_name.trim() : ''
-  const lastName = typeof payload.last_name === 'string' ? payload.last_name.trim() : ''
+  const payload = parseJsonBody(req)
+  const email = cleanInline(payload.email, 254).toLowerCase()
+  const firstName = cleanInline(payload.first_name, 80)
+  const lastName = cleanInline(payload.last_name, 80)
 
   if (!email) {
     return res.status(400).json({ error: 'Missing required field: email' })
+  }
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: 'Invalid email address' })
+  }
+
+  // ── Vérification de propriété : l'utilisateur ne peut modifier que son propre compte ──
+  if (auth.user.email?.toLowerCase() !== email.toLowerCase()) {
+    console.warn('[update-shopify-customer] Tentative de modification d\'un autre compte', {
+      requestedEmail: email,
+      userEmail: auth.user.email,
+    })
+    return res.status(403).json({ error: 'Forbidden: cannot update another user\'s account' })
   }
 
   try {
@@ -68,7 +81,7 @@ export default async function handler(req, res) {
       }),
     })
 
-    const lookupResult = (await lookupResponse.json()) as any
+    const lookupResult = await lookupResponse.json().catch(() => ({}))
 
     if (!lookupResponse.ok || lookupResult?.errors?.length) {
       console.error('Shopify customer lookup failed:', lookupResult?.errors)
@@ -125,7 +138,7 @@ export default async function handler(req, res) {
       }),
     })
 
-    const updateResult = (await updateResponse.json()) as any
+    const updateResult = await updateResponse.json().catch(() => ({}))
     const userErrors = updateResult?.data?.customerUpdate?.userErrors || []
 
     if (!updateResponse.ok || updateResult?.errors?.length || userErrors.length) {

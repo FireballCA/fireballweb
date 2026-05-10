@@ -1,3 +1,5 @@
+import { getAuthHeaders } from '@/utils/authHeaders'
+
 /**
  * Crée un client Shopify en arrière-plan après l'inscription Supabase
  */
@@ -12,6 +14,7 @@ export async function createShopifyCustomer(data: {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(await getAuthHeaders()),
       },
       body: JSON.stringify(data),
     })
@@ -109,7 +112,7 @@ export async function sendShopifyCustomerInvite(shopifyCustomerId: string): Prom
   try {
     const response = await fetch('/api/send-shopify-customer-invite', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({ shopifyCustomerId }),
     })
     if (!response.ok) {
@@ -138,6 +141,7 @@ export async function updateShopifyCustomer(data: {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(await getAuthHeaders()),
       },
       body: JSON.stringify(data),
     })

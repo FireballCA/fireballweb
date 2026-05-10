@@ -3,6 +3,7 @@
  */
 
 import { highlightStatusWordsInEscapedPlainText } from '@/utils/notificationTextHighlight'
+import { getAuthHeaders } from '@/utils/authHeaders'
 
 function escapeHtml(input: string): string {
   return input
@@ -31,7 +32,7 @@ async function postEmail(payload: {
   try {
     const response = await fetch('/api/send-partner-approval-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({
         to: payload.to.trim(),
         subject: payload.subject,

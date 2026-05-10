@@ -1,22 +1,33 @@
+import { parseJsonBody, rateLimit } from './_security.js'
+
+const ALLOWED_OPERATIONS = new Set(['FireballProducts', 'FireballProductByHandle'])
+
+function getOperationName(query) {
+  const match = String(query || '').match(/\bquery\s+([A-Za-z0-9_]+)/)
+  return match?.[1] || ''
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const payload =
-    typeof req.body === 'string'
-      ? (() => {
-          try {
-            return JSON.parse(req.body)
-          } catch {
-            return {}
-          }
-        })()
-      : (req.body || {})
+  if (rateLimit(req, res, { key: 'shopify-storefront', windowMs: 60_000, max: 80 })) return
 
+  const payload = parseJsonBody(req)
   const { query, variables } = payload
   if (typeof query !== 'string' || !query.trim()) {
     return res.status(400).json({ error: 'Missing GraphQL query' })
+  }
+  if (query.length > 8_000) {
+    return res.status(400).json({ error: 'GraphQL query is too large' })
+  }
+  const operationName = getOperationName(query)
+  if (!ALLOWED_OPERATIONS.has(operationName) || /\bmutation\b/i.test(query)) {
+    return res.status(403).json({ error: 'GraphQL operation is not allowed' })
+  }
+  if (variables && (typeof variables !== 'object' || Array.isArray(variables))) {
+    return res.status(400).json({ error: 'Invalid GraphQL variables' })
   }
 
   const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL || process.env.VITE_SHOPIFY_STORE_URL || ''

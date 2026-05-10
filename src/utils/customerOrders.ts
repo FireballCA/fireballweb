@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { getAuthHeaders } from '@/utils/authHeaders'
 
 export interface OrderLineItem {
   title: string
@@ -286,7 +287,7 @@ export async function fetchCustomerOrders(): Promise<CustomerOrder[]> {
   try {
     const previewResponse = await fetch('/api/shopify-order-preview', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({ orderIds: shopifyOrderIds }),
     })
     const previewJson = await previewResponse.json().catch(() => null)

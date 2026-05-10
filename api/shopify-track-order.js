@@ -1,14 +1,4 @@
-function parseBody(req) {
-  if (!req?.body) return {}
-  if (typeof req.body === 'string') {
-    try {
-      return JSON.parse(req.body)
-    } catch {
-      return {}
-    }
-  }
-  return req.body
-}
+import { cleanInline, isValidEmail, parseJsonBody, rateLimit } from './_security.js'
 
 function normalizeStoreUrl(raw) {
   if (!raw) return ''
@@ -37,6 +27,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  if (rateLimit(req, res, { key: 'shopify-track-order', windowMs: 15 * 60_000, max: 8 })) return
+
   const shopifyStoreUrl = normalizeStoreUrl(
     process.env.SHOPIFY_STORE_URL || process.env.VITE_SHOPIFY_STORE_URL || '',
   )
@@ -49,16 +41,17 @@ export default async function handler(req, res) {
     })
   }
 
-  const payload = parseBody(req)
+  const payload = parseJsonBody(req)
   const orderNumber = normalizeOrderNumber(payload?.orderNumber)
-  const email = String(payload?.email || '')
-    .trim()
-    .toLowerCase()
+  const email = cleanInline(payload?.email, 254).toLowerCase()
 
   if (!orderNumber || !email) {
     return res.status(400).json({
       error: 'Missing required fields: orderNumber and email',
     })
+  }
+  if (!/^#?\d{3,12}$/.test(orderNumber) || !isValidEmail(email)) {
+    return res.status(400).json({ error: 'Invalid order lookup details' })
   }
 
   try {
@@ -103,7 +96,7 @@ export default async function handler(req, res) {
 
     if (!order) {
       return res.status(404).json({
-        error: 'Order not found for provided email and order number',
+        error: 'Order not found',
       })
     }
 

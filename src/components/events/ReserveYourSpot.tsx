@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUserProfile, type UserProfile } from '@/utils/supabaseAuth'
+import { getAuthHeaders } from '@/utils/authHeaders'
 import type { EventAccessMode } from '@/constants/siteEventConfigs'
 import { AppleButton } from '@/components/ui/AppleButton'
 
@@ -86,7 +87,7 @@ async function submitEventRsvp(params: {
 
   await fetch('/api/send-partner-approval-email', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
     body: JSON.stringify({
       to: 'info@fireballcanada.com',
       subject: `Event RSVP — ${params.eventTitle} — ${params.userName}`,

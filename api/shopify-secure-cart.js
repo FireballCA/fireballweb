@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { isPositiveInteger, isShopifyGid, parseJsonBody, rateLimit } from './_security.js'
 
 const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL || process.env.VITE_SHOPIFY_STORE_URL || ''
 const SHOPIFY_STOREFRONT_TOKEN =
@@ -19,17 +20,6 @@ const supabase =
     : null
 
 const PARTNER_ONLY_TAGS = new Set(['partner-only', 'installer-only', 'installer', 'partner'])
-
-function parseBody(req) {
-  if (typeof req.body === 'string') {
-    try {
-      return JSON.parse(req.body)
-    } catch {
-      return {}
-    }
-  }
-  return req.body || {}
-}
 
 function getStorefrontEndpoint() {
   const normalizedStoreUrl = SHOPIFY_STORE_URL.startsWith('http')
@@ -104,18 +94,38 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  if (rateLimit(req, res, { key: 'shopify-secure-cart', windowMs: 60_000, max: 30 })) return
+
   if (!SHOPIFY_STORE_URL || !SHOPIFY_STOREFRONT_TOKEN) {
     return res.status(500).json({ error: 'Missing Shopify Storefront server configuration' })
   }
 
-  const body = parseBody(req)
+  const body = parseJsonBody(req)
   const linesRaw = Array.isArray(body.lines) ? body.lines : []
-  const lines = linesRaw
-    .map((line) => ({
-      shopifyVariantId: String(line?.shopifyVariantId || ''),
-      quantity: Number(line?.quantity || 0),
-    }))
-    .filter((line) => line.shopifyVariantId && Number.isFinite(line.quantity) && line.quantity > 0)
+  if (linesRaw.length > 25) {
+    return res.status(400).json({ error: 'Too many cart lines' })
+  }
+
+  const lineMap = new Map()
+  for (const line of linesRaw) {
+    const shopifyVariantId = String(line?.shopifyVariantId || '').trim()
+    const quantity = Number(line?.quantity || 0)
+    if (!isShopifyGid(shopifyVariantId, 'ProductVariant') || !isPositiveInteger(quantity, 99)) {
+      return res.status(400).json({ error: 'Invalid cart line' })
+    }
+    lineMap.set(shopifyVariantId, (lineMap.get(shopifyVariantId) || 0) + quantity)
+  }
+
+  const lines = Array.from(lineMap.entries()).map(([shopifyVariantId, quantity]) => {
+    if (!isPositiveInteger(quantity, 99)) {
+      return { invalid: true }
+    }
+    return { shopifyVariantId, quantity }
+  })
+
+  if (lines.some((line) => line.invalid)) {
+    return res.status(400).json({ error: 'Invalid cart quantity' })
+  }
 
   if (!lines.length) {
     return res.status(400).json({ error: 'Cart is empty or invalid' })

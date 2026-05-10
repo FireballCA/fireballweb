@@ -2,10 +2,20 @@
  * Envoie l’email d’invitation Shopify au client (pour définir son mot de passe boutique).
  * Utilise customerSendAccountInviteEmail (Admin API).
  */
+import { requireAuth } from './_auth.js'
+import { isShopifyGid, parseJsonBody, rateLimit } from './_security.js'
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  if (rateLimit(req, res, { key: 'send-shopify-customer-invite', windowMs: 60_000, max: 10 })) return
+
+  const auth = await requireAuth(req)
+  if (auth.error) {
+    return res.status(auth.status).json({ error: auth.error })
   }
 
   const shopifyStoreUrl = process.env.SHOPIFY_STORE_URL || process.env.VITE_SHOPIFY_STORE_URL || ''
@@ -18,16 +28,7 @@ export default async function handler(req, res) {
     })
   }
 
-  const payload =
-    typeof req.body === 'string'
-      ? (() => {
-          try {
-            return JSON.parse(req.body)
-          } catch {
-            return {}
-          }
-        })()
-      : (req.body || {})
+  const payload = parseJsonBody(req)
 
   const shopifyCustomerId =
     typeof payload.shopifyCustomerId === 'string' ? payload.shopifyCustomerId.trim() : ''
@@ -36,9 +37,24 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required field: shopifyCustomerId' })
   }
 
-  // GID format: gid://shopify/Customer/123
-  if (!shopifyCustomerId.startsWith('gid://shopify/Customer/')) {
+  if (!isShopifyGid(shopifyCustomerId, 'Customer')) {
     return res.status(400).json({ error: 'Invalid shopifyCustomerId format' })
+  }
+
+  const { data: profile, error: profileError } = await auth.supabase
+    .from('profiles')
+    .select('role, shopify_customer_id')
+    .eq('id', auth.user.id)
+    .maybeSingle()
+
+  if (profileError || !profile) {
+    return res.status(403).json({ error: 'Forbidden' })
+  }
+
+  const role = String(profile.role || '').toLowerCase()
+  const ownsCustomer = String(profile.shopify_customer_id || '') === shopifyCustomerId
+  if (role !== 'admin' && !ownsCustomer) {
+    return res.status(403).json({ error: 'Forbidden' })
   }
 
   try {

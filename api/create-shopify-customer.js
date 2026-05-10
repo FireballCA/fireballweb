@@ -1,23 +1,35 @@
+import { requireAuth } from './_auth.js'
+import { cleanInline, isValidEmail, parseJsonBody, rateLimit } from './_security.js'
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const payload =
-    typeof req.body === 'string'
-      ? (() => {
-          try {
-            return JSON.parse(req.body)
-          } catch {
-            return {}
-          }
-        })()
-      : (req.body || {})
+  if (rateLimit(req, res, { key: 'create-shopify-customer', windowMs: 15 * 60_000, max: 8 })) return
 
-  const { email, first_name, last_name, password } = payload
+  const auth = await requireAuth(req)
+  if (auth.error) {
+    return res.status(auth.status).json({ error: auth.error })
+  }
+
+  const payload = parseJsonBody(req)
+  const email = cleanInline(payload.email, 254).toLowerCase()
+  const firstName = cleanInline(payload.first_name, 80)
+  const lastName = cleanInline(payload.last_name, 80)
+  const password = String(payload.password || '')
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Missing required fields: email and password' })
+  }
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: 'Invalid email address' })
+  }
+  if (auth.user.email?.toLowerCase() !== email) {
+    return res.status(403).json({ error: 'Forbidden: cannot create another user customer' })
+  }
+  if (password.length < 8 || password.length > 128) {
+    return res.status(400).json({ error: 'Invalid password length' })
   }
 
   const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL || 'fireball-canada.myshopify.com'
@@ -59,10 +71,10 @@ export default async function handler(req, res) {
 
   const variables = {
     input: {
-      email: String(email).trim(),
-      password: String(password),
-      firstName: String(first_name || '').trim(),
-      lastName: String(last_name || '').trim(),
+      email,
+      password,
+      firstName,
+      lastName,
     },
   }
 

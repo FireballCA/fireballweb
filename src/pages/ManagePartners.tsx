@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUserProfile } from '@/utils/supabaseAuth'
 import { adminAdjustXpByIdentifier } from '@/utils/supabaseXp'
+import { getAuthHeaders } from '@/utils/authHeaders'
 import { usePageTitle } from '@/hooks/usePageTitle'
 
 type CertificationLevel = 'standard' | 'advanced' | 'elite'
@@ -340,7 +341,7 @@ export function ManagePartners() {
 
       const response = await fetch('/api/send-partner-approval-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
           to: decisionComposer.to.trim(),
           subject: decisionComposer.subject.trim(),

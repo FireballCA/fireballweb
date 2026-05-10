@@ -1,14 +1,5 @@
-function parseBody(req) {
-  if (!req?.body) return {}
-  if (typeof req.body === 'string') {
-    try {
-      return JSON.parse(req.body)
-    } catch {
-      return {}
-    }
-  }
-  return req.body
-}
+import { requireAuth } from './_auth.js'
+import { parseJsonBody, rateLimit } from './_security.js'
 
 function normalizeStoreUrl(raw) {
   if (!raw) return ''
@@ -33,6 +24,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  if (rateLimit(req, res, { key: 'shopify-order-preview', windowMs: 60_000, max: 30 })) return
+
+  // ── Auth : utilisateur connecté uniquement ────────────────────────────────
+  const auth = await requireAuth(req)
+  if (auth.error) {
+    return res.status(auth.status).json({ error: auth.error })
+  }
+
   const shopifyStoreUrl = normalizeStoreUrl(
     process.env.SHOPIFY_STORE_URL || process.env.VITE_SHOPIFY_STORE_URL || '',
   )
@@ -45,20 +44,41 @@ export default async function handler(req, res) {
     })
   }
 
-  const payload = parseBody(req)
+  const payload = parseJsonBody(req)
   const inputIds = Array.isArray(payload.orderIds) ? payload.orderIds : []
   const orderIds = inputIds
     .map((id) => String(id || '').trim())
-    .filter(Boolean)
+    .filter((id) => /^\d+$/.test(id))
     .slice(0, 10)
 
   if (!orderIds.length) {
     return res.status(200).json({ ok: true, previews: {} })
   }
 
+  const { data: ownedPurchases, error: ownedError } = await auth.supabase
+    .from('purchases')
+    .select('shopify_order_id')
+    .eq('user_id', auth.user.id)
+    .in('shopify_order_id', orderIds)
+
+  if (ownedError) {
+    return res.status(200).json({ ok: true, previews: {} })
+  }
+
+  const ownedOrderIds = new Set(
+    (Array.isArray(ownedPurchases) ? ownedPurchases : [])
+      .map((row) => String(row?.shopify_order_id || '').trim())
+      .filter(Boolean),
+  )
+  const allowedOrderIds = orderIds.filter((id) => ownedOrderIds.has(id))
+
+  if (!allowedOrderIds.length) {
+    return res.status(200).json({ ok: true, previews: {} })
+  }
+
   const previews = {}
 
-  for (const orderId of orderIds) {
+  for (const orderId of allowedOrderIds) {
     try {
       const orderUrl = `${shopifyStoreUrl}/admin/api/${shopifyApiVersion}/orders/${encodeURIComponent(
         orderId,
