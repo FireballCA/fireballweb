@@ -2,10 +2,10 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
 import { useEffect, useState, Suspense, type CSSProperties } from 'react'
-import { FireballLoading } from '@/components/FireballLoading'
 import { LineupImageTransitionProvider } from '@/context/LineupImageTransitionContext'
 import { CookieConsentModal } from '@/components/CookieConsentModal'
 import { FloatingAdminFab } from '@/components/FloatingAdminFab'
+import { RouteSkeleton } from '@/components/RouteSkeleton'
 import { Header } from './Header'
 import { Footer } from './Footer'
 
@@ -36,7 +36,6 @@ export function Layout() {
   const showHeader = !isAccountAuthPage
   const showFooter = !isAnyAccountPage && !isContactPage
 
-  /** Contact desktop : une seule hauteur viewport, pas de scroll sur #app-scroll-root. */
   const contactDesktopNoScroll = isContactPage && !isMobile
   const usePageScrollLayout = isAnyAccountPage
 
@@ -51,33 +50,22 @@ export function Layout() {
     >
       {showHeader && <Header />}
 
-      {/*
-       * Spacer — pushes the card below the fixed navbar AND leaves a visible
-       * black "chin" between the navbar bottom edge and the card's rounded corners.
-       * Active on both mobile and desktop (header is fixed on both).
-       */}
       {showHeader && (
         <div
           className="shrink-0"
-          style={{
-            height: 'calc(var(--mobile-header-h, 3.5rem) + 12px)',
-          }}
+          style={{ height: 'calc(var(--mobile-header-h, 3.5rem) + 12px)' }}
           aria-hidden
         />
       )}
 
       <div
         id="app-scroll-root"
-        style={
-          {
-            '--app-hero-h': 'calc(100dvh - var(--mobile-header-h, 3.5rem) - 12px)',
-          } as CSSProperties
-        }
+        style={{ '--app-hero-h': 'calc(100dvh - var(--mobile-header-h, 3.5rem) - 12px)' } as CSSProperties}
         className={[
           'flex flex-1 flex-col min-h-0 overflow-x-hidden relative z-[1]',
           usePageScrollLayout ? 'overflow-visible' : contactDesktopNoScroll ? 'overflow-hidden' : 'overflow-y-auto',
           '-mt-2 rounded-t-[30px] shadow-[0_-12px_26px_rgba(0,0,0,0.42)]',
-          isCarClubPage ? 'bg-black' : isContactPage && isMobile ? 'bg-white' : 'bg-[#111111]',
+          isCarClubPage ? 'bg-black' : isContactPage ? 'bg-white' : 'bg-[#111111]',
         ]
           .filter(Boolean)
           .join(' ')}
@@ -103,11 +91,7 @@ export function Layout() {
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={location.key}
-                  className={
-                    isContactPage
-                      ? 'flex min-h-0 w-full flex-1 flex-col'
-                      : undefined
-                  }
+                  className={isContactPage ? 'flex min-h-0 w-full flex-1 flex-col' : undefined}
                   initial={
                     !reduceMotion && (location.state as { pageTransition?: string } | null | undefined)?.pageTransition === 'slideUp'
                       ? { y: 64, opacity: 0 }
@@ -121,7 +105,7 @@ export function Layout() {
                   }
                   transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <Suspense fallback={<FireballLoading size={72} fullScreen={false} backgroundClassName="" className="min-h-[60vh]" />}>
+                  <Suspense fallback={<RouteSkeleton />}>
                     <Outlet />
                   </Suspense>
                 </motion.div>
