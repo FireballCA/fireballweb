@@ -93,6 +93,24 @@ export function SaleDiscountPill({ discount, className }: { discount: number; cl
   )
 }
 
+/** Pastille sold out : fond gris foncé, icône X, texte blanc. Utilisée sur les cards produits épuisés. */
+export function SoldOutPill({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex select-none items-center gap-1.5 rounded-full bg-[#3a3a3c] px-2.5 py-1 text-[11px] font-semibold leading-none text-white shadow-sm',
+        className,
+      )}
+    >
+      <svg viewBox="0 0 16 16" className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+        <line x1="4" y1="4" x2="12" y2="12" />
+        <line x1="12" y1="4" x2="4" y2="12" />
+      </svg>
+      <span>Sold Out</span>
+    </span>
+  )
+}
+
 /** Capsule texte seul (ex. « 3 new »), même surface que la pastille Apple sans icône. */
 export function AppleCapsuleLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (

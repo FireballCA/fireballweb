@@ -7,7 +7,7 @@ import { LiquidGlassSelect } from '@/components/LiquidGlassSelect'
 import { getCurrentUserProfile } from '@/utils/supabaseAuth'
 import { ProductCardSkeleton } from '@/components/ui/ProductCardSkeleton'
 import { usePageTitle } from '@/hooks/usePageTitle'
-import { SaleDiscountPill } from '@/components/ui/AppleInfoPill'
+import { SaleDiscountPill, SoldOutPill } from '@/components/ui/AppleInfoPill'
 import { SEO, breadcrumbJsonLd } from '@/components/SEO'
 
 export function Shop() {
@@ -579,9 +579,12 @@ export function Shop() {
                   {(() => {
                     const cardCompareAt = product.compareAtPrice ?? product.variants?.find(v => v.compareAtPrice)?.compareAtPrice
                     const cardDiscount = cardCompareAt && cardCompareAt > product.price ? Math.round((1 - product.price / cardCompareAt) * 100) : 0
-                    return cardDiscount > 0 ? (
-                      <SaleDiscountPill discount={cardDiscount} className="absolute top-2 left-2" />
-                    ) : null
+                    const cardSoldOut = product.variants && product.variants.length > 0
+                      ? product.variants.every(v => !v.availableForSale)
+                      : !product.availableForSale
+                    if (cardDiscount > 0) return <SaleDiscountPill discount={cardDiscount} className="absolute top-2 left-2" />
+                    if (cardSoldOut) return <SoldOutPill className="absolute top-2 left-2" />
+                    return null
                   })()}
                 </div>
 

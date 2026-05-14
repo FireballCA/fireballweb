@@ -5,7 +5,7 @@ import type { Product } from '@/data/products'
 import { CATEGORIES } from '@/data/products'
 import { productDetailPath } from '@/constants/paths'
 import { productSectionHeadingClass } from '@/constants/typography'
-import { SaleDiscountPill } from '@/components/ui/AppleInfoPill'
+import { SaleDiscountPill, SoldOutPill } from '@/components/ui/AppleInfoPill'
 
 function categoryLabel(categoryId: Product['category']): string {
   return CATEGORIES.find((c) => c.id === categoryId)?.name ?? categoryId
@@ -180,6 +180,9 @@ export function ProductYouMightLikeRail({
             const railCompareAt = p.compareAtPrice ?? p.variants?.find(v => v.compareAtPrice)?.compareAtPrice
             const railIsOnSale = typeof railCompareAt === 'number' && railCompareAt > p.price
             const railDiscount = railIsOnSale ? Math.round((1 - p.price / railCompareAt!) * 100) : 0
+            const railSoldOut = p.variants && p.variants.length > 0
+              ? p.variants.every(v => !v.availableForSale)
+              : !p.availableForSale
             return (
             <div key={p.id} className={cardWidthClass}>
               <Link to={productDetailPath(p.slug)} className="group block">
@@ -191,6 +194,9 @@ export function ProductYouMightLikeRail({
                   />
                   {railDiscount > 0 && (
                     <SaleDiscountPill discount={railDiscount} className="absolute top-2 left-2" />
+                  )}
+                  {!railIsOnSale && railSoldOut && (
+                    <SoldOutPill className="absolute top-2 left-2" />
                   )}
                 </div>
                 <p className="line-clamp-2 text-sm font-semibold leading-snug text-carbon-900">{p.name}</p>
