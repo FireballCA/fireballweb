@@ -1057,7 +1057,7 @@ function AdminAnnouncementsSection() {
                     value={homeImage}
                     onChange={(e) => setHomeImage(e.target.value)}
                     className="w-full rounded-xl border border-white/[0.18] bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/60"
-                    placeholder="/Assets/Coatings/Coatings%20Banner.png"
+                    placeholder="/Assets/Coatings/CoatingsBanner.png"
                   />
                 </div>
                 <div>

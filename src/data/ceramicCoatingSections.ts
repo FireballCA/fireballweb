@@ -148,7 +148,7 @@ export const COATING_SECTION_IMAGES: Record<string, string> = {
   'butterfly-graphene-9': '/Assets/Coatings/BUTTERFLY-GRAPHENE.png',
   'butterfly-7': '/Assets/Coatings/Butterfly_50ml.png',
   'silla-5': '/Assets/Coatings/Silla_50ml.png',
-  'devils-blood-3': `/Assets/Coatings/${encodeURIComponent("Devil's-Blood_50ml (1).png")}`,
+  'devils-blood-3': '/Assets/Coatings/DevilsBlood.png',
   'aegis-2': '/Assets/Coatings/Aegis_50ml.png',
   'typhoon-1': '/Assets/Coatings/Typhoon_50ml.png',
 }

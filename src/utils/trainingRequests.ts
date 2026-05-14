@@ -212,6 +212,12 @@ export async function fetchAllTrainingRequestsForAdmin(): Promise<TrainingReques
   })
 }
 
+export async function deleteTrainingRequest(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { error } = await supabase.from('training_requests').delete().eq('id', id)
+  if (error) return { ok: false, error: error.message || 'Delete failed.' }
+  return { ok: true }
+}
+
 export async function updateTrainingRequestAdmin(
   id: string,
   patch: Partial<Pick<TrainingRequestRow, 'status' | 'admin_note' | 'payment_instructions' | 'updated_at'>>,

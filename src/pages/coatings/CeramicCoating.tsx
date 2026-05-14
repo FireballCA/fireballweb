@@ -167,7 +167,7 @@ export function CeramicCoating() {
     return byId
   }, [products])
 
-  const landingBannerSrc = '/Assets/Coatings/Coatings%20Banner.png'
+  const landingBannerSrc = '/Assets/Coatings/CoatingsBanner.png'
 
   return (
     <>

@@ -18,7 +18,7 @@ function getOrigin(): string {
   if (typeof window !== 'undefined' && window.location?.origin) {
     return window.location.origin
   }
-  return 'https://fireballcanada.com'
+  return 'https://fireball-canada.com'
 }
 
 async function postEmail(payload: {

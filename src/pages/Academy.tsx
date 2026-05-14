@@ -209,7 +209,7 @@ export function Academy() {
       />
       <main className="bg-carbon-950 text-pearl min-h-screen">
       <AnimatePresence>
-        {compactNavVisible && (
+        {compactNavVisible && trainingSessions.length > 0 && (
           <motion.header
             key="academy-compact-training-bar"
             role="banner"
@@ -505,6 +505,13 @@ export function Academy() {
               {t('academy.nextTrainingsDesc')}
             </p>
           </div>
+
+          {!featuredTrainingSession && (
+            <div className="academy-reveal mt-8 flex flex-col items-center justify-center rounded-[2.2rem] border border-carbon-900/10 bg-[#f7f7f7] px-8 py-16 text-center shadow-sm">
+              <p className="text-lg font-semibold text-carbon-900">{t('academy.noSessionsTitle')}</p>
+              <p className="mt-2 max-w-md text-sm leading-relaxed text-carbon-500">{t('academy.noSessionsDesc')}</p>
+            </div>
+          )}
 
           {featuredTrainingSession && (() => {
             const shortDate = compactTrainingDateLabel(featuredTrainingSession.label) || featuredTrainingSession.label

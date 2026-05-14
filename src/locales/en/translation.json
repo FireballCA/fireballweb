@@ -336,11 +336,14 @@
     "allFieldsRequired": "All fields are required.",
     "needHelp": "Need help?",
     "contactUs": "Contact Us",
-    "getStarted": "Get Started with Us",
-    "getStartedDesc": "Create your Fireball account to unlock a personalized experience around your car, rewards and services.",
-    "benefit1": "Track your orders, services and XP points in real time.",
-    "benefit2": "Access your Car Club status (Apex, etc.) and member-only benefits.",
-    "benefit3": "Save your vehicles, history and key information in one secure place."
+    "getStarted": "Welcome to Fireball",
+    "getStartedDesc": "Your account, your vehicles, your history — all in one place.",
+    "benefit1": "Orders, XP points and services: everything you need, right there.",
+    "benefit2": "Car Club status, Apex access and member-only offers.",
+    "benefit3": "Register your vehicles and keep a complete record of your services.",
+    "frBetaTitle": "French version in progress",
+    "frBetaBody": "We're still working on the translation. You may see bugs or content displayed in English from time to time — thanks for your patience!",
+    "frBetaConfirm": "Got it, continue in French"
   },
   "footer": {
     "description": "Premium auto detailing products. Classic, Pro and Coatings for a flawless finish.",
@@ -461,6 +464,8 @@
     "roadmap4Tag": "Certification Day",
     "nextTrainingsTitle": "Our next trainings",
     "nextTrainingsDesc": "The next available session takes the spotlight first, while upcoming dates stay easy to browse underneath in a cleaner event-list format.",
+    "noSessionsTitle": "No training sessions scheduled yet",
+    "noSessionsDesc": "Upcoming dates will be announced soon. Check back or contact us for more information.",
     "fireballAcademy": "Fireball Academy",
     "locationComingSoon": "Location coming soon",
     "handsOnCertification": "Hands-on + certification",

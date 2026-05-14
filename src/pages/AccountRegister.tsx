@@ -61,6 +61,7 @@ export function AccountRegister() {
   const [oauthLoading, setOauthLoading] = useState<'google' | null>(null)
   const [rememberDevice, setRememberDevice] = useState(false)
   const [langMenuOpen, setLangMenuOpen] = useState(false)
+  const [frWarningOpen, setFrWarningOpen] = useState(false)
   const lang = i18n.language === 'fr' ? 'FR' : 'EN'
   const languageCode = i18n.language === 'fr' ? 'fr' : 'en'
 
@@ -306,6 +307,7 @@ export function AccountRegister() {
                 onClick={() => {
                   i18n.changeLanguage('fr')
                   setLangMenuOpen(false)
+                  setFrWarningOpen(true)
                 }}
                 className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-white/70 hover:bg-white/5"
               >
@@ -599,6 +601,29 @@ export function AccountRegister() {
           </div>
         </div>
       </div>
+
+      {/* FR beta warning popup */}
+      {frWarningOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setFrWarningOpen(false)} />
+          <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-[#111] p-6 shadow-2xl">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden flex-shrink-0">
+                <FlagFR />
+              </span>
+              <h2 className="text-base font-semibold text-white">{t('auth.frBetaTitle')}</h2>
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-white/65">{t('auth.frBetaBody')}</p>
+            <button
+              type="button"
+              onClick={() => setFrWarningOpen(false)}
+              className="mt-5 w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-black transition-colors hover:bg-white/90"
+            >
+              {t('auth.frBetaConfirm')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Global help link at bottom of page */}
       <div className="absolute inset-x-0 bottom-4 md:bottom-6 z-10 text-center text-sm">

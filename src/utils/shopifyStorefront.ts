@@ -348,7 +348,6 @@ export async function fetchProductsFromShopify(): Promise<Product[]> {
       }
     }
 
-    console.log(`[Shopify] Loaded ${allProducts.length} products total`)
     return allProducts
   } catch (error) {
     console.error('[Shopify] Failed to load products, falling back to static data:', error)

@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import {
   fetchAllTrainingRequestsForAdmin,
   updateTrainingRequestAdmin,
+  deleteTrainingRequest,
   type TrainingRequestStatus,
   type TrainingRequestWithProfile,
 } from '@/utils/trainingRequests'
@@ -274,6 +275,19 @@ export function AdminApplicationsHub() {
     setTrainingPaymentRow(null)
   }
 
+  const onDeleteTraining = async (row: TrainingRequestWithProfile) => {
+    if (!window.confirm(`Supprimer définitivement la demande ${row.reference} ?`)) return
+    setBusyId(row.id)
+    setError('')
+    const res = await deleteTrainingRequest(row.id)
+    if (!res.ok) {
+      setError(res.error)
+    } else {
+      setTrainingRows((prev) => prev.filter((r) => r.id !== row.id))
+    }
+    setBusyId(null)
+  }
+
   const onPartnerAction = async (row: PartnerApplicationAdminRow, next: PartnerAppStatus, declineNote?: string) => {
     setBusyId(row.id)
     setError('')
@@ -503,6 +517,7 @@ export function AdminApplicationsHub() {
                               onAction={onTrainingAction}
                               onOpenPaymentModal={() => setTrainingPaymentRow(row)}
                               onOpenEmail={() => setTrainingEmailRow(row)}
+                              onDelete={onDeleteTraining}
                             />
                           </div>
                         </div>
@@ -554,6 +569,7 @@ export function AdminApplicationsHub() {
                           onAction={onTrainingAction}
                           onOpenPaymentModal={() => setTrainingPaymentRow(row)}
                           onOpenEmail={() => setTrainingEmailRow(row)}
+                          onDelete={onDeleteTraining}
                         />
                       </div>
                       {open ? <TrainingDetailPanel row={row} /> : null}
@@ -782,6 +798,7 @@ function TrainingActions({
   onAction,
   onOpenPaymentModal,
   onOpenEmail,
+  onDelete,
 }: {
   row: TrainingRequestWithProfile
   busyId: string | null
@@ -792,6 +809,7 @@ function TrainingActions({
   ) => void
   onOpenPaymentModal: (row: TrainingRequestWithProfile) => void
   onOpenEmail: (row: TrainingRequestWithProfile) => void
+  onDelete: (row: TrainingRequestWithProfile) => void
 }) {
   const busy = busyId === row.id
   const hasEmail = Boolean(row.profile_email?.trim())
@@ -808,6 +826,10 @@ function TrainingActions({
         Courriel
       </button>
     ) : null
+
+  const DeleteBtn = (row.status === 'declined' || row.status === 'cancelled') ? (
+    <ActionBtn busy={busy} variant="danger" label="Supprimer" onClick={() => onDelete(row)} />
+  ) : null
 
   if (row.status === 'pending') {
     return (
@@ -893,7 +915,13 @@ function TrainingActions({
       </>
     )
   }
-  return EmailBtn ? <>{EmailBtn}</> : <span className="text-xs text-slate-400">—</span>
+  return (
+    <>
+      {EmailBtn}
+      {DeleteBtn}
+      {!EmailBtn && !DeleteBtn && <span className="text-xs text-slate-400">—</span>}
+    </>
+  )
 }
 
 function PartnerActions({

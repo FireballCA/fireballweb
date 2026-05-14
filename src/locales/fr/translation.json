@@ -336,11 +336,14 @@
     "allFieldsRequired": "Tous les champs sont obligatoires.",
     "needHelp": "Besoin d'aide ?",
     "contactUs": "Contacte-nous",
-    "getStarted": "Commence avec nous",
-    "getStartedDesc": "Crée ton compte Fireball pour profiter d'une expérience personnalisée autour de ta voiture, de tes récompenses et de tes services.",
-    "benefit1": "Suis tes commandes, services et points XP en temps réel.",
-    "benefit2": "Accède à ton statut Car Club (Apex, etc.) et à des avantages réservés aux membres.",
-    "benefit3": "Enregistre tes véhicules, ton historique et tes infos importantes au même endroit."
+    "getStarted": "Bienvenue chez Fireball",
+    "getStartedDesc": "Ton compte, tes véhicules, ton historique — tout au même endroit.",
+    "benefit1": "Commandes, points XP et services : tout est là, à portée de main.",
+    "benefit2": "Statut Car Club, accès Apex et offres réservées aux membres.",
+    "benefit3": "Enregistre tes véhicules et garde un suivi complet de tes services.",
+    "frBetaTitle": "Version française en cours",
+    "frBetaBody": "On travaille encore sur la traduction. Il se peut qu'il y ait des bugs ou du contenu affiché en anglais par moments — merci pour ta patience !",
+    "frBetaConfirm": "Compris, continuer en français"
   },
   "footer": {
     "description": "Produits d'esthétique automobile premium. Classique, Pro et Revêtements pour une finition sans compromis.",
@@ -461,6 +464,8 @@
     "roadmap4Tag": "Jour de certification",
     "nextTrainingsTitle": "Nos prochaines formations",
     "nextTrainingsDesc": "La prochaine session disponible est mise en avant en premier, tandis que les dates à venir restent faciles à consulter en dessous dans un format liste plus épuré.",
+    "noSessionsTitle": "Aucune formation planifiée pour l'instant",
+    "noSessionsDesc": "Les prochaines dates seront annoncées prochainement. Revenez consulter cette page ou contactez-nous pour plus d'informations.",
     "fireballAcademy": "Fireball Académie",
     "locationComingSoon": "Lieu à confirmer",
     "handsOnCertification": "Pratique + certification",

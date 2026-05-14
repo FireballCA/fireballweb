@@ -856,7 +856,7 @@ function BusinessAdminAnnouncements() {
                   value={homeImage}
                   onChange={(e) => setHomeImage(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
-                  placeholder="/Assets/Coatings/Coatings%20Banner.png"
+                  placeholder="/Assets/Coatings/CoatingsBanner.png"
                 />
               </div>
               <div>

@@ -132,8 +132,6 @@ export const PRODUCT_KITS: ProductKit[] = [
     id: 'kit-vitre',
     name: 'Glass',
     image: '/servicebuilder/Vitre Kit.png',
-    price: 63.99,
-    discountLabel: '20%',
     items: [
       { name: 'Fireball Premium Glass Cleaner 500ml', price: 24 },
       { name: 'Fireball Waterspot Remover', price: 28 },
@@ -144,8 +142,6 @@ export const PRODUCT_KITS: ProductKit[] = [
     id: 'kit-roue',
     name: 'Wheel',
     image: '/servicebuilder/Roue KIT.png',
-    price: 63.99,
-    discountLabel: '20%',
     items: [
       { name: 'Fireball Wheel++ Iron Wheel Cleaner', price: 27 },
       { name: 'Fireball Wheel & Tire 500mL', price: 27 },
@@ -156,8 +152,6 @@ export const PRODUCT_KITS: ProductKit[] = [
     id: 'kit-exterieur',
     name: 'Exterior',
     image: '/servicebuilder/Extérieur KIT.png',
-    price: 75,
-    discountLabel: '20%',
     items: [
       { name: 'Fireball pH3 Shampoo 500mL', price: 28 },
       { name: 'Fireball Hydro Shampoo SiO2 Wash And Coat', price: 37 },
@@ -170,8 +164,6 @@ export const PRODUCT_KITS: ProductKit[] = [
     id: 'kit-interieur',
     name: 'Interior',
     image: '/servicebuilder/Intérieur KIT.png',
-    price: 75,
-    discountLabel: '20%',
     items: [
       { name: 'Fireball Nappa Cleaner 500ml', price: 24 },
       { name: 'Fireball Nappa Coat 500ml', price: 28 },
@@ -186,7 +178,7 @@ export function getKitRetailTotal(kit: ProductKit): number {
 }
 
 export function getKitPrice(kit: ProductKit): number {
-  return kit.price ?? Math.round(getKitRetailTotal(kit) * 0.85 * 100) / 100
+  return kit.price ?? Math.round(getKitRetailTotal(kit) * 0.80 * 100) / 100
 }
 
 export const SERVICE_BUILDER_FAQS = [

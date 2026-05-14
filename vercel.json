@@ -19,13 +19,13 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()" },
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.builder.io https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.shopify.com https://*.shopifycdn.com https://*.myshopify.com https://cdn.builder.io https://*.supabase.co https://*.supabase.in; connect-src 'self' https://*.myshopify.com https://*.supabase.co https://*.supabase.in https://api.resend.com https://cdn.builder.io wss://*.supabase.co; media-src 'self' blob: https://*.shopify.com https://*.shopifycdn.com; frame-ancestors 'none'; upgrade-insecure-requests" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.builder.io https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.shopify.com https://*.shopifycdn.com https://*.myshopify.com https://cdn.builder.io https://*.supabase.co https://*.supabase.in https://images.unsplash.com https://images.pexels.com; connect-src 'self' https://*.myshopify.com https://*.supabase.co https://*.supabase.in https://api.resend.com https://cdn.builder.io wss://*.supabase.co; media-src 'self' blob: https://*.shopify.com https://*.shopifycdn.com; frame-ancestors 'none'; upgrade-insecure-requests" }
       ]
     },
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "https://fireballcanada.com" },
+        { "key": "Access-Control-Allow-Origin", "value": "https://fireball-canada.com" },
         { "key": "Access-Control-Allow-Methods", "value": "POST, OPTIONS" },
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" },
         { "key": "Access-Control-Max-Age", "value": "86400" }

@@ -1,7 +1,8 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useState, Suspense, type CSSProperties } from 'react'
+import { FireballLoading } from '@/components/FireballLoading'
 import { LineupImageTransitionProvider } from '@/context/LineupImageTransitionContext'
 import { CookieConsentModal } from '@/components/CookieConsentModal'
 import { FloatingAdminFab } from '@/components/FloatingAdminFab'
@@ -120,7 +121,9 @@ export function Layout() {
                   }
                   transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <Outlet />
+                  <Suspense fallback={<FireballLoading size={72} fullScreen={false} backgroundClassName="" className="min-h-[60vh]" />}>
+                    <Outlet />
+                  </Suspense>
                 </motion.div>
               </AnimatePresence>
             </LineupImageTransitionProvider>

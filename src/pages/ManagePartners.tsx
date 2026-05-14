@@ -68,7 +68,7 @@ function getPartnerPortalUrl(): string {
   if (typeof window !== 'undefined' && window.location?.origin) {
     return `${window.location.origin}/account/dashboard`
   }
-  return 'https://fireballcanada.com/account/dashboard'
+  return 'https://fireball-canada.com/account/dashboard'
 }
 
 function buildApprovalEmail(row: PartnerApplicationRow): { to: string; subject: string; message: string; bannerUrl: string } {

@@ -3,7 +3,7 @@ export const DEFAULT_HOME_COLLECTION = {
   eyebrow: 'Surface Technology',
   headline: 'Coatings',
   description: 'Excellence in every detail',
-  image: '/Assets/Coatings/Coatings%20Banner.png',
+  image: '/Assets/Coatings/CoatingsBanner.png',
   href: '/coatings',
   button1Label: 'Shop coatings',
   button1Href: '/coatings',

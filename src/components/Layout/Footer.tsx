@@ -121,7 +121,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="pt-8 border-t border-carbon-200">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-carbon-400 font-sans">
+            <p className="text-xs text-carbon-600 font-sans">
               © {currentYear} Fireball Canada. All rights reserved.
             </p>
 
@@ -133,7 +133,7 @@ export function Footer() {
               draggable={false}
             />
 
-            <p className="text-xs text-carbon-400 font-sans italic">
+            <p className="text-xs text-carbon-600 font-sans italic">
               Beyond Your Imagination
             </p>
           </div>

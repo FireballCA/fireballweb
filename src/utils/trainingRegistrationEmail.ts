@@ -19,7 +19,7 @@ export function getAccountDashboardUrl(): string {
   if (typeof window !== 'undefined' && window.location?.origin) {
     return `${window.location.origin}/account/dashboard`
   }
-  return 'https://fireballcanada.com/account/dashboard'
+  return 'https://fireball-canada.com/account/dashboard'
 }
 
 /** Référence de dossier pour suivre la demande (format aligné sur les identifiants internes). */

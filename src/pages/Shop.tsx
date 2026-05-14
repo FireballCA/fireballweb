@@ -206,13 +206,6 @@ export function Shop() {
   // Filtrer et trier les produits disponibles
   let filteredProducts = availableProducts
 
-  // Debug: Afficher le nombre de produits avant et après filtrage
-  console.log('[Shop] Total products:', allProducts.length)
-  console.log('[Shop] After partner filter:', allProducts.filter(p => !p.partnerOnly || isPartner).length)
-  console.log('[Shop] Filtered products:', filteredProducts.length)
-  console.log('[Shop] Is Partner:', isPartner)
-  console.log('[Shop] Partner-only products:', allProducts.filter(p => p.partnerOnly).length)
-  console.log('[Shop] Category:', detectedCategoryId)
 
   // Filtre: Recherche
   if (searchQuery.trim()) {
