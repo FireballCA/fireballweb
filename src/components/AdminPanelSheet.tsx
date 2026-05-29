@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { AdminApplicationsHub } from '@/components/admin/AdminApplicationsHub'
+import {
+  fetchServiceRequestsForAdmin,
+  markServiceRequestSharedWithPartners,
+  buildPartnerShareText,
+  type ServiceRequestRow,
+} from '@/utils/serviceRequests'
 import { lockScroll, unlockScroll } from '@/utils/scrollLock'
 import {
   DEFAULT_SITE_EVENT_CONFIGS,
@@ -37,7 +43,7 @@ interface AdminPanelSheetProps {
   onClose: () => void
 }
 
-export type AdminSection = 'stats' | 'partners' | 'notifications' | 'announcements' | 'products' | 'events'
+export type AdminSection = 'stats' | 'partners' | 'notifications' | 'announcements' | 'products' | 'events' | 'service-requests'
 
 /** Contenu du panneau admin (stats, partners, notifications) réutilisable en page pleine. */
 export function AdminPanelContent({ section }: { section?: AdminSection }) {
@@ -131,6 +137,18 @@ export function AdminPanelContent({ section }: { section?: AdminSection }) {
                   <span>Events</span>
                   <span className="text-[9px] uppercase tracking-[0.18em] text-white/50">Manage · RSVP</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSection('service-requests')}
+                  className={`flex-1 inline-flex items-center justify-between rounded-2xl px-3 py-2 text-xs font-medium transition-colors ${
+                    activeSection === 'service-requests'
+                      ? 'bg-white/15 text-white border border-white/50'
+                      : 'bg-white/[0.02] text-white/70 border border-white/[0.08] hover:bg-white/[0.08] hover:text-white'
+                  }`}
+                >
+                  <span>Service Requests</span>
+                  <span className="text-[9px] uppercase tracking-[0.18em] text-white/50">Share · Dispatch</span>
+                </button>
               </div>
             </div>
           </aside>
@@ -142,6 +160,7 @@ export function AdminPanelContent({ section }: { section?: AdminSection }) {
           {effectiveSection === 'announcements' && <AdminAnnouncementsSection />}
           {effectiveSection === 'products' && <AdminProductsSection />}
           {effectiveSection === 'events' && <AdminEventsSection />}
+          {effectiveSection === 'service-requests' && <AdminServiceRequestsSection />}
         </main>
       </div>
     </div>
@@ -1973,6 +1992,238 @@ function AdminEventsSection() {
           </div>
         </section>
       )}
+    </div>
+  )
+}
+
+// ─── Admin Service Requests Section ──────────────────────────────────────────
+
+function AdminServiceRequestsSection() {
+  const [requests, setRequests] = useState<ServiceRequestRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [sharing, setSharing] = useState<Record<string, boolean>>({})
+  const [shareMsg, setShareMsg] = useState<Record<string, string>>({})
+  const [copied, setCopied] = useState<string | null>(null)
+  const [filterSource, setFilterSource] = useState<'all' | 'service_builder' | 'quick_service_map'>('all')
+  const [partnerCompanies, setPartnerCompanies] = useState<{ id: string; company_name: string; city?: string; province?: string }[]>([])
+  const [dispatchTarget, setDispatchTarget] = useState<Record<string, string>>({})
+  const [dispatching, setDispatching] = useState<Record<string, boolean>>({})
+  const [dispatchMsg, setDispatchMsg] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      setLoading(true)
+      setError('')
+      const rows = await fetchServiceRequestsForAdmin()
+      if (!mounted) return
+      setRequests(rows)
+      setLoading(false)
+
+      // Load partner companies for dispatch targeting
+      const { data } = await supabase
+        .from('partner_companies')
+        .select('id,company_name,city,province')
+        .eq('status', 'partner')
+        .order('company_name', { ascending: true })
+      if (mounted && data) {
+        setPartnerCompanies((data as { id: string; company_name: string; city?: string; province?: string }[]) ?? [])
+      }
+    }
+    void load()
+    return () => { mounted = false }
+  }, [])
+
+  const handleShareAll = async (req: ServiceRequestRow) => {
+    setSharing((s) => ({ ...s, [req.id]: true }))
+    const ok = await markServiceRequestSharedWithPartners(req.id)
+    setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, shared_with_partners: true, shared_with_partners_at: new Date().toISOString() } : r))
+    setShareMsg((m) => ({ ...m, [req.id]: ok ? 'Shared with all partners.' : 'Share failed.' }))
+    setSharing((s) => ({ ...s, [req.id]: false }))
+  }
+
+  const handleCopyText = async (req: ServiceRequestRow) => {
+    const text = buildPartnerShareText(req)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(req.id)
+      setTimeout(() => setCopied(null), 2000)
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleDispatchToPartner = async (req: ServiceRequestRow) => {
+    const targetId = dispatchTarget[req.id]
+    if (!targetId) {
+      setDispatchMsg((m) => ({ ...m, [req.id]: 'Select a shop first.' }))
+      return
+    }
+    setDispatching((d) => ({ ...d, [req.id]: true }))
+    const company = partnerCompanies.find((c) => c.id === targetId)
+    const shareText = buildPartnerShareText(req)
+    // Update stockist_id on the request for direct routing
+    const { error: updateErr } = await supabase
+      .from('service_requests')
+      .update({ stockist_id: targetId, stockist_snapshot: company?.company_name ?? null, updated_at: new Date().toISOString() })
+      .eq('id', req.id)
+    if (!updateErr) {
+      setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, stockist_id: targetId, stockist_snapshot: company?.company_name ?? null } : r))
+    }
+    // Copy share text for sending
+    try { await navigator.clipboard.writeText(shareText) } catch { /* ignore */ }
+    setDispatchMsg((m) => ({ ...m, [req.id]: updateErr ? 'Dispatch failed.' : `Dispatched to ${company?.company_name ?? 'shop'}. Share text copied.` }))
+    setDispatching((d) => ({ ...d, [req.id]: false }))
+  }
+
+  // Extract city/province from service address for radius matching
+  const nearbyCompanies = (req: ServiceRequestRow) => {
+    const addrLower = (req.service_address || '').toLowerCase()
+    if (!addrLower || partnerCompanies.length === 0) return partnerCompanies
+    return partnerCompanies.filter((c) => {
+      const city = (c.city || '').toLowerCase()
+      const prov = (c.province || '').toLowerCase()
+      return (city && addrLower.includes(city)) || (prov && addrLower.includes(prov))
+    }).length > 0
+      ? partnerCompanies.filter((c) => {
+          const city = (c.city || '').toLowerCase()
+          const prov = (c.province || '').toLowerCase()
+          return (city && addrLower.includes(city)) || (prov && addrLower.includes(prov))
+        })
+      : partnerCompanies
+  }
+
+  const filtered = requests.filter((r) => filterSource === 'all' || r.source === filterSource)
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] px-5 py-5">
+        <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
+          <div>
+            <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-white/50">Service Requests</p>
+            <p className="text-sm text-white/60 mt-1">Dispatch requests to partner shops or share with all partners.</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {(['all', 'service_builder', 'quick_service_map'] as const).map((src) => (
+              <button
+                key={src}
+                type="button"
+                onClick={() => setFilterSource(src)}
+                className={`px-3 py-1.5 rounded-xl text-[11px] font-medium transition-colors ${
+                  filterSource === src
+                    ? 'bg-white/15 text-white border border-white/40'
+                    : 'bg-white/[0.04] text-white/60 border border-white/[0.08] hover:bg-white/10'
+                }`}
+              >
+                {src === 'all' ? 'All' : src === 'service_builder' ? 'Builder' : 'Quick (Map)'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
+        )}
+
+        {loading ? (
+          <div className="py-12 text-center text-white/40 text-sm">Loading…</div>
+        ) : filtered.length === 0 ? (
+          <div className="py-12 text-center text-white/40 text-sm">No service requests found.</div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {filtered.map((req) => {
+              const nearby = nearbyCompanies(req)
+              const isBuilder = req.source === 'service_builder'
+              return (
+                <div key={req.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-4">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${isBuilder ? 'bg-sky-500/15 text-sky-300' : 'bg-emerald-500/15 text-emerald-300'}`}>
+                          {isBuilder ? 'Service Builder' : 'Quick / Map'}
+                        </span>
+                        {req.shared_with_partners && (
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-white/10 text-white/50">Shared</span>
+                        )}
+                      </div>
+                      <p className="text-white font-semibold text-sm mt-1">{req.reference}</p>
+                      <p className="text-white/50 text-[11px]">{new Date(req.created_at).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(req)}
+                        className="px-3 py-1.5 rounded-xl text-[11px] font-medium bg-white/[0.06] border border-white/[0.10] text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                      >
+                        {copied === req.id ? '✓ Copied' : 'Copy text'}
+                      </button>
+                      {!req.shared_with_partners && (
+                        <button
+                          type="button"
+                          disabled={sharing[req.id]}
+                          onClick={() => handleShareAll(req)}
+                          className="px-3 py-1.5 rounded-xl text-[11px] font-medium bg-sky-500/15 border border-sky-500/30 text-sky-300 hover:bg-sky-500/25 transition-colors disabled:opacity-50"
+                        >
+                          {sharing[req.id] ? 'Sharing…' : 'Share with all partners'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Info */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[12px] text-white/60 mb-3">
+                    <span><span className="text-white/30">Vehicle:</span> {req.vehicle_year} {req.vehicle_make} {req.vehicle_model} ({req.vehicle_size})</span>
+                    <span><span className="text-white/30">Coating:</span> {req.coating_name}{req.wax_name ? ` + ${req.wax_name}` : ''}</span>
+                    <span><span className="text-white/30">Estimate:</span> ${Number(req.estimate_cad).toFixed(0)} CAD</span>
+                    <span><span className="text-white/30">Contact:</span> {req.contact_first_name} {req.contact_last_name}</span>
+                    <span className="sm:col-span-2"><span className="text-white/30">Address:</span> {req.service_address}</span>
+                    {req.stockist_snapshot && (
+                      <span className="sm:col-span-2"><span className="text-white/30">Assigned shop:</span> {req.stockist_snapshot}</span>
+                    )}
+                  </div>
+
+                  {/* Dispatch to specific shop */}
+                  <div className="border-t border-white/[0.06] pt-3 mt-3">
+                    <p className="text-[11px] text-white/40 mb-2 uppercase tracking-wide font-semibold">
+                      {isBuilder ? 'Dispatch to nearby shop' : 'Dispatch to shop (by address)'}
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                      <select
+                        value={dispatchTarget[req.id] ?? ''}
+                        onChange={(e) => setDispatchTarget((t) => ({ ...t, [req.id]: e.target.value }))}
+                        className="flex-1 min-w-0 rounded-xl bg-white/[0.06] border border-white/[0.10] text-white/80 text-[12px] px-3 py-2 focus:outline-none focus:border-white/30"
+                      >
+                        <option value="">— Select shop —</option>
+                        {nearby.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.company_name}{c.city ? ` · ${c.city}` : ''}{c.province ? `, ${c.province}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={dispatching[req.id] || !dispatchTarget[req.id]}
+                        onClick={() => handleDispatchToPartner(req)}
+                        className="px-4 py-2 rounded-xl text-[12px] font-medium bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 transition-colors disabled:opacity-40"
+                      >
+                        {dispatching[req.id] ? 'Dispatching…' : 'Dispatch'}
+                      </button>
+                    </div>
+                    {dispatchMsg[req.id] && (
+                      <p className="text-[11px] text-white/50 mt-1.5">{dispatchMsg[req.id]}</p>
+                    )}
+                    {shareMsg[req.id] && (
+                      <p className="text-[11px] text-emerald-400 mt-1.5">{shareMsg[req.id]}</p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

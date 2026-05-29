@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCart } from '@/context/CartContext'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
@@ -37,10 +37,12 @@ type EmptyCartFeature = {
 export function Cart() {
   const { t } = useTranslation()
   const { items, removeFromCart, updateQuantity, totalPrice, addToCart } = useCart()
+  const navigate = useNavigate()
 
   usePageTitle('Cart - Fireball Canada')
 
   const [checkoutMessage, setCheckoutMessage] = useState<string | null>(null)
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [isPartner, setIsPartner] = useState(false)
   const [favoriteSlugs, setFavoriteSlugs] = useState<string[]>([])
@@ -110,7 +112,7 @@ export function Cart() {
 
   const cartXpGained = useMemo(() => Math.max(0, Math.round(totalPrice * XP_PER_DOLLAR)), [totalPrice])
   const shippingFree = totalPrice >= FREE_SHIPPING_THRESHOLD_CAD
-  const shippingLabel = shippingFree ? 'Free' : 'Calculated at checkout'
+  const shippingLabel = shippingFree ? 'Free' : `Free over ${FREE_SHIPPING_THRESHOLD_CAD}$`
 
   const favoriteProducts = useMemo(() => {
     const source = allShopProducts.length ? allShopProducts : PRODUCTS
@@ -206,39 +208,47 @@ export function Cart() {
       return
     }
 
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      navigate('/account/register?returnTo=/cart')
+      return
+    }
+
+    setCheckoutLoading(true)
     const lines = items.map(({ product, quantity }) => ({
       shopifyVariantId: product.shopifyVariantId,
       quantity,
     }))
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
 
-    const response = await fetch('/api/shopify-secure-cart', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-      },
-      body: JSON.stringify({ lines }),
-    })
-    const payload = await response.json().catch(() => null)
+    try {
+      const response = await fetch('/api/shopify-tier-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ lines }),
+      })
+      const payload = await response.json().catch(() => null)
 
-    if (!response.ok) {
-      if (payload?.code === 'PARTNER_REQUIRED') {
-        setCheckoutMessage('Access restricted: join Fireball to buy this product.')
+      if (!response.ok) {
+        if (payload?.code === 'PARTNER_REQUIRED') {
+          setCheckoutMessage('Access restricted: join Fireball to buy this product.')
+          return
+        }
+        setCheckoutMessage(t('cart.checkoutSoon'))
         return
       }
-      setCheckoutMessage(t('cart.checkoutSoon'))
-      return
-    }
 
-    const url = typeof payload?.checkoutUrl === 'string' ? payload.checkoutUrl : ''
-    if (!url) {
-      setCheckoutMessage(t('cart.checkoutSoon'))
-      return
+      const url = typeof payload?.checkoutUrl === 'string' ? payload.checkoutUrl : ''
+      if (!url) {
+        setCheckoutMessage(t('cart.checkoutSoon'))
+        return
+      }
+      window.location.href = url
+    } finally {
+      setCheckoutLoading(false)
     }
-    window.location.href = url
   }
 
   if (items.length === 0) {
@@ -497,7 +507,7 @@ export function Cart() {
                     clipCheckout.hover ? 'text-black' : 'text-white'
                   }`}
                 >
-                  {t('cart.checkout')}
+                  {checkoutLoading ? 'Preparing checkout…' : t('cart.checkout')}
                 </span>
               </button>
 

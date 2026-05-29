@@ -301,6 +301,162 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
         }
       })
 
+      // ── shopify-tier-checkout ──────────────────────────────────────────────
+      server.middlewares.use('/api/shopify-tier-checkout', async (req, res) => {
+        const jsonRes = (status: number, body: unknown) => {
+          res.statusCode = status
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify(body))
+        }
+
+        if (req.method !== 'POST') return jsonRes(405, { error: 'Method not allowed' })
+        if (!shopifyStoreUrl || !shopifyStorefrontToken) return jsonRes(500, { error: 'Missing Shopify Storefront configuration' })
+        if (!shopifyAdminApiToken) return jsonRes(500, { error: 'Missing SHOPIFY_ADMIN_API_TOKEN' })
+
+        const authHeader = String(req.headers.authorization || '')
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
+        if (!token) return jsonRes(401, { error: 'Authentication required', code: 'AUTH_REQUIRED' })
+
+        try {
+          const body = (await readJsonBody(req)) as { lines?: Array<{ shopifyVariantId?: string; quantity?: number }> }
+          const lines = Array.isArray(body.lines)
+            ? body.lines
+                .map((l) => ({ shopifyVariantId: String(l?.shopifyVariantId || ''), quantity: Number(l?.quantity || 0) }))
+                .filter((l) => l.shopifyVariantId && Number.isFinite(l.quantity) && l.quantity > 0)
+            : []
+          if (!lines.length) return jsonRes(400, { error: 'Cart is empty or invalid' })
+
+          // — Auth + XP + tier ——————————————————————————————————————
+          let xp = 0
+          let isPartner = false
+          if (supabaseUrl && supabaseServiceRoleKey) {
+            const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+              headers: { apikey: supabaseServiceRoleKey, Authorization: `Bearer ${token}` },
+            })
+            const userJson = (await userRes.json().catch(() => null)) as any
+            const uid = typeof userJson?.id === 'string' ? userJson.id : ''
+            if (!uid) return jsonRes(401, { error: 'Invalid session', code: 'AUTH_REQUIRED' })
+
+            const profileRes = await fetch(
+              `${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(uid)}&select=xp,role,partner_status&limit=1`,
+              { headers: { apikey: supabaseServiceRoleKey, Authorization: `Bearer ${supabaseServiceRoleKey}` } },
+            )
+            const profileJson = (await profileRes.json().catch(() => [])) as any[]
+            const profile = Array.isArray(profileJson) ? profileJson[0] : null
+            xp = typeof profile?.xp === 'number' ? profile.xp : parseInt(String(profile?.xp || '0'), 10)
+            const role = String(profile?.role || '').toLowerCase()
+            const partnerStatus = String(profile?.partner_status || '').toLowerCase()
+            isPartner = role === 'partner' || partnerStatus === 'partner'
+          }
+
+          // — Valider produits partner-only ——————————————————————————
+          const normalizedStoreUrl = shopifyStoreUrl.startsWith('http') ? shopifyStoreUrl : `https://${shopifyStoreUrl}`
+          const sfEndpoint = `${normalizedStoreUrl}/api/${shopifyStorefrontApiVersion}/graphql.json`
+          const variantQuery = `query V($id:ID!){node(id:$id){...on ProductVariant{product{tags}}}}`
+          const restrictedTags = new Set(['partner-only', 'installer-only', 'installer', 'partner'])
+          for (const line of lines) {
+            const sfRes = await fetch(sfEndpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': shopifyStorefrontToken },
+              body: JSON.stringify({ query: variantQuery, variables: { id: line.shopifyVariantId } }),
+            })
+            const sfJson = (await sfRes.json().catch(() => null)) as any
+            const tags = Array.isArray(sfJson?.data?.node?.product?.tags) ? sfJson.data.node.product.tags : []
+            if (tags.some((t: unknown) => restrictedTags.has(String(t || '').toLowerCase().trim())) && !isPartner) {
+              return jsonRes(403, { error: 'Access denied for restricted product', code: 'PARTNER_REQUIRED' })
+            }
+          }
+
+          // — Construire URL checkout ————————————————————————————————
+          const encoded = lines
+            .map((l) => { const n = l.shopifyVariantId.split('/').pop(); return n ? `${n}:${l.quantity}` : null })
+            .filter(Boolean)
+          if (!encoded.length) return jsonRes(400, { error: 'No valid Shopify variants' })
+          let checkoutUrl = `${normalizedStoreUrl.replace(/\/+$/, '')}/cart/${encoded.join(',')}`
+
+          // — Générer code de réduction unique si tier ≥ 2 —————————
+          const TIER_RULES = [
+            { index: 5, minXp: 35000, title: 'Fireball Loyalty Tier 5 - $30 off', value: '-30.00' },
+            { index: 4, minXp: 20000, title: 'Fireball Loyalty Tier 4 - $20 off', value: '-20.00' },
+            { index: 3, minXp:  8000, title: 'Fireball Loyalty Tier 3 - $15 off', value: '-15.00' },
+            { index: 2, minXp:  1200, title: 'Fireball Loyalty Tier 2 - $10 off', value: '-10.00' },
+          ]
+          const matchedTier = TIER_RULES.find((t) => xp >= t.minXp)
+          console.log(`[tier-checkout] XP: ${xp} → tier: ${matchedTier ? matchedTier.index : 'none (< 1200 XP)'}`)
+
+          if (matchedTier) {
+            try {
+              const adminBase = `${normalizedStoreUrl}/admin/api/${shopifyApiVersion}`
+              const adminHeaders = { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': shopifyAdminApiToken }
+
+              // Chercher ou créer la price rule
+              const priceRulesRes = await fetch(`${adminBase}/price_rules.json?limit=250`, { headers: adminHeaders })
+              console.log(`[tier-checkout] price_rules fetch → HTTP ${priceRulesRes.status}`)
+              if (!priceRulesRes.ok) {
+                const errText = await priceRulesRes.text().catch(() => '')
+                console.error(`[tier-checkout] Shopify Admin API error (price_rules GET): ${errText.slice(0, 300)}`)
+              }
+              const priceRulesJson = (await priceRulesRes.json().catch(() => null)) as any
+              let priceRuleId = (priceRulesJson?.price_rules || []).find((r: any) => r.title === matchedTier.title)?.id
+              console.log(`[tier-checkout] existing price rule id: ${priceRuleId ?? 'not found — will create'}`)
+
+              if (!priceRuleId) {
+                const createRuleRes = await fetch(`${adminBase}/price_rules.json`, {
+                  method: 'POST',
+                  headers: adminHeaders,
+                  body: JSON.stringify({
+                    price_rule: {
+                      title: matchedTier.title,
+                      target_type: 'line_item',
+                      target_selection: 'all',
+                      allocation_method: 'across',
+                      value_type: 'fixed_amount',
+                      value: matchedTier.value,
+                      customer_selection: 'all',
+                      starts_at: new Date().toISOString(),
+                    },
+                  }),
+                })
+                console.log(`[tier-checkout] price_rule CREATE → HTTP ${createRuleRes.status}`)
+                const createRuleJson = (await createRuleRes.json().catch(() => null)) as any
+                if (!createRuleRes.ok) {
+                  console.error(`[tier-checkout] price_rule CREATE error:`, JSON.stringify(createRuleJson).slice(0, 300))
+                }
+                priceRuleId = createRuleJson?.price_rule?.id
+                console.log(`[tier-checkout] created price rule id: ${priceRuleId ?? 'FAILED'}`)
+              }
+
+              if (priceRuleId) {
+                const ts = Date.now().toString(36).toUpperCase()
+                const rand = Math.random().toString(36).slice(2, 8).toUpperCase()
+                const code = `FB-T${matchedTier.index}-${ts}-${rand}`
+                const createCodeRes = await fetch(`${adminBase}/price_rules/${priceRuleId}/discount_codes.json`, {
+                  method: 'POST',
+                  headers: adminHeaders,
+                  body: JSON.stringify({ discount_code: { code } }),
+                })
+                console.log(`[tier-checkout] discount_code CREATE → HTTP ${createCodeRes.status}`)
+                const createCodeJson = (await createCodeRes.json().catch(() => null)) as any
+                if (!createCodeRes.ok) {
+                  console.error(`[tier-checkout] discount_code CREATE error:`, JSON.stringify(createCodeJson).slice(0, 300))
+                }
+                const finalCode = createCodeJson?.discount_code?.code
+                console.log(`[tier-checkout] final discount code: ${finalCode ?? 'NONE'}`)
+                if (finalCode) checkoutUrl += `?discount=${encodeURIComponent(finalCode)}`
+              }
+            } catch (discountErr) {
+              console.error('[tier-checkout] Exception during discount generation:', discountErr)
+            }
+          }
+          console.log(`[tier-checkout] checkoutUrl: ${checkoutUrl}`)
+
+          return jsonRes(200, { checkoutUrl })
+        } catch (error) {
+          return jsonRes(500, { error: 'Checkout failed', details: error instanceof Error ? error.message : 'Unknown' })
+        }
+      })
+      // ── end shopify-tier-checkout ──────────────────────────────────────────
+
       server.middlewares.use('/api/create-shopify-customer', async (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405

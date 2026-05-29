@@ -1,6 +1,69 @@
 import { requireAuth } from './_auth.js'
 import { cleanInline, isValidEmail, parseJsonBody, rateLimit } from './_security.js'
 
+const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL || process.env.VITE_SHOPIFY_STORE_URL || 'fireball-canada.myshopify.com'
+const SHOPIFY_ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_API_TOKEN || ''
+const SHOPIFY_STOREFRONT_TOKEN =
+  process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
+  process.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
+  ''
+const SHOPIFY_API_VERSION = process.env.SHOPIFY_ADMIN_API_VERSION || '2024-10'
+
+function isAlreadyExistsError(errors) {
+  if (!Array.isArray(errors)) return false
+  return errors.some((entry) => {
+    const code = String(entry?.code || '').toUpperCase()
+    const message = String(entry?.message || '').toLowerCase()
+    return (
+      code === 'TAKEN' ||
+      code === 'UNIDENTIFIED_CUSTOMER' ||
+      message.includes('taken') ||
+      message.includes('already exists') ||
+      message.includes('has already been taken') ||
+      message.includes('already been registered')
+    )
+  })
+}
+
+async function shopifyGraphql(endpoint, token, tokenHeader, query, variables) {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      [tokenHeader]: token,
+    },
+    body: JSON.stringify({ query, variables }),
+  })
+  const data = await response.json().catch(() => ({}))
+  return { response, data }
+}
+
+async function lookupCustomerByEmail(endpoint, email) {
+  const lookupQuery = `
+    query customersByEmail($query: String!) {
+      customers(first: 1, query: $query) {
+        edges {
+          node {
+            id
+            email
+            firstName
+            lastName
+          }
+        }
+      }
+    }
+  `
+  const { response, data } = await shopifyGraphql(
+    endpoint,
+    SHOPIFY_ADMIN_TOKEN,
+    'X-Shopify-Access-Token',
+    lookupQuery,
+    { query: `email:"${email.replace(/"/g, '\\"')}"` },
+  )
+  if (!response.ok || data?.errors?.length) return null
+  return data?.data?.customers?.edges?.[0]?.node || null
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -19,8 +82,8 @@ export default async function handler(req, res) {
   const lastName = cleanInline(payload.last_name, 80)
   const password = String(payload.password || '')
 
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Missing required fields: email and password' })
+  if (!email) {
+    return res.status(400).json({ error: 'Missing required field: email' })
   }
   if (!isValidEmail(email)) {
     return res.status(400).json({ error: 'Invalid email address' })
@@ -28,88 +91,158 @@ export default async function handler(req, res) {
   if (auth.user.email?.toLowerCase() !== email) {
     return res.status(403).json({ error: 'Forbidden: cannot create another user customer' })
   }
-  if (password.length < 8 || password.length > 128) {
+  if (password && (password.length < 8 || password.length > 128)) {
     return res.status(400).json({ error: 'Invalid password length' })
   }
 
-  const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL || 'fireball-canada.myshopify.com'
-  const SHOPIFY_STOREFRONT_TOKEN =
-    process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
-    process.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
-    ''
-  const SHOPIFY_API_VERSION = process.env.SHOPIFY_STOREFRONT_API_VERSION || '2024-10'
-
-  if (!SHOPIFY_STOREFRONT_TOKEN) {
+  if (!SHOPIFY_ADMIN_TOKEN) {
     return res.status(500).json({
-      error:
-        'Missing Storefront token. Set SHOPIFY_STOREFRONT_ACCESS_TOKEN.',
+      error: 'Missing SHOPIFY_ADMIN_API_TOKEN in server env.',
     })
   }
 
   const normalizedStoreUrl = SHOPIFY_STORE_URL.startsWith('http')
     ? SHOPIFY_STORE_URL
     : `https://${SHOPIFY_STORE_URL}`
-  const url = `${normalizedStoreUrl}/api/${SHOPIFY_API_VERSION}/graphql.json`
-
-  const mutation = `
-    mutation customerCreate($input: CustomerCreateInput!) {
-      customerCreate(input: $input) {
-        customer {
-          id
-          email
-          firstName
-          lastName
-        }
-        customerUserErrors {
-          code
-          field
-          message
-        }
-      }
-    }
-  `
-
-  const variables = {
-    input: {
-      email,
-      password,
-      firstName,
-      lastName,
-    },
-  }
+  const adminEndpoint = `${normalizedStoreUrl}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`
+  const storefrontEndpoint = `${normalizedStoreUrl}/api/${SHOPIFY_API_VERSION}/graphql.json`
 
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_TOKEN,
-      },
-      body: JSON.stringify({
-        query: mutation,
-        variables,
-      }),
-    })
-
-    const data = await response.json()
-    const userErrors = data?.data?.customerCreate?.customerUserErrors || []
-    const graphqlErrors = data?.errors || null
-
-    if (!response.ok || (Array.isArray(graphqlErrors) && graphqlErrors.length) || userErrors.length) {
-      const details = graphqlErrors || userErrors || data || null
-      return res.status(400).json({
-        error: `Failed to create Shopify customer (HTTP ${response.status})`,
-        details,
+    const existingCustomer = await lookupCustomerByEmail(adminEndpoint, email)
+    if (existingCustomer?.id) {
+      return res.status(200).json({
+        success: true,
+        customer: existingCustomer,
+        shopifyCustomerId: existingCustomer.id,
+        reusedExisting: true,
       })
     }
 
+    if (password && SHOPIFY_STOREFRONT_TOKEN) {
+      const storefrontMutation = `
+        mutation customerCreate($input: CustomerCreateInput!) {
+          customerCreate(input: $input) {
+            customer {
+              id
+              email
+              firstName
+              lastName
+            }
+            customerUserErrors {
+              code
+              field
+              message
+            }
+          }
+        }
+      `
+      const { response, data } = await shopifyGraphql(
+        storefrontEndpoint,
+        SHOPIFY_STOREFRONT_TOKEN,
+        'X-Shopify-Storefront-Access-Token',
+        storefrontMutation,
+        {
+          input: {
+            email,
+            password,
+            firstName,
+            lastName,
+          },
+        },
+      )
+      const userErrors = data?.data?.customerCreate?.customerUserErrors || []
+      const graphqlErrors = data?.errors || []
+      const customer = data?.data?.customerCreate?.customer || null
+
+      if (customer?.id) {
+        return res.status(200).json({
+          success: true,
+          customer,
+          shopifyCustomerId: customer.id,
+        })
+      }
+
+      if (isAlreadyExistsError(userErrors) || isAlreadyExistsError(graphqlErrors)) {
+        const reusedCustomer = await lookupCustomerByEmail(adminEndpoint, email)
+        if (reusedCustomer?.id) {
+          return res.status(200).json({
+            success: true,
+            customer: reusedCustomer,
+            shopifyCustomerId: reusedCustomer.id,
+            reusedExisting: true,
+          })
+        }
+      }
+
+      if (!response.ok || graphqlErrors.length || userErrors.length) {
+        return res.status(400).json({
+          error: `Failed to create Shopify customer (HTTP ${response.status})`,
+          details: graphqlErrors.length ? graphqlErrors : userErrors,
+        })
+      }
+    }
+
+    const adminMutation = `
+      mutation customerCreate($input: CustomerInput!) {
+        customerCreate(input: $input) {
+          customer {
+            id
+            email
+            firstName
+            lastName
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `
+    const { response, data } = await shopifyGraphql(
+      adminEndpoint,
+      SHOPIFY_ADMIN_TOKEN,
+      'X-Shopify-Access-Token',
+      adminMutation,
+      {
+        input: {
+          email,
+          firstName,
+          lastName,
+        },
+      },
+    )
+    const userErrors = data?.data?.customerCreate?.userErrors || []
+    const graphqlErrors = data?.errors || []
     const customer = data?.data?.customerCreate?.customer || null
-    const shopifyCustomerId = customer?.id || null
-    return res.status(200).json({
-      success: true,
-      customer,
-      shopifyCustomerId,
-    })
+
+    if (customer?.id) {
+      return res.status(200).json({
+        success: true,
+        customer,
+        shopifyCustomerId: customer.id,
+      })
+    }
+
+    if (isAlreadyExistsError(userErrors) || isAlreadyExistsError(graphqlErrors)) {
+      const reusedCustomer = await lookupCustomerByEmail(adminEndpoint, email)
+      if (reusedCustomer?.id) {
+        return res.status(200).json({
+          success: true,
+          customer: reusedCustomer,
+          shopifyCustomerId: reusedCustomer.id,
+          reusedExisting: true,
+        })
+      }
+    }
+
+    if (!response.ok || graphqlErrors.length || userErrors.length) {
+      return res.status(400).json({
+        error: `Failed to create Shopify customer (HTTP ${response.status})`,
+        details: graphqlErrors.length ? graphqlErrors : userErrors,
+      })
+    }
+
+    return res.status(500).json({ error: 'Shopify customer creation returned no customer' })
   } catch (error) {
     return res.status(500).json({
       error: 'Internal server error',

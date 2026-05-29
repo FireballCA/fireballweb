@@ -67,14 +67,14 @@ export function Footer() {
               Products
             </h3>
             <ul className="space-y-3">
-              <FooterLink to="/shop">Coatings</FooterLink>
-              <FooterLink to="/shop">Sealants</FooterLink>
-              <FooterLink to="/shop">Waxes</FooterLink>
-              <FooterLink to="/shop">Dressings</FooterLink>
-              <FooterLink to="/shop">Washing</FooterLink>
-              <FooterLink to="/shop">Cleaners</FooterLink>
-              <FooterLink to="/shop">Towels</FooterLink>
-              <FooterLink to="/shop">Accessories</FooterLink>
+              <FooterLink to="/coatings">Coatings</FooterLink>
+              <FooterLink to="/sealants">Sealants</FooterLink>
+              <FooterLink to="/waxes">Waxes</FooterLink>
+              <FooterLink to="/dressings">Dressings</FooterLink>
+              <FooterLink to="/washing">Washing</FooterLink>
+              <FooterLink to="/cleaners">Cleaners</FooterLink>
+              <FooterLink to="/towels">Towels</FooterLink>
+              <FooterLink to="/accessories">Accessories</FooterLink>
             </ul>
           </div>
 
@@ -101,7 +101,7 @@ export function Footer() {
               <FooterLink to="/about">About</FooterLink>
               <FooterLink to="/press-kit">Press Kit</FooterLink>
               <FooterLink to="/contact">Contact</FooterLink>
-              <FooterLink to="/shop">Merch</FooterLink>
+              <FooterLink to="/apparel">Merch</FooterLink>
             </ul>
           </div>
 

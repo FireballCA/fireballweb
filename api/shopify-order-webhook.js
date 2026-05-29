@@ -7,10 +7,26 @@ import { rateLimit } from './_security.js'
 // (Shopify Admin → Settings → Notifications → Webhooks → signing secret)
 const shopifyWebhookSecret = process.env.SHOPIFY_WEBHOOK_SECRET || ''
 
-// Désactive le body parser Vercel pour lire le corps brut (nécessaire pour HMAC)
+// Désactive le body parser (Next.js / certains runtimes Vercel)
 export const config = { api: { bodyParser: false } }
 
-async function getRawBody(req, maxBytes = 1_000_000) {
+async function readRequestStream(req, maxBytes = 1_000_000) {
+  if (typeof req[Symbol.asyncIterator] === 'function') {
+    const chunks = []
+    let bytes = 0
+    for await (const chunk of req) {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk))
+      bytes += buffer.length
+      if (bytes > maxBytes) {
+        const error = new Error('Payload too large')
+        error.code = 'PAYLOAD_TOO_LARGE'
+        throw error
+      }
+      chunks.push(buffer)
+    }
+    return Buffer.concat(chunks).toString('utf8')
+  }
+
   return new Promise((resolve, reject) => {
     let data = ''
     let bytes = 0
@@ -28,6 +44,24 @@ async function getRawBody(req, maxBytes = 1_000_000) {
     req.on('end', () => resolve(data))
     req.on('error', reject)
   })
+}
+
+async function getRawBody(req, maxBytes = 1_000_000) {
+  if (Buffer.isBuffer(req.body)) {
+    return req.body.toString('utf8')
+  }
+  if (typeof req.body === 'string') {
+    return req.body
+  }
+
+  const fromStream = await readRequestStream(req, maxBytes)
+  if (fromStream) return fromStream
+
+  if (req.body && typeof req.body === 'object') {
+    return JSON.stringify(req.body)
+  }
+
+  return ''
 }
 
 /**
@@ -68,6 +102,18 @@ const supabase =
 const PARTNER_ONLY_TAGS = new Set(['partner-only', 'installer-only', 'installer', 'partner'])
 
 export default async function handler(req, res) {
+  try {
+    return await handleShopifyOrderWebhook(req, res)
+  } catch (error) {
+    console.error('[shopify-order-webhook] Unhandled error', error)
+    return res.status(500).json({
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+}
+
+async function handleShopifyOrderWebhook(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ error: 'Method not allowed' })
@@ -83,7 +129,8 @@ export default async function handler(req, res) {
     if (error?.code === 'PAYLOAD_TOO_LARGE') {
       return res.status(413).json({ error: 'Payload too large' })
     }
-    throw error
+    console.error('[shopify-order-webhook] Failed to read request body', error)
+    return res.status(400).json({ error: 'Invalid request body' })
   }
   const shopifySignature = req.headers['x-shopify-hmac-sha256'] || ''
 
@@ -94,9 +141,14 @@ export default async function handler(req, res) {
     }
   } else {
     // Secret non configuré : bloquer en production, accepter en dev avec warning
-    if (process.env.VERCEL_ENV === 'production') {
-      console.error('[shopify-order-webhook] SHOPIFY_WEBHOOK_SECRET manquant en production — requête bloquée')
-      return res.status(500).json({ error: 'Webhook secret not configured' })
+    if (process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production') {
+      console.error(
+        '[shopify-order-webhook] SHOPIFY_WEBHOOK_SECRET manquant en production — ajoutez-le dans Vercel (Settings → Environment Variables). Valeur = signing secret du webhook dans Shopify Admin → Settings → Notifications → Webhooks.',
+      )
+      return res.status(503).json({
+        error: 'Webhook secret not configured',
+        hint: 'Set SHOPIFY_WEBHOOK_SECRET in Vercel environment variables (Shopify webhook signing secret).',
+      })
     }
     console.warn('[shopify-order-webhook] SHOPIFY_WEBHOOK_SECRET non configuré (mode dev)')
   }
