@@ -38,7 +38,7 @@ async function shopifyGraphql(endpoint, token, tokenHeader, query, variables) {
   return { response, data }
 }
 
-async function lookupCustomerByEmail(endpoint, email) {
+async function lookupCustomerByEmailGraphql(adminEndpoint, email) {
   const lookupQuery = `
     query customersByEmail($query: String!) {
       customers(first: 1, query: $query) {
@@ -54,7 +54,7 @@ async function lookupCustomerByEmail(endpoint, email) {
     }
   `
   const { response, data } = await shopifyGraphql(
-    endpoint,
+    adminEndpoint,
     SHOPIFY_ADMIN_TOKEN,
     'X-Shopify-Access-Token',
     lookupQuery,
@@ -62,6 +62,52 @@ async function lookupCustomerByEmail(endpoint, email) {
   )
   if (!response.ok || data?.errors?.length) return null
   return data?.data?.customers?.edges?.[0]?.node || null
+}
+
+async function lookupCustomerByEmailRest(storeUrl, email) {
+  const searchUrl = `${storeUrl}/admin/api/${SHOPIFY_API_VERSION}/customers/search.json?query=${encodeURIComponent(`email:${email}`)}`
+  const response = await fetch(searchUrl, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Access-Token': SHOPIFY_ADMIN_TOKEN,
+    },
+  })
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) return null
+  const row = Array.isArray(data?.customers) ? data.customers[0] : null
+  if (!row?.id) return null
+  return {
+    id: `gid://shopify/Customer/${row.id}`,
+    email: row.email || email,
+    firstName: row.first_name || null,
+    lastName: row.last_name || null,
+  }
+}
+
+async function lookupCustomerByEmail(adminEndpoint, storeUrl, email) {
+  const fromGraphql = await lookupCustomerByEmailGraphql(adminEndpoint, email)
+  if (fromGraphql?.id) return fromGraphql
+  return lookupCustomerByEmailRest(storeUrl, email)
+}
+
+function respondExistingCustomer(res, customer, reusedExisting = true) {
+  return res.status(200).json({
+    success: true,
+    customer: customer || { email: customer?.email },
+    shopifyCustomerId: customer?.id || null,
+    reusedExisting,
+  })
+}
+
+function respondAlreadyExistsWithoutId(res, email) {
+  return res.status(200).json({
+    success: true,
+    customer: { email },
+    shopifyCustomerId: null,
+    reusedExisting: true,
+    message: 'Customer already exists in Shopify',
+  })
 }
 
 export default async function handler(req, res) {
@@ -108,14 +154,9 @@ export default async function handler(req, res) {
   const storefrontEndpoint = `${normalizedStoreUrl}/api/${SHOPIFY_API_VERSION}/graphql.json`
 
   try {
-    const existingCustomer = await lookupCustomerByEmail(adminEndpoint, email)
+    const existingCustomer = await lookupCustomerByEmail(adminEndpoint, normalizedStoreUrl, email)
     if (existingCustomer?.id) {
-      return res.status(200).json({
-        success: true,
-        customer: existingCustomer,
-        shopifyCustomerId: existingCustomer.id,
-        reusedExisting: true,
-      })
+      return respondExistingCustomer(res, existingCustomer)
     }
 
     if (password && SHOPIFY_STOREFRONT_TOKEN) {
@@ -163,15 +204,11 @@ export default async function handler(req, res) {
       }
 
       if (isAlreadyExistsError(userErrors) || isAlreadyExistsError(graphqlErrors)) {
-        const reusedCustomer = await lookupCustomerByEmail(adminEndpoint, email)
+        const reusedCustomer = await lookupCustomerByEmail(adminEndpoint, normalizedStoreUrl, email)
         if (reusedCustomer?.id) {
-          return res.status(200).json({
-            success: true,
-            customer: reusedCustomer,
-            shopifyCustomerId: reusedCustomer.id,
-            reusedExisting: true,
-          })
+          return respondExistingCustomer(res, reusedCustomer)
         }
+        return respondAlreadyExistsWithoutId(res, email)
       }
 
       if (!response.ok || graphqlErrors.length || userErrors.length) {
@@ -224,15 +261,11 @@ export default async function handler(req, res) {
     }
 
     if (isAlreadyExistsError(userErrors) || isAlreadyExistsError(graphqlErrors)) {
-      const reusedCustomer = await lookupCustomerByEmail(adminEndpoint, email)
+      const reusedCustomer = await lookupCustomerByEmail(adminEndpoint, normalizedStoreUrl, email)
       if (reusedCustomer?.id) {
-        return res.status(200).json({
-          success: true,
-          customer: reusedCustomer,
-          shopifyCustomerId: reusedCustomer.id,
-          reusedExisting: true,
-        })
+        return respondExistingCustomer(res, reusedCustomer)
       }
+      return respondAlreadyExistsWithoutId(res, email)
     }
 
     if (!response.ok || graphqlErrors.length || userErrors.length) {

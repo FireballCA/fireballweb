@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useState, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
-import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
+import { getCurrentUserProfile, isAuthenticated, logout } from '@/utils/supabaseAuth'
 import { MemberStatusHero } from '@/components/MemberStatusHero/MemberStatusHero'
 import { MobileDashboard } from '@/components/MobileDashboard/MobileDashboard'
 import { AddVehicleModal } from '@/components/AddVehicleModal'
@@ -1148,6 +1148,14 @@ export function AccountDashboard() {
     }
   }
 
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } finally {
+      navigate('/account', { replace: true })
+    }
+  }
+
   const displayOrders = useMemo(() => [...orders], [orders])
   const carouselMaxIndex = Math.max(0, displayOrders.length - 3)
 
@@ -1353,6 +1361,7 @@ export function AccountDashboard() {
             onEditVehicle={(v) => setSettingsVehicle(v as Vehicle)}
             onClearNotification={(id) => { void clearSingleNotification(id) }}
             onClearAllNotifications={() => { void clearAllDashboardNotifications() }}
+            onLogout={() => { void handleLogout() }}
           />
 
           {/* Desktop hero (hidden on mobile) */}
@@ -1413,6 +1422,14 @@ export function AccountDashboard() {
                     ) : null}
                   </button>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => { void handleLogout() }}
+                  className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl border border-[#FF3B30]/35 bg-[#FF3B30]/10 px-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#FF3B30] transition-colors hover:bg-[#FF3B30]/15 hover:text-[#E0352B]"
+                  aria-label="Se déconnecter"
+                >
+                  Déconnexion
+                </button>
               </div>
             }
           />
@@ -1713,8 +1730,11 @@ export function AccountDashboard() {
                       {summaryThumb ? (
                         <img
                           src={summaryThumb}
-                          alt=""
-                          className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                          alt={summaryOrderTitle}
+                          className="h-14 w-14 shrink-0 rounded-lg object-cover bg-[#E9E9E9]"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                          }}
                         />
                       ) : (
                         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-[#E9E9E9]">

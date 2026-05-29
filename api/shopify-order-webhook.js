@@ -101,6 +101,58 @@ const supabase =
 
 const PARTNER_ONLY_TAGS = new Set(['partner-only', 'installer-only', 'installer', 'partner'])
 
+function pickProfileForOrder(profiles) {
+  if (!Array.isArray(profiles) || profiles.length === 0) return null
+  if (profiles.length === 1) return profiles[0]
+
+  const sorted = [...profiles].sort((a, b) => {
+    const aHasShopify = a?.shopify_customer_id ? 1 : 0
+    const bHasShopify = b?.shopify_customer_id ? 1 : 0
+    if (bHasShopify !== aHasShopify) return bHasShopify - aHasShopify
+
+    const aXp = Number.isFinite(Number(a?.xp)) ? Number(a.xp) : 0
+    const bXp = Number.isFinite(Number(b?.xp)) ? Number(b.xp) : 0
+    if (bXp !== aXp) return bXp - aXp
+
+    const aCreated = Date.parse(String(a?.created_at || '')) || 0
+    const bCreated = Date.parse(String(b?.created_at || '')) || 0
+    return bCreated - aCreated
+  })
+
+  return sorted[0] || null
+}
+
+async function findProfileByEmail(client, rawEmail) {
+  const email = String(rawEmail || '').trim().toLowerCase()
+  if (!email) return { profile: null, duplicateCount: 0 }
+
+  const { data: profiles, error } = await client
+    .from('profiles')
+    .select('id,xp,email,role,partner_status,shopify_customer_id,created_at')
+    .ilike('email', email)
+    .limit(10)
+
+  if (error) {
+    return { profile: null, error, duplicateCount: 0 }
+  }
+
+  const rows = Array.isArray(profiles) ? profiles : []
+  if (rows.length > 1) {
+    console.warn('[shopify-order-webhook] Multiple profiles for email — using best match', {
+      email,
+      duplicateCount: rows.length,
+      profileIds: rows.map((row) => row.id),
+      selectedProfileId: pickProfileForOrder(rows)?.id || null,
+    })
+  }
+
+  return {
+    profile: pickProfileForOrder(rows),
+    error: null,
+    duplicateCount: rows.length,
+  }
+}
+
 export default async function handler(req, res) {
   try {
     return await handleShopifyOrderWebhook(req, res)
@@ -189,12 +241,8 @@ async function handleShopifyOrderWebhook(req, res) {
   }
 
   try {
-    // 1) Trouver le profil par email
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id,xp,email,role,partner_status')
-      .eq('email', email)
-      .maybeSingle()
+    // 1) Trouver le profil par email (gère les doublons Supabase)
+    const { profile, error: profileError, duplicateCount } = await findProfileByEmail(supabase, email)
 
     if (profileError) {
       console.error('[shopify-order-webhook] Error loading profile by email', profileError)
@@ -204,6 +252,14 @@ async function handleShopifyOrderWebhook(req, res) {
     if (!profile) {
       console.warn('[shopify-order-webhook] No profile found for email', email)
       return res.status(200).json({ ok: true, skipped: 'profile_not_found' })
+    }
+
+    if (duplicateCount > 1) {
+      console.warn('[shopify-order-webhook] Duplicate profiles detected for email — XP credited to selected profile only', {
+        email,
+        selectedUserId: profile.id,
+        duplicateCount,
+      })
     }
 
     const userId = profile.id

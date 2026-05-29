@@ -187,6 +187,46 @@ function getLineItemsFromPurchase(purchase: Record<string, unknown>): OrderLineI
   }
 }
 
+function applyShopifyPreviewToOrder(
+  order: CustomerOrder,
+  preview: { productTitle?: string; imageUrl?: string; currency?: string } | null | undefined,
+): CustomerOrder {
+  if (!preview) return order
+
+  const imageUrl = (preview.imageUrl || order.imageUrl || '').trim()
+  const name = preview.productTitle || order.name
+
+  let lineItems = order.lineItems
+  if (lineItems && lineItems.length > 0) {
+    lineItems = lineItems.map((item, index) =>
+      index === 0
+        ? {
+            ...item,
+            title: preview.productTitle || item.title,
+            imageUrl: preview.imageUrl || item.imageUrl,
+          }
+        : item,
+    )
+  } else if (preview.productTitle || preview.imageUrl) {
+    lineItems = [
+      {
+        title: preview.productTitle || name,
+        price: typeof order.totalPrice === 'number' ? order.totalPrice : 0,
+        quantity: 1,
+        imageUrl: preview.imageUrl || undefined,
+      },
+    ]
+  }
+
+  return {
+    ...order,
+    name,
+    imageUrl,
+    lineItems,
+    currency: preview.currency || order.currency,
+  }
+}
+
 /**
  * Loads Shopify-linked purchases for the signed-in user (same source as dashboard Orders).
  */
@@ -290,21 +330,18 @@ export async function fetchCustomerOrders(): Promise<CustomerOrder[]> {
       headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({ orderIds: shopifyOrderIds }),
     })
+    if (!previewResponse.ok) {
+      return mappedOrders
+    }
     const previewJson = await previewResponse.json().catch(() => null)
     const previews =
       (previewJson && typeof previewJson === 'object' ? (previewJson as { previews?: Record<string, unknown> }).previews : {}) || {}
 
     return mappedOrders.map((order) => {
-      const preview = order.shopifyOrderId ? (previews[order.shopifyOrderId] as { productTitle?: string; imageUrl?: string; currency?: string } | undefined) : null
-      if (!preview) {
-        return { ...order, imageUrl: order.imageUrl || '' }
-      }
-      return {
-        ...order,
-        name: preview.productTitle || order.name,
-        imageUrl: preview.imageUrl || order.imageUrl || '',
-        currency: preview.currency || order.currency,
-      }
+      const preview = order.shopifyOrderId
+        ? (previews[order.shopifyOrderId] as { productTitle?: string; imageUrl?: string; currency?: string } | undefined)
+        : null
+      return applyShopifyPreviewToOrder(order, preview)
     })
   } catch {
     return mappedOrders

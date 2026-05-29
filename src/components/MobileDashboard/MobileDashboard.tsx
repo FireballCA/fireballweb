@@ -74,6 +74,7 @@ interface MobileDashboardProps {
   onEditVehicle?: (v: VehicleItem) => void
   onClearNotification?: (id: string) => void
   onClearAllNotifications?: () => void
+  onLogout?: () => void
 }
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -272,6 +273,7 @@ export function MobileDashboard({
   onEditVehicle,
   onClearNotification,
   onClearAllNotifications,
+  onLogout,
 }: MobileDashboardProps) {
   const currentTierIndex = getTierIndexFromLabel(tier)
   const [viewingTierIndex, setViewingTierIndex] = useState(currentTierIndex)
@@ -787,6 +789,16 @@ export function MobileDashboard({
                 <span className="w-8" />
               )}
             </button>
+
+            {onLogout ? (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#FF3B30]/35 bg-[#FF3B30]/12 px-4 py-3.5 font-nav text-[13px] font-semibold text-[#FF6961] transition-colors active:bg-[#FF3B30]/20"
+              >
+                Déconnexion
+              </button>
+            ) : null}
 
             {/* Academy training */}
             <button type="button" onClick={() => setAcademySheetOpen(true)} className={navButtonClass}>
