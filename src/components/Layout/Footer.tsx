@@ -125,13 +125,20 @@ export function Footer() {
               © {currentYear} Fireball Canada. All rights reserved.
             </p>
 
-            {/* Elevate Agency credit */}
-            <img
-              src="/Assets/ElevateAgency.png"
-              alt="Elevate Agency"
-              className="h-7 w-auto object-contain"
-              draggable={false}
-            />
+            <a
+              href="https://palentir.studio"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="opacity-60 transition-opacity hover:opacity-100"
+              aria-label="Palentir Studio"
+            >
+              <img
+                src="/Palentirfull.svg"
+                alt="Palentir Studio"
+                className="h-7 w-auto object-contain brightness-0"
+                draggable={false}
+              />
+            </a>
 
             <p className="text-xs text-carbon-600 font-sans italic">
               Beyond Your Imagination

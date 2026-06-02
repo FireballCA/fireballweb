@@ -794,7 +794,7 @@ export function MobileDashboard({
               <button
                 type="button"
                 onClick={onLogout}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#FF3B30]/35 bg-[#FF3B30]/12 px-4 py-3.5 font-nav text-[13px] font-semibold text-[#FF6961] transition-colors active:bg-[#FF3B30]/20"
+                className="flex w-full items-center justify-center rounded-full bg-[#FF3B30] px-4 py-3 font-nav text-[15px] font-medium text-white transition-opacity active:opacity-80"
               >
                 Déconnexion
               </button>

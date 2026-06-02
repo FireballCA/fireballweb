@@ -1425,7 +1425,7 @@ export function AccountDashboard() {
                 <button
                   type="button"
                   onClick={() => { void handleLogout() }}
-                  className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl border border-[#FF3B30]/35 bg-[#FF3B30]/10 px-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#FF3B30] transition-colors hover:bg-[#FF3B30]/15 hover:text-[#E0352B]"
+                  className="inline-flex h-9 shrink-0 items-center justify-center rounded-full bg-[#FF3B30] px-4 text-[13px] font-medium text-white transition-opacity hover:opacity-90 active:opacity-80"
                   aria-label="Se déconnecter"
                 >
                   Déconnexion
