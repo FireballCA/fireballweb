@@ -254,7 +254,7 @@ export function Account() {
                 {/* Help link — inline on mobile, hidden on md+ (shown via absolute below) */}
                 <p className="md:hidden text-center text-sm mt-4">
                   <span className="text-white/45">{t('auth.needHelp')} </span>
-                  <a href="mailto:contact@fireball.fr" className="text-white hover:text-white/80 underline">
+                  <a href="mailto:fireballcarcarecanada@gmail.com" className="text-white hover:text-white/80 underline">
                     {t('auth.contactUs')}
                   </a>
                 </p>
@@ -269,7 +269,7 @@ export function Account() {
       <div className="hidden md:block absolute inset-x-0 bottom-6 z-10 text-center text-sm flex-shrink-0">
         <span className="text-white/45">{t('auth.needHelp')} </span>
         <a
-          href="mailto:contact@fireball.fr"
+          href="mailto:fireballcarcarecanada@gmail.com"
           className="text-white hover:text-white/80 underline"
         >
           {t('auth.contactUs')}

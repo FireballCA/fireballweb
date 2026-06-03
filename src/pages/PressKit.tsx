@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import { usePageTitle } from '@/hooks/usePageTitle'
-import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
-import { cn } from '@/lib/utils'
 import { SEO, breadcrumbJsonLd } from '@/components/SEO'
 
 export function PressKit() {
@@ -28,7 +26,7 @@ export function PressKit() {
     <>
       <SEO
         title="Press Kit & Brand Assets — Fireball Canada"
-        description="Download the official Fireball Canada press kit — logos, brand guidelines, color palette, photography and assets for media, retailers and partners."
+        description="Official Fireball Canada brand assets — logos, brand guidelines, color palette and usage for media, retailers and partners."
         canonicalPath="/press-kit"
         keywords="Fireball press kit, Fireball brand assets, Fireball logo download, media kit Canada"
         jsonLd={breadcrumbJsonLd([{ name: 'Home', path: '/' }, { name: 'Press Kit', path: '/press-kit' }])}
@@ -492,31 +490,6 @@ export function PressKit() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Download CTA */}
-      <section className="py-10 sm:py-14 md:py-16 bg-carbon-50 px-4 sm:px-6 md:px-10 pb-[max(2.5rem,env(safe-area-inset-bottom))]">
-        <div className="max-w-6xl mx-auto flex flex-col items-stretch text-center md:items-center md:text-left md:flex-row md:justify-between gap-6 md:gap-8">
-          <div className="min-w-0">
-            <h2 className="font-nav text-xl sm:text-2xl md:text-3xl font-semibold text-carbon-900 mb-2 leading-snug">
-              Download the full press kit.
-            </h2>
-            <p className="text-sm text-carbon-600 max-w-md mx-auto md:mx-0 leading-relaxed">
-              Get the complete Fireball Canada brand package in one archive — logos, colour specs, typography, usage examples and Fireball Academy assets.
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-end shrink-0 w-full md:w-auto">
-            <a
-              href="#"
-              className={cn(
-                appleButtonVisualClassName,
-                'inline-flex min-h-[48px] px-6 py-3 text-sm w-full sm:w-auto justify-center',
-              )}
-            >
-              Download
-            </a>
           </div>
         </div>
       </section>
