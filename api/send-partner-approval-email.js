@@ -1,8 +1,12 @@
 import { requireAuth } from './_auth.js'
-import { cleanInline, isValidEmail, parseJsonBody, rateLimit } from './_security.js'
-
-const PUBLIC_EMAIL_DOMAINS = new Set(['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com'])
-const ADMIN_NOTIFICATION_EMAIL = 'info@fireballcanada.com'
+import {
+  assertEmailServiceReady,
+  getResendApiKey,
+  isValidRecipientEmail,
+  resolveOutboundEmail,
+  resolveTeamInbox,
+} from './_email.js'
+import { cleanInline, parseJsonBody, rateLimit } from './_security.js'
 
 const toResendTagToken = (value, fallback = 'unknown') => {
   const normalized = String(value || '')
@@ -11,14 +15,6 @@ const toResendTagToken = (value, fallback = 'unknown') => {
     .replace(/[^A-Za-z0-9_-]+/g, '_')
     .replace(/^_+|_+$/g, '')
   return normalized || fallback
-}
-
-const extractEmailDomain = (value) => {
-  const cleaned = cleanInline(value)
-  const bracketMatch = cleaned.match(/<([^>]+)>/)
-  const emailValue = (bracketMatch ? bracketMatch[1] : cleaned).toLowerCase()
-  const atIndex = emailValue.lastIndexOf('@')
-  return atIndex === -1 ? '' : emailValue.slice(atIndex + 1)
 }
 
 function stripUnsafeHtml(value) {
@@ -51,12 +47,13 @@ export default async function handler(req, res) {
   const flowTag = String(payload.flowTag || 'partner_approval').trim() || 'partner_approval'
   const safeFlowTag = toResendTagToken(flowTag, 'partner_flow')
   const safeCompanyTag = toResendTagToken(companyName, 'unknown')
+  const teamInbox = resolveTeamInbox()
 
   if (!to || !subject || !message) {
     return res.status(400).json({ error: 'Missing required fields: to, subject, message' })
   }
 
-  if (!isValidEmail(to)) {
+  if (!isValidRecipientEmail(to)) {
     return res.status(400).json({ error: 'Invalid recipient email address' })
   }
 
@@ -70,49 +67,29 @@ export default async function handler(req, res) {
   const isTrainingConfirmation =
     safeFlowTag === 'academy_training_registration' &&
     auth.user.email?.toLowerCase() === to
-  const isEventRsvp =
-    safeFlowTag.startsWith('event_rsvp_') &&
-    to === ADMIN_NOTIFICATION_EMAIL
+  const isEventRsvp = safeFlowTag.startsWith('event_rsvp_') && to === teamInbox
 
   if (!isAdmin && !isTrainingConfirmation && !isEventRsvp) {
     return res.status(403).json({ error: 'Forbidden' })
   }
 
-  const normalizeEnvSecret = (value) =>
-    String(value || '')
-      .trim()
-      .replace(/^['"]|['"]$/g, '')
+  const emailConfig = assertEmailServiceReady(res)
+  if (!emailConfig) return
 
-  const RESEND_API_KEY = normalizeEnvSecret(
-    process.env.RESEND_API_KEY || process.env.RESEND_KEY || '',
-  )
-  const FIREBALL_FROM_EMAIL = cleanInline(
-    process.env.FIREBALL_FROM_EMAIL || 'Fireball Canada <no-reply@fireballcanada.com>',
-  )
-  const fromDomain = extractEmailDomain(FIREBALL_FROM_EMAIL)
-
-  if (!fromDomain) {
-    return res.status(500).json({ error: 'Invalid sender email configuration' })
-  }
-
-  if (PUBLIC_EMAIL_DOMAINS.has(fromDomain)) {
-    return res.status(500).json({ error: 'Invalid sender domain configuration' })
-  }
-
-  if (!RESEND_API_KEY) {
-    return res.status(500).json({ error: 'Email service not configured' })
-  }
+  const { from, replyTo } = resolveOutboundEmail()
+  const replyToAddress = to === teamInbox ? undefined : replyTo
 
   try {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        Authorization: `Bearer ${getResendApiKey()}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: FIREBALL_FROM_EMAIL,
+        from,
         to: [to],
+        reply_to: replyToAddress,
         subject,
         text: message,
         html: html || undefined,
@@ -125,6 +102,7 @@ export default async function handler(req, res) {
 
     const data = await response.json().catch(() => ({}))
     if (!response.ok) {
+      console.error('Resend partner/training email failed:', data)
       return res.status(400).json({ error: 'Failed to send email' })
     }
 
@@ -133,7 +111,8 @@ export default async function handler(req, res) {
       provider: 'resend',
       id: data?.id || null,
     })
-  } catch {
+  } catch (error) {
+    console.error('Partner/training email error:', error)
     return res.status(500).json({ error: 'Failed to send email' })
   }
 }

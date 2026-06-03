@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getCurrentUserProfile, isAuthenticated } from '@/utils/supabaseAuth'
 import type { UserProfile } from '@/utils/supabaseAuth'
 import { AppleButton } from '@/components/ui/AppleButton'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { SEO, breadcrumbJsonLd } from '@/components/SEO'
+import { sendContactFormMessage } from '@/utils/contactEmail'
 
 const CONTACT_DRAFT_KEY = 'fireball_contact_form_draft'
 
@@ -16,6 +17,9 @@ export function Contact() {
   const [email, setEmail] = useState('')
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
 
   usePageTitle('Contact - Fireball Canada')
 
@@ -39,12 +43,14 @@ export function Contact() {
         } else if (p) {
           const fullName = [p.first_name, p.last_name].filter(Boolean).join(' ').trim()
           if (fullName) setName(fullName)
+          if (p.email) setEmail(p.email)
         }
       } catch {
         sessionStorage.removeItem(CONTACT_DRAFT_KEY)
         if (p) {
           const fullName = [p.first_name, p.last_name].filter(Boolean).join(' ').trim()
           if (fullName) setName(fullName)
+          if (p.email) setEmail(p.email)
         }
       }
       setAuthChecked(true)
@@ -55,6 +61,33 @@ export function Contact() {
   const handleSignInClick = () => {
     try { sessionStorage.setItem(CONTACT_DRAFT_KEY, JSON.stringify({ name, email, subject, message })) } catch {}
     navigate('/account?returnTo=/contact')
+  }
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (submitting || submitSuccess) return
+
+    setSubmitError(null)
+    setSubmitting(true)
+
+    const result = await sendContactFormMessage({
+      name: name.trim(),
+      email: email.trim(),
+      subject: subject.trim(),
+      message: message.trim(),
+      accountLinked: Boolean(profile),
+    })
+
+    setSubmitting(false)
+
+    if (!result.ok) {
+      setSubmitError(result.error)
+      return
+    }
+
+    setSubmitSuccess(true)
+    setSubject('')
+    setMessage('')
   }
 
   return (
@@ -166,10 +199,36 @@ export function Contact() {
             Send us a message
           </h3>
 
+          {submitSuccess ? (
+            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-5 lg:mt-6">
+              <p className="text-sm font-semibold text-emerald-900">Message sent</p>
+              <p className="mt-1 text-xs leading-relaxed text-emerald-800 lg:text-sm">
+                Thanks for reaching out. We usually reply within 24–48 hours.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSubmitSuccess(false)
+                  setSubmitError(null)
+                }}
+                className="mt-4 text-xs font-medium text-emerald-900 underline underline-offset-2 hover:text-emerald-950"
+              >
+                Send another message
+              </button>
+            </div>
+          ) : (
           <form
             className="mt-3 min-h-0 flex-1 space-y-2 lg:mt-6 lg:space-y-3 lg:overflow-hidden md:space-y-4"
-            onSubmit={(e) => e.preventDefault()}
+            onSubmit={handleSubmit}
           >
+            <input
+              type="text"
+              name="website"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              className="pointer-events-none absolute h-0 w-0 opacity-0"
+            />
             <div className="grid max-lg:grid-cols-2 max-lg:gap-2 lg:block">
               <div>
                 <label htmlFor="contact-name" className="mb-0.5 block text-xs font-medium text-carbon-700 lg:mb-1 lg:text-sm">
@@ -181,7 +240,9 @@ export function Contact() {
                   placeholder="Your name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500 lg:px-3 lg:py-2.5 lg:text-sm"
+                  required
+                  disabled={submitting}
+                  className="w-full rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500 disabled:opacity-60 lg:px-3 lg:py-2.5 lg:text-sm"
                 />
               </div>
               <div>
@@ -194,7 +255,9 @@ export function Contact() {
                   placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500 lg:px-3 lg:py-2.5 lg:text-sm"
+                  required
+                  disabled={submitting}
+                  className="w-full rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500 disabled:opacity-60 lg:px-3 lg:py-2.5 lg:text-sm"
                 />
               </div>
             </div>
@@ -208,7 +271,9 @@ export function Contact() {
                 placeholder="Subject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500 lg:px-3 lg:py-2.5 lg:text-sm"
+                required
+                disabled={submitting}
+                className="w-full rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500 disabled:opacity-60 lg:px-3 lg:py-2.5 lg:text-sm"
               />
             </div>
             <div className="min-h-0 flex-1 max-lg:flex max-lg:flex-col lg:block">
@@ -221,22 +286,36 @@ export function Contact() {
                 placeholder="Your message..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="max-lg:min-h-0 max-lg:flex-1 w-full resize-none rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500 lg:min-h-[5.5rem] lg:px-3 lg:py-2.5 lg:text-sm"
+                required
+                disabled={submitting}
+                className="max-lg:min-h-0 max-lg:flex-1 w-full resize-none rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500 disabled:opacity-60 lg:min-h-[5.5rem] lg:px-3 lg:py-2.5 lg:text-sm"
               />
             </div>
             <div className="shrink-0 pt-0.5 lg:pt-0">
+              {submitError ? (
+                <p className="mb-2 text-xs text-red-600 lg:text-sm" role="alert">
+                  {submitError}
+                </p>
+              ) : null}
               <AppleButton
                 type="submit"
-                disabled={!name.trim() || !email.trim() || !subject.trim() || !message.trim()}
+                disabled={
+                  submitting ||
+                  !name.trim() ||
+                  !email.trim() ||
+                  !subject.trim() ||
+                  !message.trim()
+                }
                 className="disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-[#0485F7] disabled:hover:bg-[#0485F7]"
               >
-                Send message
+                {submitting ? 'Sending…' : 'Send message'}
               </AppleButton>
               <p className="mt-1.5 text-[10px] text-carbon-500 lg:mt-3 lg:text-xs">
                 We usually reply within 24–48 hours.
               </p>
             </div>
           </form>
+          )}
         </div>
       </div>
     </div>

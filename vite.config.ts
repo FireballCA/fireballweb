@@ -31,9 +31,14 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
   }
   const PUBLIC_EMAIL_DOMAINS = new Set(['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com'])
   const configuredFromEmail = cleanInline(
-    env.FIREBALL_FROM_EMAIL || 'Fireball Canada <no-reply@fireballcanada.com>',
+    env.FIREBALL_FROM_EMAIL || 'Fireball Canada <onboarding@resend.dev>',
   )
   const configuredFromDomain = extractEmailDomain(configuredFromEmail)
+  const teamInbox = cleanInline(
+    env.CONTACT_INBOX_EMAIL || env.FIREBALL_REPLY_TO_EMAIL || 'fireballcarcarecanada@gmail.com',
+  )
+    .slice(0, 254)
+    .toLowerCase()
   const fireballFromEmail =
     configuredFromDomain && !PUBLIC_EMAIL_DOMAINS.has(configuredFromDomain)
       ? configuredFromEmail
@@ -1124,6 +1129,135 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
         }
       })
 
+      server.middlewares.use('/api/send-contact-email', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Method not allowed' }))
+          return
+        }
+
+        if (!resendApiKey) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ error: 'Missing RESEND_API_KEY in local server env.' }))
+          return
+        }
+
+        try {
+          const payload = await readJsonBody(req)
+          if (cleanInline(payload.website || '')) {
+            res.statusCode = 200
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ success: true }))
+            return
+          }
+
+          const name = cleanInline(payload.name || '').slice(0, 120)
+          const email = cleanInline(payload.email || '').slice(0, 254).toLowerCase()
+          const subject = cleanInline(payload.subject || '').slice(0, 180)
+          const message = String(payload.message || '').trim().slice(0, 5000)
+          const accountLinked = payload.accountLinked === true
+          const contactInbox = teamInbox
+
+          if (!name || !email || !subject || !message) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: 'Missing required fields: name, email, subject, message' }))
+            return
+          }
+
+          const mailSubject = `[Contact] ${subject}`
+          const text = [
+            `New contact message from ${name} <${email}>`,
+            accountLinked ? 'Account: signed in' : 'Account: guest',
+            '',
+            `Subject: ${subject}`,
+            '',
+            message,
+          ].join('\n')
+
+          const resendResponse = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${resendApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: fireballFromEmail,
+              to: [contactInbox],
+              reply_to: email,
+              subject: mailSubject,
+              text,
+              tags: [{ name: 'flow', value: toResendTagToken('contact_form', 'contact') }],
+            }),
+          })
+
+          const data = await resendResponse.json().catch(() => ({}))
+          if (!resendResponse.ok) {
+            res.statusCode = 400
+            res.setHeader('Content-Type', 'application/json')
+            res.end(
+              JSON.stringify({
+                error: 'Failed to send message. Please try again later.',
+                details: data,
+              }),
+            )
+            return
+          }
+
+          const autoReplyText = [
+            `Hi ${name},`,
+            '',
+            `Thank you for contacting Fireball Canada. We received your message about "${subject}".`,
+            '',
+            'Our team usually replies within 24–48 hours.',
+            '',
+            'Sincerely,',
+            'Fireball Canada',
+          ].join('\n')
+
+          const autoReplyResponse = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${resendApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: fireballFromEmail,
+              to: [email],
+              reply_to: contactInbox,
+              subject: 'We received your message — Fireball Canada',
+              text: autoReplyText,
+              tags: [{ name: 'flow', value: toResendTagToken('contact_form_auto_reply', 'contact') }],
+            }),
+          })
+
+          const autoReplyData = await autoReplyResponse.json().catch(() => ({}))
+
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              success: true,
+              provider: 'resend',
+              id: (data as { id?: string })?.id || null,
+              autoReplySent: autoReplyResponse.ok,
+              autoReplyDetails: autoReplyResponse.ok ? undefined : autoReplyData,
+            }),
+          )
+        } catch (error) {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(
+            JSON.stringify({
+              error: 'Internal server error',
+              details: error instanceof Error ? error.message : 'Unknown error',
+            }),
+          )
+        }
+      })
+
       server.middlewares.use('/api/send-partner-approval-email', async (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405
@@ -1170,6 +1304,7 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
             body: JSON.stringify({
               from: fireballFromEmail,
               to: [to],
+              reply_to: to === teamInbox ? undefined : teamInbox,
               subject,
               text: message,
               html: html || undefined,

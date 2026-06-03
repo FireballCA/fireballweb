@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUserProfile, type UserProfile } from '@/utils/supabaseAuth'
 import { getAuthHeaders } from '@/utils/authHeaders'
+import { TEAM_INBOX_EMAIL } from '@/constants/teamInbox'
 import type { EventAccessMode } from '@/constants/siteEventConfigs'
 import { AppleButton } from '@/components/ui/AppleButton'
 
@@ -90,7 +91,7 @@ async function submitEventRsvp(params: {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
     body: JSON.stringify({
-      to: 'info@fireballcanada.com',
+      to: TEAM_INBOX_EMAIL,
       subject: `Event RSVP — ${params.eventTitle} — ${params.userName}`,
       message: `${params.userName} (${params.userEmail}) — Role: ${params.userRole || 'N/A'} — Company: ${params.companyName || 'N/A'} — Status: ${params.status}${params.message ? `\n\nMessage: ${params.message}` : ''}`,
       html: `<div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
