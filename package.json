@@ -19,6 +19,7 @@
     "@supabase/supabase-js": "^2.98.0",
     "@tabler/icons-react": "^3.38.0",
     "@types/three": "^0.183.1",
+    "@vercel/analytics": "^2.0.1",
     "clsx": "^2.1.1",
     "dotted-map": "^3.1.0",
     "framer-motion": "^12.38.0",
