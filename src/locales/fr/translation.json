@@ -332,6 +332,7 @@
     "newHere": "Nouveau ici ?",
     "createAccount": "Créer un compte",
     "alreadyHaveAccount": "Tu as déjà un compte ?",
+    "backToSignIn": "Retour à la connexion",
     "logIn": "Se connecter",
     "allFieldsRequired": "Tous les champs sont obligatoires.",
     "needHelp": "Besoin d'aide ?",

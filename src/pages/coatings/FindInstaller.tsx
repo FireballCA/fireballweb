@@ -394,7 +394,8 @@ export function FindInstaller() {
       const profile = await getCurrentUserProfile()
       setIsAdmin(String(profile?.role || '').trim().toLowerCase() === 'admin')
       try {
-        const { data } = await supabase.from('stockist_locations').select('*')
+        const { data, error } = await supabase.from('stockist_locations').select('*')
+        if (error) return
         if (data && data.length > 0) {
           setDbLocations(
             data.map((r) => ({

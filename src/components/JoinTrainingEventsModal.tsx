@@ -272,6 +272,14 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
 
             <fieldset className="fb-training-session-picker mt-7">
               <legend className={sectionLabelClass}>Training date</legend>
+              {trainingSessions.length === 0 ? (
+                <div className="mt-3 rounded-2xl bg-[#f2f2f7] px-4 py-8 text-center shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
+                  <p className="text-[15px] font-semibold text-[#1d1d1f]">No training sessions scheduled yet</p>
+                  <p className="mt-2 text-[13px] leading-relaxed text-neutral-500">
+                    Upcoming dates will be announced soon. Check back later.
+                  </p>
+                </div>
+              ) : (
               <div className="mt-3 space-y-1 rounded-2xl bg-[#f2f2f7] p-1.5 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]">
                   {trainingSessions.map((opt) => {
                     const inputId = `${baseId}-session-${opt.id}`
@@ -310,6 +318,7 @@ export function JoinTrainingEventsModal({ open, onClose }: JoinTrainingEventsMod
                   )
                 })}
               </div>
+              )}
             </fieldset>
 
             {!profile ? (

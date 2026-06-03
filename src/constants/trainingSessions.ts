@@ -4,26 +4,10 @@ export type TrainingSessionOption = {
   hint?: string
 }
 
-export const DEFAULT_TRAINING_SESSION_OPTIONS: TrainingSessionOption[] = [
-  {
-    id: 'may-2026-sh',
-    label: 'May 15-16, 2026',
-    hint: 'Saint-Hyacinthe, QC - hands-on + certification',
-  },
-  {
-    id: 'jun-2026-sh',
-    label: 'June 12-13, 2026',
-    hint: 'Saint-Hyacinthe, QC - hands-on + certification',
-  },
-  {
-    id: 'sep-2026-sh',
-    label: 'September 18-19, 2026',
-    hint: 'Saint-Hyacinthe, QC - hands-on + certification',
-  },
-]
+export const DEFAULT_TRAINING_SESSION_OPTIONS: TrainingSessionOption[] = []
 
 export function resolveTrainingSessionOptions(raw: unknown): TrainingSessionOption[] {
-  if (!Array.isArray(raw)) return DEFAULT_TRAINING_SESSION_OPTIONS
+  if (!Array.isArray(raw)) return []
   const parsed: TrainingSessionOption[] = []
   for (const item of raw) {
     if (!item || typeof item !== 'object') continue
@@ -39,5 +23,5 @@ export function resolveTrainingSessionOptions(raw: unknown): TrainingSessionOpti
     if (!id || !label) continue
     parsed.push({ id, label, hint: hint || undefined })
   }
-  return parsed.length ? parsed : DEFAULT_TRAINING_SESSION_OPTIONS
+  return parsed
 }
