@@ -31,7 +31,7 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
   }
   const PUBLIC_EMAIL_DOMAINS = new Set(['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com'])
   const configuredFromEmail = cleanInline(
-    env.FIREBALL_FROM_EMAIL || 'Fireball Canada <onboarding@resend.dev>',
+    env.FIREBALL_FROM_EMAIL || 'Fireball Canada <noreply@fireball-canada.com>',
   )
   const configuredFromDomain = extractEmailDomain(configuredFromEmail)
   const teamInbox = cleanInline(
@@ -42,7 +42,7 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
   const fireballFromEmail =
     configuredFromDomain && !PUBLIC_EMAIL_DOMAINS.has(configuredFromDomain)
       ? configuredFromEmail
-      : 'Fireball Canada <onboarding@resend.dev>'
+      : 'Fireball Canada <noreply@fireball-canada.com>'
   const isInvalidShopifyToken = (details: unknown): boolean => {
     const text =
       typeof details === 'string'

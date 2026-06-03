@@ -155,7 +155,11 @@ export default async function handler(req, res) {
 
     if (!adminResult.ok) {
       console.error('Resend contact email failed:', adminResult.data)
-      return res.status(400).json({ error: 'Failed to send message. Please try again later.' })
+      const resendMessage =
+        typeof adminResult.data?.message === 'string' ? adminResult.data.message : null
+      return res.status(400).json({
+        error: resendMessage || 'Failed to send message. Please try again later.',
+      })
     }
 
     const autoReplySubject = 'We received your message — Fireball Canada'

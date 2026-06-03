@@ -103,7 +103,10 @@ export default async function handler(req, res) {
     const data = await response.json().catch(() => ({}))
     if (!response.ok) {
       console.error('Resend partner/training email failed:', data)
-      return res.status(400).json({ error: 'Failed to send email' })
+      const resendMessage = typeof data?.message === 'string' ? data.message : null
+      return res.status(400).json({
+        error: resendMessage || 'Failed to send email',
+      })
     }
 
     return res.status(200).json({

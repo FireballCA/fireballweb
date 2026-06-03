@@ -9,7 +9,7 @@ export const PUBLIC_EMAIL_DOMAINS = new Set([
 ])
 
 export const DEFAULT_TEAM_INBOX = 'fireballcarcarecanada@gmail.com'
-export const RESEND_FALLBACK_FROM = 'Fireball Canada <onboarding@resend.dev>'
+export const RESEND_FALLBACK_FROM = 'Fireball Canada <noreply@fireball-canada.com>'
 
 export const extractEmailDomain = (value) => {
   const cleaned = cleanInline(value)
