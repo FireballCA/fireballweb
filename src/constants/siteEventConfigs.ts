@@ -72,6 +72,30 @@ export const DEFAULT_SITE_EVENT_CONFIGS: SiteEventConfig[] = [
 
 const DEFAULT_BY_SLUG = new Map(DEFAULT_SITE_EVENT_CONFIGS.map((d) => [d.slug, d]))
 
+const DEFAULT_EVENT_DURATION_MS = 4 * 60 * 60 * 1000
+
+export function resolveSiteEventEndAt(ev: Pick<SiteEventConfig, 'startAt' | 'endAt'>): Date {
+  if (ev.endAt) return new Date(ev.endAt)
+  if (ev.startAt) return new Date(new Date(ev.startAt).getTime() + DEFAULT_EVENT_DURATION_MS)
+  return new Date(Number.NaN)
+}
+
+export function isSiteEventPast(
+  ev: Pick<SiteEventConfig, 'startAt' | 'endAt'>,
+  nowMs: number = Date.now(),
+): boolean {
+  if (!ev.startAt && !ev.endAt) return false
+  const endMs = resolveSiteEventEndAt(ev).getTime()
+  if (Number.isNaN(endMs)) return false
+  return endMs < nowMs
+}
+
+/** True for detail routes like `/event/fireball-after-party` (not the listing `/event`). */
+export function isInternalEventDetailHref(href: string): boolean {
+  const path = href.split('?')[0]?.split('#')[0]?.trim() ?? ''
+  return /^\/event\/[^/]+/.test(path)
+}
+
 export function resolveSiteEventConfigs(raw: unknown): SiteEventConfig[] {
   if (!Array.isArray(raw)) return DEFAULT_SITE_EVENT_CONFIGS
   const parsed: SiteEventConfig[] = []

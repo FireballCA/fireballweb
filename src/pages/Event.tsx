@@ -7,6 +7,8 @@ import { AppleButton } from '@/components/ui/AppleButton'
 import { supabase } from '@/lib/supabase'
 import {
   DEFAULT_SITE_EVENT_CONFIGS,
+  isInternalEventDetailHref,
+  isSiteEventPast,
   resolveSiteEventConfigs,
   type SiteEventConfig,
 } from '@/constants/siteEventConfigs'
@@ -59,9 +61,14 @@ const eventCardCtaClass =
 const eventMetaPillClass =
   'inline-flex items-center gap-2.5 rounded-md bg-white px-4 py-2.5 text-left text-sm font-medium text-carbon-900 shadow-sm'
 
+const eventCardCtaDisabledClass =
+  'inline-flex items-center gap-1.5 text-xs font-bold uppercase text-white/45 cursor-not-allowed select-none'
+
 function EventCard({ ev, index }: { ev: SiteEventConfig; index: number }) {
   const ref = useRef<HTMLElement>(null)
   const inView = useInView(ref, { once: true, margin: '-80px' })
+  const eventEnded = isSiteEventPast(ev)
+  const ctaBlocked = eventEnded && isInternalEventDetailHref(ev.ctaHref)
 
   return (
     <motion.article
@@ -112,7 +119,11 @@ function EventCard({ ev, index }: { ev: SiteEventConfig; index: number }) {
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-end p-5 md:p-8 md:pt-0">
-        {ev.ctaHref.startsWith('/') ? (
+        {ctaBlocked ? (
+          <span className={eventCardCtaDisabledClass} aria-disabled="true">
+            Event ended
+          </span>
+        ) : ev.ctaHref.startsWith('/') ? (
           <Link to={ev.ctaHref} className={eventCardCtaClass}>
             {ev.ctaLabel}
             <ContactLinkArrow className="h-[14px] w-[14px] shrink-0 transition-transform duration-200 group-hover:translate-x-0.5" />

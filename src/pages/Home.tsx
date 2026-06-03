@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
 import { SEO, ORGANIZATION_JSONLD, WEBSITE_JSONLD } from '@/components/SEO'
+import { isInternalEventDetailHref, isSiteEventPast } from '@/constants/siteEventConfigs'
 
 const EASE_PREMIUM = [0.16, 1, 0.3, 1] as const
 const EASE_SNAPPY = [0.22, 1, 0.36, 1] as const
@@ -53,13 +54,16 @@ export function Home() {
     title: 'Fireball After Party',
     location: 'Saint-Hyacinthe, QC',
     startsAt: '2026-05-16T19:00:00-04:00',
+    endAt: '2026-05-16T23:00:00-04:00',
     href: '/event/fireball-after-party',
     imageSrc: '/Assets/FireballAfterParty.png',
   }
-  const countdown = useCountdown(nextEvent.startsAt, true)
+  const nextEventEnded = isSiteEventPast({ startAt: nextEvent.startsAt, endAt: nextEvent.endAt })
+  const nextEventCtaBlocked = nextEventEnded && isInternalEventDetailHref(nextEvent.href)
+  const countdown = useCountdown(nextEvent.startsAt, !nextEventEnded)
 
   const eventStart = useMemo(() => new Date(nextEvent.startsAt), [nextEvent.startsAt])
-  const eventEnd = useMemo(() => new Date(eventStart.getTime() + 2 * 60 * 60 * 1000), [eventStart])
+  const eventEnd = useMemo(() => new Date(nextEvent.endAt), [nextEvent.endAt])
   const toGoogleDate = (d: Date) =>
     d
       .toISOString()
@@ -475,9 +479,15 @@ export function Home() {
                     transition={{ duration: reduceMotion ? 0 : 0.5, ease: EASE_SNAPPY, delay: reduceMotion ? 0 : 0.24 }}
                   >
                     <div className="relative flex w-full items-center gap-2">
-                      <SecondaryClipButton to={nextEvent.href} idleTextClass="text-white" hoverTextClass="text-black">
-                        See event details
-                      </SecondaryClipButton>
+                      {nextEventCtaBlocked ? (
+                        <span className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white/50 cursor-not-allowed select-none">
+                          Event ended
+                        </span>
+                      ) : (
+                        <SecondaryClipButton to={nextEvent.href} idleTextClass="text-white" hoverTextClass="text-black">
+                          See event details
+                        </SecondaryClipButton>
+                      )}
                       <div ref={calendarMenuRef} className="relative pointer-events-auto sm:ml-auto">
                         <button
                           type="button"

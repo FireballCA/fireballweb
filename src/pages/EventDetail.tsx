@@ -3,7 +3,7 @@ import { Navigate, useParams } from 'react-router-dom'
 import { ReserveYourSpot } from '@/components/events/ReserveYourSpot'
 import { WhatToExpect } from '@/components/events/WhatToExpect'
 import { supabase } from '@/lib/supabase'
-import { resolveSiteEventConfigs, type EventAccessMode, type WhatToExpectRow } from '@/constants/siteEventConfigs'
+import { resolveSiteEventConfigs, isSiteEventPast, type EventAccessMode, type WhatToExpectRow } from '@/constants/siteEventConfigs'
 import { usePageTitle } from '@/hooks/usePageTitle'
 
 /** Scales down font size so the title stays on one line within its container */
@@ -46,15 +46,18 @@ function HeroSingleLineTitle({ text, className }: { text: string; className?: st
   )
 }
 
-function EventCountdown({ targetIso }: { targetIso: string }) {
+function EventCountdown({ targetIso, endIso }: { targetIso: string; endIso: string }) {
   const target = useMemo(() => new Date(targetIso).getTime(), [targetIso])
+  const end = useMemo(() => new Date(endIso).getTime(), [endIso])
   const [, setTick] = useState(0)
   useEffect(() => {
     const id = window.setInterval(() => setTick((t) => t + 1), 1000)
     return () => window.clearInterval(id)
   }, [])
 
-  const diff = Math.max(0, target - Date.now())
+  const now = Date.now()
+  const eventEnded = now >= end
+  const diff = Math.max(0, target - now)
   const s = Math.floor(diff / 1000)
   const days = Math.floor(s / 86400)
   const hours = Math.floor((s % 86400) / 3600)
@@ -73,7 +76,11 @@ function EventCountdown({ targetIso }: { targetIso: string }) {
 
   return (
     <div className="flex w-full items-stretch justify-center">
-      {ended ? (
+      {eventEnded ? (
+        <p className="py-4 text-center font-nav text-xl font-bold text-white sm:text-2xl">
+          This event has ended.
+        </p>
+      ) : ended ? (
         <p className="py-4 text-center font-nav text-xl font-bold text-white sm:text-2xl">
           We're live — see you there.
         </p>
@@ -284,6 +291,8 @@ export function EventDetail() {
     return <Navigate to="/event" replace />
   }
 
+  const eventEnded = isSiteEventPast({ startAt: resolved.startAt, endAt: resolved.endAt })
+
   return (
     <div className="w-full min-w-0 bg-black text-white">
       {/* One viewport below site header: hero fills to bottom; countdown is below the fold */}
@@ -330,7 +339,7 @@ export function EventDetail() {
         className="w-full border-t border-carbon-700 bg-carbon-900"
         aria-label="Countdown to event"
       >
-        <EventCountdown targetIso={resolved.startAt} />
+        <EventCountdown targetIso={resolved.startAt} endIso={resolved.endAt} />
         <AddToCalendar
           title={resolved.heroTitle}
           location={resolved.locationLine}
@@ -345,6 +354,7 @@ export function EventDetail() {
         eventTitle={resolved.heroTitle}
         accessMode={resolved.accessMode}
         allowedRoles={resolved.allowedRoles}
+        eventEnded={eventEnded}
       />
     </div>
   )

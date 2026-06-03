@@ -11,6 +11,7 @@ type Props = {
   eventTitle: string
   accessMode: EventAccessMode
   allowedRoles?: string[]
+  eventEnded?: boolean
 }
 
 type AttendanceStatus = 'going' | 'not-going' | null
@@ -281,7 +282,7 @@ function PrivateRequest({ eventSlug, eventTitle, profile, isPartner }: { eventSl
   )
 }
 
-export function ReserveYourSpot({ eventSlug, eventTitle, accessMode, allowedRoles }: Props) {
+export function ReserveYourSpot({ eventSlug, eventTitle, accessMode, allowedRoles, eventEnded = false }: Props) {
   const { ref, revealed } = useReveal()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [authChecked, setAuthChecked] = useState(false)
@@ -326,14 +327,23 @@ export function ReserveYourSpot({ eventSlug, eventTitle, accessMode, allowedRole
         </h2>
 
         <p className="mt-5 text-sm leading-relaxed text-carbon-500 sm:text-base">
-          {isPublic
+          {eventEnded
+            ? 'Registration is closed — this event is no longer available.'
+            : isPublic
             ? "Let us know if you're coming — no account needed."
             : isPartnerMode
             ? 'This event is open to Fireball partners. Sign in to confirm your attendance in one click.'
             : "This evening is private and capacity is limited. Sign in to request your spot — we'll confirm with you directly."}
         </p>
 
-        {isPublic ? (
+        {eventEnded ? (
+          <div className="mt-10 flex flex-col items-center gap-3">
+            <span className="inline-flex items-center justify-center rounded-full border border-carbon-200 bg-carbon-50 px-5 py-2.5 font-nav text-xs font-bold uppercase tracking-[0.16em] text-carbon-500">
+              Event ended
+            </span>
+            <p className="text-xs text-carbon-400">This event is no longer open for registration.</p>
+          </div>
+        ) : isPublic ? (
           /* Public event — anyone can vote, no login required */
           <PublicAttendanceAnon eventSlug={eventSlug} />
         ) : !authChecked ? null : profile ? (
