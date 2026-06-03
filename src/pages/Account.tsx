@@ -6,44 +6,8 @@ import { getSafeReturnToPath } from '@/utils/safeReturnTo'
 import { IOSCheckbox } from '@/components/IOSCheckbox'
 import { SEO } from '@/components/SEO'
 
-function FlagEN() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="flex-shrink-0">
-      <defs>
-        <clipPath id="flag-en-circle-auth">
-          <circle cx="10" cy="10" r="10" />
-        </clipPath>
-      </defs>
-      <g clipPath="url(#flag-en-circle-auth)">
-        <rect width="20" height="20" fill="#012169" />
-        <path d="M0 0L20 20M20 0L0 20" stroke="white" strokeWidth="3" />
-        <path d="M0 0L20 20M20 0L0 20" stroke="#C8102E" strokeWidth="1.8" />
-        <path d="M10 0v20M0 10h20" stroke="white" strokeWidth="5" />
-        <path d="M10 0v20M0 10h20" stroke="#C8102E" strokeWidth="3" />
-      </g>
-    </svg>
-  )
-}
-
-function FlagFR() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="flex-shrink-0">
-      <defs>
-        <clipPath id="flag-fr-circle-auth">
-          <circle cx="10" cy="10" r="10" />
-        </clipPath>
-      </defs>
-      <g clipPath="url(#flag-fr-circle-auth)">
-        <rect width="6.67" height="20" fill="#002395" />
-        <rect width="6.67" height="20" x="6.67" fill="#fff" />
-        <rect width="6.67" height="20" x="13.33" fill="#ED2939" />
-      </g>
-    </svg>
-  )
-}
-
 export function Account() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
@@ -51,8 +15,6 @@ export function Account() {
   const [errorMessage, setErrorMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [rememberDevice, setRememberDevice] = useState(false)
-  const [langMenuOpen, setLangMenuOpen] = useState(false)
-  const lang = i18n.language === 'fr' ? 'FR' : 'EN'
 
   const returnToParam = new URLSearchParams(location.search).get('returnTo')
   const returnToPath = getSafeReturnToPath(returnToParam)
@@ -112,7 +74,7 @@ export function Account() {
       }
 
       if (data.user) {
-        const languageCode = i18n.language === 'fr' ? 'fr' : 'en'
+        const languageCode = 'en'
         try {
           await supabase.from('profiles').update({ language: languageCode }).eq('id', data.user.id)
         } catch (e) {
@@ -137,7 +99,7 @@ export function Account() {
       <div className="absolute -top-40 -right-32 w-80 h-80 bg-red-500/18 blur-3xl rounded-full opacity-70 pointer-events-none" aria-hidden />
       <div className="absolute -bottom-40 -left-32 w-80 h-80 bg-white/8 blur-3xl rounded-full opacity-60 pointer-events-none" aria-hidden />
 
-      {/* Top bar: logo left, language dropdown right */}
+      {/* Top bar: logo left */}
       <div className="absolute top-6 left-6 z-30">
         <Link to="/" className="inline-flex items-center gap-2">
           <img
@@ -147,59 +109,6 @@ export function Account() {
             draggable={false}
           />
         </Link>
-      </div>
-      <div className="absolute top-6 right-6 z-30">
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setLangMenuOpen((open) => !open)}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-black/40 text-xs font-nav font-bold uppercase tracking-[0.16em] text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors backdrop-blur-md"
-          >
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
-              {lang === 'EN' ? <FlagEN /> : <FlagFR />}
-            </span>
-            <span>{lang}</span>
-            <svg
-              className={`w-3 h-3 transition-transform ${langMenuOpen ? 'rotate-180' : ''}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <path d="M19 9l-7 7-7-7" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-
-          {langMenuOpen && (
-            <div className="absolute right-0 mt-2 w-40 rounded-xl border border-white/10 bg-black/90 backdrop-blur-xl shadow-xl py-1">
-              <button
-                type="button"
-                onClick={() => {
-                  i18n.changeLanguage('en')
-                  setLangMenuOpen(false)
-                }}
-                className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-white/85 hover:bg-white/5"
-              >
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
-                  <FlagEN />
-                </span>
-                <span className="font-medium">English</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  i18n.changeLanguage('fr')
-                  setLangMenuOpen(false)
-                }}
-                className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-white/70 hover:bg-white/5"
-              >
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
-                  <FlagFR />
-                </span>
-                <span className="font-medium">Français</span>
-              </button>
-            </div>
-          )}
-        </div>
       </div>
 
       <div className="relative z-10 flex-1 min-h-0 w-full overflow-hidden flex flex-col items-center justify-center px-4 py-4 md:py-8">

@@ -26,44 +26,6 @@ type RankedSearchEntry = SearchEntry & {
   score: number
 }
 
-function FlagEN() {
-  const clipId = useId()
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="flex-shrink-0">
-      <defs>
-        <clipPath id={clipId}>
-          <circle cx="10" cy="10" r="10" />
-        </clipPath>
-      </defs>
-      <g clipPath={`url(#${clipId})`}>
-        <rect width="20" height="20" fill="#012169" />
-        <path d="M0 0L20 20M20 0L0 20" stroke="white" strokeWidth="3" />
-        <path d="M0 0L20 20M20 0L0 20" stroke="#C8102E" strokeWidth="1.8" />
-        <path d="M10 0v20M0 10h20" stroke="white" strokeWidth="5" />
-        <path d="M10 0v20M0 10h20" stroke="#C8102E" strokeWidth="3" />
-      </g>
-    </svg>
-  )
-}
-
-function FlagFR() {
-  const clipId = useId()
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="flex-shrink-0">
-      <defs>
-        <clipPath id={clipId}>
-          <circle cx="10" cy="10" r="10" />
-        </clipPath>
-      </defs>
-      <g clipPath={`url(#${clipId})`}>
-        <rect width="6.67" height="20" fill="#002395" />
-        <rect width="6.67" height="20" x="6.67" fill="#fff" />
-        <rect width="6.67" height="20" x="13.33" fill="#ED2939" />
-      </g>
-    </svg>
-  )
-}
-
 /** Icônes Lucide (scroll-text, git-compare-arrows, map-pin, wrench) pour le sous-menu ceramic mobile. */
 function CeramicMobileNavIcon({ to }: { to: string }) {
   const svgProps = {
@@ -118,7 +80,7 @@ function CeramicMobileNavIcon({ to }: { to: string }) {
 
 export function Header() {
   const lenis = useContext(LenisContext)
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
 
   const ceramicSections = useMemo(() => [
     {
@@ -172,11 +134,7 @@ export function Header() {
   const [isMobileMenuMounted, setIsMobileMenuMounted] = useState(false)
   const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const lang = i18n.language === 'fr' ? 'FR' : 'EN'
-  const [langOpen, setLangOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
-  const langMenuDesktopRef = useRef<HTMLDivElement | null>(null)
-  const langMenuMobileRef = useRef<HTMLDivElement | null>(null)
   const searchMenuRef = useRef<HTMLDivElement | null>(null)
   const { totalItems } = useCart()
   const isDashboardPage = location.pathname === '/account/dashboard' || location.pathname === '/dashboard'
@@ -423,11 +381,11 @@ export function Header() {
   }, [])
 
   useEffect(() => {
-    if (menuOpen || shopOpen || ceramicOpen || companyOpen || searchOpen || langOpen) {
+    if (menuOpen || shopOpen || ceramicOpen || companyOpen || searchOpen) {
       headerHideProgressRef.current = 0
       setHeaderHideProgress(0)
     }
-  }, [menuOpen, shopOpen, ceramicOpen, companyOpen, searchOpen, langOpen])
+  }, [menuOpen, shopOpen, ceramicOpen, companyOpen, searchOpen])
 
   useEffect(() => {
     if (!isAutoHideHeaderPage) {
@@ -455,7 +413,7 @@ export function Header() {
       }
 
       const navLocked =
-        menuOpen || shopOpen || ceramicOpen || companyOpen || searchOpen || langOpen
+        menuOpen || shopOpen || ceramicOpen || companyOpen || searchOpen
       if (navLocked) {
         lastScrollYRef.current = scrollY
         if (headerHideProgressRef.current !== 0) {
@@ -504,20 +462,11 @@ export function Header() {
     ceramicOpen,
     companyOpen,
     searchOpen,
-    langOpen,
   ])
 
   useEffect(() => {
     const onClickOutside = (event: MouseEvent) => {
       const target = event.target as Node
-
-      if (langOpen) {
-        const inDesktop = langMenuDesktopRef.current?.contains(target)
-        const inMobile = langMenuMobileRef.current?.contains(target)
-        if (!inDesktop && !inMobile) {
-          setLangOpen(false)
-        }
-      }
 
       if (searchOpen && searchMenuRef.current && !searchMenuRef.current.contains(target)) {
         setSearchOpen(false)
@@ -525,7 +474,7 @@ export function Header() {
     }
     document.addEventListener('mousedown', onClickOutside)
     return () => document.removeEventListener('mousedown', onClickOutside)
-  }, [langOpen, searchOpen])
+  }, [searchOpen])
 
   useEffect(() => {
     if (menuOpen) {
@@ -660,7 +609,7 @@ export function Header() {
 
   const navLink =
     'font-nav font-bold text-white transition-colors text-[11px] uppercase px-3 py-1.5 rounded-md hover:bg-carbon-700/20 group-hover:text-silver/70 hover:!text-white'
-  const anyMenuOpen = shopOpen || ceramicOpen || companyOpen || searchOpen || langOpen || menuOpen
+  const anyMenuOpen = shopOpen || ceramicOpen || companyOpen || searchOpen || menuOpen
 
   const normalizeSearchValue = (value: string) =>
     value
@@ -1200,63 +1149,6 @@ export function Header() {
                         ))}
                       </ul>
                     )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="w-px h-6 bg-carbon-600" aria-hidden />
-
-          <div className="relative h-full flex items-center" ref={langMenuDesktopRef}>
-            <button
-              type="button"
-              onClick={() => setLangOpen((open) => !open)}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-md text-silver/80 hover:text-white transition-colors hover:bg-carbon-700/30"
-              aria-haspopup="menu"
-              aria-expanded={langOpen}
-            >
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
-                {lang === 'EN' ? <FlagEN /> : <FlagFR />}
-              </span>
-              <span className="text-sm font-nav font-bold">{lang}</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {langOpen && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-0 animate-fade-in">
-                <div className="relative bg-white p-2 min-w-[160px] rounded-2xl shadow-xl pt-5">
-                  <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white z-10" viewBox="0 0 16 8" preserveAspectRatio="none">
-                    <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
-                  </svg>
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        i18n.changeLanguage('en')
-                        setLangOpen(false)
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-nav font-bold text-carbon-900 transition-colors rounded-2xl hover:bg-black/10"
-                    >
-                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
-                        <FlagEN />
-                      </span>
-                      English
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        i18n.changeLanguage('fr')
-                        setLangOpen(false)
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm font-nav font-bold text-carbon-900 transition-colors rounded-2xl hover:bg-black/10"
-                    >
-                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
-                        <FlagFR />
-                      </span>
-                      Français
-                    </button>
                   </div>
                 </div>
               </div>
@@ -1874,65 +1766,6 @@ export function Header() {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Langue */}
-              <div className="mt-4 pt-1 relative" ref={langMenuMobileRef}>
-                <button
-                  type="button"
-                  onClick={() => setLangOpen((open) => !open)}
-                  className="flex w-[96%] mx-auto items-center gap-2 py-3 px-2 text-sm font-nav font-bold text-white"
-                  aria-haspopup="menu"
-                  aria-expanded={langOpen}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
-                      {lang === 'EN' ? <FlagEN /> : <FlagFR />}
-                    </span>
-                    <span>{lang === 'EN' ? 'English' : 'Français'}</span>
-                  </span>
-                  <svg
-                    className={`w-4 h-4 transition-transform ${langOpen ? '-rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m19 12-7 7-7-7" />
-                  </svg>
-                </button>
-                {langOpen && (
-                  <div className="absolute left-0 right-0 top-full mt-0 rounded-b-lg bg-inherit shadow-none animate-fade-in">
-                    {lang === 'EN' ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          i18n.changeLanguage('fr')
-                          setLangOpen(false)
-                        }}
-                        className="flex w-[96%] mx-auto items-center gap-2 py-2 px-2 text-sm font-nav font-bold text-silver hover:text-white"
-                      >
-                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
-                          <FlagFR />
-                        </span>
-                        Français
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          i18n.changeLanguage('en')
-                          setLangOpen(false)
-                        }}
-                        className="flex w-[96%] mx-auto items-center gap-2 py-2 px-2 text-sm font-nav font-bold text-silver hover:text-white"
-                      >
-                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
-                          <FlagEN />
-                        </span>
-                        English
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
 
             </nav>

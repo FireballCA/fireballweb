@@ -7,42 +7,6 @@ import { createShopifyCustomer } from '@/utils/shopifySync'
 import { IOSCheckbox } from '@/components/IOSCheckbox'
 import { SEO } from '@/components/SEO'
 
-function FlagEN() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="flex-shrink-0">
-      <defs>
-        <clipPath id="flag-en-circle">
-          <circle cx="10" cy="10" r="10" />
-        </clipPath>
-      </defs>
-      <g clipPath="url(#flag-en-circle)">
-        <rect width="20" height="20" fill="#012169" />
-        <path d="M0 0L20 20M20 0L0 20" stroke="white" strokeWidth="3" />
-        <path d="M0 0L20 20M20 0L0 20" stroke="#C8102E" strokeWidth="1.8" />
-        <path d="M10 0v20M0 10h20" stroke="white" strokeWidth="5" />
-        <path d="M10 0v20M0 10h20" stroke="#C8102E" strokeWidth="3" />
-      </g>
-    </svg>
-  )
-}
-
-function FlagFR() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="flex-shrink-0">
-      <defs>
-        <clipPath id="flag-fr-circle">
-          <circle cx="10" cy="10" r="10" />
-        </clipPath>
-      </defs>
-      <g clipPath="url(#flag-fr-circle)">
-        <rect width="6.67" height="20" fill="#002395" />
-        <rect width="6.67" height="20" x="6.67" fill="#fff" />
-        <rect width="6.67" height="20" x="13.33" fill="#ED2939" />
-      </g>
-    </svg>
-  )
-}
-
 function generateExternalMemberId(): string {
   // ID numérique court, lisible et scannable (8 chiffres)
   const value = Math.floor(10000000 + Math.random() * 90000000)
@@ -50,7 +14,7 @@ function generateExternalMemberId(): string {
 }
 
 export function AccountRegister() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const [firstName, setFirstName] = useState('')
@@ -60,10 +24,7 @@ export function AccountRegister() {
   const [errorMessage, setErrorMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [rememberDevice, setRememberDevice] = useState(false)
-  const [langMenuOpen, setLangMenuOpen] = useState(false)
-  const [frWarningOpen, setFrWarningOpen] = useState(false)
-  const lang = i18n.language === 'fr' ? 'FR' : 'EN'
-  const languageCode = i18n.language === 'fr' ? 'fr' : 'en'
+  const languageCode = 'en'
 
   const returnToParam = new URLSearchParams(location.search).get('returnTo')
   const returnToPath = getSafeReturnToPath(returnToParam)
@@ -256,61 +217,6 @@ export function AccountRegister() {
           </Link>
         </div>
 
-        <div className="absolute top-6 right-6 z-30">
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setLangMenuOpen((open) => !open)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-black/40 text-xs font-nav font-bold uppercase tracking-[0.16em] text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors backdrop-blur-md"
-            >
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
-                {lang === 'EN' ? <FlagEN /> : <FlagFR />}
-              </span>
-              <span>{lang}</span>
-              <svg
-                className={`w-3 h-3 transition-transform ${langMenuOpen ? 'rotate-180' : ''}`}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-              >
-                <path d="M19 9l-7 7-7-7" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-
-            {langMenuOpen && (
-              <div className="absolute right-0 mt-2 w-40 rounded-xl border border-white/10 bg-black/90 backdrop-blur-xl shadow-xl py-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    i18n.changeLanguage('en')
-                    setLangMenuOpen(false)
-                  }}
-                  className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-white/85 hover:bg-white/5"
-                >
-                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
-                    <FlagEN />
-                  </span>
-                  <span className="font-medium">English</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    i18n.changeLanguage('fr')
-                    setLangMenuOpen(false)
-                    setFrWarningOpen(true)
-                  }}
-                  className="w-full px-3 py-2.5 flex items-center gap-2 text-xs text-white/70 hover:bg-white/5"
-                >
-                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden">
-                    <FlagFR />
-                  </span>
-                  <span className="font-medium">Français</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
         <div className="relative z-10 flex-1 min-h-0 w-full overflow-y-auto overscroll-contain flex flex-col items-center justify-center px-4 py-20 md:py-8">
           <div className="w-full max-w-md flex-shrink-0">
             <div className="flex flex-col bg-black rounded-xl border border-white/10 shadow-[0_22px_55px_rgba(0,0,0,0.7)] overflow-hidden md:rounded-xl">
@@ -494,28 +400,6 @@ export function AccountRegister() {
             {t('auth.contactUs')}
           </a>
         </div>
-
-        {frWarningOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setFrWarningOpen(false)} />
-            <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-[#111] p-6 shadow-2xl">
-              <div className="mb-1 flex items-center gap-2">
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full overflow-hidden flex-shrink-0">
-                  <FlagFR />
-                </span>
-                <h2 className="text-base font-semibold text-white">{t('auth.frBetaTitle')}</h2>
-              </div>
-              <p className="mt-3 text-sm leading-relaxed text-white/65">{t('auth.frBetaBody')}</p>
-              <button
-                type="button"
-                onClick={() => setFrWarningOpen(false)}
-                className="mt-5 w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-black transition-colors hover:bg-white/90"
-              >
-                {t('auth.frBetaConfirm')}
-              </button>
-            </div>
-          </div>
-        )}
       </section>
     </>
   )

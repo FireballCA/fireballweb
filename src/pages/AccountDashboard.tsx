@@ -820,12 +820,6 @@ export function AccountDashboard() {
       let customerFullName = ''
       if (profile) {
         customerFullName = `${profile.first_name} ${profile.last_name}`.trim() || profile.email
-        if (profile.language && (profile.language === 'en' || profile.language === 'fr')) {
-          const { default: i18n } = await import('@/i18n')
-          if (i18n.language !== profile.language) {
-            i18n.changeLanguage(profile.language)
-          }
-        }
         setSubscriptionTier(normalizeSubscriptionTier(profile.subscription_tier))
         setUserRole(normalizeUserRole(profile.role))
         setCompanyName(profile.company_name ?? null)

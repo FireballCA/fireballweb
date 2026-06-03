@@ -189,6 +189,17 @@
       "Annonces et mises à jour privées"
     ],
     "joinIgnition": "Rejoindre Ignition",
+    "launchSoon": "Bientôt disponible",
+    "featuresComingSoon": "Bientôt disponible",
+    "featuresPlaceholderItems": [
+      "Avantage membre — bientôt dévoilé",
+      "Bénéfice exclusif — détails à venir",
+      "Avantage club — lancement imminent",
+      "Accès prioritaire — restez à l'affût",
+      "Récompense membre — bientôt disponible",
+      "Avantage premium — en développement",
+      "Bénéfice élite — arrive bientôt"
+    ],
     "eliteTier": "Niveau Élite",
     "apexMember": "Membre Apex",
     "apexPrice": "99 $ / mois",

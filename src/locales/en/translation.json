@@ -189,6 +189,17 @@
       "Early announcements & private updates"
     ],
     "joinIgnition": "Join Ignition",
+    "launchSoon": "Launch Soon",
+    "featuresComingSoon": "Coming Soon",
+    "featuresPlaceholderItems": [
+      "Member perk — unveiling soon",
+      "Exclusive benefit — details coming soon",
+      "Club advantage — launching soon",
+      "Priority access — stay tuned",
+      "Member reward — coming soon",
+      "Premium perk — in development",
+      "Elite benefit — arriving soon"
+    ],
     "eliteTier": "Elite Tier",
     "apexMember": "Apex Member",
     "apexPrice": "$99 / month",

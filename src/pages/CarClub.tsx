@@ -28,17 +28,45 @@ const fadeIn = {
   }),
 } as const as import('framer-motion').Variants
 
-const staggerContainer = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
-  },
-} satisfies import('framer-motion').Variants
+function CarClubFeaturesComingSoon({
+  count,
+  accentClass = 'text-white/70',
+  placeholderItems,
+  comingSoonLabel,
+}: {
+  count: number
+  accentClass?: string
+  placeholderItems: string[]
+  comingSoonLabel: string
+}) {
+  const items = Array.from({ length: count }, (_, index) => placeholderItems[index % placeholderItems.length])
 
-const featureItem = {
-  hidden: { opacity: 0, x: -14 },
-  show: { opacity: 1, x: 0, transition: { duration: 0.45, ease: EASE_SPRING } },
-} as const as import('framer-motion').Variants
+  return (
+    <div className="relative w-full max-w-sm mx-auto mb-8">
+      <div
+        className="pointer-events-none select-none blur-[5px] opacity-45 saturate-50"
+        aria-hidden
+      >
+        <div className="flex flex-col gap-2.5">
+          {items.map((label, index) => (
+            <div
+              key={`${label}-${index}`}
+              className="bg-[#252525] border border-white/10 text-white px-3.5 py-2.5 rounded-[8px] text-xs flex items-center justify-start gap-2 w-full text-left"
+            >
+              <span className={cn('text-sm select-none', accentClass)}>+</span>
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center px-4">
+        <span className="rounded-full border border-white/15 bg-black/75 px-4 py-2 text-[11px] font-nav font-bold uppercase tracking-[0.18em] text-white/85 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-md">
+          {comingSoonLabel}
+        </span>
+      </div>
+    </div>
+  )
+}
 
 
 function CarClubFAQItem({ q, a }: { q: string; a: string }) {
@@ -105,6 +133,9 @@ export function CarClub() {
   const apexFeatures = clubSettings?.apex_features ?? i18nApexFeatures
   const ignitionPrice = clubSettings?.ignition_price ?? i18nIgnitionPrice
   const apexPrice = clubSettings?.apex_price ?? i18nApexPrice
+  const featuresPlaceholderItems = t('carClub.featuresPlaceholderItems', { returnObjects: true }) as string[]
+  const featuresComingSoonLabel = t('carClub.featuresComingSoon')
+  const launchSoonLabel = t('carClub.launchSoon')
 
   const scrollToMembershipCards = useCallback(
     (e: MouseEvent<HTMLAnchorElement>) => {
@@ -257,22 +288,17 @@ export function CarClub() {
                 {t('carClub.ignitionDesc')}
               </p>
               <motion.div
-                className="flex flex-col gap-2.5 max-w-sm mx-auto mb-8"
-                variants={staggerContainer}
+                variants={fadeUp}
+                custom={0.05}
                 initial="hidden"
                 whileInView="show"
                 viewport={{ once: true, amount: 0.2 }}
               >
-                {ignitionFeatures.map((label) => (
-                  <motion.div
-                    key={label}
-                    variants={featureItem}
-                    className="bg-[#252525] border border-white/10 text-white px-3.5 py-2.5 rounded-[8px] text-xs flex items-center justify-start gap-2 w-full text-left"
-                  >
-                    <span className="text-white/70 text-sm select-none">+</span>
-                    <span>{label}</span>
-                  </motion.div>
-                ))}
+                <CarClubFeaturesComingSoon
+                  count={ignitionFeatures.length}
+                  placeholderItems={featuresPlaceholderItems}
+                  comingSoonLabel={featuresComingSoonLabel}
+                />
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
@@ -285,7 +311,7 @@ export function CarClub() {
                   disabled
                   className={cn('inline-flex whitespace-nowrap cursor-not-allowed opacity-70', appleButtonVisualClassName)}
                 >
-                  Launch Soon
+                  {launchSoonLabel}
                 </button>
               </motion.div>
             </motion.div>
@@ -316,22 +342,18 @@ export function CarClub() {
                 {t('carClub.apexDesc')}
               </p>
               <motion.div
-                className="flex flex-col gap-2.5 max-w-sm mx-auto mb-8"
-                variants={staggerContainer}
+                variants={fadeUp}
+                custom={0.05}
                 initial="hidden"
                 whileInView="show"
                 viewport={{ once: true, amount: 0.2 }}
               >
-                {apexFeatures.map((label) => (
-                  <motion.div
-                    key={label}
-                    variants={featureItem}
-                    className="bg-[#252525] border border-white/10 text-white px-3.5 py-2.5 rounded-[8px] text-xs flex items-center justify-start gap-2 w-full text-left"
-                  >
-                    <span className="text-red-400 text-sm select-none">+</span>
-                    <span>{label}</span>
-                  </motion.div>
-                ))}
+                <CarClubFeaturesComingSoon
+                  count={apexFeatures.length}
+                  accentClass="text-red-400"
+                  placeholderItems={featuresPlaceholderItems}
+                  comingSoonLabel={featuresComingSoonLabel}
+                />
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
@@ -344,7 +366,7 @@ export function CarClub() {
                   disabled
                   className={cn('inline-flex whitespace-nowrap cursor-not-allowed opacity-70', appleButtonVisualClassName)}
                 >
-                  Launch Soon
+                  {launchSoonLabel}
                 </button>
               </motion.div>
             </motion.div>
