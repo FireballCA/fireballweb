@@ -5,7 +5,12 @@ import { useEffect, useState, Suspense, type CSSProperties } from 'react'
 import { LineupImageTransitionProvider } from '@/context/LineupImageTransitionContext'
 import { CookieConsentModal } from '@/components/CookieConsentModal'
 import { FloatingAdminFab } from '@/components/FloatingAdminFab'
-import { RouteSkeleton } from '@/components/RouteSkeleton'
+import { DeferredRouteSkeleton } from '@/components/DeferredRouteSkeleton'
+import {
+  prefetchSiteRoute,
+  schedulePrefetchPublicSiteRoutesOnIdle,
+} from '@/routes/lazyPages'
+import { prefetchProductBySlug } from '@/utils/shopifyStorefront'
 import { Header } from './Header'
 import { Footer } from './Footer'
 
@@ -31,6 +36,25 @@ export function Layout() {
     mq.addEventListener('change', h)
     setIsMobile(mq.matches)
     return () => mq.removeEventListener('change', h)
+  }, [])
+
+  useEffect(() => schedulePrefetchPublicSiteRoutesOnIdle(), [])
+
+  useEffect(() => {
+    const onPointerOver = (e: PointerEvent) => {
+      const anchor = (e.target as HTMLElement | null)?.closest?.('a[href]')
+      if (!(anchor instanceof HTMLAnchorElement)) return
+      const href = anchor.getAttribute('href')
+      if (!href || href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:'))
+        return
+      if (href.startsWith('/')) {
+        prefetchSiteRoute(href)
+        const productMatch = href.match(/^\/products\/([^/?#]+)/)
+        if (productMatch?.[1]) void prefetchProductBySlug(productMatch[1])
+      }
+    }
+    document.addEventListener('pointerover', onPointerOver, { passive: true })
+    return () => document.removeEventListener('pointerover', onPointerOver)
   }, [])
 
   const showHeader = !isAccountAuthPage
@@ -105,7 +129,7 @@ export function Layout() {
                   }
                   transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <Suspense fallback={<RouteSkeleton />}>
+                  <Suspense fallback={<DeferredRouteSkeleton />}>
                     <Outlet />
                   </Suspense>
                 </motion.div>

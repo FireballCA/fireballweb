@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { CartProvider } from '@/context/CartContext'
 import { NotificationsProvider } from '@/context/NotificationsContext'
@@ -13,51 +13,48 @@ import { Home } from '@/pages/Home'
 import { Shop } from '@/pages/Shop'
 import { Product } from '@/pages/Product'
 
-// Toutes les autres pages — lazy loaded (code splitting)
-const About = lazy(() => import('@/pages/About').then(m => ({ default: m.About })))
-const PressKit = lazy(() => import('@/pages/PressKit').then(m => ({ default: m.PressKit })))
-const Cart = lazy(() => import('@/pages/Cart').then(m => ({ default: m.Cart })))
-const Account = lazy(() => import('@/pages/Account').then(m => ({ default: m.Account })))
-const AccountRegister = lazy(() => import('@/pages/AccountRegister').then(m => ({ default: m.AccountRegister })))
-const AccountDashboard = lazy(() => import('@/pages/AccountDashboard').then(m => ({ default: m.AccountDashboard })))
-const AccountOrders = lazy(() => import('@/pages/AccountOrders').then(m => ({ default: m.AccountOrders })))
-const AccountTrackOrder = lazy(() => import('@/pages/AccountTrackOrder').then(m => ({ default: m.AccountTrackOrder })))
-const AccountSettings = lazy(() => import('@/pages/AccountSettings').then(m => ({ default: m.AccountSettings })))
-const BusinessPage = lazy(() => import('@/pages/BusinessPage').then(m => ({ default: m.BusinessPage })))
-const ManagePartners = lazy(() => import('@/pages/ManagePartners').then(m => ({ default: m.ManagePartners })))
-const PartnerCompany = lazy(() => import('@/pages/PartnerCompany').then(m => ({ default: m.PartnerCompany })))
-const CarClub = lazy(() => import('@/pages/CarClub').then(m => ({ default: m.CarClub })))
-const Event = lazy(() => import('@/pages/Event').then(m => ({ default: m.Event })))
-const EventDetail = lazy(() => import('@/pages/EventDetail').then(m => ({ default: m.EventDetail })))
-const Contact = lazy(() => import('@/pages/Contact').then(m => ({ default: m.Contact })))
-const Legal = lazy(() => import('@/pages/Legal').then(m => ({ default: m.Legal })))
-const LegalNotice = lazy(() => import('@/pages/LegalNotice').then(m => ({ default: m.LegalNotice })))
-const Cookies = lazy(() => import('@/pages/Cookies').then(m => ({ default: m.Cookies })))
-const Privacy = lazy(() => import('@/pages/Privacy').then(m => ({ default: m.Privacy })))
-const TermsOfService = lazy(() => import('@/pages/TermsOfService').then(m => ({ default: m.TermsOfService })))
-const Academy = lazy(() => import('@/pages/Academy').then(m => ({ default: m.Academy })))
-const TrainingRegistrationThankYou = lazy(() => import('@/pages/TrainingRegistrationThankYou').then(m => ({ default: m.TrainingRegistrationThankYou })))
-const JoinClub = lazy(() => import('@/pages/JoinClub').then(m => ({ default: m.JoinClub })))
-const ServiceBuilder = lazy(() => import('@/pages/ServiceBuilder').then(m => ({ default: m.ServiceBuilder })))
-const PatchNotes = lazy(() => import('@/pages/PatchNotes').then(m => ({ default: m.PatchNotes })))
-const NotFoundPage = lazy(() => import('@/components/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
-
-// Partner portal — lazy loaded
-const PartnerOnboarding = lazy(() => import('@/pages/partner/PartnerOnboarding').then(m => ({ default: m.PartnerOnboarding })))
-const PartnerDashboardLayout = lazy(() => import('@/pages/partner/PartnerDashboardLayout').then(m => ({ default: m.PartnerDashboardLayout })))
-const PartnerOverview = lazy(() => import('@/pages/partner/PartnerOverview').then(m => ({ default: m.PartnerOverview })))
-const PartnerClients = lazy(() => import('@/pages/partner/PartnerClients').then(m => ({ default: m.PartnerClients })))
-const PartnerVehicles = lazy(() => import('@/pages/partner/PartnerVehicles').then(m => ({ default: m.PartnerVehicles })))
-const PartnerWarranties = lazy(() => import('@/pages/partner/PartnerWarranties').then(m => ({ default: m.PartnerWarranties })))
-const PartnerCertification = lazy(() => import('@/pages/partner/PartnerCertification').then(m => ({ default: m.PartnerCertification })))
-const PartnerSettings = lazy(() => import('@/pages/partner/PartnerSettings').then(m => ({ default: m.PartnerSettings })))
-const PartnerStatistics = lazy(() => import('@/pages/partner/PartnerStatistics').then(m => ({ default: m.PartnerStatistics })))
-
-// Coatings pages — lazy loaded
-const CompareCoatings = lazy(() => import('@/pages/coatings/CompareCoatings').then(m => ({ default: m.CompareCoatings })))
-const CeramicCoating = lazy(() => import('@/pages/coatings/CeramicCoating').then(m => ({ default: m.CeramicCoating })))
-const FindInstaller = lazy(() => import('@/pages/coatings/FindInstaller').then(m => ({ default: m.FindInstaller })))
-const HowItWorks = lazy(() => import('@/pages/coatings/HowItWorks').then(m => ({ default: m.HowItWorks })))
+import {
+  About,
+  PressKit,
+  Cart,
+  CarClub,
+  Event,
+  EventDetail,
+  Contact,
+  Legal,
+  LegalNotice,
+  Cookies,
+  Privacy,
+  TermsOfService,
+  Academy,
+  TrainingRegistrationThankYou,
+  JoinClub,
+  ServiceBuilder,
+  PartnerCompany,
+  PatchNotes,
+  NotFoundPage,
+  CompareCoatings,
+  CeramicCoating,
+  FindInstaller,
+  HowItWorks,
+  Account,
+  AccountRegister,
+  AccountDashboard,
+  AccountOrders,
+  AccountTrackOrder,
+  AccountSettings,
+  BusinessPage,
+  ManagePartners,
+  PartnerOnboarding,
+  PartnerDashboardLayout,
+  PartnerOverview,
+  PartnerClients,
+  PartnerVehicles,
+  PartnerWarranties,
+  PartnerCertification,
+  PartnerSettings,
+  PartnerStatistics,
+} from '@/routes/lazyPages'
 
 function LegacyProductRedirect() {
   const { slug } = useParams<{ slug: string }>()

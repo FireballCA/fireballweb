@@ -4,7 +4,11 @@ import { useEffect, useState, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CATEGORIES, PRODUCTS, type Product as LocalProduct, type ProductVariant } from '@/data/products'
 import { useCart } from '@/context/CartContext'
-import { fetchProductFromShopifyBySlug, fetchProductsFromShopify } from '@/utils/shopifyStorefront'
+import {
+  fetchProductFromShopifyBySlug,
+  fetchProductsFromShopify,
+  peekCachedProductBySlug,
+} from '@/utils/shopifyStorefront'
 import { XP_PER_DOLLAR } from '@/utils/supabaseXp'
 import { PaymentMethodBadges } from '@/components/PaymentMethodBadges'
 import { ProductYouMightLikeRail } from '@/components/ProductYouMightLikeRail'
@@ -13,7 +17,10 @@ import { isFavoriteSlug, toggleFavoriteSlug } from '@/utils/favorites'
 import { FavoritePromptModal } from '@/components/FavoritePromptModal'
 import { productDetailPath, shopCategoryPath } from '@/constants/paths'
 import { FREE_SHIPPING_THRESHOLD_CAD } from '@/constants/shipping'
-import { getProductPageContent } from '@/data/productPageContent'
+import {
+  getProductPageContent,
+  SHOW_PRODUCT_WHY_AND_HOW_TO_ON_STOREFRONT,
+} from '@/data/productPageContent'
 import { supabase } from '@/lib/supabase'
 import { ProductDetailSkeleton } from '@/components/ui/ProductDetailSkeleton'
 import { useClipRevealHover } from '@/hooks/useClipRevealHover'
@@ -425,10 +432,11 @@ export function Product() {
         setProduct(null)
         return
       }
-      setLoading(true)
+      const cached = peekCachedProductBySlug(slug)
+      if (!cached) setLoading(true)
       setAccessDenied(false)
       try {
-        const loaded = await fetchProductFromShopifyBySlug(slug)
+        const loaded = cached ?? (await fetchProductFromShopifyBySlug(slug))
         if (!cancelled && loaded) {
           const canAccess = !loaded.partnerOnly || isPartner
           if (!canAccess) {
@@ -1327,16 +1335,9 @@ export function Product() {
             {/* Size Selection */}
             {sizeOptions.length > 0 && sizeOption && (
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-carbon-900">
-                    {sizeOption.name}: {selectedSizeValue}
-                  </label>
-                  {isSizeOptionName(sizeOption.name) ? (
-                    <button type="button" className="text-sm text-carbon-600 hover:text-carbon-900 underline">
-                      View Size Chart
-                    </button>
-                  ) : null}
-                </div>
+                <label className="block text-sm font-medium text-carbon-900 mb-2">
+                  {sizeOption.name}: {selectedSizeValue}
+                </label>
                 <div ref={sizeSegmentRef} className="relative inline-block max-w-full overflow-x-auto">
                   <div
                     ref={sizeGroupRef}
@@ -1563,7 +1564,7 @@ export function Product() {
                 </div>
               )}
 
-              {pageContent?.why && (
+              {SHOW_PRODUCT_WHY_AND_HOW_TO_ON_STOREFRONT && pageContent?.why && (
                 <div className="py-4">
                   <button
                     type="button"
@@ -1596,7 +1597,9 @@ export function Product() {
                 </div>
               )}
 
-              {pageContent?.howToUseSteps && pageContent.howToUseSteps.length > 0 && (
+              {SHOW_PRODUCT_WHY_AND_HOW_TO_ON_STOREFRONT &&
+                pageContent?.howToUseSteps &&
+                pageContent.howToUseSteps.length > 0 && (
                 <div className="py-4">
                   <button
                     type="button"

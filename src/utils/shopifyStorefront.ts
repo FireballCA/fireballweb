@@ -464,6 +464,10 @@ export async function fetchProductFromShopifyBySlug(slug: string): Promise<Produ
   }
 }
 
+export function peekCachedProductBySlug(slug: string): Product | undefined {
+  return productCache.get(slug)
+}
+
 export async function prefetchProductBySlug(slug: string): Promise<void> {
   if (!slug || productCache.has(slug)) return
   try {
