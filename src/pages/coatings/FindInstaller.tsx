@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type TouchEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ServiceBuilderQuickMapSheet } from '@/components/service-builder/ServiceBuilderQuickMapSheet'
 import type { StockistLocation } from '@/data/stockists'
 import Map, { Marker, Popup, type MapRef } from 'react-map-gl/maplibre'
@@ -17,6 +17,7 @@ import { AppleInfoPill } from '@/components/ui/AppleInfoPill'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUserProfile } from '@/utils/supabaseAuth'
 import { SEO, breadcrumbJsonLd, serviceJsonLd } from '@/components/SEO'
+import { lockScroll, unlockScroll } from '@/utils/scrollLock'
 
 const photonCanadaOpts = {
   bbox: PHOTON_BBOX_CANADA,
@@ -434,9 +435,13 @@ export function FindInstaller() {
     return () => el.removeEventListener('wheel', onWheel)
   }, [])
 
-  const preventPageScrollOnMapTouchMove = (e: TouchEvent<HTMLDivElement>) => {
-    e.stopPropagation()
-  }
+  const handleMapTouchStart = useCallback(() => {
+    lockScroll()
+  }, [])
+
+  const handleMapTouchEnd = useCallback(() => {
+    unlockScroll()
+  }, [])
 
   const focusMapOn = useCallback((lng: number, lat: number, zoom = 8) => {
     mapRef.current?.flyTo({ center: [lng, lat], zoom, duration: 1100 })
@@ -685,8 +690,17 @@ export function FindInstaller() {
 
           <div
             ref={mapContainerRef}
-            className="find-installer-map h-[360px] w-full overflow-hidden rounded-xl touch-none overscroll-contain md:h-[520px]"
-            onTouchMoveCapture={preventPageScrollOnMapTouchMove}
+            className="find-installer-map installer-map isolate h-[360px] w-full overflow-hidden rounded-xl overscroll-contain md:h-[520px]"
+            style={{ touchAction: 'none' }}
+            onTouchStart={handleMapTouchStart}
+            onTouchEnd={handleMapTouchEnd}
+            onTouchCancel={handleMapTouchEnd}
+            onPointerDown={(e) => {
+              if (e.pointerType === 'touch' || e.pointerType === 'pen') lockScroll()
+            }}
+            onPointerUp={handleMapTouchEnd}
+            onPointerCancel={handleMapTouchEnd}
+            onPointerLeave={handleMapTouchEnd}
           >
             <Map
               ref={mapRef}
@@ -696,6 +710,9 @@ export function FindInstaller() {
               maxZoom={18}
               renderWorldCopies={false}
               attributionControl={false}
+              dragPan
+              touchZoomRotate
+              touchPitch={false}
               onClick={() => setActiveId(null)}
             >
               {stockistsForMap.map((installer) => {

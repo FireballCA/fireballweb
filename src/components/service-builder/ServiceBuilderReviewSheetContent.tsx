@@ -22,6 +22,7 @@ export function ServiceBuilderReviewSheetContent({ form, shopLocationTag, onSend
     coatingName,
     waxName,
     selectedKitIds,
+    vehicleBasePrice,
     totalPrice,
     vehicleMakeInput,
     setVehicleMakeInput,
@@ -98,6 +99,9 @@ export function ServiceBuilderReviewSheetContent({ form, shopLocationTag, onSend
         <div className="mt-3 space-y-1.5 text-[14px] text-[#2b2b2d]">
           <p>
             Vehicle size: <span className="font-semibold">{selectedVehicleSize ?? '-'}</span>
+            {vehicleBasePrice > 0 ? (
+              <span className="text-[#6e6e73]"> — starting at ${vehicleBasePrice}</span>
+            ) : null}
           </p>
           <p>
             Paint condition: <span className="font-semibold">{selectedPaintCondition ?? '-'}</span>

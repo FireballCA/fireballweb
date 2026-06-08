@@ -6,8 +6,12 @@ import { AppleButton } from '@/components/ui/AppleButton'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { SEO, breadcrumbJsonLd } from '@/components/SEO'
 import { sendContactFormMessage } from '@/utils/contactEmail'
+import { cn } from '@/lib/utils'
 
 const CONTACT_DRAFT_KEY = 'fireball_contact_form_draft'
+
+const contactFieldClassName =
+  'w-full rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none disabled:opacity-60 lg:px-3 lg:py-2.5 lg:text-sm'
 
 export function Contact() {
   const navigate = useNavigate()
@@ -191,7 +195,7 @@ export function Contact() {
         </div>
 
         {/* Right: Contact Form */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-start border-t border-carbon-900/10 px-6 py-4 lg:w-1/2 lg:justify-center lg:overflow-y-auto lg:border-l lg:border-t-0 lg:px-12 lg:py-12 xl:px-16">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-start px-6 py-4 lg:w-1/2 lg:justify-center lg:overflow-y-auto lg:px-12 lg:py-12 xl:px-16">
           <h2 className="text-[10px] font-semibold uppercase tracking-wider text-carbon-500 lg:text-xs">
             Contact Form
           </h2>
@@ -242,7 +246,7 @@ export function Contact() {
                   onChange={(e) => setName(e.target.value)}
                   required
                   disabled={submitting}
-                  className="w-full rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500 disabled:opacity-60 lg:px-3 lg:py-2.5 lg:text-sm"
+                  className={contactFieldClassName}
                 />
               </div>
               <div>
@@ -257,7 +261,7 @@ export function Contact() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={submitting}
-                  className="w-full rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500 disabled:opacity-60 lg:px-3 lg:py-2.5 lg:text-sm"
+                  className={contactFieldClassName}
                 />
               </div>
             </div>
@@ -273,7 +277,7 @@ export function Contact() {
                 onChange={(e) => setSubject(e.target.value)}
                 required
                 disabled={submitting}
-                className="w-full rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500 disabled:opacity-60 lg:px-3 lg:py-2.5 lg:text-sm"
+                className={contactFieldClassName}
               />
             </div>
             <div className="min-h-0 flex-1 max-lg:flex max-lg:flex-col lg:block">
@@ -288,7 +292,7 @@ export function Contact() {
                 onChange={(e) => setMessage(e.target.value)}
                 required
                 disabled={submitting}
-                className="max-lg:min-h-0 max-lg:flex-1 w-full resize-none rounded-lg border border-carbon-700/30 bg-white px-2.5 py-2 text-xs text-carbon-900 placeholder:text-carbon-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-carbon-500 disabled:opacity-60 lg:min-h-[5.5rem] lg:px-3 lg:py-2.5 lg:text-sm"
+                className={cn(contactFieldClassName, 'max-lg:min-h-0 max-lg:flex-1 resize-none lg:min-h-[5.5rem]')}
               />
             </div>
             <div className="shrink-0 pt-0.5 lg:pt-0">

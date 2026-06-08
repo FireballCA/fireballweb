@@ -1,13 +1,24 @@
 import { lazy, type ComponentType } from 'react'
+import { importWithChunkRecovery } from '@/utils/chunkLoadRecovery'
 
 type PageModule = { default: ComponentType }
 
 const asDefault = <T extends Record<string, ComponentType>>(
   loader: () => Promise<T>,
   key: keyof T,
-): (() => Promise<PageModule>) => () => loader().then((m) => ({ default: m[key] }))
+): (() => Promise<PageModule>) =>
+  memoizeRouteLoader(importWithChunkRecovery(() => loader().then((m) => ({ default: m[key] }))))
 
-// ─── Public site pages (prefetch on idle / link hover) ───────────────────────
+/** Une seule promesse par route : prefetch + React.lazy partagent le même chargement. */
+function memoizeRouteLoader(loader: () => Promise<PageModule>): () => Promise<PageModule> {
+  let cached: Promise<PageModule> | null = null
+  return () => {
+    if (!cached) cached = loader()
+    return cached
+  }
+}
+
+// ─── Pages publiques du site (préchargées à l’arrivée, hors compte / admin) ───
 
 export const loadAbout = asDefault(() => import('@/pages/About'), 'About')
 export const loadPressKit = asDefault(() => import('@/pages/PressKit'), 'PressKit')
@@ -83,7 +94,8 @@ const PUBLIC_ROUTE_LOADERS: Record<string, () => Promise<PageModule>> = {
   '/404': loadNotFoundPage,
 }
 
-const PUBLIC_IDLE_LOADERS: Array<() => Promise<PageModule>> = [
+/** Tous les chunks de pages publiques (dédupliqués). */
+export const PUBLIC_SITE_ROUTE_LOADERS: Array<() => Promise<PageModule>> = [
   ...new Set(Object.values(PUBLIC_ROUTE_LOADERS)),
 ]
 
@@ -127,26 +139,20 @@ export function prefetchSiteRoute(path: string): void {
   }
 }
 
-/** Précharge toutes les pages publiques du site (hors compte / admin / partenaire). */
+/**
+ * Lance en parallèle le téléchargement de tous les chunks des pages publiques.
+ * À appeler dès l’arrivée sur le site pour une navigation instantanée ensuite.
+ */
 export function prefetchAllPublicSiteRoutes(): void {
-  for (const loader of PUBLIC_IDLE_LOADERS) {
+  for (const loader of PUBLIC_SITE_ROUTE_LOADERS) {
     runLoader(loader)
   }
 }
 
-/** À appeler dans un `useEffect` (Layout) — retourne le cleanup. */
-export function schedulePrefetchPublicSiteRoutesOnIdle(): () => void {
-  const run = () => prefetchAllPublicSiteRoutes()
-
-  if (typeof window === 'undefined') return () => {}
-
-  if ('requestIdleCallback' in window) {
-    const id = window.requestIdleCallback(run, { timeout: 5000 })
-    return () => window.cancelIdleCallback(id)
-  }
-
-  const t = window.setTimeout(run, 2000)
-  return () => window.clearTimeout(t)
+/** Démarre le préchargement dès que possible après le premier paint. */
+export function bootstrapPublicSiteRoutePrefetch(): void {
+  if (typeof window === 'undefined') return
+  prefetchAllPublicSiteRoutes()
 }
 
 // ─── Account / admin / partner (lazy only, pas de prefetch idle) ─────────────

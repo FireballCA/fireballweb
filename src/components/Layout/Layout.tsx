@@ -5,11 +5,8 @@ import { useEffect, useState, Suspense, type CSSProperties } from 'react'
 import { LineupImageTransitionProvider } from '@/context/LineupImageTransitionContext'
 import { CookieConsentModal } from '@/components/CookieConsentModal'
 import { FloatingAdminFab } from '@/components/FloatingAdminFab'
-import { DeferredRouteSkeleton } from '@/components/DeferredRouteSkeleton'
-import {
-  prefetchSiteRoute,
-  schedulePrefetchPublicSiteRoutesOnIdle,
-} from '@/routes/lazyPages'
+import { RouteChunkErrorBoundary } from '@/components/RouteChunkErrorBoundary'
+import { bootstrapPublicSiteRoutePrefetch, prefetchSiteRoute } from '@/routes/lazyPages'
 import { prefetchProductBySlug } from '@/utils/shopifyStorefront'
 import { Header } from './Header'
 import { Footer } from './Footer'
@@ -38,7 +35,9 @@ export function Layout() {
     return () => mq.removeEventListener('change', h)
   }, [])
 
-  useEffect(() => schedulePrefetchPublicSiteRoutesOnIdle(), [])
+  useEffect(() => {
+    bootstrapPublicSiteRoutePrefetch()
+  }, [])
 
   useEffect(() => {
     const onPointerOver = (e: PointerEvent) => {
@@ -129,9 +128,11 @@ export function Layout() {
                   }
                   transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <Suspense fallback={<DeferredRouteSkeleton />}>
-                    <Outlet />
-                  </Suspense>
+                  <RouteChunkErrorBoundary>
+                    <Suspense fallback={null}>
+                      <Outlet />
+                    </Suspense>
+                  </RouteChunkErrorBoundary>
                 </motion.div>
               </AnimatePresence>
             </LineupImageTransitionProvider>

@@ -10,6 +10,14 @@ import './index.css'
 import './styles/business.css'
 import { ScrollToTop } from '@/components/ScrollToTop'
 import { LenisRoot } from '@/components/LenisRoot'
+import { registerChunkLoadRecoveryListeners } from '@/utils/chunkLoadRecovery'
+import { bootstrapPublicSiteRoutePrefetch } from '@/routes/lazyPages'
+
+registerChunkLoadRecoveryListeners()
+
+if (typeof window !== 'undefined') {
+  queueMicrotask(() => bootstrapPublicSiteRoutePrefetch())
+}
 
 if (FORCE_FULL_SITE_MOTION && typeof document !== 'undefined') {
   document.documentElement.classList.add('fb-force-motion')

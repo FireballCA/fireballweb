@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState, type MouseEvent } from 'react'
+import { useCallback, useContext, useState, type MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'framer-motion'
 import { IconChevronDown } from '@tabler/icons-react'
@@ -6,7 +6,6 @@ import { appleButtonVisualClassName } from '@/components/ui/AppleButton'
 import { LenisContext } from '@/components/LenisRoot'
 import { cn } from '@/lib/utils'
 import { usePageTitle } from '@/hooks/usePageTitle'
-import { fetchCarClubSettings, subscribeCarClubSettings, type CarClubSettings } from '@/utils/supabaseCarClub'
 import { SEO, breadcrumbJsonLd } from '@/components/SEO'
 
 const EASE_SPRING = [0.22, 1, 0.36, 1] as [number, number, number, number]
@@ -66,28 +65,6 @@ export function CarClub() {
 
   const carClubFaqs = t('carClub.faqs', { returnObjects: true }) as Array<{ q: string; a: string }>
 
-  // i18n fallbacks
-  const i18nIgnitionPrice = t('carClub.ignitionPrice') as string
-  const i18nApexPrice = t('carClub.apexPrice') as string
-
-  const [clubSettings, setClubSettings] = useState<CarClubSettings | null>(null)
-
-  useEffect(() => {
-    let mounted = true
-    fetchCarClubSettings().then((s) => { if (mounted && s) setClubSettings(s) })
-
-    const channel = subscribeCarClubSettings((s) => {
-      if (mounted) setClubSettings(s)
-    })
-
-    return () => {
-      mounted = false
-      channel.unsubscribe()
-    }
-  }, [])
-
-  const ignitionPrice = clubSettings?.ignition_price ?? i18nIgnitionPrice
-  const apexPrice = clubSettings?.apex_price ?? i18nApexPrice
   const featuresComingSoonLabel = t('carClub.featuresComingSoon')
   const launchSoonLabel = t('carClub.launchSoon')
 
@@ -178,9 +155,6 @@ export function CarClub() {
                 >
                   {t('carClub.exploreMembership')}
                 </a>
-                <p className="max-w-xs text-center text-[11px] leading-tight text-silver/45 md:max-w-none md:text-right">
-                  {t('carClub.heroPriceHint')}
-                </p>
               </div>
             </motion.div>
           </div>
@@ -237,8 +211,7 @@ export function CarClub() {
               />
               <span className="text-xs font-nav font-bold uppercase tracking-widest text-white/50 mb-2">{t('carClub.coreAccess')}</span>
               <h3 className="font-nav text-3xl font-bold text-white tracking-tight mb-1">{t('carClub.ignitionMember')}</h3>
-              <p className="text-white/90 font-semibold text-lg mb-2">{ignitionPrice}</p>
-              <p className="text-white/70 text-sm max-w-sm mb-6">
+              <p className="text-white/70 text-sm max-w-sm mb-6 mt-2">
                 {t('carClub.ignitionDesc')}
               </p>
               <p className="mb-8 max-w-sm mx-auto text-sm text-white/50">
@@ -281,8 +254,7 @@ export function CarClub() {
               />
               <span className="text-xs font-nav font-bold uppercase tracking-widest text-apex mb-2">{t('carClub.eliteTier')}</span>
               <h3 className="font-nav text-3xl font-bold text-white tracking-tight mb-1">{t('carClub.apexMember')}</h3>
-              <p className="text-white/90 font-semibold text-lg mb-2">{apexPrice}</p>
-              <p className="text-white/70 text-sm max-w-sm mb-6">
+              <p className="text-white/70 text-sm max-w-sm mb-6 mt-2">
                 {t('carClub.apexDesc')}
               </p>
               <p className="mb-8 max-w-sm mx-auto text-sm text-white/50">

@@ -12,6 +12,7 @@ import { CERAMIC_COATING_SECTIONS } from '@/data/ceramicCoatingSections'
 import {
   PAINT_CORRECTION_PRICES,
   PRODUCT_KITS,
+  VEHICLE_SIZES,
   WAX_OPTIONS,
   WAX_PRICE,
   WHEEL_EXTRA_PRICES,
@@ -100,6 +101,11 @@ export function useServiceBuilderForm() {
     if (garageSheetOpen) void loadGarage()
   }, [garageSheetOpen, loadGarage])
 
+  const vehicleBasePrice = useMemo(() => {
+    if (!selectedVehicleSize) return 0
+    return VEHICLE_SIZES.find((s) => s.id === selectedVehicleSize)?.basePrice ?? 0
+  }, [selectedVehicleSize])
+
   const totalPrice = useMemo(() => {
     const paintPrice =
       selectedVehicleSize && selectedPaintCondition
@@ -120,8 +126,17 @@ export function useServiceBuilderForm() {
     const kitsTotal = PRODUCT_KITS
       .filter((k) => selectedKitIds.includes(k.id))
       .reduce((sum, k) => sum + getKitPrice(k), 0)
-    return paintPrice + finishPrice + wheelPrice + kitsTotal
-  }, [selectedVehicleSize, selectedPaintCondition, selectedFinishType, selectedCoatingId, selectedWaxId, selectedWheelExtra, selectedKitIds])
+    return vehicleBasePrice + paintPrice + finishPrice + wheelPrice + kitsTotal
+  }, [
+    vehicleBasePrice,
+    selectedVehicleSize,
+    selectedPaintCondition,
+    selectedFinishType,
+    selectedCoatingId,
+    selectedWaxId,
+    selectedWheelExtra,
+    selectedKitIds,
+  ])
 
   const estimatedXp = useMemo(() => Math.max(0, Math.round(totalPrice * XP_PER_DOLLAR)), [totalPrice])
 
@@ -330,6 +345,7 @@ export function useServiceBuilderForm() {
     vehicleYearInput,
     setVehicleYearInput,
     loadGarage,
+    vehicleBasePrice,
     totalPrice,
     estimatedXp,
     canProceed,
