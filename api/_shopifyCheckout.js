@@ -1,6 +1,54 @@
 /** Domaine myshopify par défaut — permalinks /cart/* doivent y pointer, pas le site marketing. */
 const DEFAULT_MYSHOPIFY_HOST = 'fireball-canada.myshopify.com'
 
+const MARKETING_CHECKOUT_HOSTS = new Set([
+  'fireball-canada.com',
+  'www.fireball-canada.com',
+  'localhost',
+  '127.0.0.1',
+])
+
+function getCheckoutPublicHost() {
+  const explicit =
+    process.env.SHOPIFY_CHECKOUT_PUBLIC_HOST ||
+    process.env.SHOPIFY_CHECKOUT_STORE_URL ||
+    process.env.SHOPIFY_MYSHOPIFY_DOMAIN ||
+    ''
+  if (explicit.trim()) {
+    return explicit
+      .trim()
+      .replace(/^https?:\/\//, '')
+      .replace(/\/+$/, '')
+      .split('/')[0]
+  }
+  return DEFAULT_MYSHOPIFY_HOST
+}
+
+/**
+ * Shopify renvoie souvent checkoutUrl sur le domaine vitrine (Vercel) → 404 ou boucle apex/www.
+ * On force le domaine hébergé par Shopify (*.myshopify.com ou checkout.* configuré dans l'admin).
+ */
+export function normalizeShopifyCheckoutUrl(checkoutUrl) {
+  if (!checkoutUrl || typeof checkoutUrl !== 'string') return checkoutUrl
+
+  try {
+    const url = new URL(checkoutUrl)
+    const host = url.hostname.toLowerCase()
+    const checkoutHost = getCheckoutPublicHost().toLowerCase()
+
+    if (host === checkoutHost) return url.toString()
+
+    if (MARKETING_CHECKOUT_HOSTS.has(host) || !host.endsWith('.myshopify.com')) {
+      url.protocol = 'https:'
+      url.hostname = checkoutHost
+    }
+
+    return url.toString()
+  } catch {
+    return checkoutUrl
+  }
+}
+
 export function getShopifyStoreUrlFromEnv() {
   return (
     process.env.SHOPIFY_STORE_URL ||
@@ -82,10 +130,12 @@ export function getShopifyStorefrontAccessToken() {
  * Requis en headless : les permalinks /cart/variant:qty renvoient vers le site Vercel (404).
  */
 export async function createShopifyCartCheckoutUrl(lines, options = {}) {
-  const token = getShopifyStorefrontAccessToken()
+  const token = options.accessToken || getShopifyStorefrontAccessToken()
   if (!token) {
     throw new Error('Missing Shopify Storefront access token')
   }
+
+  const graphqlUrl = options.graphqlUrl || getShopifyStorefrontGraphqlUrl()
 
   const cartLines = lines.map(({ shopifyVariantId, quantity }) => ({
     merchandiseId: shopifyVariantId,
@@ -114,7 +164,7 @@ export async function createShopifyCartCheckoutUrl(lines, options = {}) {
     }
   `
 
-  const response = await fetch(getShopifyStorefrontGraphqlUrl(), {
+  const response = await fetch(graphqlUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -139,5 +189,5 @@ export async function createShopifyCartCheckoutUrl(lines, options = {}) {
     throw new Error('Shopify did not return a checkout URL')
   }
 
-  return checkoutUrl
+  return normalizeShopifyCheckoutUrl(checkoutUrl)
 }

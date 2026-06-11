@@ -1,10 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/cart/:path*",
-      "destination": "https://fireball-canada.myshopify.com/cart/:path*"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

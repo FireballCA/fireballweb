@@ -272,8 +272,13 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
             }
           }
 
-          const { createShopifyCartCheckoutUrl } = await import('./api/_shopifyCheckout.js')
-          const checkoutUrl = await createShopifyCartCheckoutUrl(lines)
+          const { createShopifyCartCheckoutUrl, resolveShopifyCheckoutBaseUrl } = await import(
+            './api/_shopifyCheckout.js'
+          )
+          const checkoutUrl = await createShopifyCartCheckoutUrl(lines, {
+            accessToken: shopifyStorefrontToken,
+            graphqlUrl: `${resolveShopifyCheckoutBaseUrl(shopifyStoreUrl)}/api/${shopifyStorefrontApiVersion}/graphql.json`,
+          })
 
           res.statusCode = 200
           res.setHeader('Content-Type', 'application/json')
@@ -432,8 +437,12 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
             }
           }
 
-          const { createShopifyCartCheckoutUrl } = await import('./api/_shopifyCheckout.js')
+          const { createShopifyCartCheckoutUrl, resolveShopifyCheckoutBaseUrl } = await import(
+            './api/_shopifyCheckout.js'
+          )
           const checkoutUrl = await createShopifyCartCheckoutUrl(lines, {
+            accessToken: shopifyStorefrontToken,
+            graphqlUrl: `${resolveShopifyCheckoutBaseUrl(shopifyStoreUrl)}/api/${shopifyStorefrontApiVersion}/graphql.json`,
             discountCodes: discountCode ? [discountCode] : undefined,
           })
           console.log(`[tier-checkout] checkoutUrl: ${checkoutUrl}`)
@@ -1369,13 +1378,6 @@ export default defineConfig(({ mode }) => ({
     watch: {
       usePolling: true,
       interval: 150,
-    },
-    proxy: {
-      '^/cart': {
-        target: 'https://fireball-canada.myshopify.com',
-        changeOrigin: true,
-        secure: true,
-      },
     },
   },
 }))

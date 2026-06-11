@@ -236,22 +236,7 @@ export function Cart() {
         return
       }
 
-      let destination = url
-      if (import.meta.env.DEV) {
-        try {
-          const parsed = new URL(url)
-          if (parsed.pathname.startsWith('/cart/c/')) {
-            parsed.protocol = window.location.protocol
-            parsed.hostname = window.location.hostname
-            parsed.port = window.location.port
-            destination = parsed.toString()
-          }
-        } catch {
-          /* keep original url */
-        }
-      }
-
-      window.location.href = destination
+      window.location.href = url
     }
 
     try {
