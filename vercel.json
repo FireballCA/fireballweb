@@ -1,7 +1,8 @@
 {
   "rewrites": [
+    { "handle": "filesystem" },
     {
-      "source": "/((?!api/|assets/).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
