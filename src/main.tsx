@@ -12,6 +12,7 @@ import { ScrollToTop } from '@/components/ScrollToTop'
 import { LenisRoot } from '@/components/LenisRoot'
 import { registerChunkLoadRecoveryListeners } from '@/utils/chunkLoadRecovery'
 import { bootstrapPublicSiteRoutePrefetch } from '@/routes/lazyPages'
+import { attemptMarketingCheckoutRedirect } from '@/utils/shopifyCheckoutBridge'
 
 registerChunkLoadRecoveryListeners()
 
@@ -23,15 +24,20 @@ if (FORCE_FULL_SITE_MOTION && typeof document !== 'undefined') {
   document.documentElement.classList.add('fb-force-motion')
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <HelmetProvider>
-    <BrowserRouter>
-      <LenisRoot>
-        <ScrollToTop />
-        <App />
-        <Analytics />
-        <SpeedInsights />
-      </LenisRoot>
-    </BrowserRouter>
-  </HelmetProvider>,
-)
+const rootEl = document.getElementById('root')
+const redirectingToShopifyCheckout = attemptMarketingCheckoutRedirect()
+
+if (rootEl && !redirectingToShopifyCheckout) {
+  ReactDOM.createRoot(rootEl).render(
+    <HelmetProvider>
+      <BrowserRouter>
+        <LenisRoot>
+          <ScrollToTop />
+          <App />
+          <Analytics />
+          <SpeedInsights />
+        </LenisRoot>
+      </BrowserRouter>
+    </HelmetProvider>,
+  )
+}

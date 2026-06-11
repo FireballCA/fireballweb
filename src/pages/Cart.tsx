@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCart } from '@/context/CartContext'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
+import { clearCheckoutRedirectState } from '@/utils/shopifyCheckoutBridge'
 import { supabase } from '@/lib/supabase'
 import { XP_PER_DOLLAR } from '@/utils/supabaseXp'
 import type { Product } from '@/data/products'
@@ -239,6 +240,7 @@ export function Cart() {
         return
       }
 
+      clearCheckoutRedirectState()
       window.location.href = url
     }
 

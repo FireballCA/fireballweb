@@ -7,6 +7,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { PartnerRoute } from '@/components/PartnerRoute'
 import { AdminProvider } from '@/context/AdminContext'
 import { CATEGORIES } from '@/data/products'
+import { ShopifyCheckoutBridge } from '@/pages/ShopifyCheckoutBridge'
 
 // Core pages — chargées immédiatement (above-the-fold)
 import { Home } from '@/pages/Home'
@@ -292,6 +293,7 @@ function App() {
             <Route path="dashboard" element={<Navigate to="/account/dashboard" replace />} />
             <Route path="patch-notes" element={<PatchNotes />} />
           </Route>
+          <Route path="/cart/c/*" element={<ShopifyCheckoutBridge />} />
           <Route path="/404" element={<Suspense fallback={null}><NotFoundPage /></Suspense>} />
           <Route path="/partner/onboarding" element={<Suspense fallback={null}><PartnerRoute requireOnboarded={false}><PartnerOnboarding /></PartnerRoute></Suspense>} />
           <Route path="/partner/dashboard" element={<Suspense fallback={null}><PartnerRoute requireOnboarded={true}><PartnerDashboardLayout /></PartnerRoute></Suspense>}>
