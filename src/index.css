@@ -925,7 +925,11 @@ html.lenis-smooth body {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
   box-shadow: 0 10px 35px rgba(0, 0, 0, 0.42);
-  padding: 10px 12px;
+  padding: 12px 14px;
+}
+
+.installer-map .maplibregl-popup-content a {
+  color: #5eb3ff;
 }
 
 .installer-map .maplibregl-popup-close-button {

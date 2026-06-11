@@ -769,14 +769,14 @@ export function FindInstaller() {
                       )}
                     </div>
 
-                    <p className="text-sm font-semibold text-carbon-900">{activeInstaller.name}</p>
-                    <p className="text-xs text-carbon-600">
+                    <p className="text-sm font-semibold text-white">{activeInstaller.name}</p>
+                    <p className="text-xs text-white/65">
                       {[activeInstaller.address1, activeInstaller.city, activeInstaller.province, activeInstaller.postalCode]
                         .filter(Boolean)
                         .join(', ')}
                     </p>
                     {activeInstaller.phone && (
-                      <p className="inline-flex items-center gap-1.5 text-xs text-carbon-700">
+                      <p className="inline-flex items-center gap-1.5 text-xs text-white/80">
                         <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0 text-[#0485F7]" aria-hidden>
                           <path
                             fill="currentColor"
@@ -815,7 +815,7 @@ export function FindInstaller() {
                     {isAdmin && (
                       <button
                         type="button"
-                        className="mt-1 inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-carbon-200 bg-carbon-50 px-3 py-2 text-[11px] font-semibold text-carbon-700 transition-colors hover:bg-carbon-100"
+                        className="mt-1 inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-[11px] font-semibold text-white/90 transition-colors hover:bg-white/15"
                         onClick={() => {
                           setEditingLocation(activeInstaller)
                           setActiveId(null)
