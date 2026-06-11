@@ -272,28 +272,12 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
             }
           }
 
-          const encoded = lines
-            .map((line) => {
-              const numericId = line.shopifyVariantId.split('/').pop()
-              if (!numericId) return null
-              return `${numericId}:${line.quantity}`
-            })
-            .filter(Boolean)
-
-          if (!encoded.length) {
-            res.statusCode = 400
-            res.setHeader('Content-Type', 'application/json')
-            res.end(JSON.stringify({ error: 'No valid Shopify variants in cart' }))
-            return
-          }
+          const { createShopifyCartCheckoutUrl } = await import('./api/_shopifyCheckout.js')
+          const checkoutUrl = await createShopifyCartCheckoutUrl(lines)
 
           res.statusCode = 200
           res.setHeader('Content-Type', 'application/json')
-          res.end(
-            JSON.stringify({
-              checkoutUrl: `${normalizedStoreUrl.replace(/\/+$/, '')}/cart/${encoded.join(',')}`,
-            }),
-          )
+          res.end(JSON.stringify({ checkoutUrl }))
         } catch (error) {
           res.statusCode = 500
           res.setHeader('Content-Type', 'application/json')
@@ -372,14 +356,8 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
             }
           }
 
-          // — Construire URL checkout ————————————————————————————————
-          const encoded = lines
-            .map((l) => { const n = l.shopifyVariantId.split('/').pop(); return n ? `${n}:${l.quantity}` : null })
-            .filter(Boolean)
-          if (!encoded.length) return jsonRes(400, { error: 'No valid Shopify variants' })
-          let checkoutUrl = `${normalizedStoreUrl.replace(/\/+$/, '')}/cart/${encoded.join(',')}`
-
           // — Générer code de réduction unique si tier ≥ 2 —————————
+          let discountCode: string | null = null
           const TIER_RULES = [
             { index: 5, minXp: 35000, title: 'Fireball Loyalty Tier 5 - $30 off', value: '-30.00' },
             { index: 4, minXp: 20000, title: 'Fireball Loyalty Tier 4 - $20 off', value: '-20.00' },
@@ -447,12 +425,17 @@ function shopifyCustomerApiPlugin(mode: string): Plugin {
                 }
                 const finalCode = createCodeJson?.discount_code?.code
                 console.log(`[tier-checkout] final discount code: ${finalCode ?? 'NONE'}`)
-                if (finalCode) checkoutUrl += `?discount=${encodeURIComponent(finalCode)}`
+                if (finalCode) discountCode = finalCode
               }
             } catch (discountErr) {
               console.error('[tier-checkout] Exception during discount generation:', discountErr)
             }
           }
+
+          const { createShopifyCartCheckoutUrl } = await import('./api/_shopifyCheckout.js')
+          const checkoutUrl = await createShopifyCartCheckoutUrl(lines, {
+            discountCodes: discountCode ? [discountCode] : undefined,
+          })
           console.log(`[tier-checkout] checkoutUrl: ${checkoutUrl}`)
 
           return jsonRes(200, { checkoutUrl })
@@ -1386,6 +1369,13 @@ export default defineConfig(({ mode }) => ({
     watch: {
       usePolling: true,
       interval: 150,
+    },
+    proxy: {
+      '^/cart': {
+        target: 'https://fireball-canada.myshopify.com',
+        changeOrigin: true,
+        secure: true,
+      },
     },
   },
 }))

@@ -54,3 +54,90 @@ export function buildShopifyCartPermalink(encodedPairs, options = {}) {
   }
   return url
 }
+
+/** GraphQL Storefront — toujours sur *.myshopify.com, jamais le domaine vitrine. */
+export function getShopifyStorefrontGraphqlUrl() {
+  const apiVersion =
+    process.env.SHOPIFY_STOREFRONT_API_VERSION ||
+    process.env.VITE_SHOPIFY_STOREFRONT_API_VERSION ||
+    '2024-10'
+  return `${resolveShopifyCheckoutBaseUrl()}/api/${apiVersion}/graphql.json`
+}
+
+/** Base Admin API REST/GraphQL — même règle que Storefront. */
+export function getShopifyAdminApiBaseUrl() {
+  return resolveShopifyCheckoutBaseUrl()
+}
+
+export function getShopifyStorefrontAccessToken() {
+  return (
+    process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
+    process.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
+    ''
+  ).trim()
+}
+
+/**
+ * Crée un panier Shopify (Storefront API) et retourne checkoutUrl.
+ * Requis en headless : les permalinks /cart/variant:qty renvoient vers le site Vercel (404).
+ */
+export async function createShopifyCartCheckoutUrl(lines, options = {}) {
+  const token = getShopifyStorefrontAccessToken()
+  if (!token) {
+    throw new Error('Missing Shopify Storefront access token')
+  }
+
+  const cartLines = lines.map(({ shopifyVariantId, quantity }) => ({
+    merchandiseId: shopifyVariantId,
+    quantity,
+  }))
+
+  const input = { lines: cartLines }
+  const discountCodes = (options.discountCodes || [])
+    .map((code) => String(code || '').trim())
+    .filter(Boolean)
+  if (discountCodes.length) {
+    input.discountCodes = discountCodes
+  }
+
+  const mutation = `
+    mutation FireballCartCreate($input: CartInput!) {
+      cartCreate(input: $input) {
+        cart {
+          checkoutUrl
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `
+
+  const response = await fetch(getShopifyStorefrontGraphqlUrl(), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Shopify-Storefront-Access-Token': token,
+    },
+    body: JSON.stringify({ query: mutation, variables: { input } }),
+  })
+
+  const payload = await response.json().catch(() => null)
+  const userErrors = payload?.data?.cartCreate?.userErrors || []
+  if (userErrors.length) {
+    throw new Error(
+      userErrors
+        .map((error) => error?.message)
+        .filter(Boolean)
+        .join('; ') || 'Cart creation failed',
+    )
+  }
+
+  const checkoutUrl = payload?.data?.cartCreate?.cart?.checkoutUrl
+  if (!checkoutUrl) {
+    throw new Error('Shopify did not return a checkout URL')
+  }
+
+  return checkoutUrl
+}

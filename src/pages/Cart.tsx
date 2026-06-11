@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCart } from '@/context/CartContext'
-import { buildShopifyCartUrl, fetchProductsFromShopify } from '@/utils/shopifyStorefront'
+import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { supabase } from '@/lib/supabase'
 import { XP_PER_DOLLAR } from '@/utils/supabaseXp'
 import type { Product } from '@/data/products'
@@ -223,13 +223,11 @@ export function Cart() {
     const redirectToCheckout = (url: string) => {
       try {
         const parsed = new URL(url)
-        const isMarketingSiteCart =
+        const isShopifyCheckoutSession = parsed.pathname.startsWith('/cart/c/')
+        const isLegacyCartPermalink =
           parsed.pathname.startsWith('/cart/') &&
-          (parsed.hostname === 'fireball-canada.com' ||
-            parsed.hostname === 'www.fireball-canada.com' ||
-            parsed.hostname === 'localhost' ||
-            parsed.hostname === '127.0.0.1')
-        if (isMarketingSiteCart) {
+          !isShopifyCheckoutSession
+        if (isLegacyCartPermalink) {
           setCheckoutMessage(t('cart.checkoutSoon'))
           return
         }
@@ -237,7 +235,23 @@ export function Cart() {
         setCheckoutMessage(t('cart.checkoutSoon'))
         return
       }
-      window.location.href = url
+
+      let destination = url
+      if (import.meta.env.DEV) {
+        try {
+          const parsed = new URL(url)
+          if (parsed.pathname.startsWith('/cart/c/')) {
+            parsed.protocol = window.location.protocol
+            parsed.hostname = window.location.hostname
+            parsed.port = window.location.port
+            destination = parsed.toString()
+          }
+        } catch {
+          /* keep original url */
+        }
+      }
+
+      window.location.href = destination
     }
 
     try {
@@ -284,12 +298,6 @@ export function Cart() {
           setCheckoutMessage('Access restricted: join Fireball to buy this product.')
           return
         }
-      }
-
-      const fallbackUrl = buildShopifyCartUrl(lines)
-      if (fallbackUrl) {
-        redirectToCheckout(fallbackUrl)
-        return
       }
 
       setCheckoutMessage(t('cart.checkoutSoon'))

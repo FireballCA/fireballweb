@@ -14,9 +14,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { isPositiveInteger, isShopifyGid, parseJsonBody, rateLimit } from './_security.js'
 import {
-  buildShopifyCartPermalink,
+  createShopifyCartCheckoutUrl,
+  getShopifyAdminApiBaseUrl,
   getShopifyStoreUrlFromEnv,
-  resolveShopifyCheckoutBaseUrl,
+  getShopifyStorefrontGraphqlUrl,
 } from './_shopifyCheckout.js'
 
 const SHOPIFY_STORE_URL = getShopifyStoreUrlFromEnv()
@@ -46,10 +47,7 @@ const TIER_RULES = [
 const priceRuleCache = new Map()
 
 function shopifyAdminUrl(path) {
-  const base = SHOPIFY_STORE_URL.startsWith('http')
-    ? SHOPIFY_STORE_URL
-    : `https://${SHOPIFY_STORE_URL}`
-  return `${base.replace(/\/+$/, '')}/admin/api/${SHOPIFY_API_VERSION}${path}`
+  return `${getShopifyAdminApiBaseUrl()}/admin/api/${SHOPIFY_API_VERSION}${path}`
 }
 
 async function adminFetch(path, options = {}) {
@@ -69,11 +67,7 @@ async function adminFetch(path, options = {}) {
 }
 
 async function storefrontFetch(query, variables) {
-  const base = SHOPIFY_STORE_URL.startsWith('http')
-    ? SHOPIFY_STORE_URL
-    : `https://${SHOPIFY_STORE_URL}`
-  const url = `${base}/api/${SHOPIFY_API_VERSION}/graphql.json`
-  const resp = await fetch(url, {
+  const resp = await fetch(getShopifyStorefrontGraphqlUrl(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -237,22 +231,14 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. Construire l'URL de checkout Shopify
-    const encoded = Array.from(lineMap.entries())
-      .map(([variantId, qty]) => {
-        const numericId = variantId.split('/').pop()
-        return numericId ? `${numericId}:${qty}` : null
-      })
-      .filter(Boolean)
+    const cartLines = Array.from(lineMap.entries()).map(([shopifyVariantId, quantity]) => ({
+      shopifyVariantId,
+      quantity,
+    }))
 
-    if (!encoded.length) {
-      return res.status(400).json({ error: 'No valid Shopify variants' })
-    }
-
-    const checkoutBase = resolveShopifyCheckoutBaseUrl(SHOPIFY_STORE_URL)
     let discountCode = null
 
-    // 4. Générer un code de réduction unique si tier ≥ 2
+    // 3. Générer un code de réduction unique si tier ≥ 2
     if (tier) {
       try {
         const priceRuleId = await getOrCreatePriceRule(tier)
@@ -263,9 +249,8 @@ export default async function handler(req, res) {
       }
     }
 
-    const checkoutUrl = buildShopifyCartPermalink(encoded, {
-      baseUrl: checkoutBase,
-      discountCode: discountCode || undefined,
+    const checkoutUrl = await createShopifyCartCheckoutUrl(cartLines, {
+      discountCodes: discountCode ? [discountCode] : undefined,
     })
 
     return res.status(200).json({ checkoutUrl })

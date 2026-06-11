@@ -1,3 +1,4 @@
+import { getShopifyStoreUrlFromEnv, getShopifyStorefrontGraphqlUrl } from './_shopifyCheckout.js'
 import { parseJsonBody, rateLimit } from './_security.js'
 
 const ALLOWED_OPERATIONS = new Set(['FireballProducts', 'FireballProductByHandle'])
@@ -8,6 +9,10 @@ function getOperationName(query) {
 }
 
 export default async function handler(req, res) {
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end()
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -30,27 +35,19 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid GraphQL variables' })
   }
 
-  const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL || process.env.VITE_SHOPIFY_STORE_URL || ''
   const SHOPIFY_STOREFRONT_TOKEN =
     process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
     process.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
     ''
-  const SHOPIFY_API_VERSION =
-    process.env.SHOPIFY_STOREFRONT_API_VERSION ||
-    process.env.VITE_SHOPIFY_STOREFRONT_API_VERSION ||
-    '2024-10'
 
-  if (!SHOPIFY_STORE_URL || !SHOPIFY_STOREFRONT_TOKEN) {
+  if (!getShopifyStoreUrlFromEnv() || !SHOPIFY_STOREFRONT_TOKEN) {
     return res.status(500).json({
       error:
         'Missing SHOPIFY_STORE_URL or SHOPIFY_STOREFRONT_ACCESS_TOKEN (set in Vercel env, not VITE_ in client).',
     })
   }
 
-  const normalizedStoreUrl = SHOPIFY_STORE_URL.startsWith('http')
-    ? SHOPIFY_STORE_URL
-    : `https://${SHOPIFY_STORE_URL}`
-  const url = `${normalizedStoreUrl}/api/${SHOPIFY_API_VERSION}/graphql.json`
+  const url = getShopifyStorefrontGraphqlUrl()
 
   try {
     const response = await fetch(url, {
@@ -61,6 +58,13 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({ query, variables }),
     })
+
+    if (response.status === 405) {
+      return res.status(502).json({
+        error:
+          'Shopify Storefront endpoint rejected the request. SHOPIFY_STORE_URL must resolve to *.myshopify.com (not the marketing site).',
+      })
+    }
 
     const data = await response.json().catch(() => null)
     return res.status(response.status).json(data ?? { errors: [{ message: 'Invalid JSON from Shopify' }] })

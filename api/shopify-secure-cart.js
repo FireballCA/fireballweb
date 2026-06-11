@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { isPositiveInteger, isShopifyGid, parseJsonBody, rateLimit } from './_security.js'
 import {
-  buildShopifyCartPermalink,
+  createShopifyCartCheckoutUrl,
   getShopifyStoreUrlFromEnv,
-  resolveShopifyCheckoutBaseUrl,
+  getShopifyStorefrontGraphqlUrl,
 } from './_shopifyCheckout.js'
 
 const SHOPIFY_STORE_URL = getShopifyStoreUrlFromEnv()
@@ -11,11 +11,6 @@ const SHOPIFY_STOREFRONT_TOKEN =
   process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
   process.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
   ''
-const SHOPIFY_STOREFRONT_API_VERSION =
-  process.env.SHOPIFY_STOREFRONT_API_VERSION ||
-  process.env.VITE_SHOPIFY_STOREFRONT_API_VERSION ||
-  '2024-10'
-
 const SUPABASE_URL = process.env.SUPABASE_URL || ''
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
@@ -27,10 +22,7 @@ const supabase =
 const PARTNER_ONLY_TAGS = new Set(['partner-only', 'installer-only', 'installer', 'partner'])
 
 function getStorefrontEndpoint() {
-  const normalizedStoreUrl = SHOPIFY_STORE_URL.startsWith('http')
-    ? SHOPIFY_STORE_URL
-    : `https://${SHOPIFY_STORE_URL}`
-  return `${normalizedStoreUrl}/api/${SHOPIFY_STOREFRONT_API_VERSION}/graphql.json`
+  return getShopifyStorefrontGraphqlUrl()
 }
 
 async function storefrontQuery(query, variables) {
@@ -151,21 +143,7 @@ export default async function handler(req, res) {
       }
     }
 
-    const encoded = lines
-      .map((line) => {
-        const numericId = line.shopifyVariantId.split('/').pop()
-        if (!numericId) return null
-        return `${numericId}:${line.quantity}`
-      })
-      .filter(Boolean)
-
-    if (!encoded.length) {
-      return res.status(400).json({ error: 'No valid Shopify variants in cart' })
-    }
-
-    const checkoutUrl = buildShopifyCartPermalink(encoded, {
-      baseUrl: resolveShopifyCheckoutBaseUrl(SHOPIFY_STORE_URL),
-    })
+    const checkoutUrl = await createShopifyCartCheckoutUrl(lines)
     return res.status(200).json({ checkoutUrl })
   } catch (error) {
     return res.status(500).json({
