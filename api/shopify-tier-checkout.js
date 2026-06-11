@@ -25,8 +25,23 @@ const SHOPIFY_STOREFRONT_TOKEN =
   process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
   process.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
   ''
-const SHOPIFY_ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_API_TOKEN || ''
 const SHOPIFY_API_VERSION = process.env.SHOPIFY_ADMIN_API_VERSION || '2024-10'
+
+function resolveShopifyAdminToken() {
+  const token = String(process.env.SHOPIFY_ADMIN_API_TOKEN || '').trim()
+  if (!token) return ''
+  // shpss_ = client secret d'app custom, pas un token Admin API (attendu: shpat_…)
+  if (token.startsWith('shpss_')) {
+    console.warn(
+      '[tier-checkout] SHOPIFY_ADMIN_API_TOKEN ressemble à un client secret (shpss_). ' +
+        'Utilise un Admin API access token (shpat_…) depuis Shopify Admin > Apps.',
+    )
+    return ''
+  }
+  return token
+}
+
+const SHOPIFY_ADMIN_TOKEN = resolveShopifyAdminToken()
 const SUPABASE_URL = process.env.SUPABASE_URL || ''
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
@@ -35,6 +50,9 @@ const supabaseAdmin = SUPABASE_URL && SUPABASE_SERVICE_KEY
   : null
 
 const PARTNER_ONLY_TAGS = new Set(['partner-only', 'installer-only', 'installer', 'partner'])
+
+/** Désactivé temporairement — checkout via shopify-secure-cart sans rabais tier. */
+const TIER_LOYALTY_DISCOUNTS_ENABLED = false
 
 const TIER_RULES = [
   { index: 5, minXp: 35000, title: 'Fireball Loyalty Tier 5 - $30 off', value: '-30.00' },
@@ -132,6 +150,34 @@ async function createOneTimeDiscountCode(priceRuleId, tierIndex) {
   return result?.discount_code?.code ?? null
 }
 
+/** Codes fixes créés dans Shopify Admin (vars TIER_DISCOUNT_CODE_2 … _5). */
+function getStaticTierDiscountCode(tierIndex) {
+  const code = process.env[`TIER_DISCOUNT_CODE_${tierIndex}`]
+  return typeof code === 'string' && code.trim() ? code.trim() : null
+}
+
+async function resolveTierDiscountCode(tier) {
+  if (!TIER_LOYALTY_DISCOUNTS_ENABLED || !tier) return null
+
+  if (SHOPIFY_ADMIN_TOKEN) {
+    try {
+      const priceRuleId = await getOrCreatePriceRule(tier)
+      const dynamicCode = await createOneTimeDiscountCode(priceRuleId, tier.index)
+      if (dynamicCode) return dynamicCode
+    } catch (discountErr) {
+      console.error('Discount code generation failed:', discountErr)
+    }
+  }
+
+  const staticCode = getStaticTierDiscountCode(tier.index)
+  if (staticCode) {
+    console.log(`[tier-checkout] Using static discount code for tier ${tier.index}`)
+    return staticCode
+  }
+
+  return null
+}
+
 async function getUserTier(token) {
   if (!supabaseAdmin || !token) return null
   const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token)
@@ -184,10 +230,6 @@ export default async function handler(req, res) {
   if (!SHOPIFY_STORE_URL || !SHOPIFY_STOREFRONT_TOKEN) {
     return res.status(500).json({ error: 'Missing Shopify Storefront configuration' })
   }
-  if (!SHOPIFY_ADMIN_TOKEN) {
-    return res.status(500).json({ error: 'Missing Shopify Admin API token' })
-  }
-
   // Auth obligatoire
   const authHeader = req.headers.authorization || ''
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
@@ -236,18 +278,7 @@ export default async function handler(req, res) {
       quantity,
     }))
 
-    let discountCode = null
-
-    // 3. Générer un code de réduction unique si tier ≥ 2
-    if (tier) {
-      try {
-        const priceRuleId = await getOrCreatePriceRule(tier)
-        discountCode = await createOneTimeDiscountCode(priceRuleId, tier.index)
-      } catch (discountErr) {
-        // Ne pas bloquer le checkout si la création du code échoue
-        console.error('Discount code generation failed:', discountErr)
-      }
-    }
+    const discountCode = await resolveTierDiscountCode(tier)
 
     const checkoutUrl = await createShopifyCartCheckoutUrl(cartLines, {
       discountCodes: discountCode ? [discountCode] : undefined,

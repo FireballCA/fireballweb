@@ -20,6 +20,9 @@ import { SEO } from '@/components/SEO'
 /** Même offset vertical qu’au chargement : `Layout` main `pt-20` + padding haut de cette page `lg:pt-44`. */
 const CART_SUMMARY_STICKY_TOP = 'lg:top-[calc(5rem+11rem)]'
 
+/** Rabais tier XP au checkout (Admin API). Désactivé pour tester le checkout sans codes promo. */
+const TIER_LOYALTY_CHECKOUT_ENABLED = false
+
 function formatXp(xp: number) {
   return Math.max(0, Math.round(xp)).toLocaleString()
 }
@@ -240,27 +243,29 @@ export function Cart() {
     }
 
     try {
-      const tierResponse = await fetch('/api/shopify-tier-checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ lines }),
-      })
-      const tierPayload = await tierResponse.json().catch(() => null)
+      if (TIER_LOYALTY_CHECKOUT_ENABLED) {
+        const tierResponse = await fetch('/api/shopify-tier-checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ lines }),
+        })
+        const tierPayload = await tierResponse.json().catch(() => null)
 
-      if (tierResponse.ok) {
-        const url = typeof tierPayload?.checkoutUrl === 'string' ? tierPayload.checkoutUrl : ''
-        if (url) {
-          redirectToCheckout(url)
+        if (tierResponse.ok) {
+          const url = typeof tierPayload?.checkoutUrl === 'string' ? tierPayload.checkoutUrl : ''
+          if (url) {
+            redirectToCheckout(url)
+            return
+          }
+        }
+
+        if (tierPayload?.code === 'PARTNER_REQUIRED') {
+          setCheckoutMessage('Access restricted: join Fireball to buy this product.')
           return
         }
-      }
-
-      if (tierPayload?.code === 'PARTNER_REQUIRED') {
-        setCheckoutMessage('Access restricted: join Fireball to buy this product.')
-        return
       }
 
       const secureResponse = await fetch('/api/shopify-secure-cart', {
