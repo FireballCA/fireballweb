@@ -20,7 +20,10 @@ import {
 } from './_shopifyCheckout.js'
 
 const SHOPIFY_STORE_URL = getShopifyStoreUrlFromEnv()
-const SHOPIFY_STOREFRONT_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || ''
+const SHOPIFY_STOREFRONT_TOKEN =
+  process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
+  process.env.VITE_SHOPIFY_STOREFRONT_ACCESS_TOKEN ||
+  ''
 const SHOPIFY_ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_API_TOKEN || ''
 const SHOPIFY_API_VERSION = process.env.SHOPIFY_ADMIN_API_VERSION || '2024-10'
 const SUPABASE_URL = process.env.SUPABASE_URL || ''
