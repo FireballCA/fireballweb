@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useCart } from '@/context/CartContext'
-import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
+import { buildShopifyCartUrl, fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { supabase } from '@/lib/supabase'
 import { XP_PER_DOLLAR } from '@/utils/supabaseXp'
 import type { Product } from '@/data/products'
@@ -210,7 +210,7 @@ export function Cart() {
 
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
-      navigate('/account/register?returnTo=/cart')
+      navigate('/account?returnTo=/cart')
       return
     }
 
@@ -220,8 +220,28 @@ export function Cart() {
       quantity,
     }))
 
+    const redirectToCheckout = (url: string) => {
+      try {
+        const parsed = new URL(url)
+        const isMarketingSiteCart =
+          parsed.pathname.startsWith('/cart/') &&
+          (parsed.hostname === 'fireball-canada.com' ||
+            parsed.hostname === 'www.fireball-canada.com' ||
+            parsed.hostname === 'localhost' ||
+            parsed.hostname === '127.0.0.1')
+        if (isMarketingSiteCart) {
+          setCheckoutMessage(t('cart.checkoutSoon'))
+          return
+        }
+      } catch {
+        setCheckoutMessage(t('cart.checkoutSoon'))
+        return
+      }
+      window.location.href = url
+    }
+
     try {
-      const response = await fetch('/api/shopify-tier-checkout', {
+      const tierResponse = await fetch('/api/shopify-tier-checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -229,23 +249,50 @@ export function Cart() {
         },
         body: JSON.stringify({ lines }),
       })
-      const payload = await response.json().catch(() => null)
+      const tierPayload = await tierResponse.json().catch(() => null)
 
-      if (!response.ok) {
-        if (payload?.code === 'PARTNER_REQUIRED') {
+      if (tierResponse.ok) {
+        const url = typeof tierPayload?.checkoutUrl === 'string' ? tierPayload.checkoutUrl : ''
+        if (url) {
+          redirectToCheckout(url)
+          return
+        }
+      }
+
+      if (tierPayload?.code === 'PARTNER_REQUIRED') {
+        setCheckoutMessage('Access restricted: join Fireball to buy this product.')
+        return
+      }
+
+      const secureResponse = await fetch('/api/shopify-secure-cart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ lines }),
+      })
+      const securePayload = await secureResponse.json().catch(() => null)
+
+      if (secureResponse.ok) {
+        const url = typeof securePayload?.checkoutUrl === 'string' ? securePayload.checkoutUrl : ''
+        if (url) {
+          redirectToCheckout(url)
+          return
+        }
+        if (securePayload?.code === 'PARTNER_REQUIRED') {
           setCheckoutMessage('Access restricted: join Fireball to buy this product.')
           return
         }
-        setCheckoutMessage(t('cart.checkoutSoon'))
+      }
+
+      const fallbackUrl = buildShopifyCartUrl(lines)
+      if (fallbackUrl) {
+        redirectToCheckout(fallbackUrl)
         return
       }
 
-      const url = typeof payload?.checkoutUrl === 'string' ? payload.checkoutUrl : ''
-      if (!url) {
-        setCheckoutMessage(t('cart.checkoutSoon'))
-        return
-      }
-      window.location.href = url
+      setCheckoutMessage(t('cart.checkoutSoon'))
     } finally {
       setCheckoutLoading(false)
     }

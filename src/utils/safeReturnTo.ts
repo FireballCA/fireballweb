@@ -24,6 +24,7 @@ export function getSafeReturnToPath(raw: string | null | undefined): string | nu
   }
 
   if (pathOnly === '/account/company' || pathOnly === '/contact' || pathOnly === '/join-club') return pathOnly
+  if (pathOnly === '/cart') return pathOnly
   if (pathOnly === '/shop') return pathOnly
   if (/^\/shop\/[a-zA-Z0-9_-]+$/.test(pathOnly)) return pathOnly
   if (/^\/products\/[a-zA-Z0-9\-_%]+$/.test(pathOnly)) return pathOnly

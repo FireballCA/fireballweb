@@ -13,8 +13,13 @@
  */
 import { createClient } from '@supabase/supabase-js'
 import { isPositiveInteger, isShopifyGid, parseJsonBody, rateLimit } from './_security.js'
+import {
+  buildShopifyCartPermalink,
+  getShopifyStoreUrlFromEnv,
+  resolveShopifyCheckoutBaseUrl,
+} from './_shopifyCheckout.js'
 
-const SHOPIFY_STORE_URL = process.env.SHOPIFY_STORE_URL || ''
+const SHOPIFY_STORE_URL = getShopifyStoreUrlFromEnv()
 const SHOPIFY_STOREFRONT_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || ''
 const SHOPIFY_ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_API_TOKEN || ''
 const SHOPIFY_API_VERSION = process.env.SHOPIFY_ADMIN_API_VERSION || '2024-10'
@@ -241,24 +246,24 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No valid Shopify variants' })
     }
 
-    const baseUrl = SHOPIFY_STORE_URL.startsWith('http')
-      ? SHOPIFY_STORE_URL
-      : `https://${SHOPIFY_STORE_URL}`
-    let checkoutUrl = `${baseUrl.replace(/\/+$/, '')}/cart/${encoded.join(',')}`
+    const checkoutBase = resolveShopifyCheckoutBaseUrl(SHOPIFY_STORE_URL)
+    let discountCode = null
 
     // 4. Générer un code de réduction unique si tier ≥ 2
     if (tier) {
       try {
         const priceRuleId = await getOrCreatePriceRule(tier)
-        const discountCode = await createOneTimeDiscountCode(priceRuleId, tier.index)
-        if (discountCode) {
-          checkoutUrl += `?discount=${encodeURIComponent(discountCode)}`
-        }
+        discountCode = await createOneTimeDiscountCode(priceRuleId, tier.index)
       } catch (discountErr) {
         // Ne pas bloquer le checkout si la création du code échoue
         console.error('Discount code generation failed:', discountErr)
       }
     }
+
+    const checkoutUrl = buildShopifyCartPermalink(encoded, {
+      baseUrl: checkoutBase,
+      discountCode: discountCode || undefined,
+    })
 
     return res.status(200).json({ checkoutUrl })
   } catch (error) {

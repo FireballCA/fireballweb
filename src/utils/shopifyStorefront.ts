@@ -12,6 +12,29 @@ function getNormalizedStoreUrl(): string {
   return SHOPIFY_STORE_URL.startsWith('http') ? SHOPIFY_STORE_URL : `https://${SHOPIFY_STORE_URL}`
 }
 
+const DEFAULT_MYSHOPIFY_HOST = 'fireball-canada.myshopify.com'
+
+/** Base URL pour les permalinks /cart/* (toujours *.myshopify.com, pas le site vitrine). */
+export function getShopifyCheckoutBaseUrl(): string {
+  const explicit = (import.meta.env.VITE_SHOPIFY_CHECKOUT_STORE_URL as string | undefined)?.trim()
+  if (explicit) {
+    const base = explicit.startsWith('http') ? explicit : `https://${explicit}`
+    return base.replace(/\/+$/, '')
+  }
+
+  const normalized = getNormalizedStoreUrl()
+  try {
+    const hostname = new URL(normalized).hostname.toLowerCase()
+    if (hostname.endsWith('.myshopify.com')) {
+      return normalized.replace(/\/+$/, '')
+    }
+  } catch {
+    /* fall through */
+  }
+
+  return `https://${DEFAULT_MYSHOPIFY_HOST}`
+}
+
 async function shopifyFetch<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   if (!hasShopifyConfig()) {
     throw new Error('Missing Shopify Storefront configuration')
@@ -496,8 +519,8 @@ export function buildShopifyCartUrl(lines: { shopifyVariantId?: string; quantity
 
   if (!usable.length) return null
 
-  const base = getNormalizedStoreUrl()
-  return `${base.replace(/\/+$/, '')}/cart/${usable.join(',')}`
+  const base = getShopifyCheckoutBaseUrl()
+  return `${base}/cart/${usable.join(',')}`
 }
 
 
