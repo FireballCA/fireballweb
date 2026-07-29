@@ -8,21 +8,20 @@ import { FloatingAdminFab } from '@/components/FloatingAdminFab'
 import { RouteChunkErrorBoundary } from '@/components/RouteChunkErrorBoundary'
 import { bootstrapPublicSiteRoutePrefetch, prefetchSiteRoute } from '@/routes/lazyPages'
 import { prefetchProductBySlug } from '@/utils/shopifyStorefront'
+import { resolveSiteShell } from '@/config/siteShell'
 import { Header } from './Header'
+import { DashboardHeader } from './DashboardHeader'
 import { Footer } from './Footer'
+
+const CONTENT_BG_CLASS: Record<ReturnType<typeof resolveSiteShell>['contentBg'], string> = {
+  dark: 'bg-[#111111]',
+  black: 'bg-black',
+  white: 'bg-white',
+}
 
 export function Layout() {
   const location = useLocation()
   const reduceMotion = useEffectiveReducedMotion()
-
-  const isAccountAuthPage =
-    location.pathname === '/account' ||
-    location.pathname === '/account/register'
-  const isAnyAccountPage =
-    location.pathname.startsWith('/account') ||
-    location.pathname.startsWith('/business')
-  const isContactPage = location.pathname === '/contact'
-  const isCarClubPage = location.pathname === '/car-club'
 
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 1024 : false,
@@ -34,6 +33,11 @@ export function Layout() {
     setIsMobile(mq.matches)
     return () => mq.removeEventListener('change', h)
   }, [])
+
+  const shell = resolveSiteShell(location.pathname, isMobile)
+  const showHeader = shell.headerVariant !== 'none'
+  const usePageScrollLayout = shell.scrollMode === 'page'
+  const contactDesktopNoScroll = shell.scrollMode === 'contact-desktop'
 
   useEffect(() => {
     bootstrapPublicSiteRoutePrefetch()
@@ -56,12 +60,6 @@ export function Layout() {
     return () => document.removeEventListener('pointerover', onPointerOver)
   }, [])
 
-  const showHeader = !isAccountAuthPage
-  const showFooter = !isAnyAccountPage && !isContactPage
-
-  const contactDesktopNoScroll = isContactPage && !isMobile
-  const usePageScrollLayout = isAnyAccountPage
-
   return (
     <div
       className={[
@@ -71,24 +69,24 @@ export function Layout() {
         .filter(Boolean)
         .join(' ')}
     >
-      {showHeader && <Header />}
+      {shell.headerVariant === 'public' && <Header showAnnouncementBanner={shell.showAnnouncementBanner} />}
+      {shell.headerVariant === 'dashboard' && <DashboardHeader />}
 
       {showHeader && (
         <div
           className="shrink-0"
-          style={{ height: 'calc(var(--mobile-header-h, 3.5rem) + 12px)' }}
+          style={{ height: 'var(--mobile-header-h, 4rem)' }}
           aria-hidden
         />
       )}
 
       <div
         id="app-scroll-root"
-        style={{ '--app-hero-h': 'calc(100dvh - var(--mobile-header-h, 3.5rem) - 12px)' } as CSSProperties}
+        style={{ '--app-hero-h': 'calc(100dvh - var(--mobile-header-h, 4rem))' } as CSSProperties}
         className={[
           'flex flex-1 flex-col min-h-0 overflow-x-hidden relative z-[1]',
           usePageScrollLayout ? 'overflow-visible' : contactDesktopNoScroll ? 'overflow-hidden' : 'overflow-y-auto',
-          '-mt-2 rounded-t-[30px] shadow-[0_-12px_26px_rgba(0,0,0,0.42)]',
-          isCarClubPage ? 'bg-black' : isContactPage ? 'bg-white' : 'bg-[#111111]',
+          CONTENT_BG_CLASS[shell.contentBg],
         ]
           .filter(Boolean)
           .join(' ')}
@@ -105,7 +103,7 @@ export function Layout() {
           <main
             className={[
               'flex-1',
-              isContactPage ? 'flex min-h-0 w-full flex-col' : '',
+              shell.contentBg === 'white' ? 'flex min-h-0 w-full flex-col' : '',
             ]
               .filter(Boolean)
               .join(' ')}
@@ -114,7 +112,7 @@ export function Layout() {
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={location.key}
-                  className={isContactPage ? 'flex min-h-0 w-full flex-1 flex-col' : undefined}
+                  className={shell.contentBg === 'white' ? 'flex min-h-0 w-full flex-1 flex-col' : undefined}
                   initial={
                     !reduceMotion && (location.state as { pageTransition?: string } | null | undefined)?.pageTransition === 'slideUp'
                       ? { y: 64, opacity: 0 }
@@ -137,7 +135,7 @@ export function Layout() {
               </AnimatePresence>
             </LineupImageTransitionProvider>
           </main>
-          {showFooter && <Footer />}
+          {shell.showFooter && <Footer />}
         </div>
       </div>
 

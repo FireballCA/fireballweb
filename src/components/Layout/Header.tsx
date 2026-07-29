@@ -1,4 +1,4 @@
-import { useId, useState, useEffect, useLayoutEffect, useMemo, useRef, useContext } from 'react'
+import { useState, useEffect, useLayoutEffect, useMemo, useRef, useContext } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -7,10 +7,12 @@ import { CATEGORIES, PRODUCTS, SHOP_NAV_CATEGORY_IDS } from '@/data/products'
 import { isAuthenticated, getCurrentUserProfile } from '@/utils/supabaseAuth'
 import { FB_UNREAD_NOTIF_EVENT, readUnreadNotificationsFromStorage } from '@/utils/inAppNotificationsFlag'
 import { supabase } from '@/lib/supabase'
-import { isShopPathname } from '@/utils/shopRoutes'
 import { fetchProductsFromShopify } from '@/utils/shopifyStorefront'
 import { shopBrowseCategoryPath } from '@/constants/paths'
 import { LenisContext } from '@/components/LenisRoot'
+import { NAV_BAR_INNER_CLASS, NAV_LOGO_GAP_CLASS, NAV_LINKS_GAP_CLASS, NAV_LINK_CLASS, NAV_LINK_ACTIVE_CLASS, NAV_ICON_BTN_CLASS, NAV_BANNER_INNER_CLASS, NAV_BANNER_CLASS, NAV_LOGO_CLASS, NAV_LOGO_SRC, NAV_AVATAR_RING_CLASS, NAV_AVATAR_FALLBACK_CLASS, NAV_MOBILE_BORDER_CLASS, SOLID_NAV_COLOR, navBgStyle } from './navShared'
+import { useSiteHeaderHeight } from './useSiteHeaderHeight'
+import { NavMegaMenu, type MegaMenuId } from './NavMegaMenu'
 
 
 type SearchEntry = {
@@ -78,7 +80,11 @@ function CeramicMobileNavIcon({ to }: { to: string }) {
   }
 }
 
-export function Header() {
+type HeaderProps = {
+  showAnnouncementBanner?: boolean
+}
+
+export function Header({ showAnnouncementBanner = true }: HeaderProps) {
   const lenis = useContext(LenisContext)
   const { t } = useTranslation()
 
@@ -124,9 +130,7 @@ export function Header() {
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [shopOpen, setShopOpen] = useState(false)
-  const [ceramicOpen, setCeramicOpen] = useState(false)
-  const [companyOpen, setCompanyOpen] = useState(false)
+  const [megaMenu, setMegaMenu] = useState<MegaMenuId | null>(null)
   const [mobileShopOpen, setMobileShopOpen] = useState(false)
   const [mobileCeramicOpen, setMobileCeramicOpen] = useState(false)
   const [mobileCompanyOpen, setMobileCompanyOpen] = useState(false)
@@ -136,8 +140,9 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const searchMenuRef = useRef<HTMLDivElement | null>(null)
+  const headerStackRef = useRef<HTMLDivElement | null>(null)
+  const megaMenuCloseTimerRef = useRef<number | null>(null)
   const { totalItems } = useCart()
-  const isDashboardPage = location.pathname === '/account/dashboard' || location.pathname === '/dashboard'
   const [headerUnreadNotif, setHeaderUnreadNotif] = useState(() =>
     typeof window !== 'undefined' ? readUnreadNotificationsFromStorage() : false,
   )
@@ -185,35 +190,10 @@ export function Header() {
     return () => window.removeEventListener(FB_UNREAD_NOTIF_EVENT, onFlag)
   }, [])
 
-  const showAccountNotifBang = loggedInForNotif && headerUnreadNotif && !isDashboardPage
+  const showAccountNotifBang = loggedInForNotif && headerUnreadNotif
 
-  const isShopPage = isShopPathname(location.pathname)
-  const isProductPage =
-    location.pathname.startsWith('/products/') ||
-    location.pathname.startsWith('/product/')
-  const isCoatingPage =
-    location.pathname.startsWith('/coating/') ||
-    location.pathname.startsWith('/coatings/') ||
-    location.pathname === '/all-coatings'
-  const isStandardNavCoatingPage =
-    location.pathname === '/coatings/how-it-works' || location.pathname === '/coatings/compare'
-  const isAutoHideHeaderPage = (isProductPage || isCoatingPage) && !isStandardNavCoatingPage
-  const isBusinessPage =
-    location.pathname.startsWith('/business') || location.pathname.startsWith('/account/business')
-  /**
-   * Fond plein dès le haut (même logique que le footer) : tout sauf accueil / about où le hero
-   * passe sous la navbar fixe (transparence → opaque au scroll).
-   */
-  /** 0 = navbar visible, 1 = entièrement masquée (pages produit / coating, hors pages vitrines compare/how-it-works) */
-  const [headerHideProgress, setHeaderHideProgress] = useState(0)
-  const headerHideProgressRef = useRef(0)
-  const lastScrollYRef = useRef(0)
-  const headerHideRafRef = useRef<number | null>(null)
   const mobileMenuCloseTimerRef = useRef<number | null>(null)
 
-  const HEADER_HIDE_SCROLL_SCALE = 1 / 320
-  const HEADER_SHOW_TOP_PX = 96
-  const SCROLL_DELTA_IGNORE = 0.75
   const MOBILE_MENU_ANIMATION_MS = 480
   
   type BannerItem = {
@@ -237,8 +217,6 @@ export function Header() {
   ])
   const lastBannerScrollYRef = useRef(0)
   const bannerRef = useRef<HTMLDivElement | null>(null)
-  // Keep banners visible on special public pages too (contact, event detail, configurators).
-  const bannerAllowedByRoute = !isBusinessPage && !isDashboardPage
   const activeBanners = useMemo(
     () => banners.filter((b) => {
       if (!b.enabled || !String(b.text || '').trim()) return false
@@ -250,7 +228,7 @@ export function Header() {
     }),
     [banners],
   )
-  const bannerActive = bannerAllowedByRoute && activeBanners.length > 0
+  const bannerActive = showAnnouncementBanner && activeBanners.length > 0
   const [bannerIndex, setBannerIndex] = useState(0)
   const currentBanner = activeBanners[Math.min(bannerIndex, Math.max(activeBanners.length - 1, 0))]
 
@@ -381,90 +359,6 @@ export function Header() {
   }, [])
 
   useEffect(() => {
-    if (menuOpen || shopOpen || ceramicOpen || companyOpen || searchOpen) {
-      headerHideProgressRef.current = 0
-      setHeaderHideProgress(0)
-    }
-  }, [menuOpen, shopOpen, ceramicOpen, companyOpen, searchOpen])
-
-  useEffect(() => {
-    if (!isAutoHideHeaderPage) {
-      headerHideProgressRef.current = 0
-      setHeaderHideProgress(0)
-    }
-  }, [isAutoHideHeaderPage])
-
-  useEffect(() => {
-    const flushHeaderHide = () => {
-      headerHideRafRef.current = null
-      setHeaderHideProgress(headerHideProgressRef.current)
-    }
-
-    const scheduleHeaderHideFlush = () => {
-      if (headerHideRafRef.current != null) return
-      headerHideRafRef.current = requestAnimationFrame(flushHeaderHide)
-    }
-
-    const onScroll = () => {
-      const scrollY = window.scrollY || window.pageYOffset || 0
-      if (!isAutoHideHeaderPage) {
-        lastScrollYRef.current = scrollY
-        return
-      }
-
-      const navLocked =
-        menuOpen || shopOpen || ceramicOpen || companyOpen || searchOpen
-      if (navLocked) {
-        lastScrollYRef.current = scrollY
-        if (headerHideProgressRef.current !== 0) {
-          headerHideProgressRef.current = 0
-          scheduleHeaderHideFlush()
-        }
-        return
-      }
-
-      const lastScrollY = lastScrollYRef.current
-      const delta = scrollY - lastScrollY
-      lastScrollYRef.current = scrollY
-
-      if (scrollY < HEADER_SHOW_TOP_PX) {
-        if (headerHideProgressRef.current !== 0) {
-          headerHideProgressRef.current = 0
-          scheduleHeaderHideFlush()
-        }
-        return
-      }
-
-      if (Math.abs(delta) < SCROLL_DELTA_IGNORE) {
-        return
-      }
-
-      let next = headerHideProgressRef.current + delta * HEADER_HIDE_SCROLL_SCALE
-      next = Math.min(1, Math.max(0, next))
-      if (next !== headerHideProgressRef.current) {
-        headerHideProgressRef.current = next
-        scheduleHeaderHideFlush()
-      }
-    }
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      if (headerHideRafRef.current != null) {
-        cancelAnimationFrame(headerHideRafRef.current)
-        headerHideRafRef.current = null
-      }
-    }
-  }, [
-    isAutoHideHeaderPage,
-    menuOpen,
-    shopOpen,
-    ceramicOpen,
-    companyOpen,
-    searchOpen,
-  ])
-
-  useEffect(() => {
     const onClickOutside = (event: MouseEvent) => {
       const target = event.target as Node
 
@@ -513,6 +407,7 @@ export function Header() {
 
   useLayoutEffect(() => {
     setMenuOpen(false)
+    setMegaMenu(null)
     setIsMobileMenuVisible(false)
     setIsMobileMenuMounted(false)
     if (mobileMenuCloseTimerRef.current != null) {
@@ -539,18 +434,26 @@ export function Header() {
     setSearchQuery('')
   }, [location.pathname])
 
-  // Expose total header height as CSS var so Layout.tsx spacer can match it
+  useSiteHeaderHeight()
+
   useEffect(() => {
-    const el = document.getElementById('site-header-stack')
-    if (!el) return
-    const update = () => {
-      document.documentElement.style.setProperty('--mobile-header-h', el.getBoundingClientRect().height + 'px')
+    const stack = headerStackRef.current
+    if (!stack) return
+
+    const updateStackBottom = () => {
+      const bottom = Math.round(stack.getBoundingClientRect().bottom)
+      document.documentElement.style.setProperty('--header-stack-bottom', `${bottom}px`)
     }
-    update()
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
+
+    updateStackBottom()
+    const ro = new ResizeObserver(updateStackBottom)
+    ro.observe(stack)
+    window.addEventListener('resize', updateStackBottom, { passive: true })
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', updateStackBottom)
+    }
+  }, [megaMenu, bannerActive])
 
   // Stopper Lenis quand le menu mobile est monté (Lenis bypass overflow:hidden)
   useEffect(() => {
@@ -596,21 +499,40 @@ export function Header() {
     }
   }, [isMobileMenuMounted, location.pathname])
 
-  /** Aligné sur le footer (`bg-carbon-900` = #111111) */
-  const solidNavColor = '#111111'
+  const navLink = NAV_LINK_CLASS
 
-  // Navbar is always solid — outer shell is bg-black so there's nothing to fade over
-  const navBgStyle: React.CSSProperties = {
-    backgroundColor: solidNavColor,
-    backdropFilter: 'none',
-    borderBottom: '1px solid rgba(37, 37, 37, 0.45)',
-    transition: 'background-color 0.12s ease-out, backdrop-filter 0.12s ease-out, border-bottom-color 0.12s ease-out',
+  const openMegaMenu = (id: MegaMenuId) => {
+    if (megaMenuCloseTimerRef.current != null) {
+      window.clearTimeout(megaMenuCloseTimerRef.current)
+      megaMenuCloseTimerRef.current = null
+    }
+    setMegaMenu(id)
   }
 
-  const navLink =
-    'font-nav font-bold text-white transition-colors text-[11px] uppercase px-3 py-1.5 rounded-md hover:bg-carbon-700/20 group-hover:text-silver/70 hover:!text-white'
-  const anyMenuOpen = shopOpen || ceramicOpen || companyOpen || searchOpen || menuOpen
+  const scheduleMegaMenuClose = () => {
+    if (megaMenuCloseTimerRef.current != null) {
+      window.clearTimeout(megaMenuCloseTimerRef.current)
+    }
+    megaMenuCloseTimerRef.current = window.setTimeout(() => {
+      setMegaMenu(null)
+      megaMenuCloseTimerRef.current = null
+    }, 150)
+  }
 
+  const closeMegaMenuNow = () => {
+    if (megaMenuCloseTimerRef.current != null) {
+      window.clearTimeout(megaMenuCloseTimerRef.current)
+      megaMenuCloseTimerRef.current = null
+    }
+    setMegaMenu(null)
+  }
+
+  const cancelMegaMenuClose = () => {
+    if (megaMenuCloseTimerRef.current != null) {
+      window.clearTimeout(megaMenuCloseTimerRef.current)
+      megaMenuCloseTimerRef.current = null
+    }
+  }
   const normalizeSearchValue = (value: string) =>
     value
       .toLowerCase()
@@ -715,6 +637,7 @@ export function Header() {
       {/* Banner + Navbar: move as ONE block (no gap, smoother) */}
       <div
         id="site-header-stack"
+        ref={headerStackRef}
         className={`fixed top-0 left-0 right-0 ${
           isMobileMenuMounted ? 'z-[10010]' : 'z-[120]'
         } transition-transform duration-300 ease-out will-change-transform`}
@@ -722,33 +645,35 @@ export function Header() {
           transform: 'translateY(0)',
         }}
       >
+        <div className="relative overflow-visible" onMouseLeave={scheduleMegaMenuClose}>
+        <div id="site-nav-chrome" className="bg-white">
         {/* Navbar Banner */}
         {bannerActive && (
           <div
             ref={bannerRef}
-            className="border-b border-white/[0.07] bg-[#111111] text-white"
+            className={NAV_BANNER_CLASS}
           >
-            <div className="max-w-7xl mx-auto px-6 py-2">
+            <div className={NAV_BANNER_INNER_CLASS}>
               <div className="flex items-center justify-center gap-2 flex-nowrap overflow-hidden">
-                <p className="min-w-0 text-center text-[11px] sm:text-sm font-nav font-bold text-white/80 truncate whitespace-nowrap">
+                <p className="min-w-0 text-center text-[11px] sm:text-sm font-nav font-bold text-black/80 truncate whitespace-nowrap">
                   {currentBanner?.text ?? ''}
                 </p>
                 {currentBanner?.button_to && currentBanner?.button_text ? (
                   <Link
                     to={currentBanner.button_to}
-                    className="shrink-0 group inline-flex items-center gap-1 text-[11px] sm:text-sm font-nav font-bold text-white hover:text-white/70 transition-colors whitespace-nowrap"
+                    className="shrink-0 group inline-flex items-center gap-1 text-[11px] sm:text-sm font-nav font-bold text-black hover:text-black/70 transition-colors whitespace-nowrap"
                   >
-                    <span className="underline underline-offset-4 decoration-white/40 group-hover:decoration-white">
+                    <span className="underline underline-offset-4 decoration-black/30 group-hover:decoration-black">
                       {currentBanner.button_text}
                     </span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 640 640"
-                      className="shrink-0 h-[14px] w-[14px] transition-transform duration-200 group-hover:translate-x-0.5"
+                      className="shrink-0 h-[14px] w-[14px] text-black transition-transform duration-200 group-hover:translate-x-0.5"
                       aria-hidden
                     >
                       <path
-                        fill="white"
+                        fill="currentColor"
                         d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z"
                       />
                     </svg>
@@ -765,42 +690,35 @@ export function Header() {
             ...(isMobileMenuMounted
               ? {
                   ...(navBgStyle || {}),
-                  backgroundColor: solidNavColor,
+                  backgroundColor: SOLID_NAV_COLOR,
                   backdropFilter: 'none',
                 }
               : navBgStyle),
-            ...(isAutoHideHeaderPage && !isMobileMenuMounted
-              ? {
-                  transform: `translateY(${-headerHideProgress * 100}%)`,
-                  willChange: 'transform',
-                }
-              : {}),
           }}
         >
-        {anyMenuOpen && !menuOpen && (
+        {searchOpen && !menuOpen && (
           <div className="fixed inset-0 z-40 bg-black/15 pointer-events-none" aria-hidden />
         )}
-        <div className={`max-w-7xl mx-auto px-6 flex items-center justify-between ${isShopPage ? 'h-14 max-lg:h-14' : 'h-16 max-lg:h-14'}`}>
+        <div className={NAV_BAR_INNER_CLASS}>
         {/* Left: Logo + links */}
-        <div className="flex items-center gap-10 h-full">
-          <Link to="/" className="flex items-center h-12 w-auto select-none">
-            <img id="navbar-logo" src="/LogoFull.avif" alt="Fireball" className="h-6 w-auto object-contain pointer-events-none" draggable={false} />
+        <div className={`flex items-center ${NAV_LOGO_GAP_CLASS} h-full`}>
+          <Link to="/" className="flex items-center h-10 w-auto select-none">
+            <img id="navbar-logo" src={NAV_LOGO_SRC} alt="Fireball" className={NAV_LOGO_CLASS} draggable={false} />
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-1 pt-0.5 group h-full">
+          <nav className={`hidden lg:flex items-center ${NAV_LINKS_GAP_CLASS} pt-0.5 group h-full`}>
             <Link to="/car-club" className={navLink}>
               {t('nav.carClub')}
             </Link>
 
             <div
               className="relative h-full flex items-center"
-              onMouseEnter={() => setShopOpen(true)}
-              onMouseLeave={() => setShopOpen(false)}
+              onMouseEnter={() => openMegaMenu('shop')}
             >
-              <button type="button" className={`${navLink} flex items-center gap-1 ${shopOpen ? '!bg-carbon-700/20 !text-white' : ''}`}>
+              <button type="button" className={`${navLink} flex items-center gap-1 ${megaMenu === 'shop' ? NAV_LINK_ACTIVE_CLASS : ''}`}>
                 {t('nav.shop')}
                 <svg
-                  className={`w-4 h-4 transition-transform ${shopOpen ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 transition-transform duration-300 ${megaMenu === 'shop' ? 'rotate-180' : ''}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -808,173 +726,16 @@ export function Header() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              {shopOpen && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-0 animate-fade-in z-50">
-                  <div className="relative bg-white shadow-2xl rounded-2xl pt-4">
-                    <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white z-10 pointer-events-none" viewBox="0 0 16 8" preserveAspectRatio="none">
-                      <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
-                    </svg>
-                    <div className="overflow-hidden rounded-b-2xl">
-                      <div className="flex gap-12 px-8 py-5">
-                        {/* PROTECTION SYSTEMS */}
-                        <div className="min-w-[200px]">
-                          <h3 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">
-                            {t('nav.protectionSystems')}
-                          </h3>
-                          <p className="text-sm text-carbon-600 mb-10">
-                            {t('nav.protectionSystemsDesc')}
-                          </p>
-                          <ul className="space-y-1.5">
-                            <li>
-                              <Link
-                                to="/coatings"
-                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
-                                onClick={() => setShopOpen(false)}
-                              >
-                                {t('nav.coatings')}
-                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
-                              </Link>
-                            </li>
-                            <li>
-                              <Link
-                                to="/sealants"
-                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
-                                onClick={() => setShopOpen(false)}
-                              >
-                                {t('nav.sealants')}
-                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
-                              </Link>
-                            </li>
-                            <li>
-                              <Link
-                                to="/waxes"
-                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
-                                onClick={() => setShopOpen(false)}
-                              >
-                                {t('nav.waxes')}
-                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
-                              </Link>
-                            </li>
-                            <li>
-                              <Link
-                                to="/dressings"
-                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
-                                onClick={() => setShopOpen(false)}
-                              >
-                                {t('nav.dressings')}
-                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
-                              </Link>
-                            </li>
-                          </ul>
-                        </div>
-
-                        {/* MAINTENANCE & PREPARATION */}
-                        <div className="min-w-[220px]">
-                          <h3 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">
-                            {t('nav.maintenancePrep')}
-                          </h3>
-                          <p className="text-sm text-carbon-600 mb-10">
-                            {t('nav.maintenancePrepDesc')}
-                          </p>
-                          <ul className="space-y-1.5">
-                            <li>
-                              <Link
-                                to="/washing"
-                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
-                                onClick={() => setShopOpen(false)}
-                              >
-                                {t('nav.washing')}
-                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
-                              </Link>
-                            </li>
-                            <li>
-                              <Link
-                                to="/cleaners"
-                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
-                                onClick={() => setShopOpen(false)}
-                              >
-                                {t('nav.cleaners')}
-                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
-                              </Link>
-                            </li>
-                            <li>
-                              <Link
-                                to="/towels"
-                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
-                                onClick={() => setShopOpen(false)}
-                              >
-                                {t('nav.towels')}
-                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
-                              </Link>
-                            </li>
-                            <li>
-                              <Link
-                                to="/accessories"
-                                className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
-                                onClick={() => setShopOpen(false)}
-                              >
-                                {t('nav.accessories')}
-                                <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
-                              </Link>
-                            </li>
-                          </ul>
-                        </div>
-
-                        {/* Section Image */}
-                        <div className="min-w-[220px] max-w-[260px]">
-                          <div className="w-full bg-carbon-200 rounded mb-2.5 overflow-hidden">
-                            <div className="relative w-full pb-[56.25%]">
-                            {featuredImage ? (
-                              <img
-                                src={featuredImage}
-                                alt={featuredName}
-                                className="absolute inset-0 w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none'
-                                  e.currentTarget.nextElementSibling?.classList.remove('hidden')
-                                }}
-                              />
-                            ) : null}
-                            <div className={`absolute inset-0 flex items-center justify-center text-carbon-400 ${featuredImage ? 'hidden' : ''}`}>
-                              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            </div>
-                            </div>
-                          </div>
-                          <h4 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">
-                            {featuredName}
-                          </h4>
-                          <p className="text-sm text-carbon-600 mb-2.5 featured-description">
-                            {featuredDescription}
-                          </p>
-                          <Link
-                            to="/shop"
-                            className="inline-flex items-center gap-0.5 text-sm font-nav font-bold text-blue-600 hover:text-blue-700 underline transition-colors"
-                            onClick={() => setShopOpen(false)}
-                          >
-                            {t('nav.exploreNow')}
-                            <svg className="w-4 h-4 transform -rotate-45 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                            </svg>
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             <div
               className="relative h-full flex items-center"
-              onMouseEnter={() => setCeramicOpen(true)}
-              onMouseLeave={() => setCeramicOpen(false)}
+              onMouseEnter={() => openMegaMenu('ceramic')}
             >
-              <button type="button" className={`${navLink} flex items-center gap-1 ${ceramicOpen ? '!bg-carbon-700/20 !text-white' : ''}`}>
+              <button type="button" className={`${navLink} flex items-center gap-1 ${megaMenu === 'ceramic' ? NAV_LINK_ACTIVE_CLASS : ''}`}>
                 {t('nav.ceramicCoating')}
                 <svg
-                  className={`w-4 h-4 transition-transform ${ceramicOpen ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 transition-transform duration-300 ${megaMenu === 'ceramic' ? 'rotate-180' : ''}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -982,37 +743,6 @@ export function Header() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              {ceramicOpen && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-0 animate-fade-in z-50">
-                  <div className="relative bg-white shadow-2xl rounded-2xl pt-4">
-                    <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white z-10 pointer-events-none" viewBox="0 0 16 8" preserveAspectRatio="none">
-                      <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
-                    </svg>
-                    <div className="flex gap-12 px-8 py-5 rounded-b-2xl">
-                        {ceramicSections.map((section) => (
-                          <div key={section.title} className="min-w-[200px]">
-                            <h3 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">{section.title}</h3>
-                            <p className="text-sm text-carbon-600 mb-10">{section.description}</p>
-                            <ul className="space-y-1.5">
-                              {section.links.map((item) => (
-                                <li key={item.label}>
-                                  <Link
-                                    to={item.to}
-                                    className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
-                                    onClick={() => setCeramicOpen(false)}
-                                  >
-                                    {item.label}
-                                    <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             <Link to="/event" className={navLink}>
@@ -1027,13 +757,12 @@ export function Header() {
 
             <div
               className="relative h-full flex items-center"
-              onMouseEnter={() => setCompanyOpen(true)}
-              onMouseLeave={() => setCompanyOpen(false)}
+              onMouseEnter={() => openMegaMenu('company')}
             >
-              <button type="button" className={`${navLink} flex items-center gap-1 ${companyOpen ? '!bg-carbon-700/20 !text-white' : ''}`}>
+              <button type="button" className={`${navLink} flex items-center gap-1 ${megaMenu === 'company' ? NAV_LINK_ACTIVE_CLASS : ''}`}>
                 {t('nav.company')}
                 <svg
-                  className={`w-4 h-4 transition-transform ${companyOpen ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 transition-transform duration-300 ${megaMenu === 'company' ? 'rotate-180' : ''}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1041,51 +770,6 @@ export function Header() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              {companyOpen && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-0 animate-fade-in z-50">
-                  <div className="relative bg-white shadow-2xl rounded-2xl pt-4">
-                    <svg className="absolute -top-2 left-1/2 w-4 h-2 -translate-x-1/2 fill-white z-10 pointer-events-none" viewBox="0 0 16 8" preserveAspectRatio="none">
-                      <path d="M 0 8 L 5 1.5 Q 8 0 11 1.5 L 16 8 Z" />
-                    </svg>
-                    <div className="flex gap-12 px-8 py-5 rounded-b-2xl">
-                        {companySections.map((section) => (
-                          <div key={section.title} className="min-w-[200px]">
-                            <h3 className="font-nav font-bold text-carbon-900 text-sm mb-1.5">{section.title}</h3>
-                            <p className="text-sm text-carbon-600 mb-10">{section.description}</p>
-                            <ul className="space-y-1.5">
-                              {section.links.map((item) => (
-                                <li key={item.label}>
-                                  {'to' in item && item.to ? (
-                                    <Link
-                                      to={item.to}
-                                      className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
-                                      onClick={() => setCompanyOpen(false)}
-                                    >
-                                      {item.label}
-                                      <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
-                                    </Link>
-                                  ) : (
-                                    <a
-                                      href={item.href ?? '#'}
-                                      className="relative inline-block text-sm text-carbon-700 no-underline hover:text-carbon-900 overflow-hidden pb-0.5 [&:hover_.dropdown-link-line]:w-full"
-                                      onClick={(e) => {
-                                        if (item.href === '#') e.preventDefault()
-                                        setCompanyOpen(false)
-                                      }}
-                                    >
-                                      {item.label}
-                                      <span className="dropdown-link-line absolute bottom-0 left-0 h-px bg-carbon-900 w-0 transition-all duration-300 ease-out" />
-                                    </a>
-                                  )}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                  </div>
-                </div>
-              )}
             </div>
           </nav>
         </div>
@@ -1095,8 +779,11 @@ export function Header() {
           <div className="relative h-full flex items-center" ref={searchMenuRef}>
             <button
               type="button"
-              onClick={() => setSearchOpen((open) => !open)}
-              className="px-2 py-1.5 rounded-md text-white transition-colors hover:bg-carbon-700/30"
+              onClick={() => {
+                closeMegaMenuNow()
+                setSearchOpen((open) => !open)
+              }}
+              className={NAV_ICON_BTN_CLASS}
               aria-label="Recherche"
               aria-expanded={searchOpen}
             >
@@ -1166,14 +853,14 @@ export function Header() {
                 <img
                   src={headerAvatarUrl}
                   alt="Profile"
-                  className="w-8 h-8 rounded-full object-cover ring-2 ring-white/20"
+                  className={`w-8 h-8 rounded-full object-cover ${NAV_AVATAR_RING_CLASS}`}
                 />
               ) : headerUserInitial ? (
-                <div className="w-8 h-8 rounded-full bg-carbon-600 ring-2 ring-white/20 flex items-center justify-center text-[13px] font-semibold text-white select-none">
+                <div className={`w-8 h-8 rounded-full ${NAV_AVATAR_RING_CLASS} ${NAV_AVATAR_FALLBACK_CLASS}`}>
                   {headerUserInitial}
                 </div>
               ) : (
-                <svg className="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="w-5 h-5 text-black" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg>
@@ -1190,7 +877,7 @@ export function Header() {
 
             <Link
               to="/cart"
-              className="relative px-2 py-1.5 rounded-md text-white transition-colors hover:bg-carbon-700/30"
+              className={`relative ${NAV_ICON_BTN_CLASS}`}
               aria-label="Cart"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -1209,7 +896,7 @@ export function Header() {
 
         {/* Mobile: logo + cart + menu */}
         <div className="flex lg:hidden items-center gap-3">
-          <Link to="/cart" className="relative p-2 text-white" aria-label="Cart">
+          <Link to="/cart" className="relative p-2 text-black" aria-label="Cart">
             {totalItems > 0 && (
               <span className="absolute top-0 right-0 min-w-[1rem] h-4 px-0.5 rounded-full bg-[#B61B1B] text-white text-[10px] font-bold flex items-center justify-center">
                 {totalItems}
@@ -1221,7 +908,7 @@ export function Header() {
               <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
             </svg>
           </Link>
-          <label className="fb-burger" aria-label="Menu">
+          <label className="fb-burger fb-burger--dark" aria-label="Menu">
             <input
               type="checkbox"
               checked={menuOpen}
@@ -1247,12 +934,12 @@ export function Header() {
                 ? 'translate-y-0 pointer-events-auto'
                 : '-translate-y-full pointer-events-none'
             }`}
-            style={{ backgroundColor: solidNavColor }}
+            style={{ backgroundColor: SOLID_NAV_COLOR }}
           >
             <div
-              className="h-full border-t border-carbon-800 px-6 py-4 overflow-x-hidden"
+              className={`h-full border-t ${NAV_MOBILE_BORDER_CLASS} px-6 py-4 overflow-x-hidden`}
               style={{
-                backgroundColor: solidNavColor,
+                backgroundColor: SOLID_NAV_COLOR,
               }}
             >
           <div className="h-full flex flex-col">
@@ -1262,17 +949,17 @@ export function Header() {
             >
               <Link
                 to="/car-club"
-                className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white border-b border-white/[0.06]"
+                className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-black border-b border-black/[0.08]"
                 onClick={() => setMenuOpen(false)}
               >
                 <span>{t('nav.carClub')}</span>
               </Link>
 
             {/* Shop + catégories (dropdown mobile) */}
-            <div className={`border-b border-white/[0.06] ${mobileShopOpen ? 'bg-white/[0.03]' : ''}`}>
+            <div className={`border-b border-black/[0.08] ${mobileShopOpen ? 'bg-black/[0.03]' : ''}`}>
               <button
                 type="button"
-                className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white"
+                className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-black"
                 onClick={() => setMobileShopOpen((open) => !open)}
               >
                 <span>{t('nav.shop')}</span>
@@ -1294,13 +981,13 @@ export function Header() {
               {mobileShopOpen && (
                 <div className="pl-4 pb-2 space-y-4 animate-fade-in">
                   <div className="space-y-1.5">
-                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
+                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-black/50">
                       {t('nav.protectionSystems')}
                     </p>
                     <div className="mt-1 space-y-1.5 pl-3">
                       <Link
                         to="/coatings"
-                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1314,7 +1001,7 @@ export function Header() {
                       </Link>
                       <Link
                         to="/sealants"
-                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1328,7 +1015,7 @@ export function Header() {
                       </Link>
                       <Link
                         to="/waxes"
-                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1344,7 +1031,7 @@ export function Header() {
                       </Link>
                       <Link
                         to="/dressings"
-                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1358,14 +1045,14 @@ export function Header() {
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-white/[0.06] space-y-1.5">
-                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
+                  <div className="pt-3 border-t border-black/[0.08] space-y-1.5">
+                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-black/50">
                       {t('nav.maintenancePrep')}
                     </p>
                     <div className="mt-1 space-y-1.5 pl-3">
                       <Link
                         to="/washing"
-                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1379,7 +1066,7 @@ export function Header() {
                       </Link>
                       <Link
                         to="/cleaners"
-                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1393,7 +1080,7 @@ export function Header() {
                       </Link>
                       <Link
                         to="/towels"
-                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1407,7 +1094,7 @@ export function Header() {
                       </Link>
                       <Link
                         to="/accessories"
-                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1424,10 +1111,10 @@ export function Header() {
             </div>
 
             {/* Ceramic coating (dropdown mobile) */}
-            <div className={`border-b border-white/[0.06] ${mobileCeramicOpen ? 'bg-white/[0.03]' : ''}`}>
+            <div className={`border-b border-black/[0.08] ${mobileCeramicOpen ? 'bg-black/[0.03]' : ''}`}>
               <button
                 type="button"
-                className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white"
+                className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-black"
                 onClick={() => setMobileCeramicOpen((open) => !open)}
               >
                 <span>{t('nav.ceramicCoating')}</span>
@@ -1450,7 +1137,7 @@ export function Header() {
                 <div className="pl-4 pb-2 space-y-4 animate-fade-in">
                   {ceramicSections.map((section) => (
                     <div key={section.title} className="space-y-1.5">
-                      <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
+                      <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-black/50">
                         {section.title}
                       </p>
                       <div className="mt-1 space-y-1.5 pl-3">
@@ -1458,7 +1145,7 @@ export function Header() {
                           <Link
                             key={link.to}
                             to={link.to}
-                            className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                            className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                             onClick={() => setMenuOpen(false)}
                           >
                             <span className="inline-flex items-center justify-center w-5 h-5 shrink-0 text-apex">
@@ -1476,31 +1163,31 @@ export function Header() {
 
             <Link
               to="/event"
-              className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white border-b border-white/[0.06]"
+              className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-black border-b border-black/[0.08]"
               onClick={() => setMenuOpen(false)}
             >
               <span>{t('nav.events')}</span>
             </Link>
             <Link
               to="/academy"
-              className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white border-b border-white/[0.06]"
+              className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-black border-b border-black/[0.08]"
               onClick={() => setMenuOpen(false)}
             >
               <span>{t('nav.academy')}</span>
             </Link>
             <Link
               to="/service-builder"
-              className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white border-b border-white/[0.06]"
+              className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-black border-b border-black/[0.08]"
               onClick={() => setMenuOpen(false)}
             >
               <span>{t('nav.serviceBuilder')}</span>
             </Link>
 
             {/* Company (dropdown mobile) */}
-            <div className={`border-b border-white/[0.06] ${mobileCompanyOpen ? 'bg-white/[0.03]' : ''}`}>
+            <div className={`border-b border-black/[0.08] ${mobileCompanyOpen ? 'bg-black/[0.03]' : ''}`}>
               <button
                 type="button"
-                className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-white"
+                className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 font-nav font-bold text-black"
                 onClick={() => setMobileCompanyOpen((open) => !open)}
               >
                 <span>{t('nav.company')}</span>
@@ -1522,13 +1209,13 @@ export function Header() {
               {mobileCompanyOpen && (
                 <div className="pl-4 pb-1 space-y-4 animate-fade-in">
                   <div className="space-y-1.5">
-                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
+                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-black/50">
                       {t('nav.companySection')}
                     </p>
                     <div className="mt-1 space-y-1.5 pl-3">
                       <Link
                         to="/join-fireball"
-                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1554,7 +1241,7 @@ export function Header() {
                       </Link>
                       <Link
                         to="/apparel"
-                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1576,7 +1263,7 @@ export function Header() {
                       </Link>
                       <Link
                         to="/about"
-                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1602,14 +1289,14 @@ export function Header() {
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-white/[0.06] space-y-1.5">
-                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-silver/60">
+                  <div className="pt-3 border-t border-black/[0.08] space-y-1.5">
+                    <p className="text-[11px] font-nav font-bold uppercase tracking-[0.16em] text-black/50">
                       {t('nav.connect')}
                     </p>
                     <div className="mt-1 space-y-1.5 pl-3">
                       <Link
                         to="/contact"
-                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1634,7 +1321,7 @@ export function Header() {
                       </Link>
                       <Link
                         to="/press-kit"
-                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1658,7 +1345,7 @@ export function Header() {
                       </Link>
                       <Link
                         to="/legal"
-                        className="flex items-center gap-2 py-1.5 font-nav text-silver hover:text-chrome"
+                        className="flex items-center gap-2 py-1.5 font-nav text-black/70 hover:text-black"
                         onClick={() => setMenuOpen(false)}
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 text-apex">
@@ -1689,11 +1376,11 @@ export function Header() {
             </div>
 
               {/* Search */}
-              <div className={`mt-4 border-b border-white/[0.06] ${mobileSearchOpen ? 'bg-white/[0.03]' : ''}`}>
+              <div className={`mt-4 border-b border-black/[0.08] ${mobileSearchOpen ? 'bg-black/[0.03]' : ''}`}>
                 <button
                   type="button"
                   onClick={() => setMobileSearchOpen((open) => !open)}
-                  className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 text-sm font-nav font-bold text-white"
+                  className="flex w-[96%] mx-auto items-center justify-between py-3 px-2 text-sm font-nav font-bold text-black"
                   aria-expanded={mobileSearchOpen}
                 >
                   <span className="inline-flex items-center gap-2">
@@ -1707,7 +1394,7 @@ export function Header() {
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="text-white"
+                      className="text-black"
                     >
                       <path d="m21 21-4.34-4.34" />
                       <circle cx="11" cy="11" r="8" />
@@ -1737,13 +1424,13 @@ export function Header() {
                         value={searchQuery}
                         onChange={(event) => setSearchQuery(event.target.value)}
                         placeholder="Search pages, links, products..."
-                        className="w-full py-2.5 px-3 rounded-xl border border-white/20 bg-black/20 text-white text-sm placeholder:text-silver/60 focus:outline-none focus:border-white/40"
+                        className="w-full py-2.5 px-3 rounded-xl border border-black/15 bg-black/[0.03] text-black text-sm placeholder:text-black/40 focus:outline-none focus:border-black/30"
                       />
-                      <p className="text-[10px] font-nav font-bold uppercase tracking-[0.14em] text-silver/60 mt-3 mb-2">
+                      <p className="text-[10px] font-nav font-bold uppercase tracking-[0.14em] text-black/50 mt-3 mb-2">
                         {searchQuery.trim() ? 'Results' : 'Popular'}
                       </p>
                       {activeSearchEntries.length === 0 ? (
-                        <p className="text-sm text-silver/70 py-2">No results found.</p>
+                        <p className="text-sm text-black/60 py-2">No results found.</p>
                       ) : (
                         <ul className="space-y-1.5">
                           {activeSearchEntries.map((entry) => (
@@ -1751,12 +1438,12 @@ export function Header() {
                               <button
                                 type="button"
                                 onClick={() => handleSearchNavigation(entry.to)}
-                                className="w-full text-left px-2.5 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] transition-colors"
+                                className="w-full text-left px-2.5 py-2 rounded-lg bg-black/[0.03] hover:bg-black/[0.08] transition-colors"
                               >
-                                <p className="text-sm text-white font-nav font-bold">{entry.label}</p>
+                                <p className="text-sm text-black font-nav font-bold">{entry.label}</p>
                                 <div className="mt-0.5 flex items-center justify-between gap-2">
-                                  <p className="text-xs text-silver/70 truncate">{entry.subtitle || entry.to}</p>
-                                  <span className="text-[10px] uppercase tracking-[0.14em] text-silver/60">{entry.kind}</span>
+                                  <p className="text-xs text-black/60 truncate">{entry.subtitle || entry.to}</p>
+                                  <span className="text-[10px] uppercase tracking-[0.14em] text-black/50">{entry.kind}</span>
                                 </div>
                               </button>
                             </li>
@@ -1781,15 +1468,15 @@ export function Header() {
                         <img
                           src={headerAvatarUrl}
                           alt="Profile"
-                          className="w-9 h-9 rounded-full object-cover ring-2 ring-white/20"
+                          className={`w-9 h-9 rounded-full object-cover ${NAV_AVATAR_RING_CLASS}`}
                         />
                       ) : headerUserInitial ? (
-                        <div className="w-9 h-9 rounded-full bg-carbon-600 ring-2 ring-white/20 flex items-center justify-center text-[14px] font-semibold text-white select-none">
+                        <div className={`w-9 h-9 rounded-full ${NAV_AVATAR_RING_CLASS} ${NAV_AVATAR_FALLBACK_CLASS} text-[14px]`}>
                           {headerUserInitial}
                         </div>
                       ) : (
-                        <div className="w-9 h-9 rounded-full bg-carbon-600 ring-2 ring-white/20 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <div className={`w-9 h-9 rounded-full ${NAV_AVATAR_RING_CLASS} bg-carbon-200 flex items-center justify-center`}>
+                          <svg className="w-4 h-4 text-black" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                             <circle cx="12" cy="7" r="4" />
                           </svg>
@@ -1797,7 +1484,7 @@ export function Header() {
                       )}
                     </div>
                     {headerUserName && (
-                      <span className="text-sm font-nav font-medium text-silver truncate">
+                      <span className="text-sm font-nav font-medium text-black/70 truncate">
                         {headerUserName}
                       </span>
                     )}
@@ -1829,7 +1516,7 @@ export function Header() {
                       setMenuOpen(false)
                       navigate('/join-fireball')
                     }}
-                    className="w-[95vw] max-w-[520px] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-white border border-white/[0.16] bg-transparent hover:bg-white/[0.03] active:bg-white/[0.05] transition-colors"
+                    className="w-[95vw] max-w-[520px] py-3 rounded-xl text-sm font-nav font-bold uppercase tracking-[0.14em] text-black border border-black/15 bg-transparent hover:bg-black/[0.03] active:bg-black/[0.05] transition-colors"
                   >
                     Join Fireball
                   </button>
@@ -1843,6 +1530,20 @@ export function Header() {
         document.body
       )}
         </header>
+        </div>
+
+        <NavMegaMenu
+          activeMenu={megaMenu}
+          onClose={closeMegaMenuNow}
+          onPointerEnterPanel={cancelMegaMenuClose}
+          onPointerLeavePanel={scheduleMegaMenuClose}
+          ceramicSections={ceramicSections}
+          companySections={companySections}
+          featuredName={featuredName}
+          featuredDescription={featuredDescription}
+          featuredImage={featuredImage}
+        />
+        </div>
       </div>
     </>
   )
