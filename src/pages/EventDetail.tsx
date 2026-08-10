@@ -25,11 +25,20 @@ function HeroSingleLineTitle({ text, className }: { text: string; className?: st
     if (!wrap || !el) return
 
     const fit = () => {
-      const maxW = wrap.clientWidth
+      const style = getComputedStyle(wrap)
+      const padX = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0)
+      // clientWidth includes padding — fit against the inner content box only
+      const maxW = Math.max(0, wrap.clientWidth - padX)
       if (maxW < 8) return
-      let low = 10
-      let high = 160
+
       el.style.whiteSpace = 'nowrap'
+      el.style.display = 'block'
+      el.style.width = 'max-content'
+      el.style.maxWidth = 'none'
+      el.style.transform = ''
+
+      let low = 10
+      let high = Math.min(160, Math.floor(maxW * 0.42))
       while (low < high - 1) {
         const mid = Math.floor((low + high) / 2)
         el.style.fontSize = `${mid}px`
@@ -37,17 +46,35 @@ function HeroSingleLineTitle({ text, className }: { text: string; className?: st
         else high = mid
       }
       el.style.fontSize = `${low}px`
+
+      // Final safety: if still slightly over (subpixel / font swap), scale via transform
+      const overflow = el.scrollWidth - maxW
+      if (overflow > 0.5) {
+        const scale = Math.max(0.5, maxW / el.scrollWidth)
+        el.style.transformOrigin = 'center center'
+        el.style.transform = `scale(${scale})`
+      }
+      el.style.maxWidth = `${maxW}px`
     }
 
     fit()
+
+    let cancelled = false
+    void document.fonts?.ready?.then(() => {
+      if (!cancelled) fit()
+    })
+
     const ro = new ResizeObserver(fit)
     ro.observe(wrap)
-    return () => ro.disconnect()
+    return () => {
+      cancelled = true
+      ro.disconnect()
+    }
   }, [text])
 
   return (
-    <div ref={wrapRef} className="mx-auto w-full max-w-5xl px-4 sm:px-6">
-      <h1 ref={titleRef} className={className}>
+    <div ref={wrapRef} className="mx-auto w-full min-w-0 max-w-5xl overflow-hidden px-4 sm:px-6">
+      <h1 ref={titleRef} className={`mx-auto max-w-full ${className ?? ''}`}>
         {text}
       </h1>
     </div>
@@ -282,7 +309,7 @@ export function EventDetail() {
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/75" aria-hidden />
 
-          <div className="relative z-10 flex h-full min-h-0 flex-col items-center justify-center px-2 py-8 text-center sm:py-12">
+          <div className="relative z-10 flex h-full min-h-0 w-full min-w-0 flex-col items-center justify-center overflow-hidden px-2 py-8 text-center sm:py-12">
             <HeroSingleLineTitle
               text={resolved.heroTitle}
               className="font-nav font-bold leading-none tracking-tight text-white"
