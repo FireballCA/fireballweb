@@ -1,7 +1,7 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim()
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim()
 
 const REMEMBER_DEVICE_KEY = 'fireball-remember-device'
 
@@ -39,13 +39,22 @@ export function setRememberDevice(remember: boolean) {
   }
 }
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('⚠️ Supabase URL or Anon Key is missing. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file.')
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
+
+if (!isSupabaseConfigured) {
+  console.warn(
+    '⚠️ Supabase URL or Anon Key is missing. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file.',
+  )
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// createClient throws if url is empty — use a harmless placeholder so the SPA can still boot locally.
+const clientUrl = isSupabaseConfigured ? supabaseUrl : 'https://placeholder.supabase.co'
+const clientKey = isSupabaseConfigured ? supabaseAnonKey : 'public-anon-key'
+
+export const supabase: SupabaseClient = createClient(clientUrl, clientKey, {
   auth: {
-    persistSession: true,
+    persistSession: isSupabaseConfigured,
     storage: authStorage,
+    autoRefreshToken: isSupabaseConfigured,
   },
 })

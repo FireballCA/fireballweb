@@ -1783,6 +1783,17 @@ function BusinessAdminEvents() {
     setError('')
     setSuccess('')
     try {
+      const normalized = nextEvents.map((ev) => {
+        const hero =
+          !ev.heroTitle?.trim() || ev.heroTitle.trim().toLowerCase() === 'new event'
+            ? ev.title
+            : ev.heroTitle
+        const nav =
+          !ev.navTitle?.trim() || ev.navTitle.trim().toLowerCase() === 'new event'
+            ? ev.title
+            : ev.navTitle
+        return { ...ev, heroTitle: hero, navTitle: nav }
+      })
       const { data: existing, error: existingError } = await supabase
         .from('site_settings')
         .select('id')
@@ -1793,14 +1804,14 @@ function BusinessAdminEvents() {
       const write = existing
         ? supabase
             .from('site_settings')
-            .update({ value: nextEvents, updated_at: new Date().toISOString() })
+            .update({ value: normalized, updated_at: new Date().toISOString() })
             .eq('key', 'events')
         : supabase
             .from('site_settings')
-            .insert({ key: 'events', value: nextEvents, updated_at: new Date().toISOString() })
+            .insert({ key: 'events', value: normalized, updated_at: new Date().toISOString() })
       const result = await write
       if (result.error) throw result.error
-      setEvents(nextEvents)
+      setEvents(normalized)
       setSuccess('Saved.')
       window.setTimeout(() => setSuccess(''), 2000)
     } catch (e) {
@@ -1944,7 +1955,39 @@ function BusinessAdminEvents() {
 
         {selected && (
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <input value={selected.title} onChange={(e) => upsertSelected({ title: e.target.value })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Title" />
+            <input
+              value={selected.title}
+              onChange={(e) => {
+                const title = e.target.value
+                const patch: Partial<SiteEventConfig> = { title }
+                const staleHero =
+                  !selected.heroTitle ||
+                  selected.heroTitle === 'New Event' ||
+                  selected.heroTitle === selected.title
+                const staleNav =
+                  !selected.navTitle ||
+                  selected.navTitle === 'New Event' ||
+                  selected.navTitle === selected.title
+                if (staleHero) patch.heroTitle = title
+                if (staleNav) patch.navTitle = title
+                if (/^new-event(-\d+)?$/i.test(selected.slug)) {
+                  const nextSlug = title
+                    .toLowerCase()
+                    .trim()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-|-$/g, '')
+                  if (nextSlug) {
+                    patch.slug = nextSlug
+                    patch.ctaHref = `/event/${nextSlug}`
+                  }
+                }
+                upsertSelected(patch)
+              }}
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              placeholder="Title"
+            />
             <input value={selected.slug} onChange={(e) => upsertSelected({ slug: e.target.value, ctaHref: `/event/${e.target.value}` })} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Slug" />
             <div className="md:col-span-2 flex flex-wrap items-center gap-x-4 gap-y-2">
               <p className="shrink-0 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Event dates</p>

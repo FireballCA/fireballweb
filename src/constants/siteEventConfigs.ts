@@ -96,6 +96,83 @@ export function isInternalEventDetailHref(href: string): boolean {
   return /^\/event\/[^/]+/.test(path)
 }
 
+/** Marketing short paths → preferred event slug (React resolves fuzzy if slug differs). */
+export const EVENT_SHORT_LINKS: Record<string, string> = {
+  pleingaz: 'pleingaz',
+}
+
+export function slugifyEventTitle(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+function normalizeLooseKey(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '')
+}
+
+/** Prefer real title over leftover "New Event" hero/nav placeholders from admin create. */
+export function displayEventTitle(ev: Pick<SiteEventConfig, 'title' | 'heroTitle' | 'navTitle'>): string {
+  const hero = ev.heroTitle?.trim()
+  if (hero && hero.toLowerCase() !== 'new event') return hero
+  const nav = ev.navTitle?.trim()
+  if (nav && nav.toLowerCase() !== 'new event') return nav
+  return ev.title
+}
+
+export function resolveEventSlugFromShortLink(
+  shortKey: string,
+  events: SiteEventConfig[],
+): string | null {
+  const preferred = EVENT_SHORT_LINKS[shortKey] ?? shortKey
+  const exactPreferred = events.find((e) => e.slug === preferred)
+  if (exactPreferred) return exactPreferred.slug
+
+  const keyNorm = normalizeLooseKey(shortKey)
+  const fuzzy = events.find((e) => {
+    const slugN = normalizeLooseKey(e.slug)
+    const titleN = normalizeLooseKey(e.title)
+    const heroN = normalizeLooseKey(e.heroTitle || '')
+    return (
+      slugN === keyNorm ||
+      titleN === keyNorm ||
+      heroN === keyNorm ||
+      slugN.includes(keyNorm) ||
+      titleN.includes(keyNorm) ||
+      heroN.includes(keyNorm)
+    )
+  })
+  if (fuzzy) return fuzzy.slug
+
+  // Still send users to the preferred slug path (admin can set slug to match).
+  return preferred || null
+}
+
+/** Soonest upcoming event; falls back to the latest configured event. */
+export function pickNextSiteEvent(
+  events: SiteEventConfig[],
+  nowMs: number = Date.now(),
+): SiteEventConfig | null {
+  if (!events.length) return null
+  const withStart = events
+    .map((ev) => ({ ev, startMs: ev.startAt ? new Date(ev.startAt).getTime() : Number.NaN }))
+    .filter((x) => !Number.isNaN(x.startMs))
+  const upcoming = withStart
+    .filter((x) => !isSiteEventPast(x.ev, nowMs))
+    .sort((a, b) => a.startMs - b.startMs)
+  if (upcoming[0]) return upcoming[0].ev
+  const past = withStart.sort((a, b) => b.startMs - a.startMs)
+  return past[0]?.ev ?? events[0] ?? null
+}
+
 export function resolveSiteEventConfigs(raw: unknown): SiteEventConfig[] {
   if (!Array.isArray(raw)) return DEFAULT_SITE_EVENT_CONFIGS
   const parsed: SiteEventConfig[] = []
@@ -116,6 +193,17 @@ export function resolveSiteEventConfigs(raw: unknown): SiteEventConfig[] {
 
     // Supabase (admin) wins for all fields; code defaults fill in anything missing.
     const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
+    const rawHero = str(i.heroTitle)
+    const rawNav = str(i.navTitle)
+    const heroTitle =
+      !rawHero || rawHero.toLowerCase() === 'new event'
+        ? (codeDefault?.heroTitle ?? title)
+        : rawHero
+    const navTitle =
+      !rawNav || rawNav.toLowerCase() === 'new event'
+        ? (codeDefault?.navTitle ?? title)
+        : rawNav
+
     parsed.push({
       id: str(i.id) ?? codeDefault?.id ?? `${slug}-${Date.now()}`,
       slug,
@@ -132,8 +220,8 @@ export function resolveSiteEventConfigs(raw: unknown): SiteEventConfig[] {
         : codeDefault?.allowedRoles,
       ctaLabel: str(i.ctaLabel) ?? codeDefault?.ctaLabel ?? 'See details',
       ctaHref: str(i.ctaHref) ?? codeDefault?.ctaHref ?? `/event/${slug}`,
-      navTitle: str(i.navTitle) ?? codeDefault?.navTitle,
-      heroTitle: str(i.heroTitle) ?? codeDefault?.heroTitle,
+      navTitle,
+      heroTitle,
       dateLine: str(i.dateLine) ?? codeDefault?.dateLine,
       locationLine: str(i.locationLine) ?? codeDefault?.locationLine,
       startAt: str(i.startAt) ?? codeDefault?.startAt,

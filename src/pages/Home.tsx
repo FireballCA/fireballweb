@@ -15,10 +15,26 @@ import { cn } from '@/lib/utils'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useEffectiveReducedMotion } from '@/hooks/useEffectiveReducedMotion'
 import { SEO, ORGANIZATION_JSONLD, WEBSITE_JSONLD } from '@/components/SEO'
-import { isInternalEventDetailHref, isSiteEventPast } from '@/constants/siteEventConfigs'
+import {
+  displayEventTitle,
+  isInternalEventDetailHref,
+  isSiteEventPast,
+  pickNextSiteEvent,
+  resolveSiteEventConfigs,
+} from '@/constants/siteEventConfigs'
+import { buildCalendarLinks, downloadIcsFile } from '@/utils/eventCalendar'
 
 const EASE_PREMIUM = [0.16, 1, 0.3, 1] as const
 const EASE_SNAPPY = [0.22, 1, 0.36, 1] as const
+
+const FALLBACK_NEXT_EVENT = {
+  title: 'Fireball After Party',
+  location: 'Saint-Hyacinthe, QC',
+  startsAt: '2026-05-16T19:00:00-04:00',
+  endAt: '2026-05-16T23:00:00-04:00',
+  href: '/event/fireball-after-party',
+  imageSrc: '/Assets/FireballAfterParty.png',
+}
 
 function useCountdown(targetIso: string, enabled = true) {
   const target = useMemo(() => new Date(targetIso).getTime(), [targetIso])
@@ -49,58 +65,24 @@ export function Home() {
   )
   const [calendarMenuOpen, setCalendarMenuOpen] = useState(false)
   const calendarMenuRef = useRef<HTMLDivElement>(null)
+  const [nextEvent, setNextEvent] = useState(FALLBACK_NEXT_EVENT)
 
-  const nextEvent = {
-    title: 'Fireball After Party',
-    location: 'Saint-Hyacinthe, QC',
-    startsAt: '2026-05-16T19:00:00-04:00',
-    endAt: '2026-05-16T23:00:00-04:00',
-    href: '/event/fireball-after-party',
-    imageSrc: '/Assets/FireballAfterParty.png',
-  }
   const nextEventEnded = isSiteEventPast({ startAt: nextEvent.startsAt, endAt: nextEvent.endAt })
   const nextEventCtaBlocked = nextEventEnded && isInternalEventDetailHref(nextEvent.href)
   const countdown = useCountdown(nextEvent.startsAt, !nextEventEnded)
 
-  const eventStart = useMemo(() => new Date(nextEvent.startsAt), [nextEvent.startsAt])
-  const eventEnd = useMemo(() => new Date(nextEvent.endAt), [nextEvent.endAt])
-  const toGoogleDate = (d: Date) =>
-    d
-      .toISOString()
-      .replace(/[-:]/g, '')
-      .replace(/\.\d{3}Z$/, 'Z')
-  const googleCalendarUrl = useMemo(() => {
-    const params = new URLSearchParams({
-      action: 'TEMPLATE',
-      text: nextEvent.title,
-      details: `${nextEvent.title} - Fireball event`,
-      location: nextEvent.location,
-      dates: `${toGoogleDate(eventStart)}/${toGoogleDate(eventEnd)}`,
-    })
-    return `https://calendar.google.com/calendar/render?${params.toString()}`
-  }, [nextEvent.title, nextEvent.location, eventStart, eventEnd])
+  const calendarLinks = useMemo(
+    () =>
+      buildCalendarLinks({
+        title: nextEvent.title,
+        location: nextEvent.location,
+        startIso: nextEvent.startsAt,
+        endIso: nextEvent.endAt,
+      }),
+    [nextEvent.title, nextEvent.location, nextEvent.startsAt, nextEvent.endAt],
+  )
+  const googleCalendarUrl = calendarLinks?.google ?? '#'
   const samsungCalendarUrl = googleCalendarUrl
-  const appleCalendarUrl = useMemo(() => {
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const toICSDate = (d: Date) =>
-      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
-    const ics = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//Fireball//Events//EN',
-      'BEGIN:VEVENT',
-      `UID:${toICSDate(eventStart)}-fireball-event@fireball`,
-      `DTSTAMP:${toICSDate(new Date())}`,
-      `DTSTART:${toICSDate(eventStart)}`,
-      `DTEND:${toICSDate(eventEnd)}`,
-      `SUMMARY:${nextEvent.title}`,
-      `LOCATION:${nextEvent.location}`,
-      'DESCRIPTION:Fireball event',
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].join('\r\n')
-    return `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`
-  }, [eventStart, eventEnd, nextEvent.title, nextEvent.location])
   const { showAppleCalendar, showSamsungCalendar } = useMemo(() => {
     if (typeof navigator === 'undefined') {
       return { showAppleCalendar: true, showSamsungCalendar: true }
@@ -117,6 +99,34 @@ export function Home() {
       return { showAppleCalendar: false, showSamsungCalendar: true }
     }
     return { showAppleCalendar: true, showSamsungCalendar: true }
+  }, [])
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const { data } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'events')
+          .maybeSingle()
+        const events = resolveSiteEventConfigs(data?.value)
+        const picked = pickNextSiteEvent(events)
+        if (!picked) return
+        setNextEvent({
+          title: displayEventTitle(picked),
+          location: picked.locationLine || picked.cityRegion || '',
+          startsAt: picked.startAt || FALLBACK_NEXT_EVENT.startsAt,
+          endAt: picked.endAt || FALLBACK_NEXT_EVENT.endAt,
+          href: isInternalEventDetailHref(picked.ctaHref)
+            ? picked.ctaHref
+            : `/event/${picked.slug}`,
+          imageSrc: picked.imageSrc || FALLBACK_NEXT_EVENT.imageSrc,
+        })
+      } catch {
+        /* keep fallback */
+      }
+    }
+    void loadEvents()
   }, [])
 
   useEffect(() => {
@@ -530,18 +540,17 @@ export function Home() {
 
                         {calendarMenuOpen && (
                           <div className="absolute bottom-[calc(100%+0.5rem)] left-1/2 w-[calc(100vw-1.5rem)] max-w-[320px] -translate-x-1/2 rounded-xl border border-white/20 bg-[#0f1218] p-2 shadow-2xl sm:left-auto sm:right-0 sm:w-[320px] sm:translate-x-0">
-                            {showAppleCalendar && (
-                              <a
-                                href={appleCalendarUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                            {showAppleCalendar && calendarLinks && (
+                              <button
+                                type="button"
+                                onClick={() => downloadIcsFile(calendarLinks.filename, calendarLinks.icsContent)}
+                                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-white transition-colors hover:bg-white/10"
                               >
                                 <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white" aria-hidden>
                                   <path fill="currentColor" d={siApple.path} />
                                 </svg>
                                 <span>Open Apple Calendar</span>
-                              </a>
+                              </button>
                             )}
                             <a
                               href={googleCalendarUrl}

@@ -1462,7 +1462,13 @@ function blankDraft(): EventDraft {
 }
 
 function slugify(s: string) {
-  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  return s
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -1491,7 +1497,7 @@ function AdminEventsSection() {
   const [draft, setDraft] = useState<EventDraft>(blankDraft())
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
-  const isNew = !events.find((e) => e.slug === draft.slug)
+  const isNew = !draft.id || !events.some((e) => e.id === draft.id)
 
   const loadAll = useCallback(async () => {
     const [settingsRes, rsvpRes] = await Promise.all([
@@ -1542,6 +1548,12 @@ function AdminEventsSection() {
     if (!draft.title.trim() || !draft.slug.trim()) { setSaveError('Title and slug are required.'); return }
     setSaving(true); setSaveError(null)
     try {
+      const heroRaw = draft.heroTitle.trim()
+      const navRaw = draft.navTitle.trim()
+      const heroTitle =
+        !heroRaw || heroRaw.toLowerCase() === 'new event' ? draft.title : heroRaw
+      const navTitle =
+        !navRaw || navRaw.toLowerCase() === 'new event' ? draft.title : navRaw
       const updated: SiteEventConfig = {
         id: draft.id || `${draft.slug}-${Date.now()}`,
         slug: draft.slug,
@@ -1555,9 +1567,9 @@ function AdminEventsSection() {
         accessMode: draft.accessMode,
         allowedRoles: draft.allowedRoles.split(',').map((r) => r.trim()).filter(Boolean),
         ctaLabel: draft.ctaLabel,
-        ctaHref: draft.ctaHref,
-        heroTitle: draft.heroTitle || draft.title,
-        navTitle: draft.navTitle || draft.title,
+        ctaHref: draft.ctaHref || `/event/${draft.slug}`,
+        heroTitle,
+        navTitle,
         dateLine: draft.dateLine,
         locationLine: draft.locationLine,
         startAt: draft.startAt,
@@ -1566,7 +1578,7 @@ function AdminEventsSection() {
       }
       const nextEvents = isNew
         ? [...events, updated]
-        : events.map((e) => (e.slug === draft.slug ? updated : e))
+        : events.map((e) => (e.id === draft.id ? updated : e))
       const { error } = await supabase
         .from('site_settings')
         .upsert({ key: 'events', value: nextEvents }, { onConflict: 'key' })
@@ -1624,8 +1636,28 @@ function AdminEventsSection() {
               <input
                 value={draft.title}
                 onChange={(e) => {
-                  set('title', e.target.value)
-                  if (isNew) set('slug', slugify(e.target.value))
+                  const title = e.target.value
+                  setDraft((d) => {
+                    const staleHero =
+                      !d.heroTitle ||
+                      d.heroTitle === 'New Event' ||
+                      d.heroTitle === d.title
+                    const staleNav =
+                      !d.navTitle ||
+                      d.navTitle === 'New Event' ||
+                      d.navTitle === d.title
+                    const shouldSlugify =
+                      isNew || !d.slug || /^new-event(-\d+)?$/i.test(d.slug)
+                    const nextSlug = shouldSlugify ? slugify(title) : d.slug
+                    return {
+                      ...d,
+                      title,
+                      heroTitle: staleHero ? title : d.heroTitle,
+                      navTitle: staleNav ? title : d.navTitle,
+                      slug: nextSlug || d.slug,
+                      ctaHref: nextSlug ? `/event/${nextSlug}` : d.ctaHref,
+                    }
+                  })
                 }}
                 placeholder="Fireball After Party"
                 className={ADMIN_INPUT}

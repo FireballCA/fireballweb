@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { CartProvider } from '@/context/CartContext'
 import { NotificationsProvider } from '@/context/NotificationsContext'
@@ -8,6 +8,8 @@ import { PartnerRoute } from '@/components/PartnerRoute'
 import { AdminProvider } from '@/context/AdminContext'
 import { CATEGORIES } from '@/data/products'
 import { ShopifyCheckoutBridge } from '@/pages/ShopifyCheckoutBridge'
+import { supabase } from '@/lib/supabase'
+import { resolveEventSlugFromShortLink, resolveSiteEventConfigs } from '@/constants/siteEventConfigs'
 
 // Core pages — chargées immédiatement (above-the-fold)
 import { Home } from '@/pages/Home'
@@ -62,6 +64,35 @@ function LegacyProductRedirect() {
   return <Navigate to={`/products/${slug}`} replace />
 }
 
+function EventShortLinkRedirect({ alias }: { alias: string }) {
+  const [to, setTo] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      try {
+        const { data } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'events')
+          .maybeSingle()
+        const events = resolveSiteEventConfigs(data?.value)
+        const slug = resolveEventSlugFromShortLink(alias, events)
+        if (!cancelled) setTo(slug ? `/event/${slug}` : '/event')
+      } catch {
+        if (!cancelled) setTo('/event')
+      }
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [alias])
+
+  if (!to) return null
+  return <Navigate to={to} replace />
+}
+
 function CategoryRoute() {
   const { categoryId } = useParams<{ categoryId: string }>()
   const isValid = CATEGORIES.some((c) => c.id === categoryId)
@@ -87,6 +118,7 @@ function App() {
             <Route path="find-installer" element={<FindInstaller />} />
             <Route path="coatings/how-it-works" element={<HowItWorks />} />
             <Route path="coatings" element={<Shop />} />
+            <Route path="pleingaz" element={<EventShortLinkRedirect alias="pleingaz" />} />
             {/* Routes directes pour les catégories (doivent être après les routes spécifiques) */}
             <Route path=":categoryId" element={<CategoryRoute />} />
             <Route path="about" element={<About />} />

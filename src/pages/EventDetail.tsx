@@ -3,8 +3,16 @@ import { Navigate, useParams } from 'react-router-dom'
 import { ReserveYourSpot } from '@/components/events/ReserveYourSpot'
 import { WhatToExpect } from '@/components/events/WhatToExpect'
 import { supabase } from '@/lib/supabase'
-import { resolveSiteEventConfigs, isSiteEventPast, type EventAccessMode, type WhatToExpectRow } from '@/constants/siteEventConfigs'
+import {
+  resolveSiteEventConfigs,
+  isSiteEventPast,
+  displayEventTitle,
+  resolveEventSlugFromShortLink,
+  type EventAccessMode,
+  type WhatToExpectRow,
+} from '@/constants/siteEventConfigs'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { buildCalendarLinks, downloadIcsFile } from '@/utils/eventCalendar'
 
 /** Scales down font size so the title stays on one line within its container */
 function HeroSingleLineTitle({ text, className }: { text: string; className?: string }) {
@@ -110,87 +118,8 @@ function EventCountdown({ targetIso, endIso }: { targetIso: string; endIso: stri
 
 // ─── Add to Calendar ──────────────────────────────────────────────────────────
 
-function useCalendarUrls(title: string, location: string, startIso: string, endIso: string) {
-  return useMemo(() => {
-    const start = new Date(startIso)
-    const end = new Date(endIso)
-
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const toGCal = (d: Date) =>
-      d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
-    const toICS = (d: Date) =>
-      `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
-
-    const google = `https://calendar.google.com/calendar/render?${new URLSearchParams({
-      action: 'TEMPLATE',
-      text: title,
-      details: `${title} — Fireball event`,
-      location,
-      dates: `${toGCal(start)}/${toGCal(end)}`,
-    }).toString()}`
-
-    const outlook = `https://outlook.live.com/calendar/0/deeplink/compose?${new URLSearchParams({
-      subject: title,
-      startdt: start.toISOString(),
-      enddt: end.toISOString(),
-      location,
-      body: `${title} — Fireball event`,
-    }).toString()}`
-
-    const ics = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//Fireball//Events//EN',
-      'BEGIN:VEVENT',
-      `UID:${toICS(start)}-fireball@fireball`,
-      `DTSTAMP:${toICS(new Date())}`,
-      `DTSTART:${toICS(start)}`,
-      `DTEND:${toICS(end)}`,
-      `SUMMARY:${title}`,
-      `LOCATION:${location}`,
-      `DESCRIPTION:${title} — Fireball event`,
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].join('\r\n')
-    const apple = `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`
-
-    return { google, outlook, apple }
-  }, [title, location, startIso, endIso])
-}
-
-const CAL_PROVIDERS = [
-  {
-    key: 'google',
-    label: 'Google',
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden>
-        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-      </svg>
-    ),
-  },
-  {
-    key: 'apple',
-    label: 'Apple',
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-white" aria-hidden>
-        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-      </svg>
-    ),
-  },
-  {
-    key: 'outlook',
-    label: 'Outlook',
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden>
-        <path fill="#0078D4" d="M7 6h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/>
-        <path fill="#fff" d="M5 9l7 4.5L19 9"/>
-      </svg>
-    ),
-  },
-] as const
+const CAL_BTN =
+  'flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.05] px-4 py-2 text-[12px] font-medium text-white/60 transition-all hover:border-white/25 hover:bg-white/[0.1] hover:text-white/90'
 
 function AddToCalendar({
   title,
@@ -203,8 +132,12 @@ function AddToCalendar({
   startIso: string
   endIso: string
 }) {
-  const { google, outlook, apple } = useCalendarUrls(title, location, startIso, endIso)
-  const urls: Record<string, string> = { google, apple, outlook }
+  const links = useMemo(
+    () => buildCalendarLinks({ title, location, startIso, endIso }),
+    [title, location, startIso, endIso],
+  )
+
+  if (!links) return null
 
   return (
     <div className="flex flex-col items-center gap-3 border-t border-white/[0.07] pb-8 pt-6 sm:pb-10">
@@ -212,19 +145,32 @@ function AddToCalendar({
         Add to calendar
       </p>
       <div className="flex items-center gap-2">
-        {CAL_PROVIDERS.map(({ key, label, icon }) => (
-          <a
-            key={key}
-            href={urls[key]}
-            target={key !== 'apple' ? '_blank' : undefined}
-            rel="noopener noreferrer"
-            download={key === 'apple' ? `${title.replace(/\s+/g, '-')}.ics` : undefined}
-            className="flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.05] px-4 py-2 text-[12px] font-medium text-white/60 transition-all hover:border-white/25 hover:bg-white/[0.1] hover:text-white/90"
-          >
-            {icon}
-            {label}
-          </a>
-        ))}
+        <a href={links.google} target="_blank" rel="noopener noreferrer" className={CAL_BTN}>
+          <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden>
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Google
+        </a>
+        <button
+          type="button"
+          onClick={() => downloadIcsFile(links.filename, links.icsContent)}
+          className={CAL_BTN}
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-white" aria-hidden>
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+          </svg>
+          Apple
+        </button>
+        <a href={links.outlook} target="_blank" rel="noopener noreferrer" className={CAL_BTN}>
+          <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden>
+            <path fill="#0078D4" d="M7 6h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/>
+            <path fill="#fff" d="M5 9l7 4.5L19 9"/>
+          </svg>
+          Outlook
+        </a>
       </div>
     </div>
   )
@@ -247,6 +193,7 @@ export function EventDetail() {
     allowedRoles: string[] | undefined
     whatToExpect: WhatToExpectRow[] | undefined
   } | null>(null)
+  const [canonicalSlug, setCanonicalSlug] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
 
   usePageTitle(
@@ -263,12 +210,22 @@ export function EventDetail() {
         .eq('key', 'events')
         .maybeSingle()
       const events = resolveSiteEventConfigs(data?.value)
-      const ev = events.find((item) => item.slug === eventSlug)
+      let ev = events.find((item) => item.slug === eventSlug)
+      if (!ev && eventSlug) {
+        const aliasSlug = resolveEventSlugFromShortLink(eventSlug, events)
+        if (aliasSlug && aliasSlug !== eventSlug) {
+          setCanonicalSlug(aliasSlug)
+          setLoaded(true)
+          return
+        }
+        if (aliasSlug) ev = events.find((item) => item.slug === aliasSlug)
+      }
+      setCanonicalSlug(null)
       setResolved(
         ev
           ? {
-              navTitle: ev.navTitle || ev.title,
-              heroTitle: ev.heroTitle || ev.title,
+              navTitle: displayEventTitle(ev),
+              heroTitle: displayEventTitle(ev),
               description: ev.description,
               imageSrc: ev.imageSrc,
               dateLine: ev.dateLine || '',
@@ -287,6 +244,9 @@ export function EventDetail() {
   }, [eventSlug])
 
   if (!loaded) return null
+  if (canonicalSlug) {
+    return <Navigate to={`/event/${canonicalSlug}`} replace />
+  }
   if (!resolved) {
     return <Navigate to="/event" replace />
   }
